@@ -40,7 +40,7 @@ import { isStructure, structureImmune } from '../engine/structures';
 import { overcastSourceOf } from '../engine/overcast';
 import { tileKey, type Pt } from './monde/path';
 import { sceneMetresPerTile } from './monde/scene';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
 import { bearingPostes } from './monde/shipBattery';
 import { serveTargetPoste, isPosteManned, translaterFormation, posteDeLaBataille } from './monde/shipPostes';
@@ -62,8 +62,9 @@ import {
   attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
-import { captureMoveSnapshot } from './monde/combatGeometry';
+import { captureMoveSnapshot, campAuContact } from './monde/combatGeometry';
 import { displaceSmaller, applyZoneCrossings } from './combatPlacement';
+import { placeCombatant } from './monde/spawn';
 import type { IdDIntention } from './designations';
 
 export type HoverTargeting =
@@ -236,7 +237,7 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   const mpt = sceneMetresPerTile(get().scene);
   const gbf = () => bonusDeForce(ship); // paresseux : la portée navale est fixe (number) → BF jamais évalué
   const maxRange = Math.max(...postes.map((p) => effectiveRange(p.item.range, gbf) ?? 0)); // mètres — la plus longue pièce du bord
-  if (maxRange && rangeBandModifier(combatDistance(ship, target), maxRange, mpt) == null)
+  if (maxRange && rangeBandModifier(distanceDeCombat(ship, target), maxRange, mpt) == null)
     return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: ship.label }) };
   return null;
 }
@@ -445,9 +446,11 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   };
 }
 
-/** Alliés soignables à portée de `active` (soi + adjacents, son camp). */
-const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] =>
-  healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true });
+/** Alliés soignables à portée de `active` (soi et son camp au contact). */
+const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] => {
+  const battle = get().battle;
+  return battle ? healableTargets(campAuContact(battle, active)) : [];
+};
 
 /** Mode SOIN (Guérison, LDB 09 ; Dextérité sous Bandages, LDB 74 l.41) : réticule « Soigner » sur soi + alliés
  *  adjacents qu'un soin de combat ouvert par `active` atteint (`modesDOuverture`) ; à portée sans soin de combat, la
@@ -614,8 +617,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const geom = mountOf(battle, active) ?? active;
     approachPath = plan.path;
     const chargeFrom = { ...active.pos! };
-    active.pos = { ...plan.dest };
-    if (geom !== active) geom.pos = { ...plan.dest }; // la monture charge sous le cavalier
+    placeCombatant(active, get().scene, plan.dest);
+    if (geom !== active) placeCombatant(geom, get().scene, plan.dest); // la monture charge sous le cavalier
     displaceSmaller(get, geom); // charge d'un grand : idem dégage les plus petits (85 l.373-374)
     get().orienterSelonLeChemin(active.id, approachPath);
     if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
@@ -635,8 +638,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       const geom = mountOf(b, active) ?? active;
       approachPath = plan.path;
       const moveFrom = { ...active.pos! };
-      active.pos = { ...plan.dest };
-      if (geom !== active) geom.pos = { ...plan.dest };
+      placeCombatant(active, get().scene, plan.dest);
+      if (geom !== active) placeCombatant(geom, get().scene, plan.dest);
       displaceSmaller(get, geom);
       get().orienterSelonLeChemin(active.id, approachPath);
       if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
@@ -658,7 +661,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       // sinon un héros mixte mêlée+distance ne pourrait jamais tirer une cible éloignée (LDB Armes l.297-298).
       const battleNow = get().battle!;
       const w = pickAttackWeapon(battleNow, active, target, option.weaponUid);
-      if (w.type === 'melee' && combatDistance(attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
+      if (w.type === 'melee' && distanceDeContact(attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
         refuserGesteDuSiege(get, set, t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
         return;
       }
@@ -709,8 +712,8 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   if (!battle.reachable.has(k)) return;
   const from = { ...active.pos! };
   const mount = mountOf(battle, active);
-  active.pos = { ...pt };
-  if (mount) mount.pos = { ...pt }; // couple cavalier↔monture solidaire (comme le déplacement)
+  placeCombatant(active, get().scene, pt);
+  if (mount) placeCombatant(mount, get().scene, pt); // couple cavalier↔monture solidaire (comme le déplacement)
   displaceSmaller(get, mount ?? active); // un grand qui se téléporte dégage aussi les plus petits sous son empreinte (LDB 85 l.373-374)
   get().orienterSelonLeChemin(active.id, [from, pt]);
   bus.emit(EVT.ANIM_MOVE, { id: active.id, path: [{ ...pt }] });

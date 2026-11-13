@@ -75,7 +75,7 @@ describe('Dissipation permanente — Action de combat', () => {
   });
 
   // Adjacence du Soutien (LDB 12 l.196, #467) : câblée sur le Soutien « même Domaine » de Dissipation via la
-  // MÊME primitive `combatDistance` que `openSkillTest` (patron `support-adjacency-gate.hors-store.test.ts`).
+  // MÊME primitive `distanceDeContact` que `openSkillTest` (patron `support-adjacency-gate.hors-store.test.ts`).
   it('Soutien « même Domaine », adjacent (l.196) : compte', () => {
     setup();
     banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');

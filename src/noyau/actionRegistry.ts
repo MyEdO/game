@@ -42,6 +42,7 @@ import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, attaqueImmediate, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { healableTargets, modesDOuverture } from '../engine/healing';
+import { campAuContact } from './monde/combatGeometry';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from './monde/commandTeam';
 import { controlsCombatant, decidingSeat, unSiegeAgit } from './netOwnership';
@@ -404,9 +405,9 @@ export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx
     return sp ? [sp] : [];
   },
   'cibles-soin': ({ active, battle }) =>
-    healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true }).filter((c) => modesDOuverture(c, active).length > 0),
+    healableTargets(campAuContact(battle, active)).filter((c) => modesDOuverture(c, active).length > 0),
   'cibles-aspersion': ({ active, battle }) =>
-    hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
+    hasWaterContainer(active) ? waterSprayCandidates(active, campAuContact(battle, active)) : [],
   /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. Le
    *  mode Dissiper (`dissipation`) s'offre une fois s'il en existe un. */
   'sorts-dissipables': sortsDissipables,
@@ -679,7 +680,7 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   },
   basculerLaRepousse: {},
   basculerLaPosture: { args: [{ entree: (def) => def.stance }] },
-  aspergerDEau: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind))[0]?.id, omissible: true }] },
+  aspergerDEau: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => waterSprayCandidates(active, campAuContact(battle, active))[0]?.id, omissible: true }] },
   prendreLaDefensive: {},
   rompreLEngagement: {},
   gagnerLAvantage: { args: [{ cle: 'skillId' }], requis: ['skillId'] },

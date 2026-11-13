@@ -28,7 +28,7 @@ import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlace
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
 import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './monde/lineOfSight';
-import { smokeOf, captureMoveSnapshot, formationDeCombat, moveEnv } from './monde/combatGeometry';
+import { smokeOf, captureMoveSnapshot, formationDeCombat, moveEnv, campAuContact } from './monde/combatGeometry';
 import { emitCombatEvent } from './combatEvents';
 import { endTurnArmed, turnEconomyStamp, wastesAction } from './endTurnGuard';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -126,7 +126,7 @@ import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurinc
 import { findSpellById } from '../data/index';
 import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
@@ -1697,7 +1697,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || battle.acted || !canTakeAction(active) || !hasWaterContainer(active)) return;
-      const candidates = waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind));
+      const candidates = waterSprayCandidates(active, campAuContact(battle, active));
       const target = cibleId ? candidates.find((c) => c.id === cibleId) : candidates[0];
       if (!target) return;
       target.wateredThisRound = true;
@@ -1826,13 +1826,13 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!target) return void refuserGesteDuSiege(get, set, t('offre.sansCandidatDuContexte'));
       // SOUTIEN « même Domaine » (LDB 46 l.162) : les AUTRES héros possédant Langue (Magick) ET partageant un Domaine
       // (Vent) avec le meneur l'assistent (+10 chacun, plafond Bonus d'Int), par la primitive `soutienBonus` (LDB 12) ;
-      // en combat, l'adjacence (l.196) par le MÊME prédicat `combatDistance` que `openSkillTest`.
+      // en combat, l'adjacence (l.196) par le MÊME prédicat `distanceDeContact` que `openSkillTest`.
       // `Combatant.spells` = ids STABLES au runtime → résolution par id SEULE (pas de repli libellé : interdit).
       const domainsOf = (h: Combatant) => new Set((h.spells ?? []).map((id) => findSpellById(id)?.subType).filter(Boolean) as string[]);
       const mine = domainsOf(lanceur);
       const sup = soutienDetail(population, lanceur, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' },
         (c) => c.kind === lanceur.kind && [...domainsOf(c)].some((d) => mine.has(d))
-          && (!battle || !lanceur.pos || (!!c.pos && combatDistance(lanceur, c) <= 1)));
+          && (!battle || !lanceur.pos || (!!c.pos && distanceDeContact(lanceur, c) <= 1)));
       const value = testValue(lanceur, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({
         pendingDispel: {
@@ -2888,7 +2888,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         if (pa.siege && pa.center) {
           const lines = lance.hit && lance.damage != null
             ? [t('cf.impactDeSiege', { name: attacker.label }), ...resolveWeaponArea(get, set,
-                { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: combatDistance(attacker, target), center: pa.center },
+                { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: distanceDeCombat(attacker, target), center: pa.center },
                 battleAreaTargets(get), battleRng()).lines]
             : [t('cf.siegeRate', { name: attacker.label })];
           set({ battle: { ...markActed(get, set), action: null, preview: null, log: [...get().battle!.log, ...evLines(lines, 'tir', attacker.id)] } });

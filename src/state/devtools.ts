@@ -71,7 +71,7 @@ import { touchActors } from '../noyau/combatOrParty';
 import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
 import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from '../noyau/flowVerbs';
-import { combatDistance } from '../noyau/monde/footprint';
+import { distanceDeContact } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
 import type { CellSide } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
@@ -1369,7 +1369,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const arme = att.weapons[0];
       const refus = refusDeDefenseReactive(g(), att, def, arme);
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
-      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (distance ${combatDistance(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (${distanceEnClair(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
@@ -1407,7 +1407,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
       const arme = armeDeLaGratuite(att, kind)!;
       const refus = refusDeDefenseReactive(g(), att, def, arme);
-      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (${distanceEnClair(att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       donnerLeTour(b, idx);
@@ -2433,3 +2433,9 @@ export function installDevtools() {
   w.__game = useGame; // handle brut du store (à côté de __wfrp) pour les recettes navigateur
   setAiTrace(true); // DEV uniquement (devtools chargé en dev) → la trace de décision IA s'enregistre
 }
+
+/** La distance de contact dite à l'outil de dev : un sol plein entre les deux se dit tel quel. */
+const distanceEnClair = (a: Combatant, b: Combatant): string => {
+  const d = distanceDeContact(a, b);
+  return Number.isFinite(d) ? `distance ${d}` : 'un sol les sépare';
+};

@@ -37,7 +37,7 @@ import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { effectifAuContact } from './combat/surnombre';
-import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
+import { distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
 import { reloadGrantsAssessAdvantage, hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
@@ -177,7 +177,7 @@ import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
 import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './monde/scene';
 import { STEP_MAX_M } from './monde/relief';
-import { placeCombatant, spawnEnemy } from './monde/spawn';
+import { placeCombatant, positionPosee, spawnEnemy } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
 import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
@@ -401,8 +401,8 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   // MÊME arbitrage que `firedWeapon`) — le gate ne doit pas mentir sur une AUTRE arme que celle qui tirera.
   const w = b
     ? pickAttackWeaponList(b.combatants, active, target, weaponUid)
-    : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, combatDistance(active, target) <= meleeReachTiles(active.weapons));
-  const distanceTiles = b ? combatDistance(attackGeomOf(b, active, w), combatGeomOf(b, target)) : combatDistance(active, target);
+    : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(active, target) <= meleeReachTiles(active.weapons));
+  const distanceTiles = b ? distanceDeCombat(attackGeomOf(b, active, w), combatGeomOf(b, target)) : distanceDeCombat(active, target);
   // Machine de guerre ADE II (Qualité `equipe`, ch.08 l.233) sous LA MOITIÉ de l'Équipe requise : INUTILISABLE
   // — mêlée (bélier, Force) ET distance, donc AVANT le early-return ranged-only ci-dessous.
   const required = warMachineCrewRequired(w);
@@ -462,7 +462,7 @@ export function strayShotVictim(res: AttackResult, attacker: Combatant, target: 
 /** LDB 14 l.106. */
 export function crowdEligible(battle: BattleState, attacker: Combatant, target: Combatant): Combatant[] {
   return battle.combatants.filter(
-    (c) => c.id !== attacker.id && !isOutOfAction(c) && c.pos && combatDistance(c, target) <= 1,
+    (c) => c.id !== attacker.id && !isOutOfAction(c) && c.pos && distanceDeContact(c, target) <= 1,
   );
 }
 
@@ -753,8 +753,7 @@ export function attackEnv(
   const tFacing = get().facing?.[target.id]; // `facing` peut être absent (état épars / contexte sans orientation)
   const flankRear = !!(tFacing && isEngaged(target) && attacker.pos && target.pos && isFlankOrRear(tFacing, facingToward(target.pos, attacker.pos)));
   if (flankRear) env.push(ligneDeRegle('attaque-de-flanc-ou-de-dos', 'flanc-ou-dos'));
-  // En contrebas (LDB 14 l.67) : l'attaquant le PLUS BAS est pénalisé (la hauteur ne donne AUCUN bonus
-  // « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
+  // En contrebas : LDB 14 l.67 ; seuil `STEP_MAX_M` (relief.ts) sur `pos.h`.
   if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
   if (enBataille) {
     // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
@@ -788,7 +787,7 @@ export function resolveAttack(
   // (cavalier/cible monté — sinon une attaque de charge qui rapproche la MONTURE au contact serait jugée
   // hors d'allonge sur le cavalier 1×1 → `null`, cascade d'attaque ORPHELINE) OU de la COQUE SEULEMENT si
   // `weapon` est la pièce de mêlée servie — jamais pour une arme personnelle (`attackGeomOf`).
-  const distanceSur = (grille: BattleState) => combatDistance(attackGeomOf(grille, attacker, weapon), combatGeomOf(grille, target));
+  const distanceSur = (grille: BattleState) => (weapon.type === 'melee' ? distanceDeContact : distanceDeCombat)(attackGeomOf(grille, attacker, weapon), combatGeomOf(grille, target));
   // La série d'attaques subies déclare le contact de mêlée, sans case (MDG 15 l.163-164) ; hors d'elle, la grille de
   // la bataille le mesure (Allonge incluse, RAW-3).
   if (weapon.type === 'melee' && !auContactDeLaSerie(get(), attacker, target)
@@ -892,7 +891,7 @@ export function dualStrikeTargets(battle: BattleState, attacker: Combatant, offW
   return battle.combatants.filter((c) => {
     if (c.kind === attacker.kind || isOutOfAction(c)) return false;
     if (!attacker.pos || !c.pos) return true;
-    return combatDistance(attacker, c) <= reachTiles(offWeapon);
+    return distanceDeContact(attacker, c) <= reachTiles(offWeapon);
   });
 }
 
@@ -950,9 +949,10 @@ export function previewAttack(
   // cavalier/cible monté (LDB 14 — le reach/la bande de portée se mesurent du couple, pas du cavalier 1×1),
   // ou de la COQUE SEULEMENT si `weapon` est la pièce de mêlée servie (`attackGeomOf`) — jamais pour une
   // arme personnelle. L'aperçu DOIT rejouer EXACTEMENT la même géométrie que `attackPlan`/la résolution.
+  const mesure = kind === 'melee' ? distanceDeContact : distanceDeCombat;
   const dist = battle
-    ? combatDistance(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target))
-    : combatDistance(attacker, target);
+    ? mesure(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target))
+    : mesure(attacker, target);
   // Estimation de dégâts (R4) : dégâts d'arme (Force incluse) et encaissé de la cible. Le `soak` est dérivé
   // de `woundsFromHit` (oracle) avec un dégât large → capture exactement PA + réduction d'armure (Perforante…).
   const dmg = effectiveWeaponDamage(weapon, forceDuPorteur(attacker));
@@ -1374,15 +1374,16 @@ export function resolveGrappleOpposed(get: Get, actor: Combatant, foe: Combatant
   return tr(result === 'echec' ? 'cs.grappleLose' : 'cs.grappleTie', { name: actor.label, foe: foe.label });
 }
 
-/** Case ATTEIGNABLE adjacente à `target` qui coûte le moins de Mouvement (point d'arrivée d'une Charge). */
-export function bestAdjacentReachable(reach: Map<string, number>, target: Pt, targetN = 1, moverN = 1): Pt | null {
+/** Case ATTEIGNABLE d'où `mover`, posé là (`positionPosee`), est au contact de `target` (`distanceDeContact` = 1) et
+ *  qui coûte le moins de Mouvement (point d'arrivée d'une Charge). */
+export function bestAdjacentReachable(reach: Map<string, number>, scene: Scene | null, mover: Combatant, target: Combatant): Pt | null {
+  const mpt = sceneMetresPerTile(scene);
+  const n = footprintN(mover);
   let best: Pt | null = null;
   let bestD = Infinity;
   for (const k of reach.keys()) {
     const t = tileFromKey(k);
-    // Adjacent à l'EMPREINTE de la cible (toute case du bloc N×N, pas seulement l'ancre) → un grand (créature,
-    // navire) s'attaque depuis N'IMPORTE quel côté. `footprintChebyshev` coïncide avec `chebyshev` pour deux 1×1.
-    if (footprintChebyshev(t, moverN, target, targetN) !== 1) continue;
+    if (distanceDeContact({ ...mover, pos: positionPosee(scene, n, t) }, target, mpt) !== 1) continue;
     const d = reach.get(k)!;
     if (d < bestD) {
       bestD = d;
@@ -1489,7 +1490,7 @@ export function aiApproachPlan(
   if (M <= 0) return none;
   const adversaires = adversairesDe(input);
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'deplacement' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'deplacement' && distanceDeContact({ ...enemy, pos: positionPosee(input.scene, footprintN(enemy), a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -1520,7 +1521,7 @@ export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
   const visible = [...sourcesEnVue(battle, scene, c, (e) => e.kind !== c.kind && !isOutOfAction(e))];
   if (!visible.length) return null;
   return visible.sort((a, b) => {
-    const da = combatDistance(c, a), db = combatDistance(c, b);
+    const da = distanceDeCombat(c, a), db = distanceDeCombat(c, b);
     if (da !== db) return da - db;
     return a.wounds.current - b.wounds.current;
   })[0];
@@ -1580,7 +1581,7 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
   // coque servie, et réciproquement la pièce (bélier) reste disponible même chef loin. `forceMelee` ignore
   // la branche distance même avec une arme à distance tenue.
   const inMeleeRange = opts?.reach != null
-    ? combatDistance(mountOf(battle, active) ?? active, tgtGeom) <= opts.reach
+    ? distanceDeContact(mountOf(battle, active) ?? active, tgtGeom) <= opts.reach
     : !!meleeWeaponInRange(battle, active, target);
   if (inMeleeRange) return { kind: 'attaque' };
   // L'arme du SET ACTIF décide : quand l'option ÉPINGLE une arme (`weaponUid` → pièce de poste servie, canon
@@ -1613,15 +1614,15 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
     // adjacente la moins chère.
     const M = mountMovement(battle, active);
     const reach = moveReachFor(geom, scene, active.pos!, chargeReach(M, runMultiplier(geom.traits)), env);
-    const dest = bestAdjacentReachable(reach, target.pos!, footprintN(target), footprintN(geom));
+    const dest = bestAdjacentReachable(reach, scene, geom, tgtGeom);
     if (!dest) return { kind: 'bloque', reason: tr('cf.chargeHorsPortee') };
     return { kind: 'charge', dest, path: pathTo(scene, active.pos!, dest, env) ?? [], adv: chargeAdvantage(M, footprintChebyshev(active.pos!, footprintN(geom), target.pos!, footprintN(target))) };
   }
   // Mouvement entamé (ou À Terre) : rejoindre dans la Marche restante.
   const reach = displayedReach(get);
-  const dest = bestAdjacentReachable(reach, target.pos!, footprintN(target), footprintN(geom));
+  const dest = bestAdjacentReachable(reach, scene, geom, tgtGeom);
   if (!dest) return { kind: 'bloque', reason: tr('cs.meleeOutOfRange') };
-  return { kind: 'deplacementEtAttaque', dest, path: pathTo(scene, active.pos!, dest, env) ?? [], cost: reach.get(`${dest.x},${dest.y}`)! };
+  return { kind: 'deplacementEtAttaque', dest, path: pathTo(scene, active.pos!, dest, env) ?? [], cost: reach.get(tileKey(dest.x, dest.y, dest.z))! };
 }
 
 /** Mort d'un combattant : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
@@ -2859,7 +2860,7 @@ function appliquerLaTouche(
   // les États « infligés par l'arme » sont propagés par le chemin GÉNÉRIQUE onHit (cf. `hitSecondary`).
   if (battle && res.hit && weapon.type === 'distance' && res.damage != null && attacker.pos && target.pos && !isOutOfAction(target)) {
     const area = resolveWeaponArea(get, set, {
-      attacker, primaryTarget: target, weapon, damage: res.damage, location: res.location ?? 'corps', distanceTiles: combatDistance(attacker, target), margin: res.netSL,
+      attacker, primaryTarget: target, weapon, damage: res.damage, location: res.location ?? 'corps', distanceTiles: distanceDeCombat(attacker, target), margin: res.netSL,
     }, battleAreaTargets(get), battleRng());
     log.push(...evLines(area.lines, 'tir', attacker.id, target.id));
   }
@@ -3062,12 +3063,11 @@ export function defenderFumbled(res: AttackResult, parryWeapon?: Weapon, defende
  *  inconnue (tests) → vrai (aucun filtre géométrique). Source UNIQUE du test « à distance de frappe ». */
 export function inFiringBand(shooter: Combatant, target: Combatant, weapon: Weapon, metresPerTile = 2): boolean {
   if (!shooter.pos || !target.pos) return true;
-  const d = combatDistance(shooter, target);
   if (weapon.type === 'distance') {
     const rm = porteeDeTir(shooter, weapon);
-    return rm != null && rangeBandModifier(d, rm, metresPerTile) != null;
+    return rm != null && rangeBandModifier(distanceDeCombat(shooter, target), rm, metresPerTile) != null;
   }
-  return d <= reachTiles(weapon);
+  return distanceDeContact(shooter, target) <= reachTiles(weapon);
 }
 
 /** Alliés (même camp) encore actifs, hors `c`, et À PORTÉE de `weapon` (LDB 14 l.30 : « à distance »).
@@ -3100,7 +3100,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
       .filter((f) => f.kind !== shooter.kind && !isOutOfAction(f) && !!f.pos)
       .map((f) => ({ f, weapon: firedWeapon(shooter, f, undefined, battle.combatants) }))
       .filter((x) => x.weapon.type === 'distance' && inFiringBand(shooter, x.f, x.weapon, mpt))
-      .sort((a, b) => combatDistance(shooter, a.f) - combatDistance(shooter, b.f))
+      .sort((a, b) => distanceDeCombat(shooter, a.f) - distanceDeCombat(shooter, b.f))
       .find((x) => losClear(scene, shooter.pos!, isStructure(x.f) ? structureAimCell(shooter.pos!, x.f) : x.f.pos!, smoke))?.f;
     if (!t0) continue;
     const weapon = firedWeapon(shooter, t0, undefined, battle.combatants);
@@ -3486,11 +3486,11 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
   if (!defenseSurfaced(s, target)) return { refus: 'non-surfacee' };
   // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
   if (weapon?.type === 'distance') {
-    const modesDeTir = rangedDefenseModes(attacker, target, weapon, combatDistance(attacker, target), true, sceneMetresPerTile(s.scene));
+    const modesDeTir = rangedDefenseModes(attacker, target, weapon, distanceDeCombat(attacker, target), true, sceneMetresPerTile(s.scene));
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
-  if (!auContactDeLaSerie(s, attacker, target) && combatDistance(attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
+  if (!auContactDeLaSerie(s, attacker, target) && distanceDeContact(attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
   if (cannotDefend(target)) return { refus: 'ne-peut-se-defendre' }; // LDB 16 l.135
   return { refus: null };
 }
@@ -3520,7 +3520,7 @@ export function maybeOpenDefense(
   if (verdict.modesDeTir) {
     const modes = verdict.modesDeTir;
     const mpt = sceneMetresPerTile(get().scene);
-    const dist = combatDistance(attacker, target);
+    const dist = distanceDeCombat(attacker, target);
     const { env } = attackEnv(get, attacker, target, weapon);
     const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
     const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
@@ -3590,9 +3590,8 @@ export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Comb
   if (pa.siege) return false;
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
-  const dist = combatDistance(attacker, target);
-  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, dist, true, sceneMetresPerTile(s.scene)).length > 0;
-  return weapon.type === 'melee' && dist <= reachTiles(weapon);
+  if (weapon.type === 'distance') return rangedDefenseModes(attacker, target, weapon, distanceDeCombat(attacker, target), true, sceneMetresPerTile(s.scene)).length > 0;
+  return weapon.type === 'melee' && distanceDeContact(attacker, target) <= reachTiles(weapon);
 }
 
 /**
@@ -3606,7 +3605,7 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
   if (!surfacedDefensePending(get(), attacker, target, weapon, pa)) return false;
   const atk = hydrateTR(pa.result!.attackerDetail!);
   const mpt = sceneMetresPerTile(get().scene);
-  const dist = combatDistance(attacker, target);
+  const dist = distanceDeCombat(attacker, target);
   // Contexte d'OPPOSITION transporté À L'IDENTIQUE de l'appel inline (`resolveAttack`) : `env` (breakdown
   // d'attaque), « Retenir ses coups » (AA 07 l.59-61) et le proxy de Charge montée (LDB 14 l.183) — sans
   // eux, la même attaque donnerait des Dégâts différents selon qu'elle traverse ou non la fenêtre.
@@ -3887,14 +3886,13 @@ export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee)
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)
 // ---------------------------------------------------------------------------
 
-/** Cibles de balayage : adversaires encore actifs, ADJACENTS (Chebyshev ≤ 1 — « à portée de ses
- *  attaques » = adjacence tant que l'Allonge n'est pas modélisée) et non déjà frappés dans ce
- *  balayage. Sans position connue (tests purs), on ne filtre pas sur la distance. */
+/** Cibles de balayage (LDB 14 l.9) : adversaires encore actifs, au contact (`distanceDeContact` ≤ 1) et non déjà
+ *  frappés dans ce balayage. Sans position connue, aucun filtre de distance. */
 export function cleaveTargets(battle: BattleState, attacker: Combatant, hitIds: string[]): Combatant[] {
   return battle.combatants.filter((c) => {
     if (c.kind === attacker.kind || isOutOfAction(c) || hitIds.includes(c.id)) return false;
     if (!attacker.pos || !c.pos) return true;
-    return combatDistance(attacker, c) <= 1;
+    return distanceDeContact(attacker, c) <= 1;
   });
 }
 
@@ -4101,7 +4099,7 @@ export function aiAvailableFreeAttack(get: Get, set: SetFn, actor: Combatant): b
   const battle = get().battle;
   if (!battle || battle.over || !actor.pos) return false;
   const target = battle.combatants.find(
-    (t) => t.kind !== actor.kind && !isOutOfAction(t) && !!t.pos && combatDistance(actor, t) <= 1,
+    (t) => t.kind !== actor.kind && !isOutOfAction(t) && !!t.pos && distanceDeContact(actor, t) <= 1,
   );
   if (!target) return false;
   for (const { op, cap } of availableFreeAttackOps(actor))
@@ -4244,7 +4242,7 @@ export function applyFreeAttackEffects(get: Get, attacker: Combatant, target: Co
 
 /** Cible d'une attaque gratuite : adversaire adjacent actif, valide pour `kind` (`freeAttackTargetOk`). */
 function freeAttackTarget(battle: BattleState, c: Combatant, kind: AttackKind): Combatant | undefined {
-  return battle.combatants.find((t) => t.kind !== c.kind && !isOutOfAction(t) && !!t.pos && !!c.pos && combatDistance(c, t) <= 1 && freeAttackTargetOk(battle, c, kind, t));
+  return battle.combatants.find((t) => t.kind !== c.kind && !isOutOfAction(t) && !!t.pos && !!c.pos && distanceDeContact(c, t) <= 1 && freeAttackTargetOk(battle, c, kind, t));
 }
 
 /** Résout UNE attaque gratuite de `kind` contre `target`, OPPOSÉE et GRATUITE : ouvre la modale de
@@ -4290,7 +4288,7 @@ export function applyTongue(get: Get, set: SetFn, attacker: Combatant, a: Creatu
   // Cible = la plus proche (sélection IDENTIQUE à resolveManeuver pour une manœuvre à cible unique) ; on la
   // PASSE explicitement (chosenTarget) → la proie tirée = la proie touchée, sans ré-dériver.
   const foes = battle.combatants.filter((c) => c.kind !== attacker.kind && !isOutOfAction(c) && !!c.pos);
-  const target = foes.length ? foes.reduce((p, c) => (chebyshev(attacker.pos!, p.pos!) <= chebyshev(attacker.pos!, c.pos!) ? p : c)) : undefined;
+  const target = foes.length ? foes.reduce((p, c) => (distanceDeContact(attacker, p) <= distanceDeContact(attacker, c) ? p : c)) : undefined;
   const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-tir', battleRng());
   const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, atk, a.avantage, target);
   if (!suspended) checkBattleOver(get, set);
@@ -4347,7 +4345,7 @@ export function applyGaze(get: Get, set: SetFn, attacker: Combatant): boolean {
 export function applyChillGrasp(get: Get, set: SetFn, attacker: Combatant): boolean {
   if (!attacker.pos || attacker.advantage < 2) return false;
   const battle = get().battle;
-  if (!battle || !battle.combatants.some((c) => c.kind !== attacker.kind && !isOutOfAction(c) && c.pos && combatDistance(attacker, c) <= 1)) return false;
+  if (!battle || !battle.combatants.some((c) => c.kind !== attacker.kind && !isOutOfAction(c) && c.pos && distanceDeContact(attacker, c) <= 1)) return false;
   const a = creatureAttacks(attacker.traits ?? []).find((x) => x.kind === 'etreinte');
   if (!a) return false;
   const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-combat', battleRng());
@@ -4376,7 +4374,7 @@ export function aiMaybeSpecialAction(get: Get, set: SetFn, enemy: Combatant): bo
   if (hasDistraire(enemy) && enemy.pos) {
     const battle = get().battle;
     const foe = battle?.combatants.find(
-      (c) => distraireEligible(enemy, c) && !c.distractedRounds && spendableAdvantage(get().battle, c) > 0 && !!c.pos && combatDistance(enemy, c) <= 1,
+      (c) => distraireEligible(enemy, c) && !c.distractedRounds && spendableAdvantage(get().battle, c) > 0 && !!c.pos && distanceDeContact(enemy, c) <= 1,
     );
     if (foe) return aiDistraire(get, set, enemy, foe);
   }
@@ -4884,7 +4882,7 @@ export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, t
   const range = spell.breathAttack
     ? Math.max(1, Math.ceil((bonus(effectiveChar(caster, 'endurance')) + 20) / 2))
     : spellRangeTiles(spell.range, caster);
-  if (range != null && combatDistance(caster, target) > range)
+  if (range != null && distanceDeCombat(caster, target) > range)
     return { reason: 'range', detail: tr('cf.sortHorsDePortee', { spell: spell.label, range }) };
   if (castSightBlocked(get, caster.pos, target.pos))
     return { reason: 'los', detail: tr('cf.sansLigneDeVue', { spell: spell.label }) };
@@ -4935,7 +4933,7 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   // qui reprend la mêlée dès qu'elle est à portée. `weaponUid` n'est JAMAIS réécrit : il porte le
   // choix du JOUEUR, et son absence discrimine l'attaque naturelle (`attackWeaponOf`, #1026).
   set({ pendingAttack: { ...pa, result: r.res, victimId: r.victim?.id, weapon: r.weapon,
-    distanceTiles: combatDistance(attacker, target), dodgeMods: defenseDodgeMods(get(), target) } });
+    distanceTiles: distanceDeCombat(attacker, target), dodgeMods: defenseDodgeMods(get(), target) } });
 }
 
 /** Test d'Incantation (verbe `lancer` du flux `incantation`, `FLOWS.incantation.onRoll`). */
@@ -5729,8 +5727,8 @@ export function aiOvercastPlan(
   const axes = overcastAxesFor(spell, missile);
   const range = spellRangeTiles(spell.range, caster) ?? Infinity;
   const extras = !axes.includes('targets') ? [] : combatants
-    .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && combatDistance(caster, t) <= range && !spellSightBlocked(sight, caster, t))
-    .sort((a, b) => combatDistance(caster, a) - combatDistance(caster, b))
+    .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && distanceDeCombat(caster, t) <= range && !spellSightBlocked(sight, caster, t))
+    .sort((a, b) => distanceDeCombat(caster, a) - distanceDeCombat(caster, b))
     .slice(0, extraTargetCapacity(source, budget, 1))
     .map((t) => t.id);
   // Allocation MINIMALE couvrant les cibles retenues — indépendante du modèle (LDB : 1 pas = 1 cible
@@ -5769,7 +5767,7 @@ export function overcastTargetCandidates(
   return pool.filter((m) => {
     if (m.id === targetId) return false;
     if (missile ? m.kind === caster.kind || isOutOfAction(m) : m.kind !== caster.kind || m.dead || m.outOfRencontre) return false;
-    if (range != null && caster.pos && m.pos && combatDistance(caster, m) > range) return false;
+    if (range != null && caster.pos && m.pos && distanceDeCombat(caster, m) > range) return false;
     // Ligne de Vue (LDB 46 l.121) : une cible supplémentaire doit aussi être visible du lanceur.
     return !spellSightBlocked(sight, caster, m);
   });
@@ -5801,12 +5799,8 @@ export function effectiveSpellOf(pc: { spellId: string; grimoire?: boolean }): R
   return { ...spell, cn: effectiveCastingNumber(spell.cn, subject, GRIMOIRE_NI_MODS) };
 }
 
-/** Contre-lanceurs ÉLIGIBLES à la Dissipation contre un Sort de `caster` visant `target`.
- *  RAW (LDB 46 l.156) : actif, lanceur (Compétence Langue (Magick) ou Trait Lanceur de Sorts), pas
- *  encore de Contre-sort ce Round (« un seul Sort chaque Round »), et le Sort le CIBLE (« Si un Sort
- *  vous cible ») ou vise un point QU'IL PEUT VOIR « à une distance en mètres égale à votre Force
- *  Mentale » — portée RAW en MÈTRES, convertie en CASES à l'échelle du plateau (2 m par case) :
- *  `floor(FM / 2)` cases, comparées par `combatDistance`. Ligne de Vue scène + fumée.
+/** Contre-lanceurs ÉLIGIBLES à la Dissipation contre un Sort de `caster` visant `target` : LDB 46 l.156. Portée :
+ *  `floor(FM / 2)` cases (`distanceDeCombat`) ; Ligne de Vue scène + fumée.
  *  Restriction de camp par HOSTILITÉ effective, jamais par `kind` (#1029, cf. `effectivelyHostile`,
  *  `src/engine/relations.ts` — maison UNIQUE du camp) ; `l.156` ne porte aucune clause de camp. */
 export function counterspellCandidates(
@@ -5821,7 +5815,7 @@ export function counterspellCandidates(
     if (!knowsCastingSkill(c, { id: 'langue', spec: 'magick' })) return false;
     if (c.id === target.id) return true;
     if (!c.pos || !target.pos) return false;
-    if (combatDistance(c, target) > Math.max(1, Math.floor(effectiveChar(c, 'force-mentale') / 2))) return false;
+    if (distanceDeCombat(c, target) > Math.max(1, Math.floor(effectiveChar(c, 'force-mentale') / 2))) return false;
     return !scene || losClear(scene, c.pos, target.pos, smokeOf(battle));
   });
 }
@@ -6171,9 +6165,9 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
     // La cible du maillon suivant (`LDB 47 l.340`).
     const next = battle.combatants
       .filter((c) => c.kind !== caster.kind && !hitIds.includes(c.id) && !isOutOfAction(c) && c.pos
-        && combatDistance(prev, c) <= rebond.hopTiles
-        && (rebond.initialRange == null || combatDistance(caster, c) <= rebond.initialRange))
-      .sort((a, b) => combatDistance(prev, a) - combatDistance(prev, b))[0];
+        && distanceDeCombat(prev, c) <= rebond.hopTiles
+        && (rebond.initialRange == null || distanceDeCombat(caster, c) <= rebond.initialRange))
+      .sort((a, b) => distanceDeCombat(prev, a) - distanceDeCombat(prev, b))[0];
     if (!next) break;
     // « infligeant de nouveau les mêmes Dégâts » : le jet ORIGINAL du lancement, ré-évalué CONTRE cette
     // cible — le résultat déjà atténué de la précédente (Résistance à la Magie, loc de Critique) la
@@ -6672,7 +6666,7 @@ export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: {
   let pions = 0;
   for (const c of s.battle?.combatants ?? []) {
     if (!c.pos || isOutOfAction(c)) continue;
-    if (combatDistance(caster, c) <= radius) pions += stacks(c, cb.perCondition);
+    if (distanceDeCombat(caster, c) <= radius) pions += stacks(c, cb.perCondition);
   }
   return cb.bonus * pions;
 }
@@ -6705,7 +6699,7 @@ export function castWardLine(s: Jeu, target: Combatant, spell: SpellLike): ModLi
     if (isOutOfAction(w) || !w.pos) continue;
     for (const e of w.activeEffects ?? []) {
       if (!e.castWard) continue;
-      if (combatDistance(w, target) > porteeEnCases(e.castWard.radiusMeters, sceneMetresPerTile(s.scene))) continue;
+      if (distanceDeCombat(w, target) > porteeEnCases(e.castWard.radiusMeters, sceneMetresPerTile(s.scene))) continue;
       if (!best || Math.abs(e.castWard.mod) > Math.abs(best.value))
         best = { label: e.label, value: e.castWard.mod, famille: 'jet', ref: effectRef(e), by: [{ id: w.id }] };
     }
@@ -7965,7 +7959,7 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   const tgt = inBattleId(get().battle!, mv.thenTargetId);
   // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; ni quand l'Action est due
   // à une Prière (LDB 40 l.74).
-  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || combatDistance(enemy, tgt) > meleeReachTiles(enemy.weapons)) {
+  if (!tgt || mv.couru || !canTakeAction(enemy) || refusPriereImposee(enemy) || distanceDeContact(enemy, tgt) > meleeReachTiles(enemy.weapons)) {
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, approachMs(get, path));
     return;
   }
@@ -8108,7 +8102,7 @@ export function jetDeRecharge(porteur: Combatant, arme: Weapon, combatants: Comb
   const present = piece ? servingCrewPresent(porteur, combatants) : undefined;
   const w = present != null ? crewedFireWeapon(arme, present) : arme;
   const equipage = (piece?.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
-  const sout = soutienDetail(equipage, porteur, attackTestOf(porteur, w, 'distance'), porteur.pos ? (c) => !!c.pos && combatDistance(porteur, c) <= 1 : undefined);
+  const sout = soutienDetail(equipage, porteur, attackTestOf(porteur, w, 'distance'), porteur.pos ? (c) => !!c.pos && distanceDeContact(porteur, c) <= 1 : undefined);
   const soutien = sout.bonus ? sout : undefined;
   const skillValue = combatValue(porteur, 'distance', w) + sout.bonus;
   const ligne = rollLine({ actor: porteur, difficulty: 'intermediaire', valeur: skillValue, soutien, combat: { kind: 'distance', weapon: w } });
@@ -8501,7 +8495,7 @@ function aiSelectLoadout(set: SetFn, enemy: Combatant, battle: BattleState): voi
   const meleeSet = sets.find((l) => setKind(l) === 'melee');
   if (!rangedSet || !meleeSet) return; // pas un hybride tir+mêlée → on ne touche pas au set choisi
   const foes = battle.combatants.filter((c) => c.kind !== enemy.kind && !isOutOfAction(c) && c.pos);
-  const engaged = foes.some((f) => combatDistance(enemy, f) <= 1);
+  const engaged = foes.some((f) => distanceDeContact(enemy, f) <= 1);
   const want = engaged || isFrenzied(enemy) ? meleeSet : rangedSet; // au contact / frénétique → mêlée ; sinon → tir
   if (enemy.activeLoadoutId === want.id) return; // déjà le bon set en main
   enemy.activeLoadoutId = want.id;
@@ -8609,7 +8603,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // peut pas exprimer « sauter le tour ». Il s'exécute APRÈS le dispatch `turnStart`, avant l'action IA.
   if (isStupid(enemy.traits) && enemy.pos) {
     const guided = battle.combatants.some(
-      (a) => a.kind === enemy.kind && a.id !== enemy.id && !isOutOfAction(a) && !isStupid(a.traits) && a.pos && chebyshev(a.pos, enemy.pos!) <= 1,
+      (a) => a.kind === enemy.kind && a.id !== enemy.id && !isOutOfAction(a) && !isStupid(a.traits) && distanceDeContact(a, enemy) <= 1,
     );
     if (!guided && !rollSansPilote(get, enemy, testValue(enemy, { characteristic: 'intelligence' }), 'facile', battleRng()).success) {
       battle.log.push(ev('detail', tr('cf.stupidite', { name: enemy.label }), enemy.id));
@@ -8711,7 +8705,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   if (enemy.riderId) {
     const skittish = isSkittishMount(enemy.traits); // Nerveux (LDB 14 l.182) → la monture passe son tour
     const foe = skittish || !canAct ? undefined
-      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && combatDistance(enemy, c) <= meleeReachTiles(enemy.weapons));
+      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && distanceDeContact(enemy, c) <= meleeReachTiles(enemy.weapons));
     if (foe) { attackThenAdvance(foe); return; }
     return advanceTurn(get, set);
   }
@@ -8863,7 +8857,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const { plan, ran } = aiApproachPlan(input, geom, action, battleRng());
       const mv = plan.kind === 'deplacement' ? plan : action;
       const charge = !refusDeCharge(battle, enemy); // LDB 15 l.35 : verdict lu AVANT le déplacement
-      const distBefore = combatDistance(enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
+      const distBefore = distanceDeCombat(enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
       const fromPos = { ...enemy.pos! }; // position AVANT déplacement (déclenchement de Peur à l'approche)
       const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
       const pas = Math.max(0, (path?.length ?? 1) - 1);
