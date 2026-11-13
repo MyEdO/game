@@ -17,6 +17,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, sourceRefSchema } from '../grammaire/valeurs';
+import { refs } from '../grammaire/ref';
 
 export const file = 'progression-schemas.derived.json';
 export const famille = 'config';
@@ -42,7 +43,7 @@ const doc = document(
   'progression-schemas.derived',
   famille,
   {
-  livres: z.array(z.string()),
+  livres: refs('book'),
   schemas: z.array(
     nommerChamps(z.strictObject({
       ...sourceRefSchema.omit({ note: true }).shape,

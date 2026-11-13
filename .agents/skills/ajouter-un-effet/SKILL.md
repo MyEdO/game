@@ -20,11 +20,12 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   (`src/noyau/visionDuGroupe.ts`). Un coup, une incantation ou une zone dont l'auteur est hors de vue arrive avec `de`,
   `depart` et `trajet` à `null` : seule son arrivée ou sa nappe joue. Tout visuel et tout son neufs acceptent donc un
   effet sans auteur (`Effets._partir`, recette `projet/recettes/vision-du-combat.gd`).
-- Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle.
+- Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle ; posée hors de vue, elle arrive sans l'un ni l'autre (`lumiereDeLaScene`).
 - Un flottant : son texte est un message de `src/i18n/messages/fr.ts` (clés `fx.*`), sa teinte `TEINTE_DU_FLOTTANT` ;
   un son de la partie (pas, heurt, victoire, dés) : son id dans `SONS_DE_LA_PARTIE` (`effetsDeLAppel.ts`).
 - Une zone qui dure (`battle.zones`) : la nappe de son rendu, son son en boucle `zoneBoucle` ; une zone de scène
-  ne se voit qu'avec son `rendu`. Un État : sa marque (`etats.json` : `marqueCouleur`, `marqueVisuel` de lumière, `marqueSon` en boucle).
+  ne se voit qu'avec son `rendu`. Ses cases changent sous la même `cle` (`caseDeZoneEnVue`) : réconcilier par case ; une zone qui coupe la vue se
+  montre entière dès que le groupe en voit le bord. Un État : sa marque (`etats.json` : `marqueCouleur`, `marqueVisuel` de lumière, `marqueSon` en boucle).
   Une météo : son `son` en boucle (`ambiance.json › iso.weather`).
 - Une musique : une définition `music: true` du registre (`src/data/sons/defs/`) ; le noyau la choisit
   (`musiqueDeLaPartie`), la scène peut l'imposer (`music.combat`, `music.ambient`).

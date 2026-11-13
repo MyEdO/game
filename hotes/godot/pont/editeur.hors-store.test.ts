@@ -187,7 +187,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', cases: [{ x: 1, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }], milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -656,6 +656,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const doktor = presser(boutonDe(medecin, 'carriere/medecin/niveau/3'));
     expect(boutonDe(doktor, 'carriere/medecin/niveau/3').presse).toBe(true);
     expect(ligneDe(doktor, 'profil/statut')).toMatch(/Argent 5/);
+    expect(ligneDe(doktor, 'profil/mentions/personne'), 'ses mentions, une ligne par nature').toBe('Personnes : Apprenti');
     const chirurgien = presser(boutonDe(doktor, 'carriere/medecin/talents/2/chirurgie'));
     expect(boutonDe(chirurgien, 'carriere/medecin/talents/2/chirurgie').presse).toBe(true);
     expect(ligneDe(chirurgien, 'profil/talents')).toMatch(/Chirurgie/);
@@ -1286,7 +1287,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
     const pont = presser(boutonDe(posee, 'couche/2'));
     expect([pont.vue.couche, boutonDe(pont, 'couche/retirer').refus]).toEqual([2, 'Seuls les ponts d’un navire posent cette couche']);
-    expect(pont.aretes!.filter((a) => a.case.x >= 3 && a.case.x <= 20 && a.case.y >= 6 && a.case.y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
+    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 3 && x <= 20 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
   });
 
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {

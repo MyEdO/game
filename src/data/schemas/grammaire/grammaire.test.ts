@@ -15,7 +15,7 @@ import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import traitsJson from '../../traits.json';
-import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type DeclarationExposition, type Exposition, type CleExigible } from './document';
+import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type DeclarationExposition, type Exposition, type CleExigible, type DocumentHandle } from './document';
 import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
@@ -866,7 +866,7 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
       { id: 'x', label: 'X', max: 2, source: {} },
       { id: 'x', label: 'X', max: 2, source: SOURCE_REELLE, maison: 'r' },
     ];
-    const messages = (doc: ReturnType<typeof document>) =>
+    const messages = (doc: DocumentHandle<string>) =>
       CORPUS.flatMap((v) => {
         const r = doc.entree.safeParse({ ...v, type: 'fiche-jouet' });
         return r.success ? [] : r.error.issues.map((i) => i.message);

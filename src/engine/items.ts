@@ -30,7 +30,8 @@ import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, isUnbreakable, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { rollDice, type RNG } from './dice';
-import { compteDeLaDotation } from './possessionGrants';
+import { compteDeLaDotation, sommeTiree } from './possessionGrants';
+import type { Money } from './money';
 import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type WeaponLoadState } from './weaponLoad';
@@ -1322,16 +1323,20 @@ export function damageScore(d?: WeaponDamageSpec): number {
 }
 
 /** L'inventaire des dotations d'objet (`estDotationDObjet`) de `refs` : le `count` d'une ref `{id}`
- *  (`compteDeLaDotation`, tiré sur `rng`) se résout ici, puis `inventaireDesDotations`. Une dotation de
- *  texte, de possession ou un emplacement non tranché (`trappingChoices.ts`) ne donne aucun objet. */
+ *  (`compteDeLaDotation`, tiré sur `rng`) se résout ici, puis sa `valeur` (`sommeTiree`, tirée après tous les
+ *  comptes), puis `inventaireDesDotations`. Une dotation de texte, de possession, d'argent, une mention ou un
+ *  emplacement non tranché (`trappingChoices.ts`) ne donne aucun objet. */
 export function buildInventory(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
-  return inventaireDesDotations(refs.filter(estDotationDObjet).map((ref) => ({ ref, ...(ref.count ? { n: compteDeLaDotation(ref, (de) => rollDice(de, rng)) } : {}) })), idNeuf, contexte);
+  const comptes: DotationResolue[] = refs.filter(estDotationDObjet).map((ref) => ({ ref, ...(ref.count ? { n: compteDeLaDotation(ref, (de) => rollDice(de, rng)) } : {}) }));
+  return inventaireDesDotations(comptes.map((d) => (d.ref.valeur ? { ...d, valeur: sommeTiree(d.ref.valeur, rng) } : d)), idNeuf, contexte);
 }
 
-/** Une dotation d'objet à compte RÉSOLU : `n` absent, un objet, la munition à la taille de son paquet. */
+/** Une dotation d'objet à compte RÉSOLU : `n` absent, un objet, la munition à la taille de son paquet ; `valeur`, la
+ *  valeur tirée de chaque objet (`ItemInstance.price`). */
 export interface DotationResolue {
   ref: Extract<TrappingRef, { id: string; type?: never }>;
   n?: number;
+  valeur?: Money;
 }
 
 /** L'inventaire de dotations à compte résolu, sans tirage : une ref `{id}` à stats devient un objet ; son `n`
@@ -1339,12 +1344,12 @@ export interface DotationResolue {
  *  l'uid de chaque objet (#2907). */
 export function inventaireDesDotations(dotations: readonly DotationResolue[], idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   const items: ItemInstance[] = [];
-  const objet = (ref: DotationResolue['ref']): ItemInstance | null => {
-    const g = gabaritDeLaRef(ref, findTrappingById, contexte);
-    return g ? instanceDuGabarit(g, idNeuf('it')) : null;
-  };
-  for (const { ref, n } of dotations) {
-    const it = objet(ref);
+  for (const { ref, n, valeur } of dotations) {
+    const objet = (): ItemInstance | null => {
+      const g = gabaritDeLaRef(ref, findTrappingById, contexte);
+      return g ? { ...instanceDuGabarit(g, idNeuf('it')), ...(valeur ? { price: { ...valeur } } : {}) } : null;
+    };
+    const it = objet();
     if (!it) continue;
     if (it.kind === 'ammo') {
       if (n != null) it.qty = n;
@@ -1352,7 +1357,7 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
       continue;
     }
     items.push(it);
-    for (let i = 1; i < (n ?? 1); i++) items.push(garanti(objet(ref), ref.id, 'unité de dotation'));
+    for (let i = 1; i < (n ?? 1); i++) items.push(garanti(objet(), ref.id, 'unité de dotation'));
   }
   // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures
   // SANS conflit de couche (max une pièce par couche × localisation, meilleure PA d'abord —

@@ -2,7 +2,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import type { Formula } from '../engine/ops';
 import type { FateSaveSource } from '../engine/fortune';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
-import type { BattleActionMode } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
@@ -90,9 +90,7 @@ export interface BattleState {
    *  ils sont implicites au clic (sol/ennemi) quand `action === null` — cf. `cliquerLaCaseDuCombat`/`cliquerLeCombattant`.
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
    *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
-   *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
-   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleportation` = résolution d'un sort) —
-   *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
+   *  Le TYPE vient de `MODES_ARMABLES` (`src/data/schemas/defs/actions.ts`). */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
   selectedSpellId: string | null;
