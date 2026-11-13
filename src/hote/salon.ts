@@ -12,7 +12,12 @@ import { ErreurDeGeste } from './partie';
 /** L'ouverture d'un salon que l'hôte tient : aucune, en cours (héberger ou rejoindre), ou échouée et son texte. */
 export type OuvertureDuSalon = null | { enCours: 'heberger' | 'rejoindre' } | { echec: string };
 
-/** Les zones du salon. */
+/**
+ * @contrat Vue
+ * Les zones du salon, que la méthode `salon` rend avec ou sans partie ouverte. Le formulaire « Héberger » (son verbe
+ * et une chaîne par champ), le `jeu` de « Quitter le salon » et celui d'une valeur de `salon.sieges` sont les gestes
+ * que la méthode `salon` reçoit, lus dans les zones d'avant le geste.
+ */
 export interface ZonesDuSalon {
   /** en session, le code de la room, chaque siège de la table (son nom, « (vous) », « reconnexion »), et chez un invité
    *  l'état de son lien ; hors session, l'ouverture en cours ou le texte de son échec. */

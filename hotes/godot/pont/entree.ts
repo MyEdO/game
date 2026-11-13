@@ -18,4 +18,4 @@ import { stockageWeb } from '../../../src/hote/stockageWeb';
  *   l'exécute dans un contexte qui ne porte qu'elles, et la CI rougit si `demarrer`, `vue` ou `sauvegardes` n'y
  *   répondent pas `ok: true`.
  */
-(globalThis as typeof globalThis & { wfrpPont: Pont & { choisirUnFichier: typeof choisirUnFichier; resoudreLaPile: typeof resoudreLaPile } }).wfrpPont = { ...creerPont(stockageWeb('localStorage')), choisirUnFichier, resoudreLaPile };
+(globalThis as typeof globalThis & { wfrpPont: Pont & { choisirUnFichier: typeof choisirUnFichier; resoudreLaPile: typeof resoudreLaPile } }).wfrpPont = { ...creerPont(stockageWeb('localStorage'), null), choisirUnFichier, resoudreLaPile };
