@@ -536,10 +536,12 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
-  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 35 types exportés,
-                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 11
+  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 37 types exportés,
+                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 13
                             MANUSCRITS : `Scene`, `SceneEntity`, `SceneDuVolume` (la scène vue par son
-                            volume, tirée de `CHAMPS_DU_VOLUME`),
+                            volume, tirée de `CHAMPS_DU_VOLUME`), `SceneDesToits` et `SceneDesCouronnes`
+                            (la scène vue par ses nappes de toit et ses couronnes, tirées de
+                            `CHAMPS_DES_TOITS` et `CHAMPS_DES_COURONNES`),
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `Layer` (l'infer du schéma dont `tiles`
