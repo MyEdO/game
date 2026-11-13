@@ -170,9 +170,9 @@ export interface SceneEntity {
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;
-    /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées par-dessus celles du bestiaire au spawn.
+    /** Compétences d'AUTEUR ajoutées (réfs `SkillRefDesignee`) — fusionnées par-dessus celles du bestiaire au spawn.
      *  Qualifie p.ex. un servant de pièce pour le Groupe de Projectiles APPROPRIÉ à son engin (AA 10 l.230). */
-    skills?: import('../../data').SkillRef[];
+    skills?: import('../../data').SkillRefDesignee[];
     /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. `false`/absent = PNJ visible
      *  qui devient hostile au déclenchement. */
     hiddenUntilCombat?: boolean;

@@ -10,7 +10,7 @@ import { talentRefSchema, traitPoseDeSceneSchema } from '../grammaire/reference'
 import { refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import type { SkillRef } from '../../index';
+import type { SkillRefDesignee } from '../../index';
 import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
 
@@ -38,12 +38,10 @@ export const ptSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number
  *  DÉRIVENT, l'éditeur en dérive ses options (`wallSideSchema.options`). Garde : `unions-canon.test.ts`. */
 export const wallSideSchema = z.enum(['N', 'E', '\\', '/']);
 export type WallSide = z.infer<typeof wallSideSchema>;
-/** `SkillRef` (`src/data/index.ts`) — la réf de la grammaire au régime qui DÉSIGNE (`{ id }` ou
+/** `SkillRefDesignee` (`src/data/index.ts`) — la réf de la grammaire au régime qui DÉSIGNE (`{ id }` ou
  *  `{ id, spec }`, `refOuSpec`) + la valeur de Test IMPRIMÉE ; le statbloc du bestiaire
- *  (`defs/creatures.ts`) porte, lui, des emplacements (`choix`). La FORME de sortie est
- *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte
- *  pas l'`extra` du porteur — sans cette annotation, `value` disparaîtrait du type inferé de la scène. */
-export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }) as z.ZodType<SkillRef>;
+ *  (`defs/creatures.ts`) porte, lui, des emplacements (`choix`). */
+export const competenceChiffreeSchema: z.ZodType<SkillRefDesignee> = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) });
 
 /** Identifiant GLOBAL d'une entrée de fiche de dossier de chapitre (#2290) : format `ID_D_ENTREE`
  *  (`src/data/source/dossier.ts`). Feuille de `couvre` et de `narratif.ecartes[].entree`. */

@@ -14,7 +14,7 @@ import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { OptionalDeScene } from '../../data/schemas/defs-scenes/scene';
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { SkillRef } from '../../data';
+import type { SkillRefDesignee } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
 import type { ThreatTier } from '../../engine/advantagePool';
 
@@ -38,9 +38,9 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   optionals?: OptionalDeScene[];
   spells?: string[];
   randomChars?: boolean;
-  /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées au spawn (servant de pièce : Projectiles
+  /** Compétences d'AUTEUR ajoutées (réfs `SkillRefDesignee`) — fusionnées au spawn (servant de pièce : Projectiles
    *  du Groupe de son engin, AA 10 l.142-146). */
-  skills?: SkillRef[];
+  skills?: SkillRefDesignee[];
   /** Coque/navire (`vehicule`) : `id`s d'entités d'ÉQUIPAGE exposées (MDG 14).
    *  Les ids des ennemis de la rencontre sont déterministes : `enemy-<idRencontre>-<index>`. */
   crewIds?: string[];
