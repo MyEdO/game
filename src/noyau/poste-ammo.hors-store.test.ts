@@ -29,7 +29,7 @@ const mkPoste = (ammo: ItemInstance[], ammoUid?: string): ShipPoste =>
       damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'arme-d-equipe', value: 2 }, { id: 'recharge', value: 6 }] },
     crewIds: ['chef', 'aide'], ammo, ammoUid }) as unknown as ShipPoste;
 const mkCrew = (id: string, items: ItemInstance[] = []): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'heros', characteristics: { ...chars },
+  (blessuresSurLeProfil({ id, label: id, kind: 'heros', characteristics: { ...chars },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], items,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 20 }], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } })) as unknown as Combatant;

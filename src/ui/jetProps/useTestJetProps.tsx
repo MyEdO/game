@@ -13,6 +13,8 @@ import { describeTest, amazingTestLabel } from '../../noyau/flowOutcomes';
 import { CodexRef } from '../compendium/CodexRef';
 import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
 import { t } from '../../i18n';
+import { nomEnVue } from '../../noyau/visionDuGroupe';
+import { garanti } from '../../lib/garanti';
 import { useGesteDeJet } from '../useGesteDeJet';
 import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 
@@ -30,6 +32,7 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const pt = useGame((s) => s.pendingTest);
   const party = useGame((s) => s.party);
+  const nom = useGame((s) => (s.pendingTest ? nomEnVue(s, s.pendingTest.actorId) : null));
   const roll = useGesteDeJet('jetLancer', 'test');
   const reroll = useGesteDeJet('jetRelancer', 'test');
   const bonusSL = useGesteDeJet('jetAjouterUnDR', 'test');
@@ -134,7 +137,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
         determination: !actor || refusDImmunite(useGame.getState(), actor) ? undefined : { resolve: actor.resolve ?? 0, onResolve: () => depenserLaDetermination(actor.id, 'immuniserALaPsychologie') },
       }),
     ],
-    outcome: rolled ? [recapLineOfEvent(ev('information', describeTest(pt), pt.actorId), party)] : undefined,
+    outcome: rolled ? [recapLineOfEvent(ev('information', describeTest(pt, garanti(nom, pt.actorId, 'testeur')), pt.actorId), party)] : undefined,
     /* Option « Succès / échec stupéfiants » (LDB 12 l.127) : badge du double (libellé seul, aucune
        mécanique nouvelle), gaté par la règle. */
     postRollExtra: amazing ? (

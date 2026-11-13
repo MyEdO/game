@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { nomEnVue } from '../../noyau/visionDuGroupe';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -298,6 +299,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     expect(aim, 'la carte est rendue et cliquable : le survol ne peut pas être muet').not.toBeNull();
     expect(aim?.tip, 'la cible frappable porte sa carte de jet').toBeTruthy();
     expect(aim?.tip?.difficulty, 'le survol dit la Difficulté que la modale dira').toBeDefined();
+    expect(aim?.tip?.targetName, 'la carte nomme la cible par `nomEnVue` (#4017)').toBe(nomEnVue(useGame.getState(), foe.id));
   });
 });
 

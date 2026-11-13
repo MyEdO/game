@@ -1043,7 +1043,7 @@ export function openSkillTest(
   const label = spec.label || skill || 'Test';
   set({
     pendingTest: {
-      actorId: def.id, actorName: def.label, label, skill, skillValue: def.value, difficulty,
+      actorId: def.id, label, skill, skillValue: def.value, difficulty,
       sujet: { skill: spec.skill && structuredClone(spec.skill), characteristic: spec.characteristic }, // #2097 ; réf structurée pour talentTestSLBonus (LDB 10)
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,

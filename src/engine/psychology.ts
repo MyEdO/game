@@ -13,7 +13,8 @@ import { rollTest, extendedTestStep, jetPose, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue } from './skills';
-import { findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
+import { dataLabel, findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
+import { nomDe } from './nom';
 import type { Relatif } from '../data/schemas/defs/groups';
 import { isEngagedWith } from './engagement';
 import type { PlayerText } from '../i18n/playerText';
@@ -103,8 +104,8 @@ export const sourceCombattant = (c: Combatant): SourceEnVue => ({ genre: 'combat
 /** L'id de la source, que portent `PsychAffliction.sourceId` et les déclenchements. */
 export const idDeSource = (s: SourceEnVue): string => (s.genre === 'combattant' ? s.c.id : s.id);
 
-/** Le libellé de donnée de la source. */
-export const libelleDeSource = (s: SourceEnVue): string => (s.genre === 'combattant' ? s.c.label : s.label);
+/** Le nom de la source dans un texte joueur : un combattant par `nomDe` (#4017), une étiquette par son libellé de donnée. */
+export const libelleDeSource = (s: SourceEnVue): PlayerText => (s.genre === 'combattant' ? nomDe(s.c) : dataLabel(s.label));
 
 /** `self` a-t-il déjà affronté la source `id` : une affliction de régime Peur ou Terreur la porte, Peur héritée
  *  d'une Terreur comprise ? Une affliction ciblée née de la même source n'en dit rien. LDB 21 l.25, l.54 ; #3045 */

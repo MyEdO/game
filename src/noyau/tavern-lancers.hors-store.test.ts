@@ -19,6 +19,7 @@
  * Les jets sont POSÉS (aucun dé) : ce qui est mesuré est la règle, jamais le RNG — sauf le run à
  * GRAINE RÉELLE, qui déroule une partie entière sans rien poser.
  */
+import { nomDe } from '../engine/nom';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -43,7 +44,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** L'adversaire au profil standard, nommé comme `jouerALaTaverne` le nomme (`opponentActor.label`). */
-const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
+const NOM_HABITUE = nomDe(pnjAuProfil('humain', HABITUE)!);
 
 const get = () => banc.getState();
 const tick = (): Promise<void> => new Promise<void>((r) => { setTimeout(r, 0); });
