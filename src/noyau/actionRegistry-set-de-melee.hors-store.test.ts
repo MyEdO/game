@@ -16,7 +16,7 @@ const creature = (weapons: Combatant['weapons']): Combatant => {
   const c = spawnEnemy({ ref: 'humain' }, 'e1', { x: 0, y: 0 });
   return { ...c, loadouts: undefined, activeLoadoutId: undefined, weapons };
 };
-const gate = (active: Combatant) => ACTION_GATES['set-de-melee']({ active, battle: { combatants: [active] } as unknown as BattleState, gameTime: 0 } satisfies ActionCtx);
+const gate = (active: Combatant) => ACTION_GATES['set-de-melee']({ scene: null, active, battle: { combatants: [active] } as unknown as BattleState, gameTime: 0 } satisfies ActionCtx);
 
 describe('set-de-melee — porteur sans set (statbloc de créature)', () => {
   it('une arme de mêlée dans l’arsenal ouvre la Charge', () => {

@@ -1,0 +1,43 @@
+{
+  "id": "tableau-capricieux",
+  "type": "tableau-capricieux",
+  "label": "Tableau Capricieux",
+  "die": "d10",
+  "entries": [
+    {
+      "id": "tableau-capricieux-1",
+      "min": 1,
+      "max": 1,
+      "dr": -2
+    },
+    {
+      "id": "tableau-capricieux-2-3",
+      "min": 2,
+      "max": 3,
+      "dr": -1
+    },
+    {
+      "id": "tableau-capricieux-4-7",
+      "min": 4,
+      "max": 7,
+      "dr": 0
+    },
+    {
+      "id": "tableau-capricieux-8-9",
+      "min": 8,
+      "max": 9,
+      "dr": 1
+    },
+    {
+      "id": "tableau-capricieux-10",
+      "min": 10,
+      "max": 10,
+      "dr": 2
+    }
+  ],
+  "source": {
+    "book": "mort-sur-le-reik-compagnon",
+    "page": 90,
+    "note": "Capricieux, MSRC 15 l.149-159"
+  }
+}

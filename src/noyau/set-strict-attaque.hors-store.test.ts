@@ -61,7 +61,7 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 const pendingWeaponLabel = (): string => {
   const pa = banc.getState().pendingAttack!;
   const b = banc.getState().battle!;
-  return attackWeaponOf(b, live(pa.attackerId), live(pa.targetId), pa).label;
+  return attackWeaponOf(banc.getState().scene, b, live(pa.attackerId), live(pa.targetId), pa).label;
 };
 
 beforeEach(() => {

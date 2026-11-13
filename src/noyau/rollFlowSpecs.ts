@@ -31,6 +31,7 @@ import { rollOups } from '../engine/oups';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId, porteurParId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import {
   lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
   resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset, withPreRollFixedDie,
@@ -40,7 +41,7 @@ import { bus, EVT } from './bus';
 import { campRestitue, campSpend } from './combat/advantagePool';
 import { attaqueDeCle } from '../engine/creatureAttacks';
 import { mouvementDeCourse, chargeDmgProxy, defenseDodgeMods } from './mount';
-import { sceneMetresPerTile } from './monde/scene';
+import { sceneMetresPerTile, type Scene } from './monde/scene';
 import { metresRetenus, phaseDeChute, rangeesDuesDeChute, refusDesDeclarationsDues, tombantsNommes } from './fallMove';
 import { REDERIVATIONS, attackTestOf, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
@@ -72,10 +73,10 @@ import { findSpellById, byId } from '../data/index';
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
  *  La Difficulté VOYAGE avec le résultat d'origine (`frozenDifficulty`) : ce re-jet n'a plus le
  *  contexte (distance, env, flanc/dos) qui l'a composée, et dépenser un point ne la change pas. */
-export function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
+export function rederiveAttack(scene: Scene | null, attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
   // L'arme FIGÉE au jet prime : `Combatant.weapons` ne porte que le loadout ACTIF, donc un uid seul
   // peut être introuvable et rendre la main à l'auto-choix (un tir au contact redeviendrait une frappe).
-  const weapon = p.weapon ?? firedWeapon(attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);
+  const weapon = p.weapon ?? firedWeapon(scene, attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);
   const r = p.result!;
   const compo = frozenDifficulty(r.attackerDetail);
   const dmgProxy = chargeDmgProxy(combatants, attacker, p.fromCharge);
@@ -228,6 +229,9 @@ function deDuSoin<P extends PendingBase & { roll: number | null; target: number;
     write: (s: Jeu, p: P, actor: Combatant | undefined, _get: Get, tr: TestResult) => issueDuSoin(s, actor, test(p), tr) as Partial<P>,
   };
 }
+
+/** Le nom de l'acteur `id` du jet tel que le groupe le connaît (`nomEnVue`, #4017). */
+const nomDeLActeur = (s: Jeu, id: string): string => garanti(nomEnVue(s, id), id, 'acteur du jet');
 
 function currentStepFreeze(s: Jeu) {
   const p = s.pendingCascade;
@@ -730,7 +734,7 @@ export const FLOWS = paresseux({
       read: (p) => (p.result?.attackerDetail ? { ...deDuJet(p.result.attackerDetail), roll: p.result.attackerRoll } : null),
       write: (s, p, actor, _g, tr) => {
         const t = actorIn(s, p.targetId);
-        return actor && t ? { result: rederiveAttack(actor, t, p, tr, s.battle?.combatants) } : null;
+        return actor && t ? { result: rederiveAttack(s.scene, actor, t, p, tr, s.battle?.combatants) } : null;
       },
       // Test opposé : « vous l'emportez avec au moins DR +1 » (LDB 17 l.68) — cf. INVARIANT de `resolve`.
       floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false),
@@ -750,11 +754,11 @@ export const FLOWS = paresseux({
         // policy-aware), jamais le dé raté courant. Test opposé : « vous l'emportez avec au moins DR +1 ».
         const aDie = bestForcedRoll(ad.target);
         const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, plancherOpposeForce(defSL, false)), ad.base);
-        return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
+        return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
       }
       const battle = s.battle;
       if (!battle) return null;
-      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, attackWeaponOf(battle, actor, target, p), p.withhold);
+      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, attackWeaponOf(s.scene, battle, actor, target, p), p.withhold);
       // MÊME gel que `jetLancer('attaque')` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).
@@ -773,7 +777,7 @@ export const FLOWS = paresseux({
         if (!target) return null;
         const ad = p.result!.attackerDetail!;
         const atk2 = bumpSL(hydrateTR(ad));
-        return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
+        return { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) };
       },
     },
     // Inversion de Test (LDB 23 l.209 « Entraînement au Combat » : Corps à corps/Projectiles — CHOIX
@@ -783,7 +787,7 @@ export const FLOWS = paresseux({
         const target = actorIn(s, p.targetId); if (!target) return null;
         // Le Talent d'Inversion porte sur la COMPETENCE reellement lancee (LDB 23 l.209) : l'arme
         // FIGEE au jet fait foi, jamais un re-choix qui pourrait basculer melee/distance.
-        const weapon = p.weapon ?? firedWeapon(actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
+        const weapon = p.weapon ?? firedWeapon(s.scene, actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
         return attackTestOf(actor, weapon, weapon.type === 'distance' ? 'distance' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
       },
       current: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
@@ -794,7 +798,7 @@ export const FLOWS = paresseux({
         // — ni forcer un succès, `forcedTR`) ; seule la voie Talent (gate stricte échec→succès dans
         // `applyReverse`) garantit `tr.success:true` par construction.
         const atk2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(ad), base: ad.base, success: tr.success, sl: tr.sl });
-        return { patch: { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) }, issue: tr };
+        return { patch: { result: rederiveAttack(s.scene, actor, target, p, atk2, s.battle?.combatants) }, issue: tr };
       },
     },
     refusDAnnuler: (_s, pa) => refusDAnnulerLAttaque(pa),
@@ -2111,7 +2115,7 @@ export const FLOWS = paresseux({
     // `ctx` : le DR cumulé RÉALISÉ (bonus de Talent compris) et le NOM résolu de l'arme, connus de la
     // seule application. La voie IA (aucune fenêtre) acquitte le MÊME goulot avec son pending fourni.
     issueChannel: 'battle',
-    issue: (p, _s, ctx: { after: number; weapon: string }) => describeReload(p, ctx.after, ctx.weapon),
+    issue: (p, s, ctx: { after: number; weapon: string }) => describeReload(p, nomDeLActeur(s, p.actorId), ctx.after, ctx.weapon),
   }),
 
   /** Main ensanglantée (AA 07 l.117) : Test de Dextérité Accessible (+20) PAR ACTION, AVANT d'ouvrir une
@@ -2176,7 +2180,7 @@ export const FLOWS = paresseux({
     bonus: { derive: (_s, p) => ({ netSL: p.netSL + 1, success: p.requireSl != null ? (p.netSL + 1 >= p.requireSl) : p.success }) },
     // ISSUE au goulot (`apply`) — canal COMBAT : `jetValider('recuperation')` la tisse dans ses lignes d'Action.
     issueChannel: 'battle',
-    issue: (p, s) => describeStateRecovery(p, actorIn(s, p.actorId)?.label ?? p.actorName),
+    issue: (p, s) => describeStateRecovery(p, nomDeLActeur(s, p.actorId)),
   }),
 
   /** Test de compétence interactif (Effet de scène `test`). `requireSL` = seuil de DR exigé. */
@@ -2188,11 +2192,11 @@ export const FLOWS = paresseux({
     actor: (s, p) => actorIn(s, p.actorId),
     touch: touchActors,
     // ISSUE au goulot (`apply`) — canal NARRATIF : `jetValider('test')` acquitte, il ne compose plus sa ligne.
-    issue: (p) => describeTest(p),
+    issue: (p, s) => describeTest(p, nomDeLActeur(s, p.actorId)),
     caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
       const tDR = actor ? drDeReussiteDuTest(_s, actor, p.sujet ?? {}) : 0;
-      // Capricieux (MSRC 15 l.149-159) : delta de DR de la table du d10 de l'interlocuteur, tiré à
+      // Capricieux (MSRC 15 l.149-159) : delta de DR de la table de l'interlocuteur, tiré à
       // l'ouverture du Test (`openSkillTest`) et appliqué ICI, au DR du Test RÉSOLU.
       const capDR = p.capriciousDR ?? 0;
       // Le gate de DR exigé est la SOURCE UNIQUE `meetsRequiredSL` (également Chance et inversion).

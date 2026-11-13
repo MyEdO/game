@@ -17,7 +17,7 @@ import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, details, semencesDeScene, defautsDeCompilation, names, allAxes,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
@@ -39,7 +39,7 @@ import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/tra
 import { TAVERN_GAMES } from '../engine/tavernGame';
 import { OBSESSIONS } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
-import { CARGO_ENTRIES, type CargoEntry } from '../engine/cargo';
+import { CARGO_ENTRIES } from '../engine/cargo';
 import { MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS, FAST_VOYAGE_PALIERS } from '../engine/seaVoyage';
 import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
@@ -61,6 +61,8 @@ import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
 import advancementCostsRawJson from './advancementCosts.json';
 import encumbranceTiersRawJson from './encumbranceTiers.json';
 import { MISHAP_TABLE } from '../engine/drivingMishap';
+import { TABLE_DE_DISPERSION } from '../engine/scatter';
+import { TABLE_DE_REACTION_AU_STATUT, TABLE_DU_CAPRICIEUX } from '../engine/social';
 import { DRUNK_TABLE } from '../engine/drunkenness';
 // #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
@@ -135,7 +137,7 @@ const ARRAYS = {
   // `src/noyau/monde/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
   // qu'une entrée éditée au Codex se voit dans l'éditeur et au rendu sans rechargement.
   buildings,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, names,
   // Axes de forces/faiblesses (#409) — mécanique MAISON, éditable au Codex comme tout catalogue.
   axes: allAxes,
   // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.
@@ -161,7 +163,7 @@ const ARRAYS = {
   // marqueurs de l'Index, des deux voies), pas la vue filtrée `marchandisesDe` — sinon une réécriture
   // du dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
   // VUE, `noyau/codex/registry.ts`).
-  cargoes: CARGO_ENTRIES as CargoEntry[], riverPerils: RIVER_PERILS,
+  cargoes: CARGO_ENTRIES, riverPerils: RIVER_PERILS,
   crewMoraleFactors: MORALE_FACTORS, crewMoraleBands: MORALE_BANDS, steamBreakdowns: STEAM_BREAKDOWNS,
   criticalsTete, criticalsBras, criticalsCorps, criticalsJambe,
   aaCriticalsTete, aaCriticalsBras, aaCriticalsCorps, aaCriticalsJambe,
@@ -194,7 +196,10 @@ const ARRAYS = {
   // copie) ; Surchargé par palier (tableau RACINE).
   advancementCosts: advancementCostsRawJson,
   drivingMishap: MISHAP_TABLE,
+  dispersion: TABLE_DE_DISPERSION,
   drunkenness: DRUNK_TABLE,
+  reactionAuStatut: TABLE_DE_REACTION_AU_STATUT,
+  tableauCapricieux: TABLE_DU_CAPRICIEUX,
   encumbranceTiers: encumbranceTiersRawJson,
   // Incantations Imparfaites Mineures/Majeures (LDB 46 ; VDM 02 l.218-263) + Colère des dieux (LDB 40)
   // — les rangées des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b, #1667).

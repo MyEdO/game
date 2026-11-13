@@ -465,7 +465,7 @@
   {
     "id": "social-reaction-au-statut",
     "type": "reglesOptionnelles",
-    "label": "Réaction au Statut (1d10)",
+    "label": "Réaction au Statut",
     "ref": "LDB 08 l.40/59",
     "source": {
       "book": "livre-de-base",
@@ -474,7 +474,7 @@
     "group": "Social",
     "kind": "flag",
     "default": false,
-    "hint": "Au-delà de la norme sociale : avant un Test social ciblant un PNJ, 1d10 → 1-2 « Braver le Statut » (annule les mods de Statut) ; 3-8 réactions classiques (mods normaux) ; 9-10 « Opinions extrêmes » (mods inversés)."
+    "hint": "Au-delà de la norme sociale : avant un Test social ciblant un PNJ, un tirage sur la table de Réaction au Statut (Codex) : « Braver le Statut » annule les mods de Statut, « Réactions classiques » les garde, « Opinions extrêmes » les inverse."
   },
   {
     "id": "social-mendicite-statut",
@@ -601,6 +601,20 @@
     "kind": "flag",
     "default": false,
     "hint": "Ajoute l’Ogre (Archives de l’Empire II) comme race jouable : le Tableau des Races aléatoires devient celui des Archives (la table maison avec le Gnome) et l’Ogre apparaît dans la grille de sélection. Désactivé par défaut."
+  },
+  {
+    "id": "creation-chevaucheur-de-blaireau",
+    "type": "reglesOptionnelles",
+    "label": "Chevaucheur de blaireau (ADE I)",
+    "ref": "ADE I 07 l.9",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 87
+    },
+    "group": "Création",
+    "kind": "flag",
+    "default": false,
+    "hint": "Ouvre la Carrière Chevaucheur de blaireau (Archives de l’Empire I) au halfling : il la prend à la place de Soldat tiré au Tableau des Carrières aléatoires. Désactivé par défaut."
   },
   {
     "id": "creation-signes-astraux",

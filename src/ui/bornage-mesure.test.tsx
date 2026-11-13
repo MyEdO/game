@@ -94,7 +94,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     const test = testDeRegle('calme-d-approche', 'se-rapprocher');
     useGame.setState({
       battle: { combatants: [H, combattantDeModale('Ogre', 'ennemi')], log: [] },
-      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null },
+      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null },
     } as never);
     act(() => root.render(createElement(ApproachModal)));
     act(() => { g().jetLancer('approche'); });
@@ -116,7 +116,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
   it('Se rouler au sol : jet posé puis forcé (Résilience), plancher nommé aux deux', () => {
     const H = combattantDeModale('H');
     useGame.setState({ battle: { combatants: [H], log: [], order: ['H'], turn: 0, round: 1 },
-      pendingStateRecovery: { actorId: 'H', actorName: 'H', state: 'en-flammes', skillLabel: 'Athlétisme', skillValue: 5, skillBase: 5, difficulty: 'tresDifficile', stacks: 1, roll: null, opponentRoll: null, netSL: 0, success: false } } as never);
+      pendingStateRecovery: { actorId: 'H', state: 'en-flammes', skillLabel: 'Athlétisme', skillValue: 5, skillBase: 5, difficulty: 'tresDifficile', stacks: 1, roll: null, opponentRoll: null, netSL: 0, success: false } } as never);
     act(() => root.render(createElement(StateRecoveryModal)));
     act(() => { g().jetLancer('recuperation'); });
     porteLaMesure(g().pendingStateRecovery!.roll, cibleDuTest(5, 'tresDifficile'));
@@ -138,7 +138,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
 
   it('Bénédiction de Protection (Accessible, donnée réelle)', () => {
     const A = combattantDeModale('A'); A.resilience = 2;
-    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'ennemi')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
+    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'ennemi')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
     forceAvantLeJet(() => g().jetForcerLaReussite('protection'));
     porteLaMesure(g().pendingWard!.result, cibleDuTest(testValue(A, { characteristic: 'force-mentale' }), 'accessible'));
@@ -149,7 +149,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     const H = combattantDeModale('H'); H.resilience = 2;
     const test = testDeRegle('calme-d-approche', 'se-rapprocher');
     useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'ennemi')], log: [] },
-      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
+      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
     forceAvantLeJet(() => g().jetForcerLaReussite('approche'));
     porteLaMesure(g().pendingApproach!.result, cibleDuTest(testValue(H, test), test.difficulty));

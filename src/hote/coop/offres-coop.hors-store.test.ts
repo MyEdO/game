@@ -11,7 +11,7 @@ import { HostSession, GuestSession } from './session';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from '../../noyau/intentionsDeSiege';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
-import { emettreIntentInvite } from './salon';
+import { emettreIntentInvite } from '../../noyau/reseau';
 import { activeCombatant } from '../../noyau/combatFlow';
 import { gesteDeLOffre, offreDeId } from '../../noyau/actionRegistry';
 import { testScene } from '../../scenes/test-fixture';

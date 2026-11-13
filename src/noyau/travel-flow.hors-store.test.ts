@@ -15,10 +15,12 @@ import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { stageWeatherRows } from './travelFlow';
+import { voyageEnVue } from './voyageEnVue';
+import { encounterTable } from '../engine/travelTables';
 import { PERIPETIES } from '../data/peripeties';
 import { emptyScene, Scene } from './monde/scene';
 import { buildEncounter } from './monde/encounterAuthoring';
-import type { MapRouteTrace, WorldMap } from './worldMap';
+import type { MapRouteTrace, RoutePeril, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
 import { setRule } from '../engine/policy';
 import { setCadence } from '../engine/cadence';
@@ -294,7 +296,64 @@ describe('GOLDEN — issues figées à graine égale', () => {
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().partirEnVoyage('r1', 'pied');
     drainCascade();
-    expect(get().journal.join('\n')).toContain('Territoire hostile : ');
+    const territoire = encounterTable('dangereuses').find((e) => e.label === 'Territoire hostile')!;
+    expect(get().journal.filter((l) => l.includes(territoire.label)), 'une Rencontre = une ligne de journal').toEqual([`${territoire.label} — ${territoire.desc}`]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// #4005 — L'ÉVÉNEMENT DU JOUR : la Rencontre tirée vit sur le trajet (`TravelPlan.evenements`), servie à l'hôte
+// par `voyageEnVue`, puis rangée une fois dans le jour clos à chaque sortie (halte, arrivée, interruption).
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('#4005 — la Rencontre tirée est l’événement du jour, rangé à la sortie du jour', () => {
+  const territoire = () => encounterTable('dangereuses').find((e) => e.label === 'Territoire hostile')!;
+  /** Une péripétie d'auteur à 100 % : une étape du jour APRÈS la Rencontre, qui garde la journée ouverte. */
+  const colporteur: RoutePeril = { label: 'Un colporteur partage la route.', chancePct: 100, effects: [{ type: 'journal', desc: 'Il vend des amulettes.' }] };
+  /** Ouvre le jour de la Rencontre de la graine 2 (échec d'Approvisionnement → « Territoire hostile ») et avance pas à
+   *  pas jusqu'à ce que l'étape de Rencontre soit appliquée, la journée encore ouverte. */
+  function jourDeRencontre(wm: WorldMap): void {
+    setRule('voyage-etapes', true);
+    seedBattleRng(2);
+    setup(wm, [hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] })]);
+    get().partirEnVoyage('r1', 'pied');
+    expect(voyageEnVue(get())!.evenements, 'un jour sans événement sert une liste vide').toEqual([]);
+    const tiree = () => get().pendingCascade?.participants.some((st) => st.kind === 'etapeRencontre' && st.committed);
+    for (let i = 0; i < 40 && get().pendingCascade && !tiree(); i++) avanceEtapeCascade(get);
+    expect(tiree(), 'la Rencontre est appliquée, la journée encore ouverte').toBe(true);
+  }
+  const evenementAttendu = () => expect.objectContaining({ title: territoire().label, text: territoire().desc, tone: 'echec' });
+
+  it('halte : servie par `voyageEnVue` pendant le jour (titre, texte, d100, ton), puis rangée une fois au jour clos', () => {
+    jourDeRencontre(map({ km: 30, perilDie: 0, perils: [colporteur] }));
+    const servis = voyageEnVue(get())!.evenements;
+    expect(servis).toEqual([evenementAttendu()]);
+    expect(servis[0].roll, 'le d100 tiré tombe dans la rangée').toBeGreaterThanOrEqual(territoire().min);
+    expect(servis[0].roll).toBeLessThanOrEqual(territoire().max);
+    drainCascade();
+    expect(get().pendingRest, 'la journée va à la halte').toBeTruthy();
+    expect(voyageEnVue(get())!.evenements, 'le trajet n’en sert plus').toEqual([]);
+    expect(get().travelPlan!.log!.slice(-1)[0].events).toEqual([evenementAttendu()]);
+  });
+
+  it('arrivée le jour de la Rencontre (12 km) : l’événement est dans le jour du bilan d’arrivée, une fois', () => {
+    jourDeRencontre(map({ km: 12, perilDie: 0, perils: [colporteur] }));
+    drainCascade();
+    expect(get().travelPlan, 'arrivé').toBeNull();
+    expect(get().travelRecap!.status).toBe('arrived');
+    expect(get().travelRecap!.days.flatMap((j) => j.events ?? [])).toEqual([evenementAttendu()]);
+  });
+
+  it('interruption puis reprise : l’événement reste avec le jour interrompu et ne fuit pas dans le jour repris', () => {
+    jourDeRencontre(map({ km: 60, perilDie: 0, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }] }));
+    drainCascade();
+    expect(get().travelPlan!.interrupted, 'la péripétie interrompt le jour de la Rencontre').toBe(true);
+    get().fenetreFermer('recitDeVoyage');
+    expect(get().scene?.id, 'l’acquittement joue la transition différée').toBe('lieu-b-scene');
+    // route sans péripétie : la reprise ouvre le jour suivant (patron de `travel.hors-store.test.ts`)
+    set({ worldMap: { ...get().worldMap!, routes: get().worldMap!.routes.map((x) => ({ ...x, perils: [] })) } });
+    get().reprendreLeVoyage();
+    expect(get().travelPlan!.log!.slice(-1)[0].events, 'le jour interrompu, clos au log, porte l’événement').toEqual([evenementAttendu()]);
+    expect(voyageEnVue(get())!.evenements, 'le jour repris ne l’hérite pas').toEqual([]);
   });
 });
 

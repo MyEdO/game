@@ -6,7 +6,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf, etapeDEquipage, SEA_BOARD_EVENT_TABLE, type SeaVoyageState,
+  buildOverspeedSteps, engineerOf, etapeDEquipage, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -29,12 +29,14 @@ import type { WorldMap } from './worldMap';
 import { formatDice, type RNG } from '../engine/dice';
 import type { CascadeStep } from './pendings';
 import { reprendreLeVoyage } from './travelFlow';
+import { noteEvent } from './evenementDuJour';
+import { voyageEnVue } from './voyageEnVue';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
 import { imposerLesD100 } from './battleRng.testkit';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { applierDe, runCascadeImmediate, tableStepDef } from './cascade';
+import { applierDe, runCascadeImmediate, tableSpec } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
@@ -1302,7 +1304,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
 
 /** Joue la journée étape par étape JUSQU'À ce que l'étape d'événement de bord soit tirée et validée, et la rend : un
  *  tirage de MONDE que le siège ne fixe pas n'est pas un vrai choix, la journée le passe d'elle-même (#3534). Le
- *  `RecapEvent` du jour vit dans `sea.events` tant que le jour n'est pas CLOS (la clôture le déplace dans
+ *  `RecapEvent` du jour vit dans `travelPlan.evenements` tant que le jour n'est pas CLOS (la clôture le déplace dans
  *  `travelPlan.log`, cf. le bloc « Clôture du jour de mer » ci-dessous). */
 function evenementDeBordTire(max = 40): CascadeStep {
   const tire = () => get().pendingCascade?.participants.find((s) => s.kind === 'mer-evenement-de-bord' && s.committed);
@@ -1319,7 +1321,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'calme-plat' } } });
     runSeaDay(get, set);
-    const events = get().travelPlan!.sea!.events ?? [];
+    const events = voyageEnVue(get())!.evenements;
     expect(events).toHaveLength(1);
     const def = seaBoardEventById('calme-plat')!;
     expect(events[0]).toEqual({ title: def.label, text: def.desc, roll: undefined }); // forcé → pas de tirage (recapLine.ts)
@@ -1334,8 +1336,8 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     runSeaDay(get, set);
     const etape = evenementDeBordTire();
     expect(etape.worldOwner, 'dé de MONDE : aucun acteur ne le porte').toBe(true);
-    const events = get().travelPlan!.sea!.events ?? [];
-    expect(events).toHaveLength(1);
+    const events = voyageEnVue(get())!.evenements;
+    expect(events, 'servi à l’hôte par le champ du trajet pendant le jour').toHaveLength(1);
     const ev = events[0];
     expect(typeof ev.roll).toBe('number'); // tirage capturé (chemin non forcé)
     const def = BOARD_EVENTS.find((e) => e.label === ev.title && e.desc === ev.text);
@@ -1348,8 +1350,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
       runSeaDay(get, set);
       const etape = get().pendingCascade!.participants.find((s) => s.kind === 'mer-evenement-de-bord')!;
-      expect(formatDice(etape.table!.spec!)).toBe('1d10');
-      expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.die, 'la table tirable suit le dé écrit').toBe(10);
+      expect(formatDice(tableSpec(etape.table!))).toBe('1d10');
     });
   });
 
@@ -1401,20 +1402,21 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
   });
 });
 
-describe('Clôture du jour de mer — le récap porte les events, `sea.events` se RÉINITIALISE (#371 LOT 4, non couvert avant #383)', () => {
+describe('Clôture du jour de mer — le récap porte les events, `travelPlan.evenements` se vide (#371 LOT 4, #4005)', () => {
   beforeEach(freshState);
 
-  it('`continueSeaDayAfterCascade` : le `TravelRecapDay` (`travelPlan.log`) porte les events du jour ; `sea.events` repart à vide (pas de fuite au lendemain)', () => {
+  it('`continueSeaDayAfterCascade` : le `TravelRecapDay` (`travelPlan.log`) porte les events du jour ; le trajet n’en sert plus (pas de fuite au lendemain)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     const def = seaBoardEventById('calme-plat')!;
     const carried: RecapEvent = { title: def.label, text: def.desc, roll: 21 };
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, events: [carried], milesToday: 5 } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, milesToday: 5 } } });
+    noteEvent(get, set, carried);
     continueSeaDayAfterCascade(get, set);
     draineCascade(get); // les Tests de l'entretien-survie se jouent dans LEUR fenêtre (#1479), la clôture suit
     const log = get().travelPlan!.log!;
     expect(log).toHaveLength(1);
     expect(log[0].events).toEqual([carried]); // la carte du jour porte l'événement
-    expect(get().travelPlan!.sea!.events).toEqual([]); // reset — pas de fuite au jour suivant
+    expect(voyageEnVue(get())!.evenements).toEqual([]); // vidé — pas de fuite au jour suivant
   });
 });
 
@@ -3117,8 +3119,8 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1 } } } as never);
     runSeaDay(get, set);
   };
-  /** L'événement de bord du jour est-il raconté (`sea.events`, versé au procès-verbal à la clôture) ? */
-  const evenementRaconte = (id: string) => [...(get().travelPlan!.sea!.events ?? []), ...(get().travelPlan!.log ?? []).flatMap((j) => j.events ?? [])]
+  /** L'événement de bord du jour est-il raconté (`travelPlan.evenements`, versé au procès-verbal à la clôture) ? */
+  const evenementRaconte = (id: string) => [...(get().travelPlan!.evenements ?? []), ...(get().travelPlan!.log ?? []).flatMap((j) => j.events ?? [])]
     .some((e) => e.title === seaBoardEventById(id)!.label);
   /** Une séquence vivante, slot ou pile, porte-t-elle une étape de ce `kind` à son curseur ? */
   const ouverte = (kind: string) => [get().pendingCascade, ...get().suspendedCascades].some((c) => c?.participants[c.cursor]?.kind === kind);

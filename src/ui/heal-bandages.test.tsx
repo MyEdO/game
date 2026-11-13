@@ -50,7 +50,7 @@ function poser() {
   useGame.setState({
     battle: combatDeModale([doc, al]), party: [doc, al],
     pendingHeal: {
-      healerId: 'Doc', healerName: 'Doc', targetId: 'Al', targetName: 'Al', mode: 'hemorragie', intBonus: 4, test: 'guerison', bandagesDe: null,
+      healerId: 'Doc', healerName: 'Doc', targetId: 'Al', mode: 'hemorragie', intBonus: 4, test: 'guerison', bandagesDe: null,
       skillValue: 60, difficulty: 'intermediaire', ligne: { base: 60, mods: [], target: 60, difficulty: 'intermediaire' }, target: 60, roll: null, success: false, sl: 0,
     },
   } as never);

@@ -21,8 +21,11 @@ import { draineCascade } from './cascade.testkit';
 import { devisDeTrajet } from './travelFlow';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { encounterTable } from '../engine/travelTables';
+import { noteEvent } from './evenementDuJour';
 
-const ENTREES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c) => encounterTable(c).map((e) => e.label));
+/** La ligne de journal de chaque Rencontre tirable, telle que l'écrit son seul écrivain `noteEvent` (sans trajet : rien n'est noté). */
+const LIGNES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c) => encounterTable(c))
+  .map((e) => noteEvent(() => ({ travelPlan: null }) as never, () => {}, { title: e.label, text: e.desc }));
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -605,7 +608,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     expect(banc.getState().travelPlan).toBeNull();
   });
 
-  it('Rencontre : un échec d’Activité déclenche une Rencontre EDOC (texte verbatim au journal)', () => {
+  it('Rencontre : un échec d’Activité déclenche une Rencontre EDOC, au journal par la ligne de l’événement du jour (nom et texte verbatim)', () => {
     setRule('voyage-etapes', true);
     // Héros nul en Survie au poste Approvisionnement → échec quasi certain → Rencontre (dangereuse/fortuite).
     let met = false;
@@ -615,7 +618,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       setup(map({ km: 12, perilDie: 0 }), [h]);
       banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade(); // cascade travelDay (échec de poste → Rencontre tirée après l'agrégation) → drainer
-      if (banc.getState().journal.some((l) => ENTREES_DE_RENCONTRE.some((e) => l.startsWith(`${e} : `)))) met = true;
+      if (banc.getState().journal.some((l) => LIGNES_DE_RENCONTRE.includes(l))) met = true;
     }
     expect(met).toBe(true);
   });

@@ -69,6 +69,7 @@ import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from
 import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
+import { rangerLesEvenements } from './evenementDuJour';
 import { jouerLaJournee, type TableStepDef, type TableStepRow } from './cascade';
 import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
 import { t } from '../i18n';
@@ -103,9 +104,9 @@ export interface TravelRecapDay {
   /** Les JETS du jour (marche forcée, Survie, Perception…) en lignes de jet structurées —
    *  même brique multijet que le bilan de nuit (MultiRollList), pas du texte. */
   entries?: import('./restFlow').NightEntry[];
-  /** Événements de bord RACONTÉS du jour (#371 LOT 4, mer seulement) — titre + texte verbatim +
-   *  tirage d100 optionnel, rendus en `ParchmentCard` (`SeaVoyageBody`) : un événement PORTE UN
-   *  RÉCIT, distinct des `lines` de routine. */
+  /** Événements RACONTÉS du jour clos (#371 LOT 4, #4005), rangés depuis `TravelPlan.evenements` à la
+   *  sortie du jour (`rangerLesEvenements`) — titre + texte verbatim + tirage d100 optionnel, rendus en
+   *  `ParchmentCard` : un événement PORTE UN RÉCIT, distinct des `lines` de routine. */
   events?: import('./recapLine').RecapEvent[];
   /** MER (route COMMANDÉE) : instantané du jour pour l'écran de traversée (rose des vents + jauges +
    *  distance restante) — rendu par `SeaVoyageScreen` à la place du corps de recap terrestre. */
@@ -205,6 +206,9 @@ export interface TravelPlan {
    *  (`ouvrirLeRepos` porte le `travelDay` finalisé). Alimente le journal de voyage de l'écran-hub
    *  (`VoyageScreen`) — une carte par jour passé. Vidé avec le plan à l'arrivée. */
   log?: TravelRecapDay[];
+  /** Événements RACONTÉS du jour EN COURS, tous milieux (#4005) : seul écrivain `noteEvent`, rangés dans le
+   *  `TravelRecapDay` clos à chaque sortie de jour (`rangerLesEvenements`). Absent : aucun événement. */
+  evenements?: import('./recapLine').RecapEvent[];
 }
 
 /** Entrées d'une journée de route terrestre, figées au build de la cascade `travelDay` : l'horloge/les
@@ -778,7 +782,7 @@ export const stageWeatherRows = (entries: { min: number; max: number; weather: s
 const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepDef>(
   weather.map((saison) => [stageWeatherTableId(saison.id as Season), {
     label: t('step.stageWeather'),
-    die: facesDuDe(weatherDie(saison.id as Season)),
+    die: weatherDie(saison.id as Season),
     rows: stageWeatherRows(saison.entries),
     lines: (die) => [t('out.stageWeather', { weather: weatherCondition(weatherFromRoll(die, saison.id as Season)).label })],
   }]),
@@ -801,7 +805,7 @@ function buildTravelDayCascade(
     pousseSi(steps, tableStep({
       id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'voyage/vague',
       label: t('step.stageWeather'),
-      table: { tableId: stageWeatherTableId(currentSeason(get)), spec: weatherDie(currentSeason(get)) },
+      table: { tableId: stageWeatherTableId(currentSeason(get)) },
       stake: voyageStakeRef(STAGE_WEATHER_KIND),
     }));
   }
@@ -816,7 +820,7 @@ function buildTravelDayCascade(
   if (estFaceDeSeuil(perilDie)) {
     pousseSi(steps, tableStep({
       id: 'route-peripetie', kind: 'perilATerre', worldOwner: true, icon: 'interface/attention', label: t('step.perilATerre'),
-      table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
+      table: { tableId: perilThresholdTableId(perilDie) },
       stake: voyageStakeRef('route-peripetie', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
     }));
@@ -885,6 +889,8 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   // Arrivée recalculée depuis `plan.kmDone` À JOUR (posé au build sur le chemin synchrone, ci-dessus
   // sur le chemin différé) — source UNIQUE, sans champ `LandDayContext.arrived` figé au build.
   const arrived = (get().travelPlan?.km ?? 0) - (get().travelPlan?.kmDone ?? 0) < 1e-9;
+  // Chaque sortie du jour (interruption, arrivée, halte) part avec ses événements rangés (#4005).
+  if (recapDay) rangerLesEvenements(get, set, recapDay);
 
   // Efface les contextes transitoires du jour ; le `recap` d'un jour INTERROMPU reste jusqu'à
   // `reprendreLeVoyage`, qui le clôt au log (#2533, 2026-10-09 01:51).
@@ -951,10 +957,11 @@ function perilThresholdRows(face: number, faces: number): TableStepRow[] {
 
 /** Les tables du dé de seuil, une par face — FAMILLE dérivée de `peripeties` (son `tirageQuotidien`). */
 const tablesDeSeuil = memoParVersion('peripeties', () => {
-  const faces = facesDuDe(peripetieSeuilDie());
+  const die = peripetieSeuilDie();
+  const faces = facesDuDe(die);
   return new Map<string, TableStepDef>(Array.from({ length: faces }, (_, i) => i + 1).map((face) => [perilThresholdTableId(face), {
     label: t('step.perilATerre'),
-    die: faces,
+    die,
     rows: perilThresholdRows(face, faces),
     lines: (roll: number) => [roll === face ? t('tf.evenementDePeril') : t('tf.sansPeril')],
   }]));
@@ -966,7 +973,7 @@ const PERIL_TABLE_ID = 'route-peripetie-table';
  *  entrée, son `roll` pour fourchette, son id pour clé. */
 const tableDesPeripeties = memoParVersion('peripeties', () => new Map<string, TableStepDef>([[PERIL_TABLE_ID, {
   label: t('step.perilATerreTable'),
-  die: facesDuDe(peripetieDie()),
+  die: peripetieDie(),
   rows: PERIPETIES.map((p) => ({ id: p.id, min: p.roll, max: p.roll, label: p.label })),
   lines: (roll) => {
     const p = PERIPETIES.find((x) => x.roll === roll);
@@ -1381,7 +1388,7 @@ export const TABLES = {
       if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
       const table = tableStep({
         id: 'route-peripetie-table', kind: 'perilATerreTable', worldOwner: true, icon: 'interface/attention', label: t('step.perilATerreTable'),
-        table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
+        table: { tableId: PERIL_TABLE_ID },
         stake: voyageStakeRef('route-peripetie-table'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });

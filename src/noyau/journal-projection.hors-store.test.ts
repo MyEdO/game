@@ -133,7 +133,7 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     banc.setState({ party: [h] });
     const pt: PendingTest = {
-      actorId: h.id, actorName: h.label, skill: 'Athlétisme', skillValue: 50, difficulty: 'intermediaire',
+      actorId: h.id, skill: 'Athlétisme', skillValue: 50, difficulty: 'intermediaire',
       target: 50, roll: 12, success: true, sl: 3, isDouble: false, base: 50, mods: [], requireSL: 0,
     } as unknown as PendingTest;
     banc.setState({ pendingTest: pt });
@@ -143,13 +143,16 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
   });
 
   it('canal COMBAT (rechargement) : `apply` REND la ligne sans écrire au journal narratif (le site la tisse dans son `set`)', () => {
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    banc.setState({ party: [h] });
     const pr: PendingReload = {
-      actorId: 'a', actorName: 'Brawn', weaponUid: 'w1', reload: 3, progressBefore: 0,
+      actorId: h.id, weaponUid: 'w1', reload: 3, progressBefore: 0,
       skillValue: 50, difficulty: 'intermediaire', roll: 12, target: 50, sl: 2, success: true,
     } as PendingReload;
     const lines = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: 2, weapon: 'Arquebuse' } });
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain('Arquebuse');
+    expect(lines[0]).toContain('Brawn');
     expect(banc.getState().journal, 'canal COMBAT : rien dans le journal narratif').toEqual([]);
   });
 

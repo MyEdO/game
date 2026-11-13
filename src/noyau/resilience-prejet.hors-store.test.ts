@@ -16,7 +16,7 @@ function setPendingTest(over: Partial<any> = {}) {
   banc.setState({
     party: [combattantDeTest({ id: 'h1', label: 'Héros', resilience: 2 })],
     pendingTest: {
-      actorId: 'h1', actorName: 'Héros', label: 'Test', skillValue: 40, difficulty: 'intermediaire',
+      actorId: 'h1', label: 'Test', skillValue: 40, difficulty: 'intermediaire',
       requireSL: 0, target: 40, roll: null, success: false, sl: 0,
       ...over,
     } as any,
@@ -72,7 +72,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
     banc.setState({
       party: [combattantDeTest({ id: 'h1', label: 'Soigneur', resilience: 1, wounds: blessuresDeBase(12, 4), skills: [{ id: 'guerison', advances: 10, characteristic: 'intelligence' }] })],
       battle: null, medic: { patientId: 'h1' },
-      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
+      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
     });
     banc.getState().jetForcerLaReussite('soins');
     const ph = banc.getState().pendingHeal!;
