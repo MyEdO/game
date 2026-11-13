@@ -8,6 +8,7 @@ import { Combatant } from '../engine/types';
 import { AdvancementPanel, CharacterSheet } from './CharacterSheet';
 import { BackgroundPanel } from './BackgroundPanel';
 import { apparences, findTrappingById } from '../data';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { setDataset } from '../data/overrides';
 import { apparencesCandidates, itemFromTrappingById } from '../engine/items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
@@ -51,11 +52,11 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
   beforeEach(() => {
     catalogue = apparences.slice();
     setDataset('apparences', [...catalogue.filter((a) => !a.forme),
-      { type: 'apparences', id: 'choix-epee', label: 'Épée ouvragée', forme: { id: 'epee' } },
-      { type: 'apparences', id: 'choix-hache', label: 'Hache ouvragée', forme: { id: 'hache' } },
-      { type: 'apparences', id: 'choix-cape', label: 'Cape ouvragée', forme: { id: 'cape' } },
-      { type: 'apparences', id: 'choix-armure', label: 'Maille ouvragée', forme: findTrappingById('chemise-de-mailles')!.shape! },
-      { type: 'apparences', id: 'choix-bouclier', label: 'Bouclier ouvragé', forme: findTrappingById('bouclier')!.shape! },
+      { type: 'apparences', id: 'choix-epee', label: 'Épée ouvragée', forme: { id: idDeFixture('apparence', 'epee') } },
+      { type: 'apparences', id: 'choix-hache', label: 'Hache ouvragée', forme: { id: idDeFixture('apparence', 'hache') } },
+      { type: 'apparences', id: 'choix-cape', label: 'Cape ouvragée', forme: { id: idDeFixture('apparence', 'cape') } },
+      { type: 'apparences', id: 'choix-armure', label: 'Maille ouvragée', forme: { id: idDeFixture('apparence', findTrappingById('chemise-de-mailles')!.shape!.id) } },
+      { type: 'apparences', id: 'choix-bouclier', label: 'Bouclier ouvragé', forme: { id: idDeFixture('apparence', findTrappingById('bouclier')!.shape!.id) } },
     ]);
     useGame.setState({ party: [], battle: null, sheetTab: 'possessions' });
   });

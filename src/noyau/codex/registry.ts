@@ -15,7 +15,7 @@ import { CLES_DE_DATASET, type CleCodex } from '../../data/schemas/_cles-de-data
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, psychologyLabel,
   allAxes,
@@ -381,21 +381,26 @@ const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
   rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
  *  foyer — `id`→Possessions, `{id, type}`→Créatures ou Véhicules selon `type` — jamais une re-résolution
- *  par libellé. `{text}` reste du texte narratif (aucune entité désignée) ;
- *  `choice`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
+ *  par libellé. Une somme, une mention et un `{text}` ne désignent aucune entité ;
+ *  `pick`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
   if ('type' in ref && ref.type === 'creature') return idRefRow('creatures', ref.id, undefined, show);
   if ('type' in ref) return { t: 'ref', category: 'vehicles', id: ref.id, label: findVehicleById(ref.id)?.label ?? ref.id, show };
   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
-  // PASTILLE NUE, jamais de la prose : `{text}` est un NOM D'OBJET (« Grand hôtel particulier avec
-  // jardins » y ferait lier « Grand »), et `choice`/`wildcard` sont des libellés composites. Aucune
+  // PASTILLE NUE, jamais de la prose : une somme, une mention ou un `{text}` est un NOM (« Grand hôtel particulier avec
+  // jardins » y ferait lier « Grand »), et `pick`/`wildcard` sont des libellés composites. Aucune
   // entité du Codex n'est désignée — donc pas de `t:'ref'` non plus, et aucun porteur : le libellé
   // rendu n'est même pas toujours le champ (`trappingRefLabel` le DÉCORE du compte `ref.count` —
   // « Pamphlétaire (3) »). Même boîte que ses voisines de section.
   return { t: 'chip', label: show };
 };
-const trappingRefRows = (items?: TrappingRef[] | null): CodexRow[] => (items ?? []).map(trappingRefRow);
+/** Les lignes des dotations `items` : les possessions, puis les mentions de premier niveau sous un sous-titre par nature
+ *  (`mentionsParNature`). */
+const trappingRefRows = (items?: TrappingRef[] | null): CodexRow[] => [
+  ...(items ?? []).filter((r) => !estMention(r)).map(trappingRefRow),
+  ...mentionsParNature((items ?? []).filter(estMention)).flatMap(({ titre, mentions }) => [{ t: 'sub', label: titre } as CodexRow, ...mentions.map(trappingRefRow)]),
+];
 /** Section de pastilles de Possessions (skip si vide) — équivalent `chips` pour les `TrappingRef[]` STRUCTURÉES. */
 const trappingChips = (title: string, items?: TrappingRef[] | null): CodexSection | null =>
   items && items.length ? { title, layout: 'chips', rows: trappingRefRows(items) } : null;
@@ -2756,7 +2761,7 @@ export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex,
 /** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
  *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
  *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
-function couleursDuTableau(table: typeof tableDesYeux, de: DeDeTable): CodexItem[] {
+function couleursDuTableau(table: typeof tableDesYeux | typeof tableDesCheveux, de: DeDeTable): CodexItem[] {
   const rangee = (e: (typeof eyes)[number]) => e.rand;
   const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
   /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */

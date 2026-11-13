@@ -28,6 +28,7 @@
     "godot:ouvrir": "node hotes/godot/construire.mjs --ouvrir",
     "godot:bureau": "node hotes/godot/construire.mjs --bureau --sortie dist/bureau",
     "godot:rendus": "node hotes/godot/construire.mjs --rendus",
+    "godot:recette": "node hotes/godot/lot-de-recettes.mjs --natif --captures dist/godot-recettes --jeux combat,editeur",
     "godot:etalons": "node hotes/godot/construire.mjs --export --sortie dist/godot && node hotes/godot/etalons.mjs --web dist/godot",
     "godot:editeur": "node hotes/godot/construire.mjs --export --sortie dist/godot && node hotes/godot/servir.mjs --web dist/godot --depot",
     "godot:importer": "node hotes/godot/importer.mjs",

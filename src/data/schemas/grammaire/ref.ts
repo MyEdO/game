@@ -71,8 +71,8 @@ export const TYPES = {
   // chiffre pas se lit au registre, l'id résout donc AU PARSE comme toute autre référence.
   regleOptionnelle: { espace: 'reglesOptionnelles.json', catalogue: 'règles optionnelles' },
   terrain: { espace: 'terrains.json', catalogue: 'terrains' },
-  // PALIER D'ÉCLAIRAGE (#1716) : la semence d'éclairage d'une scène neuve (`semences-de-scene.json`)
-  // nomme un palier — l'id résout AU PARSE, là où `Scene.ambientLight` reste une chaîne libre.
+  // PALIER D'ÉCLAIRAGE (#1716) : la semence d'éclairage d'une scène neuve (`semences-de-scene.json`) et
+  // `Scene.ambientLight` nomment un palier — l'id résout AU PARSE.
   lightLevel: { espace: 'lightLevels.json', catalogue: 'paliers d’éclairage' },
   prop: { espace: 'props.json', catalogue: 'décors' },
   building: { espace: 'buildings.json', catalogue: 'bâtiments' },
@@ -122,6 +122,7 @@ export const TYPES = {
   // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
   cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
+  colonneDuMarchand: { espace: 'vocabulaire:colonnesDuMarchand', catalogue: 'colonnes de stats du marchand' },
   action: { espace: 'actions.json', catalogue: 'actions' },
   location: { espace: 'locations.json', catalogue: 'lieux' },
   serviceDeLieu: { espace: 'lieux-services.json', catalogue: 'services de lieu' },
@@ -766,8 +767,7 @@ export function refTypee<V extends string, E extends Record<string, z.ZodType> =
 export type TexteLibre = string;
 
 /** FORME de sortie d'un nœud de référence à spécialisation — DÉCLARÉE (et non inferée) : les `extra`
- *  du porteur n'y figurent pas, un site qui les lit redéclare son type (patron `AxesData`,
- *  `schemas/defs/axes.ts`). Sans cette déclaration, tout schéma RÉCURSIF annoté qui compose une réf
+ *  du porteur n'y figurent pas, un site qui les lit redéclare son type. Sans cette déclaration, tout schéma RÉCURSIF annoté qui compose une réf
  *  (`flowSchema: ZodType<Flow<EffectOp>>`) perdrait sa forme et cesserait de typer son arbre.
  *  `RefDesignee` : la forme d'un porteur qui DÉSIGNE (régime `specSeule`) ; `RefASpecialisation` :
  *  celle d'un porteur d'EMPLACEMENT, qui admet aussi `choix`. */
@@ -1026,32 +1026,45 @@ export const aLaFormeDe = (noeud: unknown, valeur: unknown): boolean =>
  * l'« Entrée invalide » générique d'une union.
  */
 export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
-  return z.union(branches, {
-    error: (iss) => {
-      const parBranche = (iss as IssueDeParse).errors ?? [];
-      return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
-    },
-  });
+  return z.union(branches, { error: messageDeFormes });
+}
+
+/** Le message d'une union de formes (`unionDeFormes`), pour l'union qui garde le type de ses branches. */
+export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
+  const parBranche = (iss as IssueDeParse).errors ?? [];
+  return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
 }
 
 /**
  * Choix « n parmi » : `{ pick, of: [...] }` (liste énumérée) ou `{ pick, table }` (tirage sur une
- * table d100). Remplace les graphies `choice[]` et `random` des lots L2/L3.
+ * table d100).
  *
  * Une entrée de `of` est l'UNION des trois façons de désigner une option : référence nue `ref(type)`,
  * référence à spécialisation `specRef(type)` (`{id, spec}` XOR `{id, choix}`, validée contre le pool
- * de l'entrée À TRAVERS l'`of`), ou un `pick` IMBRIQUÉ (un « n parmi » dont une option est elle-même
- * un choix). La récursion se referme sur le nœud LUI-MÊME (`noeud`).
+ * de l'entrée À TRAVERS l'`of`), ou un `pick` IMBRIQUÉ (`parmi`).
  *
  * `optionsDuPorteur` ouvre l'`of` aux formes que le PORTEUR admet en plus des trois ci-dessus —
  * même composition FERMÉE que l'`extra` de `ref()`/`specRef()` : le porteur déclare ce qu'il
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
-export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
-  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
-  const noeud: z.ZodType<unknown> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
+export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur: readonly z.ZodType<O>[] = []): z.ZodType<Parmi<number, O | RefASpecialisation>> {
+  return parmi<O | RefASpecialisation, number>([ref(type), specRef(type) as z.ZodType<RefASpecialisation>, ...optionsDuPorteur], nombreDeTirages());
+}
+
+/**
+ * Le nœud `{ pick, of }` : `pick` est le nœud `nombre` que le porteur admet, une entrée de `of` est l'une des
+ * `options` ou un `{ pick, of }` IMBRIQUÉ — la récursion se referme sur le nœud LUI-MÊME. Le seul constructeur du
+ * nœud ; il n'ajoute aucune option (cf. `pick`, `formesDeDotation` de `reference.ts`).
+ */
+export function parmi<O, N extends number>(options: readonly z.ZodType<O>[], nombre: z.ZodType<N>): z.ZodType<Parmi<N, O>> {
+  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([noeud, ...options]));
+  const noeud = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of') as z.ZodType<Parmi<N, O>>;
   return noeud;
 }
+
+/** FORME de sortie d'un nœud `{ pick, of }` (`parmi`) — DÉCLARÉE, même raison que `RefASpecialisation` : `N`, le
+ *  nombre que le porteur admet ; une option est une forme `O` ou un `{ pick, of }` imbriqué. */
+export interface Parmi<N extends number, O> { pick: N; of: (O | Parmi<N, O>)[] }
 
 /** Le nombre `n` d'un « n parmi » ou d'un tirage. */
 const nombreDeTirages = (): z.ZodNumber => z.number().int().positive();

@@ -65,7 +65,6 @@ const OPS_TYPE = 'GameOp';
  */
 export const GAMEOP_FIELD_TARGETS = {
   // ── Champs que le parse ne juge pas (lot L1c #1468) ──
-  'skillDRBonus.testType': { registry: 'crewTestTypes' },
   'manann.factorId': { registry: 'seaManannFactors' },
   // ── Psychologie (psychology.json) ──
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },

@@ -73,6 +73,8 @@ var _transport: Transport
 	## `valeur` publiée sous `nom`, pour qui pilote le lieu.
 	@abstract func publier(nom: String, valeur: Variant) -> void
 
+	## `rappel` exposé sous `nom` à qui pilote le lieu : chaque appel lui passe son entrée, une chaîne, et `rendre`, le
+	## `Callable` qui reçoit sa réponse, une chaîne.
 	@abstract func exposer(nom: String, rappel: Callable) -> void
 
 	@abstract func adresse(relative: String) -> String
@@ -154,9 +156,12 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
 ## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>,
-##   cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[], emblemes:
-##   Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`, plus le
-##   point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, la part de l'écran où le
+##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[],
+##   emblemes: Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
+##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
+##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
+##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
+##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de l'écran où le
 ##   monde se voit, que l'interface ne couvre pas (`Monde.cadre`, vide avant la première mise en page), les ids des
 ##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
 ##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
@@ -165,7 +170,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   (`MontageDeComposition.couleurs_posees`).
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
-##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier.
+##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids`, `retenu`, `ouverte` et `designe`, comme à
+##   l'atelier.
 ## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],
 ##   panneau: { valeur, contenu, page, haut, bas, boutons, saisies }, cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes,
 ##   noms, calque, calque_pose } }`, chaque champ de texte éditable à l'écran, son texte et son centre
@@ -242,8 +248,10 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## d'échantillons, parce que leur texte (« Aucun », un
 ##   libellé) se répète d'une rangée à l'autre ; le préfixe `ligne/` sépare une ligne d'un point de même id. Une liste
 ##   déroulante publie aussi le texte de chaque article (`choix`), l'id de chaque article (`ids`, `null` pour un article
-##   sans id), et le rang de l'article choisi (`retenu`, -1 sans choix) : on la choisit en la cliquant, puis en
-##   descendant à son article au clavier. `lignes` porte l'élément monté
+##   sans id), le rang de l'article choisi (`retenu`, -1 sans choix), si elle est ouverte (`ouverte`) et le rang de
+##   l'article que désigne sa liste ouverte (`designe`, -1 sans lui), republiés quand elle s'ouvre, se ferme ou
+##   désigne un autre article au clavier (`suivre_les_listes`) : on la choisit en la cliquant, puis en allant à son
+##   article au clavier. `lignes` porte l'élément monté
 ##   à chaque ligne de pièce, sous la clé `<ligne>` : la `sorte` d'un sélecteur (`tete`, `coiffure`), `piece/<id>` ou
 ##   `emplacement/<id>` ; une ligne sous « Aucun » ou démontée en est absente, comme un point de `montes`. `emblemes` ne
 ##   porte que les emplacements montés dont un emblème est posé, sous l'id du point ou `ligne/<ligne>` : un emplacement
@@ -286,9 +294,27 @@ func publier_l_ecran(publie: Callable) -> void:
 ## étage non entiers, une case hors du plateau ou d'une couche qu'il n'a pas, un nombre hors de ses bornes. La recette
 ## autonome `projet/recettes/cadrage.gd` en est l'épreuve.
 
-## `rappel` exposé au lieu sous `nom` : chaque appel lui passe ses arguments en tableau.
+## `rappel` exposé au lieu sous `nom` : chaque appel lui passe son entrée, une chaîne, et `rendre`, le `Callable` qui
+## reçoit sa réponse, une chaîne.
 func exposer(nom: String, rappel: Callable) -> void:
 	_transport.exposer(nom, rappel)
+
+
+## Sous une recette, `republier` appelé quand une liste déroulante sous `racine`, présente ou à venir, s'ouvre, se ferme
+## ou désigne un autre article au clavier : l'écran publie l'état de ses listes (`boutons_a_l_ecran`).
+func suivre_les_listes(racine: Node, republier: Callable) -> void:
+	if not en_recette:
+		return
+	var suivre := func(noeud: Node) -> void:
+		if noeud is OptionButton and racine.is_ancestor_of(noeud):
+			var articles := (noeud as OptionButton).get_popup()
+			articles.visibility_changed.connect(republier)
+			articles.id_focused.connect(func(_id: int) -> void: republier.call())
+	for liste in racine.find_children("*", "OptionButton", true, false):
+		suivre.call(liste)
+	var arbre := get_tree()
+	arbre.node_added.connect(suivre)
+	racine.tree_exited.connect(func() -> void: arbre.node_added.disconnect(suivre))
 
 
 ## Le pont `pont` posé à la place de celui de l'arbre (`/root/Pont`), que chaque écran rejoint ensuite.
@@ -305,7 +331,8 @@ static func remplacer(arbre: SceneTree, pont: PontDuNoyau) -> void:
 ## vrai, que les défilements cachent aussi, son texte,
 ## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :
 ## `<type>/<id>`) s'il en porte un ; une liste déroulante, aussi le texte de chaque article (`choix`), son id (`ids`,
-## sa métadonnée) et le rang de l'article choisi (`retenu`, -1 sans choix) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
+## sa métadonnée), le rang de l'article choisi (`retenu`, -1 sans choix), si elle est ouverte (`ouverte`) et le rang de
+## l'article que désigne sa liste ouverte (`designe`, -1 sans lui) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
 ## centre de son onglet (`onglet`).
 static func boutons_a_l_ecran(racines: Array, defiles := false) -> Array:
 	var boutons := []
@@ -331,6 +358,8 @@ static func boutons_a_l_ecran(racines: Array, defiles := false) -> Array:
 					publie.choix = range(liste.item_count).map(func(rang: int) -> String: return liste.get_item_text(rang))
 					publie.ids = range(liste.item_count).map(liste.get_item_metadata)
 					publie.retenu = liste.selected
+					publie.ouverte = liste.get_popup().visible
+					publie.designe = liste.get_popup().get_focused_item()
 				boutons.append(publie)
 	return boutons
 

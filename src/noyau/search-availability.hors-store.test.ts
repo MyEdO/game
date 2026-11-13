@@ -5,6 +5,7 @@
  * Disponibilité (LDB 59 l.50) — cumulable avec la Carrière cohérente jusqu'au plafond +20 %.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -68,7 +69,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     expect(d100, 'un seul d100 : le Ragot').toHaveLength(1);
     const jet = evaluateTest(d100[0], cibleDuTest(partyAssisted([h], { skill: { id: 'ragot' }, characteristic: 'sociabilite' })!.value));
     const journal = banc.getState().journal.map(String);
-    const de = journal.indexOf(traceLineOf({ who: h.label, label: refLabel('skills', { id: 'ragot' }), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }));
+    const de = journal.indexOf(traceLineOf({ who: fixtureText(h.label), label: refLabel('skills', { id: 'ragot' }), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }));
     expect(de, journal.join(' | ')).toBeGreaterThanOrEqual(0);
     expect(journal.slice(de + 1), journal.join(' | ')).toContain(String(stepDetail(dataLabel(h.label), t(jet.success ? 'mf.rechercheReussie' : 'mf.rechercheRatee'))));
   });

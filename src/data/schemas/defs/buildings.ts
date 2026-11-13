@@ -1,7 +1,7 @@
 import { nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `buildings.json` — LE catalogue des types de bâtiment (#1715), consommé comme
- * `BuildingDef[]` (`src/data/buildings.types.ts`). 7 entrées, UNE forme, aucun discriminant : tous
+ * `BuildingDef[]` (`src/data/index.ts`). 7 entrées, UNE forme, aucun discriminant : tous
  * les bâtiments portent les mêmes clés et se distinguent par leurs VALEURS.
  *
  * Un bâtiment n'est PAS un volume : le monde le bâtit en murs d'arête (`WallSeg`) sur un sol de

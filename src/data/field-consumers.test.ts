@@ -232,7 +232,7 @@ describe('DÉRIVATION des cibles de catalogue — entrée par la jointure, sorti
   it('le MÊME def sans chargement typé SORT, avec la raison mesurée', () => {
     expect(deriver(`import a from './data/a.json'; export const n = a.length;`)).toEqual({
       cibles: [],
-      sorties: [{ file: 'a.json', raison: 'aucun chargement typé (cast, annotation ou porte `rangeesDe`)' }],
+      sorties: [{ file: 'a.json', raison: 'aucun chargement typé (cast, annotation ou porte `datasetDe`/`rangeesDe`)' }],
     });
   });
 
@@ -383,13 +383,12 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
 const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActionDef: ['blocked'],
   ActivityDef: ['rounds', 'stake', 'stakeForm', 'unavailableIfExtenue'],
-  ActivityStakeEntry: ['stakeForm'],
   AdvanceCostBand: ['max', 'min'],
+  BookData: ['dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
   CritDoc: ['die'],
   DomainData: ['grantGroups'],
   EtatData: ['severity'],
   GodData: ['grantGroups'],
-  InterludeEvent: ['atelierNote'],
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MiscastTableDef: ['die'],
@@ -420,6 +419,11 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
  *  une autre vue) ou par clé dynamique. Les clés d'ENVELOPPE sans lecteur, elles, sont classées par le
  *  rapport (`CLES_ENVELOPPE`). */
 const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
+  'BookData.dir': 'lu sous la vue `EntreeDeLivre` par `estLivreExtrait` (`src/data/source/livre-extrait.ts`) et `scripts/raw/_lib.mjs`',
+  'BookData.language': 'lu par `scripts/docs/build-ajouter-donnee.mjs`, sur le registre JSON',
+  'BookData.niveauDeSection': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#niveauxDeSectionDe`',
+  'BookData.pdf': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#pdfDe`',
+  'BookData.teneur': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#teneursDe`',
   'CritDoc.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
   'MiscastTableDef.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
   'PlanDEspece.echelle': 'lu par `jugerDeclaration` (`scripts/personnage-3d/base/declaration.mjs`), qui juge l’échelle d’art du porteur d’une base',
@@ -427,15 +431,8 @@ const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
 };
 
 /** CLIQUET des champs du SCHÉMA ABSENTS du type TS de leur cible (divergence schéma↔type), hors clés
- *  d'enveloppe et nominatif par type comme `ZEROS`. Une vue étroite (`ActivityStakeEntry`) y porte tout ce qu'elle ne déclare pas. */
-const ABSENTS: Readonly<Record<string, readonly string[]>> = {
-  ActivityStakeEntry: [
-    'assisted', 'blocked', 'classGate', 'combined', 'contexts', 'difficulty', 'difficultyFrom',
-    'encounter', 'extended', 'failExtenue', 'freeSkill', 'generalDownOn', 'grantsFlag', 'hold', 'minInvest',
-    'onSuccess', 'outcomes', 'requires', 'resolver', 'rounds', 'sceneKind', 'stageOutcome',
-    'testModFrom', 'testMods', 'tests', 'threat', 'unavailableIfExtenue', 'weatherMod', 'where', 'worldRolls',
-  ],
-};
+ *  d'enveloppe et nominatif par type comme `ZEROS`. Une vue étroite y porte tout ce qu'elle ne déclare pas. */
+const ABSENTS: Readonly<Record<string, readonly string[]>> = {};
 
 const aplatir = (parType: Readonly<Record<string, readonly string[]>>) =>
   Object.entries(parType).flatMap(([type, champs]) => champs.map((c) => `${type}.${c}`)).sort();

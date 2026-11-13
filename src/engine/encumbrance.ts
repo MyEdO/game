@@ -22,25 +22,14 @@ import { conditionGating } from './conditions';
 import { traumaMovementHalved, passiveMoveMod, prosthesisMoveRestore } from './trauma';
 import { offTerrainMoveCap } from './ops';
 import encumbranceTiersJson from '../data/encumbranceTiers.json';
+import { datasetDe, type EntreeDe } from '../data/datasets';
+import type * as encumbranceTiersDef from '../data/schemas/defs/encumbranceTiers';
 
-export interface EncumbrancePenalties {
-  /** Palier de surcharge : 0 (aucune) à 3 (immobilisé). */
-  tier: 0 | 1 | 2 | 3;
-  /** Réduction de Mouvement (cases) à appliquer ; `null` = palier immobilisé (cf. `immobile`). */
-  movePenalty: number | null;
-  /** Plancher de Mouvement du palier (le Mouvement ne descend pas en dessous). */
-  moveFloor: number;
-  /** Modificateur signé aux tests d'Agilité (0 / −10 / −20). */
-  agilityPenalty: number;
-  /** États Exténué gagnés par journée de voyage (échelle voyage). */
-  travelFatigue: number;
-  /** Surcharge > 3× la capacité : déplacement impossible. */
-  immobile: boolean;
-}
+export type EncumbrancePenalties = EntreeDe<typeof encumbranceTiersDef>;
 
 /** Profils de pénalité par palier (LDB 61 l.35-40) — DONNÉE (`src/data/encumbranceTiers.json`). Le palier 3
  *  porte `movePenalty: null` (immobilisé : le flag `immobile` court-circuite, plus d'`Infinity`). */
-const ENCUMBRANCE_TIERS = encumbranceTiersJson as EncumbrancePenalties[];
+const ENCUMBRANCE_TIERS = datasetDe<typeof encumbranceTiersDef>(encumbranceTiersJson);
 
 /** Pénalités d'Encombrement d'un combattant selon le Livre de base (p.295). Le PALIER (multiples de la
  *  capacité) est calculé ici ; les VALEURS du palier viennent de la donnée. */

@@ -71,6 +71,7 @@ function valeursDeLInspecteur(e: Edition, id: string): Bouton[] {
 
 /** La première campagne du jeu : chaque scène a au moins deux cases de côté. */
 const CAMPAGNE = allBuiltinCampaigns[0].id;
+const COMMITES = await modelesCommites();
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
 describe('l’éditeur de carte par le pont', () => {
@@ -656,6 +657,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const doktor = presser(boutonDe(medecin, 'carriere/medecin/niveau/3'));
     expect(boutonDe(doktor, 'carriere/medecin/niveau/3').presse).toBe(true);
     expect(ligneDe(doktor, 'profil/statut')).toMatch(/Argent 5/);
+    expect(ligneDe(doktor, 'profil/mentions/personne'), 'ses mentions, une ligne par nature').toBe('Personnes : Apprenti');
     const chirurgien = presser(boutonDe(doktor, 'carriere/medecin/talents/2/chirurgie'));
     expect(boutonDe(chirurgien, 'carriere/medecin/talents/2/chirurgie').presse).toBe(true);
     expect(ligneDe(chirurgien, 'profil/talents')).toMatch(/Chirurgie/);
@@ -1268,7 +1270,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
 describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
   it('l’outil navire pose la caraque à son cap ; la réponse sert son corps, le monde le sol de ses ponts sans le peindre, et ses ponts sont des couches', () => {
     const { appel } = table();
-    servirLesModeles(appel, modelesCommites());
+    servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
     expect(ouverte.navires).toEqual({});
@@ -1291,7 +1293,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
 
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
     const { appel } = table();
-    servirLesModeles(appel, modelesCommites());
+    servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));

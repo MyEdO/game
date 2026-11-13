@@ -3,10 +3,12 @@
  * combat (`cliquerLeCombattant`, `cliquerLaCaseDuCombat`), attaque, défense et cascade, désengagement, monture, fin de tour, pause de
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
+import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode, type EtatDeLaBarre } from './actionRegistry';
+import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type EtatDeLaBarre } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
@@ -127,7 +129,7 @@ import { combatDistance } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
+import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, reprendreLaPile, poserCurseurCascade, sortirDeLHote } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, jetImmunise, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';
@@ -148,7 +150,7 @@ const ligneDeDissipation = (lanceur: Combatant, value: number, soutien: SupportD
   rollLine({ actor: lanceur, test: { skill: { id: 'langue', spec: 'magick' } }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
 
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
-  !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
+  !!(pickActiveModalKey(s) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
 
 /** La barre d'un geste de combat hors des verbes de la barre (#3700) : son verdict (`etatDeLaBarre`), et un Sort qui
  *  désigne ses cibles ou pose sa zone (`pendingCast`), qu'elle ne compte pas, tient la main. */
@@ -345,8 +347,8 @@ function tracerLaFuite(get: Get, set: Set, mover: Combatant, foe: Combatant, jet
   const slot = jets.touche ? fleeTouche(pd) : undefined;
   const jet = slot?.jet;
   journaliser(get, set, [
-    ...(d ? [traceLineOf({ who: foe.label, label: libelleDeTest('dans-le-dos'), roll: d.roll, target: d.target, sl: d.sl, success: d.success })] : []),
-    ...(slot && jet?.target != null ? [traceLineOf({ who: mover.label, label: testTraceLabel(libelleDuTestNomme(slot.test), slot.test.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success })] : []),
+    ...(d ? [traceLineOf({ who: nomDe(foe), label: libelleDeTest('dans-le-dos'), roll: d.roll, target: d.target, sl: d.sl, success: d.success })] : []),
+    ...(slot && jet?.target != null ? [traceLineOf({ who: nomDe(mover), label: testTraceLabel(libelleDuTestNomme(slot.test), slot.test.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success })] : []),
   ], 'information', { actorId: mover.id });
 }
 
@@ -537,12 +539,9 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   if (!handled && get().battle) {
     if (!checkBattleOver(get, set)) resumeSuspendedAI(get, set); // combat non terminé → reprendre l'IA
   }
-  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) : `suspendedCascades` ne se vidait qu'au
-  // teardown de combat — une séquence parquée par une AUTRE séquence (`startCascade`/`pushStep` d'un
-  // `purpose` différent) n'était reprise NULLE PART. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
-  // ouvrir la suite : elle passe d'abord) ET hors combat (une séquence parquée par `lancerLeCombat` reste
-  // propriété du teardown, cf. les sorties de la victoire et de la défaite, `issueDeCombat.ts`).
-  if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) par la reprise partagée (`reprendreLaPile`),
+  // APRÈS le dénouement ci-dessus : s'il a ouvert la suite, le slot est tenu et elle passe d'abord.
+  reprendreLaPile(get, set);
 }
 
 /** « Terminer » : ferme la cascade et enchaîne la suite (reprise de voyage…). Le joueur ne la joue qu'au bilan
@@ -3137,17 +3136,21 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // appendues (Critique/Imparfaite/Colère) → la cascade les joue (cursor+1) ; aucune → ferme la situation.
       // (Si pas de cascade d'incantation hôte — test/IA direct — on laisse intacte la cascade que les
       // conséquences ont éventuellement démarrée elles-mêmes, cursor déjà sur la 1ʳᵉ conséquence.)
+      let fermeLHote = false;
       if (castStepIdx >= 0) {
         const casc = get().pendingCascade;
         if (casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) {
           if (casc.participants.length > castStepIdx + 1) poserCurseurCascade(get, set, casc, castStepIdx + 1);
-          else set({ pendingCascade: null });
+          else fermeLHote = true;
         }
       }
       // Lanceur ENNEMI (modale témoin) : le tour de l'IA était suspendu → reprise. No-op si une autre
       // interaction bloquante s'est ouverte (Destin, révélations, OU la cascade de conséquences encore
       // ouverte) — elle reprendra elle-même (validation d'étape → resumeSuspendedAI à la clôture).
-      if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
+      const reprendreLEnnemi = (): void => { if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set); };
+      // La situation fermée libère le slot par la sortie d'hôte (#4006).
+      if (fermeLHote) sortirDeLHote(get, set, {}, reprendreLEnnemi);
+      else reprendreLEnnemi();
     },
     contreSort: () => {
       const pcs = get().pendingCounterspell;
