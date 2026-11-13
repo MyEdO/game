@@ -9,12 +9,17 @@ extends SceneTree
 ## la somme des mètres du chemin. Un combattant sans corps parcourt un chemin qui gagne une case, monte à sa verticale
 ## (une échelle), puis passe sur un pont plus haut : il passe par chaque lieu, tourné à l'horizontale vers chaque case
 ## qu'il gagne sans jamais pencher, et garde son cap à la verticale. Sur le même pont figé, l'atelier offre « Parcourir un
-## chemin » à la base posée, qui passe par chaque case du chemin de la vitrine (`vitrine.deplacement`).
+## chemin » à la base posée, qui passe par chaque case du chemin de la vitrine (`vitrine.deplacement`) à l'état de
+## marche de l'arbre d'états du jeu (`EtatsDuCorps`, #4081) : au milieu du parcours, l'arbre est actif, le lecteur brut
+## arrêté, et la marche se gagne par un fondu qui nomme le repos quitté ; au bout, le repos se gagne par un fondu depuis
+## la marche, puis l'arbre se débranche et le lecteur brut joue le clip de repos.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/chemin.json"
 ## Les images laissées à un chargement ou à un montage, lus et posés en quelques images.
 const IMAGES_D_ATTENTE := 600
+## Le pas (s) de l'horloge manuelle de l'arbre d'états de l'atelier.
+const PAS_DE_L_ARBRE_S := 1.0 / 60.0
 ## Le pas (s) dont la recette avance un parcours, l'écart toléré entre un lieu et le plus proche des points relevés, et
 ## celui d'une durée relevée, au pas près, son dernier pas compris.
 const PAS_S := 0.01
@@ -104,20 +109,68 @@ func _l_echelle() -> void:
 	combattant.queue_free()
 
 
-## L'atelier offre « Parcourir un chemin » à la base posée, qui passe par chaque case du chemin de la vitrine.
+## L'atelier offre « Parcourir un chemin » à la base posée, qui passe par chaque case du chemin de la vitrine, par
+## l'arbre d'états du jeu : le parcours tenu, la marche gagnée par un fondu depuis le repos ; au bout, le repos gagné
+## par un fondu depuis la marche, puis la main rendue au lecteur brut, sur le clip de repos.
 func _l_atelier() -> void:
 	var atelier: Node = (load("res://scenes/Atelier.tscn") as PackedScene).instantiate()
 	root.add_child(atelier)
 	var montage: MontageDeComposition = atelier.get("_montage")
+	var etats: EtatsDuCorps = atelier.get_node("Etats")
 	var bouton: Button = atelier.get_node("%Parcourir")
 	await _attendre(func() -> bool: return montage.lecteur != null and bouton.visible, "« Parcourir un chemin » offert à la base posée")
+	etats.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	bouton.pressed.emit()
-	var releve := _relever(atelier.get("_parcours"), montage.modele, montage.modele)
+	var parcours: Tween = atelier.get("_parcours")
+	parcours.pause()
+	var vers_la_marche := await _fondre(etats, "marche")
+	_verifier_le_fondu(vers_la_marche, "repos", "vers la marche")
+	_verifier(etats.active and not montage.lecteur.is_playing() and montage.lecteur.assigned_animation == montage.clip("marche"), "au milieu du parcours de l'atelier : arbre actif %s, lecteur brut en lecture %s, clip marqué %s" % [etats.active, montage.lecteur.is_playing(), montage.lecteur.assigned_animation])
+	var releve := _relever(parcours, montage.modele, montage.modele)
 	var vitrine: Dictionary = atelier.get("_vitrine")
 	var lieux: Array = vitrine.deplacement.cases.map(func(c: Dictionary) -> Vector3: return MiseEnPage.lieu_de_la_case_de_vitrine(c.x, c.y, vitrine.metresParCase))
 	_passer_par(releve.points, lieux, "l'atelier")
-	print("[chemin-du-groupe] atelier : %d cases en %.2f s" % [lieux.size(), releve.duree])
+	var vers_le_repos := await _fondre(etats, "repos")
+	_verifier_le_fondu(vers_le_repos, "marche", "vers le repos")
+	for i in IMAGES_D_ATTENTE:
+		if not etats.active:
+			break
+		await _pas_de_l_arbre(etats)
+	_verifier(not etats.active and etats.anim_player.is_empty() and montage.lecteur.is_playing() and montage.lecteur.current_animation == montage.clip("repos"),
+			"au repos retrouvé : arbre actif %s, lecteur brut en lecture %s sur %s, attendu l'arbre débranché et le repos %s" % [etats.active, montage.lecteur.is_playing(), montage.lecteur.current_animation, montage.clip("repos")])
+	print("[chemin-du-groupe] atelier : %d cases en %.2f s, fondu repos → marche %s, marche → repos %s" % [lieux.size(), releve.duree, vers_la_marche, vers_le_repos])
 	atelier.queue_free()
+
+
+## Les états quittés (`get_fading_from_node`), image après image de l'horloge de `etats`, depuis la première où l'état
+## courant vaut `etat` jusqu'à la fin de son fondu ; vide si `etat` n'est pas gagné.
+func _fondre(etats: EtatsDuCorps, etat: String) -> Array[String]:
+	var quittes: Array[String] = []
+	for i in IMAGES_D_ATTENTE:
+		await _pas_de_l_arbre(etats)
+		if etats.lecture().get_current_node() != etat:
+			continue
+		quittes.append(etats.lecture().get_fading_from_node())
+		if quittes[-1] == "":
+			break
+	return quittes
+
+
+## Le fondu `quittes` (`_fondre`) nomme `quitte` sur plusieurs images, puis se vide.
+func _verifier_le_fondu(quittes: Array[String], quitte: String, quoi: String) -> void:
+	var fondues := quittes.count(quitte)
+	_verifier(fondues >= 3 and quittes.slice(0, fondues).all(func(q: String) -> bool: return q == quitte) and quittes[-1] == "", "l'atelier %s : états quittés %s, attendu %s puis rien" % [quoi, quittes, quitte])
+
+
+## Une image de l'horloge manuelle de `etats`, suivie d'une image du jeu.
+func _pas_de_l_arbre(etats: EtatsDuCorps) -> void:
+	etats.advance(PAS_DE_L_ARBRE_S)
+	await process_frame
+
+
+func _verifier(tenu: bool, faute: String) -> void:
+	if not tenu:
+		_fautes.append(faute)
 
 
 ## Le tween `parcours` avancé de `PAS_S` en `PAS_S` jusqu'à sa fin : chaque point de `mobile` relevé, l'avant et le haut

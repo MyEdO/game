@@ -7,7 +7,7 @@
 ## ceux de son montage (`MontageDeComposition`, le nœud `Modele`), que l'atelier offre au joueur. À côté des bases, il pose
 ## un véhicule ou un engin servi (#2987), tel que le pont le compose (`vehicule`) : les pièces de ses postes, ses
 ## Améliorations, la palette de la composition et l'emblème de ses voiles, montés par son montage (`MontageDeVehicule`, le
-## nœud `Vehicule`), au sol et cadrés à sa taille ; l'engin posé attaque, son clip d'attaque puis son coup. Il pose aussi
+## nœud `Vehicule`), au sol et cadrés à sa taille ; l'engin posé attaque, son coup et son état d'attaque. Il pose aussi
 ## ce que le jeu dessine en 3D hors des modèles servis (#3802, `echantillons`, `echantillon`, `CONTRAT.md`, section
 ## « Atelier 3D ») : chaque entrée de chaque famille servie, dans une scène bâtie par le noyau, rendue par le volume de
 ## scène du jeu (`VolumeDeScene`, le nœud `Echantillon/Scene`) à l'échelle métrique, au sol et cadrée à sa taille.
@@ -16,7 +16,9 @@
 ## son nœud `Effets` de l'auteur posé à l'origine vers la cible (`Cible`), et chaque musique, jouée par sa `Musique`
 ## jusqu'à ce que son bouton se relâche (#3825), et chaque météo, posée par son nœud `Meteo` avec son son jusqu'à ce
 ## que son bouton se relâche (#4081) ; son onglet Animation, le déplacement de la vitrine, que la base posée
-## parcourt (#3822).
+## parcourt (#3822). Ses clips se parcourent au lecteur brut du modèle posé ; ses actions, « Parcourir un chemin » et
+## « Attaquer », se jouent par l'arbre d'états du jeu (`EtatsDuCorps`, le nœud `Etats`, #4081), branché le temps de
+## l'action (`_jouer_l_action`).
 ## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
 ## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
 ## Chaque geste mis en page, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
@@ -65,6 +67,7 @@ const METRES_PAR_UNITE := 1.0
 @onready var _interface: CanvasLayer = $Interface
 @onready var _marche: MarcheDeLAtelier = $Marche
 @onready var _vehicule: MontageDeVehicule = $Vehicule
+@onready var _etats: EtatsDuCorps = $Etats
 @onready var _echantillon: Node3D = $Echantillon
 @onready var _scene_de_l_echantillon: VolumeDeScene = $Echantillon/Scene
 @onready var _sol: MeshInstance3D = $Sol
@@ -149,6 +152,9 @@ var _offre_du_vehicule: Dictionary = {}
 var _vitrine: Dictionary = {}
 ## Le parcours en cours du chemin de la vitrine (`_parcourir`).
 var _parcours: Tween
+## L'action jouée par l'arbre a quitté le repos (`_suivre_l_action`) : revenue au repos, son fondu fini, l'arbre rend la
+## main au lecteur brut (`_rendre_la_main`).
+var _hors_du_repos := false
 ## Les familles d'échantillons de `echantillons`, vides avant elle.
 var _familles_d_echantillons: Array = []
 ## L'échantillon demandé, `{ famille, id }` (l'entrée de `echantillon`), `null` : aucun.
@@ -190,6 +196,7 @@ func _ready() -> void:
 	_clips.item_selected.connect(func(rang: int) -> void: _jouer_le_clip(_clips.get_item_metadata(rang)))
 	_marche.marche_commencee.connect(_jouer_le_clip)
 	_marche.marche_arretee.connect(_jouer_le_repos)
+	_etats.suivi.connect(_suivre_l_action)
 	if await _pont.rejoindre(_signaler, _signaler):
 		_poser_les_catalogues()
 		_poser_la_vitrine()
@@ -198,7 +205,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	_instant.text = "%.3f s" % _lecteur().current_animation_position if _a_un_clip() else ""
+	if _hors_du_repos and _etats.lecture().get_current_node() == EtatsDuCorps.REPOS and _etats.lecture().get_fading_from_node() == &"":
+		_rendre_la_main()
+	_instant.text = "%.3f s" % _lecteur().current_animation_position if _a_un_clip() and not _etats.active else ""
 	if _pont.en_recette and (_peaux_a_mesurer or (_a_un_clip() and _lecteur().is_playing())):
 		_publier_l_ecran.call_deferred()
 
@@ -314,8 +323,9 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 
 ## L'écran ramené à aucun modèle : le squelette posé n'informe plus la pose des os, le montage vidé
 ## (`MontageDeComposition.vider`), aucun véhicule (`MontageDeVehicule.vider`), aucun échantillon (`VolumeDeScene.vider`),
-## ni pose d'os, ni emplacement, ni clip, ni repère, ni rangée d'emblèmes.
+## ni pose d'os, ni emplacement, ni clip, ni repère, ni rangée d'emblèmes, ni arbre branché (`_debrancher`).
 func _remettre_a_zero() -> void:
+	_debrancher()
 	if _montage.squelette != null and _montage.squelette.skeleton_updated.is_connected(_memoriser_la_pose):
 		_montage.squelette.skeleton_updated.disconnect(_memoriser_la_pose)
 	_montage.vider()
@@ -641,8 +651,8 @@ func _vehicule_publie() -> Variant:
 ## (`<label du sélecteur> : <label du choix>`, ou le `label` d'une pièce ou d'un emplacement d'accessoire), et
 ## disparaît si N vaut 0. « Animation » porte la liste des clips (`cle` `clip`) du modèle posé, ceux de la base ou
 ## ceux du véhicule, le lecteur, l'instant, les vitesses, et « Actions », montré quand le véhicule posé a sa fiche
-## dans `attaques` de la vitrine : « Attaquer », qui joue son coup et, une fois, le clip de son rôle `tir`, à
-## défaut `melee`, puis son repos ; « Outils » porte « Recharger les modèles », chaque aide dont le modèle posé porte
+## dans `attaques` de la vitrine : « Attaquer », qui joue son coup et, par l'arbre d'états du jeu (`EtatsDuCorps`,
+## #4081), l'état de son rôle `tir`, à défaut `melee`, puis son repos ; « Outils » porte « Recharger les modèles », chaque aide dont le modèle posé porte
 ## un repère et le `rapport` de `modeles` s'il n'est pas vide. « Effets » montre la vitrine (`vitrine`, section «
 ## Effets », #3777) : « Armes » et « Sorts », une rangée par entrée, à son `label`, qui porte un bouton par variante
 ## (`cle` `effet/<id>/<variante>`) ; « Zones et souffles », un bouton par manœuvre de zone et par Type de Souffle
@@ -967,8 +977,10 @@ func _montrer_l_aide(montre: bool, aide: String) -> void:
 
 
 ## Un bouton par clip du modèle posé, base ou véhicule, chacun mis en boucle (`MontageDeComposition.boucler`) ; le clip
-## de la reprise rejoué à son instant, en lecture ou en pause, sinon le clip de repos (`_jouer_le_repos`).
+## de la reprise rejoué à son instant, en lecture ou en pause, sinon le clip de repos (`_jouer_le_repos`) ; l'arbre
+## débranché (`_debrancher`).
 func _poser_les_clips() -> void:
+	_debrancher()
 	_clips.clear()
 	if _lecteur() == null:
 		return
@@ -988,7 +1000,9 @@ func _poser_les_clips() -> void:
 		_lecteur().pause()
 
 
+## Le clip `nom` joué au lecteur brut, l'arbre débranché (`_debrancher`).
 func _jouer_le_clip(nom: String) -> void:
+	_debrancher()
 	_lecteur().play(nom)
 	var animation := _lecteur().get_animation(nom)
 	_pas = 0.0
@@ -1008,8 +1022,11 @@ func _jouer_le_repos() -> void:
 
 
 ## Le clip engagé rejoué au clip que son rôle a maintenant, en lecture ou en pause comme lui, si la tenue l'a changé
-## (`MontageDeComposition.role_a_rejouer`).
+## (`MontageDeComposition.role_a_rejouer`) ; pendant une action, l'arbre suit la tenue (`EtatsDuCorps.suivre`).
 func _rejouer() -> void:
+	if _etats.active:
+		_etats.suivre()
+		return
 	var role := _montage.role_a_rejouer()
 	if role == "":
 		return
@@ -1019,9 +1036,14 @@ func _rejouer() -> void:
 		_montage.lecteur.pause()
 
 
-## Le lecteur des clips du modèle posé : celui du véhicule, sinon celui de la base.
+## Le lecteur des clips du modèle posé (`MontageDeVehicule.lecteur_pose`).
 func _lecteur() -> AnimationPlayer:
-	return _vehicule.lecteur if _vehicule.scene != null else _montage.lecteur
+	return _vehicule.lecteur_pose(_montage)
+
+
+## Le clip du rôle `role` du modèle posé (`MontageDeVehicule.clip_pose`).
+func _clip(role: String) -> String:
+	return _vehicule.clip_pose(role, _montage)
 
 
 ## Si un clip est engagé au lecteur, joué ou en pause.
@@ -1030,18 +1052,21 @@ func _a_un_clip() -> bool:
 
 
 func _lire() -> void:
+	_debrancher()
 	if _a_un_clip():
 		_lecteur().play()
 	_publier()
 
 
 func _mettre_en_pause() -> void:
+	_debrancher()
 	if _a_un_clip():
 		_lecteur().pause()
 	_publier()
 
 
 func _aller_a_l_image(sens: float) -> void:
+	_debrancher()
 	if _a_un_clip():
 		_lecteur().pause()
 		_lecteur().seek(MiseEnPage.image_voisine(_lecteur().current_animation_position, _pas, sens, _lecteur().current_animation_length), true)
@@ -1049,6 +1074,7 @@ func _aller_a_l_image(sens: float) -> void:
 
 
 func _regler_la_vitesse(vitesse: float) -> void:
+	_debrancher()
 	_vitesse = vitesse
 	if _lecteur() != null:
 		_lecteur().speed_scale = vitesse
@@ -1295,36 +1321,62 @@ func _attaque_de_l_engin() -> Variant:
 ## Si la base posée parcourt le chemin de la vitrine (`deplacement`) : la vitrine servie, et le clip de marche de la
 ## composition montée au lecteur.
 func _parcourt() -> bool:
-	return not _vitrine.is_empty() and _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip(Combattant.MARCHE))
+	return not _vitrine.is_empty() and _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip(EtatsDuCorps.MARCHE))
 
 
 ## Le modèle posé parcourt `lieux`, le chemin de la vitrine (`deplacement`), depuis sa première case, comme un combattant
-## du plateau (`Combattant.parcourir_les_lieux`) : au clip de marche de la composition montée, chaque pas de `metres` (au
-## même rang) à sa vitesse au sol (`MontageDeComposition.duree_du_pas`) ; puis son repos. Un parcours neuf remplace celui
-## en cours.
+## du plateau (`Combattant.parcourir_les_lieux`) : à l'état de marche (`_jouer_l_action`), chaque pas de `metres` (au
+## même rang) à sa vitesse au sol (`MontageDeComposition.duree_du_pas`) ; puis l'état de repos. Un parcours neuf remplace
+## celui en cours.
 func _parcourir(_qui: String, lieux: Array, metres: Array) -> void:
 	if _parcours != null:
 		_parcours.kill()
 	var racine := _montage.modele
 	racine.position = lieux[0]
-	_jouer_le_clip(_montage.clip(Combattant.MARCHE))
+	_jouer_l_action(EtatsDuCorps.MARCHE)
 	_parcours = create_tween()
 	Combattant.parcourir_les_lieux(_parcours, racine, racine, lieux, metres.map(_montage.duree_du_pas))
-	_parcours.tween_callback(_jouer_le_repos)
+	_parcours.tween_callback(_etats.jouer.bind(EtatsDuCorps.REPOS))
 
 
-## L'engin posé attaque, comme au combat : son coup, et le clip de son rôle de tir s'il en porte un, d'attaque sinon, joué
-## une fois, puis son repos.
+## L'engin posé attaque, comme au combat : son coup, et l'état de son rôle de tir s'il en porte un clip, d'attaque sinon
+## (`_jouer_l_action`), que l'arbre ramène au repos en fin de clip.
 func _attaquer() -> void:
 	_jouer_l_effet(_attaque_de_l_engin())
-	var clip: String = _vehicule.clips.get(Combattant.TIR, _vehicule.clips.get(Combattant.ATTAQUE, ""))
-	if clip == "":
+	_jouer_l_action(EtatsDuCorps.TIR if _clip(EtatsDuCorps.TIR) != "" else EtatsDuCorps.ATTAQUE)
+
+
+## Le modèle posé joue le rôle `role` comme un combattant du plateau, s'il en porte le clip : le lecteur brut arrêté
+## (en pause, son clip engagé gardé pour l'écran), l'arbre d'états branché sur lui au repos (`EtatsDuCorps.brancher`),
+## puis l'état du rôle gagné par son fondu.
+func _jouer_l_action(role: String) -> void:
+	var lecteur := _lecteur()
+	if lecteur == null or not lecteur.has_animation(_clip(role)):
 		return
-	_jouer_le_clip(clip)
-	await get_tree().create_timer(_lecteur().get_animation(clip).length).timeout
-	var repos: String = _vehicule.clips.get(Combattant.REPOS, "")
-	if _lecteur() != null and _lecteur().has_animation(repos):
-		_jouer_le_clip(repos)
+	lecteur.pause()
+	_etats.brancher(lecteur, _clip)
+	_hors_du_repos = false
+	_etats.jouer(role)
+	_publier()
+
+
+## La tenue posée sur l'état que joue l'arbre (`MontageDeComposition.poser_le_clip`) ; un état autre que le repos marque
+## l'action partie du repos.
+func _suivre_l_action() -> void:
+	_montage.poser_le_clip()
+	if _etats.lecture().get_current_node() != EtatsDuCorps.REPOS:
+		_hors_du_repos = true
+
+
+## L'action revenue au repos : l'arbre débranché, le lecteur brut joue le clip de repos du modèle posé.
+func _rendre_la_main() -> void:
+	_jouer_le_clip(_clip(EtatsDuCorps.REPOS))
+
+
+## L'arbre d'états inactif et débranché (`EtatsDuCorps.brancher`) : le lecteur brut a la main.
+func _debrancher() -> void:
+	_hors_du_repos = false
+	_etats.brancher(null)
 
 
 ## @contrat Atelier 3D
@@ -1531,7 +1583,8 @@ func _composer_la_courante() -> void:
 	_montrer_la_composition()
 
 
-## Le gabarit de la composition composée posé par le montage (`MontageDeComposition.poser_le_gabarit`) : chaque os
+## Le gabarit de la composition composée posé par le montage (`MontageDeComposition.poser_le_gabarit`), l'arbre d'une
+## action reprenant aussitôt la pose que la remise du gabarit au clip engagé a recouverte (`advance(0.0)`) : chaque os
 ## qu'il nomme et que la base n'a pas donne `os-absent : <os>` aux erreurs du gabarit, qui remplacent celles de la pose
 ## précédente ; l'orbite cadre le corps neutre jusqu'à la mesure du gabarit au repos. La marche prend l'échelle de vitesse
 ## du gabarit (`echelleDeVitesse`), neutre sans gabarit.
@@ -1544,6 +1597,8 @@ func _poser_le_gabarit() -> void:
 		return
 	for os in _montage.poser_le_gabarit():
 		_erreurs_du_gabarit.append("os-absent : %s" % os)
+	if _etats.active:
+		_etats.advance(0.0)
 	_cadrer()
 
 

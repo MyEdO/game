@@ -20,7 +20,10 @@ extends SceneTree
 ## monte, une musique joue, cède la place à une autre et se tait, la zone de feu dure sur ses cases, les marques des
 ## États se posent sur la cible et se retirent (#3834), chaque météo enfoncée pose ses averses et ses nappes et fait jouer
 ## son son sur un bus, relâche la précédente, et relâchée les retire (#4081) ; le trébuchet choisi, sans place ni Amélioration à
-## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : son clip de tir joue et sa pierre vole.
+## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : sa pierre vole et son clip de tir joue par
+## l'arbre d'états du jeu (`EtatsDuCorps`, #4081), le lecteur brut arrêté ; bien que l'atelier boucle ce clip à son
+## lecteur, l'arbre revient au repos, puis se débranche et rend au lecteur brut son clip de repos ; un clip choisi à la
+## liste pendant une attaque débranche l'arbre.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
@@ -28,6 +31,8 @@ const FIGE := "res://recettes/vues/vehicule.json"
 const CADRE_D_UNE_COQUE := 5.0
 ## Les secondes au bout desquelles les éclats des effets joués sont éteints et retirés, le clip de tir rendu au repos.
 const ECLATS_ETEINTS_S := 4.0
+## Le clip de la liste choisi pendant une attaque du trébuchet.
+const CLIP_CHOISI := "marche"
 ## Les images au plus qu'attend la base posée à l'ouverture.
 const IMAGES_DE_L_OUVERTURE := 600
 var _fautes: Array[String] = []
@@ -156,8 +161,24 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	attaquer.pressed.emit()
 	await _images(2)
 	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
-	_verifier(montage.lecteur != null and montage.lecteur.current_animation == montage.clips.get("tir"), "le trébuchet ne joue pas son clip de tir")
+	var etats := atelier.get_node("Etats") as EtatsDuCorps
+	var lecteur := montage.lecteur
 	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
+	_verifier(lecteur.get_animation(montage.clips.tir).loop_mode == Animation.LOOP_LINEAR, "l'atelier ne boucle pas le clip de tir du trébuchet à son lecteur")
+	_verifier(etats.active and etats.lecture().get_current_node() == "tir" and lecteur.assigned_animation == montage.clips.tir and not lecteur.is_playing(),
+			"« Attaquer » : arbre actif %s à l'état %s, clip marqué %s, lecteur brut en lecture %s ; attendu l'arbre actif au tir, le lecteur brut arrêté" % [etats.active, etats.lecture().get_current_node(), lecteur.assigned_animation, lecteur.is_playing()])
+	var depart := Time.get_ticks_msec()
+	while etats.active and Time.get_ticks_msec() - depart < ECLATS_ETEINTS_S * 1000.0:
+		await process_frame
+	_verifier(not etats.active and etats.anim_player.is_empty() and lecteur.is_playing() and lecteur.current_animation == montage.clips.repos,
+			"après « Attaquer » : arbre actif %s à l'état %s, lecteur brut en lecture %s sur %s ; attendu l'arbre débranché, le lecteur brut au repos %s" % [etats.active, etats.lecture().get_current_node(), lecteur.is_playing(), lecteur.current_animation, montage.clips.repos])
+	print("[atelier-du-vehicule] « Attaquer » : retour au repos et lecteur brut rendu en %d ms" % (Time.get_ticks_msec() - depart))
+	attaquer.pressed.emit()
+	await _images(2)
+	_verifier(etats.active, "la seconde attaque ne branche pas l'arbre")
+	_choisir(atelier, "clip", CLIP_CHOISI)
+	_verifier(not etats.active and etats.anim_player.is_empty() and lecteur.is_playing() and lecteur.current_animation == CLIP_CHOISI,
+			"un clip choisi pendant l'attaque : arbre actif %s, lecteur brut en lecture %s sur %s, attendu l'arbre débranché et %s au lecteur brut" % [etats.active, lecteur.is_playing(), lecteur.current_animation, CLIP_CHOISI])
 	await create_timer(ECLATS_ETEINTS_S).timeout
 
 

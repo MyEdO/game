@@ -350,9 +350,10 @@ func _survoler(case: Variant) -> void:
 ## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
 ## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
 ## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps est animé par un arbre d'états
-## (`AnimationTree` `Etats` de `Combattant.tscn`, machine `projet/animation/corps.tres`, #3949) dont chaque état joue le
+## (`EtatsDuCorps`, le nœud `Etats` de `Combattant.tscn`, machine `projet/animation/corps.tres`, #3949) dont chaque état joue le
 ## clip de sa base qui tient son rôle (`clips` de la base, réponse de `modeles`) : `repos` en boucle, `marche` en boucle
-## au déplacement, `melee` vers une cible, `coup` au coup reçu, `melee` et `coup` revenant seuls au repos en fin de clip,
+## au déplacement, `tir` vers une cible si sa table en porte un clip, `melee` sinon, `coup` au coup reçu, `melee`, `tir`
+## et `coup` revenant seuls au repos en fin de clip,
 ## `mort` hors de combat, sans retour ; chaque passage d'un état à un autre est un fondu, réglé dans l'éditeur. Tant que
 ## sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un rôle joue le clip de `clipsDeuxMains`
 ## sous le maniement de cet objet (`secondesPrises`), à défaut celui de `clips` (`MontageDeComposition.clip`) ; l'état
