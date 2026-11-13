@@ -1,6 +1,5 @@
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Formula } from '../engine/ops';
-import type { FateSaveSource } from '../engine/fortune';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
@@ -119,6 +118,10 @@ export interface TourEnCours {
 /** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). `apresSuite` : la suite que le dé `nombre` faisait
  *  attendre (#1508), remise par son applier et jouée à la sortie unique de la série (`fermerLaSerieSubie`). */
 export interface SerieSubie { assaillant: Combatant; cibleId: string; avant: Combatant; restantes: number; apresSuite?: Suite }
+
+/** Une Blessure critique suspendue à son étape (`etapeId`, Déviation `self` ou Piège-à-lame) : `avantLeCoup`, le porteur
+ *  tel qu'avant le coup (`instantaneAvantLeCoup`), lu et retiré par l'applier de l'étape. LDB 17 l.32 */
+export interface CritiqueSuspendu { etapeId: string; porteurId: string; avantLeCoup: Combatant }
 
 export interface BattleState {
   combatants: Combatant[];
@@ -493,6 +496,8 @@ export interface EtatDeJeu {
    *  qu'il était avant d'entrer dans la rencontre ; `restantes`, les attaques encore dues. `null` hors série. MDG 15
    *  l.163-164, l.177-178 */
   serieSubie: SerieSubie | null;
+  /** Les Blessures critiques suspendues à une étape de la séquence, chacune avec son porteur d'avant le coup. */
+  critiquesSuspendus: CritiqueSuspendu[];
   campaignSceneId: string | null;
   /** Couche NARRATIVE de la campagne chargée (#765/#767) — bloc `{affaires, indices, presetsPnj, objets}`
    *  du paquet, posé par `chargerLeProjet`, lu par id via les résolveurs UNIQUES de `resolveursDuNarratif.ts`. RUNTIME
@@ -649,10 +654,14 @@ export interface EtatDeJeu {
    *  frise) — le prochain clic sur un adversaire (carte OU frise) déclenche `declencherLeTirPreventif`. `null` = aucune. */
   preemptAiming: string | null;
   /** Sauvetage par le Destin en attente (LDB 17 l.29-32). */
-  pendingFateSave: { heroId: string; source: FateSaveSource; restoreWounds?: number;
+  pendingFateSave: ({ heroId: string;
     /** L'auteur du coup direct, dont se lisent les Cibles de l'Animosité acquise si le héros dépense le Destin
      *  (`ciblesDAnimositeAcquise`, ADE II 09 l.15). */
-    foeId?: string } | null;
+    foeId?: string } & (
+    /** Le coup létal : `avantLeCoup`, le porteur tel qu'avant le coup, que « Comment ça a pu rater ? » restaure
+     *  (LDB 17 l.32). */
+    | { source: 'hit'; avantLeCoup: Combatant }
+    | { source: 'slow' })) | null;
   /** Récompenses de victoire capturées (écran de fin de combat) ; null hors victoire. */
   pendingVictory: PendingVictory | null;
   /** VOL TERRESTRE en cours (#327) : le combat courant est né d'une péripétie dangereuse terrestre —
@@ -817,6 +826,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     tavernGames: null,
     battle: null,
     serieSubie: null,
+    critiquesSuspendus: [],
     campaignSceneId: null,
     interlude: null,
     bank: [],

@@ -906,7 +906,6 @@ export type PendingDeviation =
       crit: CriticalResolved;
       origine: OrigineCritique;
       overkill: number; // dépassement (LDB 18 l.17)
-      woundsBefore: number; // PB avant CE coup → restauration Destin correcte au Subir
       reveal: RevealEntry;
       resumeAfter: boolean;
       ctx: DeviationCtx;
