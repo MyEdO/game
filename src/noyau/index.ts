@@ -58,7 +58,7 @@ export type { ModLine, RollBreakdown } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain } from './netOwnership';
-export { fermerLeSiege, siegeDe } from './sieges';
+export { fermerLeSiege, siegeDe, siegesDeLaTable, siegesOfferts } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
 export { DESIGNATIONS } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
