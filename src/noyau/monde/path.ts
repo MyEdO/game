@@ -2,7 +2,8 @@
 import { Scene, isWalkable, edgeOf, surfaceLink, climbEdgeBetween, wallIsOpen } from './scene';
 import { hasTrait, hasAutoClimb, hasClimbFullSpeed } from '../../engine/traits/dispatch';
 import type { Combatant } from '../../engine/types';
-import { memoByRef } from './sceneMemo';
+import { memoByRef, memoByRefDeps } from './sceneMemo';
+import { versionDesDatasets } from '../../data/versionDataset';
 import { chebyshev } from '../../engine/grid';
 
 export interface Pt {
@@ -148,8 +149,9 @@ export function walkNeighbors(scene: Scene, p: Pt): Pt[] {
  *  connectivité ; l'arête marchable est symétrique par construction, cf. `neighborsOf`). Répond en O(1)
  *  à « existe-t-il un chemin de A à B ? » quand l'environnement de traversée est nu (aucune case
  *  bloquée, empreinte 1×1, ni saut ni nage ni escalade) : même étiquette = même composante. Ne dépend
- *  que de la SCÈNE — d'où la mémoïsation par identité (`memoByRef`, même patron que `wallEdges`) :
- *  ouvrir une porte rend une nouvelle réf de scène et refait donc l'étiquetage. */
+ *  que de la SCÈNE et des catalogues que lit la marche (terrains, décors) — d'où la mémoïsation par identité, datée par
+ *  la version des datasets (`walkComponentsOf`) : ouvrir une porte rend une nouvelle réf de scène, retoucher un terrain
+ *  à l'atelier une nouvelle version, et l'un comme l'autre refait l'étiquetage. */
 function walkComponentsUncached(scene: Scene): Map<string, number> {
   const label = new Map<string, number>();
   const { w, h } = scene.dimensions;
@@ -173,7 +175,9 @@ function walkComponentsUncached(scene: Scene): Map<string, number> {
   }
   return label;
 }
-const walkComponentsOf = memoByRef(walkComponentsUncached);
+const composantesRetenues = memoByRefDeps<Scene, Map<string, number>>();
+const walkComponentsOf = (scene: Scene): Map<string, number> =>
+  composantesRetenues(scene, [versionDesDatasets()], () => walkComponentsUncached(scene));
 
 /** Numéro de composante marchable de la case (`walkComponentsUncached`), ou `null` si elle n'est pas
  *  marchable. Deux cases de même numéro sont reliées à pied, deux numéros distincts ne le sont pas. */
