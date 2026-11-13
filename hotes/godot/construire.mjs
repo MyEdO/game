@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : six modes.
-// `--pont-seul` bâtit le bundle du pont par `vite build` en bibliothèque, format iife, depuis l'entrée d'hôte unique
+// `--pont-seul` bâtit le bundle du pont par `vite build` en production, en bibliothèque, format iife, depuis l'entrée d'hôte unique
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
-// Il dit sa taille, puis l'EXÉCUTE dans un `node:vm` qui ne porte que les API de navigateur déclarées
-// (`API_DU_NAVIGATEUR`) : `demarrer`, `vue` et `sauvegardes` répondent `ok: true`, un second `demarrer` `ok: false`,
+// Il dit sa taille, le LIT (`lecturesDuBundle`) : chaque nom de navigateur lu en identifiant libre est porté par le
+// processus (`API_DU_NAVIGATEUR`) ou compté dans `HORS_DU_PROCESSUS` à son nombre de lectures ; puis l'EXÉCUTE dans un
+// `node:vm` qui ne porte que les API de navigateur déclarées : `demarrer`, `vue`, `sauvegardes` et `salon` répondent
+// `ok: true`, un second `demarrer` `ok: false`,
 // `morceaux` par `appelerEnOctets` tient les octets que dit son en-tête, sinon le code de sortie est 1 ;
 // `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
@@ -28,14 +30,14 @@
 // (`recupererModeles`, #2948 ; `recupererEpingles`, #3476), et la copie reçoit le catalogue des dessins
 // (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, le kit et le catalogue des dessins, ce
 // dernier dans le projet en place, puis ouvre l'éditeur épinglé sur ce projet (#3945) : F5 y joue sur le noyau vivant
-// (`vivant.mjs`), qui partage `empaqueter`. `--bureau --sortie <dossier>` y écrit l'exécutable de bureau de cette
+// (`vivant.mjs`), qui partage `empaqueter` en développement. `--bureau --sortie <dossier>` y écrit l'exécutable de bureau de cette
 // plateforme (#3951, `BUREAU`) : sous `noyau/`, le bundle, le point d'entrée embarqué empaqueté en un fichier
 // (`empaqueterLeProcessus`, `embarque.mjs`) et le Node qui joue l'export ; l'export de son préréglage sur son modèle
 // épinglé ; à côté, les modèles en scène et les avis de licence, Node et les paquets npm des deux bundles compris ;
 // puis l'exécutable joue une partie sur son noyau embarqué
 // (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
 // déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`). L'import de ce module
-// ne lance rien et ne charge aucun asset.
+// ne lance aucun mode ; il charge les assets par `listage.mjs` (#3963).
 import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
@@ -43,16 +45,19 @@ import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openS
 import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
+import { createContext, runInContext } from 'node:vm'
 import { gzipSync, inflateRawSync } from 'node:zlib'
+import { Linter } from 'eslint'
 import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
-import { API_DU_NAVIGATEUR, PONT, pontDuBundle } from './processus.mjs'
+import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs'
 import { stockageDuProcessus } from './stockage.mjs'
 
 let assetsCharges = null
@@ -101,30 +106,38 @@ function lireOptions(argv) {
   return { options }
 }
 
-/** Le bundle du pont : son code et les ids des modules qu'il porte (`avisDesPaquets`), écrit dans `sortie` si elle est
- *  donnée. */
-export async function empaqueter(sortie) {
+/** Le bundle du pont bâti dans le `mode` donné (`'production'` ou `'development'`) : son code et les ids des modules
+ *  qu'il porte (`avisDesPaquets`), écrit dans `sortie` si elle est donnée. Vite lit le mode dans `process.env.NODE_ENV`,
+ *  posé au `mode` le temps de la construction, puis rendu à sa valeur d'avant, ou retiré s'il était absent. */
+export async function empaqueter(sortie, mode) {
   const entree = entreeDHote('wfrp-pont', ["import '/hotes/godot/pont/entree.ts';"])
-  const resultat = await build({
-    root: RACINE,
-    configFile: false,
-    publicDir: false,
-    logLevel: 'warn',
-    mode: 'production',
-    plugins: entree.greffons,
-    build: {
-      // `lib.entry` se résout en chemin sous la racine ; le module virtuel entre par `input`, tel quel.
-      lib: { entry: entree.entree, formats: ['iife'], name: 'wfrpPont', fileName: () => PONT },
-      rolldownOptions: { input: entree.entree },
-      write: sortie !== null,
-      ...(sortie ? { outDir: sortie } : {}),
-      emptyOutDir: false,
-      copyPublicDir: false,
-      reportCompressedSize: false,
-    },
-  })
-  const { code, moduleIds } = morceauDe(resultat, PONT)
-  return { code, modules: moduleIds }
+  const avant = process.env.NODE_ENV
+  process.env.NODE_ENV = mode
+  try {
+    const resultat = await build({
+      root: RACINE,
+      configFile: false,
+      publicDir: false,
+      logLevel: 'warn',
+      mode,
+      plugins: entree.greffons,
+      build: {
+        // `lib.entry` se résout en chemin sous la racine ; le module virtuel entre par `input`, tel quel.
+        lib: { entry: entree.entree, formats: ['iife'], name: 'wfrpPont', fileName: () => PONT },
+        rolldownOptions: { input: entree.entree },
+        write: sortie !== null,
+        ...(sortie ? { outDir: sortie } : {}),
+        emptyOutDir: false,
+        copyPublicDir: false,
+        reportCompressedSize: false,
+      },
+    })
+    const { code, moduleIds } = morceauDe(resultat, PONT)
+    return { code, modules: moduleIds }
+  } finally {
+    if (avant === undefined) delete process.env.NODE_ENV
+    else process.env.NODE_ENV = avant
+  }
 }
 
 /** Le morceau `fichier` de `resultat`, la sortie de `vite build`. */
@@ -162,16 +175,35 @@ export async function empaqueterLeProcessus(sortie) {
 /** Le scénario que l'exécution démarre : le combat des tests du pont (`hotes/godot/pont/tour.hors-store.test.ts`). */
 const SCENARIO = 'dome'
 
-/** Exécute le bundle comme la page de Godot (`pontDuBundle`), son pont appelé. Rend la liste des écarts au contrat
- *  (`hotes/godot/pont/CONTRAT.md`), vide quand il tient. */
+/** Les lectures du bundle `code` en identifiant libre : par nom, leur nombre. Une passe de la règle `no-undef` du `Linter`
+ *  d'ESLint, ses globaux ceux d'un contexte `node:vm` vide ; un nom lu sous `typeof` seul n'y est pas une lecture. */
+export function lecturesDuBundle(code) {
+  const globaux = runInContext('Object.getOwnPropertyNames(globalThis)', createContext())
+  const messages = new Linter({ configType: 'flat' }).verify(code, [{
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'script', globals: tableTotale(globaux, () => 'readonly') },
+    rules: { 'no-undef': 'error' },
+  }])
+  const lectures = {}
+  for (const { ruleId, message } of messages) {
+    const nom = ruleId === 'no-undef' ? /^'(.+)' is not defined\.$/.exec(message)?.[1] : undefined
+    if (nom === undefined) throw new Error(`[pont] lecture du bundle : ${message}`)
+    lectures[nom] = (lectures[nom] ?? 0) + 1
+  }
+  return lectures
+}
+
+/** Lit le bundle (`lecturesDuBundle`), puis l'exécute comme la page de Godot (`pontDuBundle`), son pont appelé. Rend la
+ *  liste des écarts au contrat (`hotes/godot/pont/CONTRAT.md`), vide quand il tient : un nom lu que le processus ne
+ *  porte pas, hors de `HORS_DU_PROCESSUS` ou à un autre compte, en est un, même dans une branche que l'exécution ne joue pas. */
 function executer(code) {
+  const lus = ecartsDesLectures(lecturesDuBundle(code), API_DU_NAVIGATEUR, HORS_DU_PROCESSUS)
   let pont
   try {
     pont = pontDuBundle(code, console, stockageDuProcessus(null))
   } catch (erreur) {
-    return [`l’évaluation lève : ${erreur}`]
+    return [...lus, `l’évaluation lève : ${erreur}`]
   }
-  if (typeof pont?.appeler !== 'function') return ['`globalThis.wfrpPont.appeler` absent']
+  if (typeof pont?.appeler !== 'function') return [...lus, '`globalThis.wfrpPont.appeler` absent']
   const appel = (methode, entree) => {
     const brut = pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree))
     return typeof brut === 'string' ? JSON.parse(brut) : { ok: null, brut }
@@ -181,13 +213,14 @@ function executer(code) {
     ['vue', undefined, (r) => r.ok === true && r.vue?.projection != null && r.vue?.corps != null],
     ['demarrer', { scenario: SCENARIO }, (r) => r.ok === false && r.erreur?.categorie === 'validation'],
     ['sauvegardes', undefined, (r) => r.ok === true && Array.isArray(r.zones?.['sauvegardes.emplacements'])],
+    ['salon', undefined, (r) => r.ok === true && Array.isArray(r.zones?.['salon.etat']) && Array.isArray(r.zones?.['salon.gestes'])],
     ['erreursGlobales', undefined, (r) => r.ok === true && Array.isArray(r.erreurs) && r.erreurs.length === 0],
   ]
   const ecarts = attendus.flatMap(([methode, entree, tient]) => {
     const r = appel(methode, entree)
     return tient(r) ? [] : [`${methode} ${JSON.stringify(entree ?? null)} : ${JSON.stringify(r).slice(0, 400)}`]
   })
-  return [...ecarts, ...ecartsDesOctets(pont, appel('monde'))]
+  return [...lus, ...ecarts, ...ecartsDesOctets(pont, appel('monde'))]
 }
 
 /** Les écarts de la porte en octets du pont (`appelerEnOctets`, `octets`) sur toutes les clés du manifeste `monde` :
@@ -638,15 +671,16 @@ const octets = (n) => `${n.toLocaleString('fr-FR')} o`
  *  qu'il porte. */
 async function pont(sortie) {
   const debut = performance.now()
-  const { code, modules } = await empaqueter(sortie)
+  const { code, modules } = await empaqueter(sortie, 'production')
   const brut = Buffer.byteLength(code)
   console.log(`[pont] ${PONT} : ${octets(brut)} brut, ${octets(gzipSync(code).length)} gzip, bâti en ${Math.round(performance.now() - debut)} ms${sortie ? `, écrit dans ${sortie}` : ''}`)
   const ecarts = executer(code)
   if (ecarts.length) {
-    console.error(`[pont] le bundle exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) ne tient pas son contrat :\n  ${ecarts.join('\n  ')}`)
+    console.error(`[pont] le bundle lu et exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) ne tient pas son contrat :\n  ${ecarts.join('\n  ')}`)
     return { statut: 1, modules }
   }
-  console.log(`[pont] exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) : demarrer ${SCENARIO}, vue et sauvegardes ok, second demarrer refusé, erreursGlobales vide`)
+  console.log(`[pont] lu : chaque nom de navigateur lu est porté (API : ${API_DU_NAVIGATEUR.join(', ')}) ou compté hors du processus (${Object.entries(HORS_DU_PROCESSUS).map(([nom, { lectures }]) => `${nom} ${lectures}`).join(', ')})`)
+  console.log(`[pont] exécuté : demarrer ${SCENARIO}, vue, sauvegardes et salon ok, second demarrer refusé, erreursGlobales vide`)
   return { statut: 0, modules }
 }
 

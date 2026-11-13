@@ -4,7 +4,8 @@
 import { MISSING_GRADIENT, terrainGradientId } from './catalog/terrain';
 import { MISSING_TONE, MISSING_TONE_DARK } from '../noyau/monde/volume/missing';
 import { tousLesTerrains, terrainStopsOrdonnes } from '../noyau/monde/terrain';
-import { type TerrainDef } from '../data/terrains.types';
+import { type TerrainDef } from '../data';
+import type { EntreeVivante } from '../data/datasets';
 import { memoParVersion } from '../data/versionDataset';
 import { FX_GRADIENTS_DEFS } from './fx/fxGradients';
 
@@ -13,7 +14,7 @@ import { FX_GRADIENTS_DEFS } from './fx/fxGradients';
  *  de l'id du terrain (`terrainGradientId`), donc aucun partage possible ; arrêts émis dans l'ordre
  *  croissant (`terrainStopsOrdonnes`, source unique). Tous verticaux (x1=0 y1=0 x2=0 y2=1).
  *  `defsGlobaux()` le compose sur le dataset `src/data/terrains.json` via `tousLesTerrains()`. */
-export const degradesDeTerrains = (terrains: readonly TerrainDef[]): string =>
+export const degradesDeTerrains = (terrains: readonly EntreeVivante<TerrainDef>[]): string =>
   terrains
     .map((t) => {
       const stops = terrainStopsOrdonnes(t.stops)

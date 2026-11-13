@@ -4,8 +4,7 @@
  * viennent de la donnée (`ambiance.json › iso.weather`) ; aucun type de météo n'est nommé ici. Repère des builders :
  * X = est, Y = haut, Z = sud, en mètres, la case centrée sur l'entier.
  */
-import { ambiance } from '../../data';
-import type { WeatherBrumeDef, WeatherFxDef, WeatherPrecipDef } from '../../data/ambiance.types';
+import { ambiance, type WeatherBrumeDef, type WeatherFxDef, type WeatherPrecipDef } from '../../data';
 import type { Regard } from './aretes';
 import { sonDEffet, type SonDEffet } from '../../data/sons/registre';
 import { heightAt, isIndoor, sceneMetresPerTile, type Scene } from './scene';

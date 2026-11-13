@@ -6,13 +6,21 @@
  * écrit sur la `console` donnée.
  */
 import { Console } from 'node:console';
+import { createHash } from 'node:crypto';
 import { once } from 'node:events';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createServer, type IncomingMessage } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { Duplex } from 'node:stream';
 import { PassThrough } from 'node:stream';
+import { setTimeout as delai } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { LISTAGE } from './listage.mjs';
-import { pontDuBundle } from './processus.mjs';
-import { ouvrirLeProcessus, type ProcessusDuPont } from './processus.testkit';
+import { BORNE_DE_SORTIE_MS, pontDuBundle } from './processus.mjs';
+import { ouvrirLeProcessus, sansModeNiRelais, type ProcessusDuPont } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
 import type { MaillageDeLaPile, PileDemandee } from './pont/pile';
 import type { EnteteDesMorceaux } from './pont/octets';
@@ -106,4 +114,87 @@ describe('pontDuBundle', () => {
     flux.end();
     expect(String(flux.read())).toBe('du noyau\n');
   });
+
+  it('C2 — `sessionStorage` est un stockage en mémoire neuf : relu, distinct de `localStorage`, jamais au fichier de `--stockage`', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'session-3009-'));
+    const fichier = join(dossier, 'stockage.json');
+    try {
+      const bundle = "globalThis.wfrpPont = { appeler: () => (sessionStorage.setItem('jeton', 'J'), localStorage.setItem('sauve', 'S'), JSON.stringify([sessionStorage.getItem('jeton'), localStorage.getItem('jeton'), sessionStorage.getItem('sauve')])) }";
+      const pont = pontDuBundle(bundle, new Console(new PassThrough()), stockageDuProcessus(fichier));
+      expect(JSON.parse(pont.appeler('vue'))).toEqual(['J', null, null]);
+      expect(JSON.parse(readFileSync(fichier, 'utf8'))).toEqual({ sauve: 'S' });
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  });
+});
+
+/** Un relay MUET : il répond à `POST /rooms` si `repondre`, accepte la poignée de main d'une WebSocket, puis ne répond
+ *  plus à rien, fermeture comprise. `recu` : chaque requête reçue, dans l'ordre. */
+async function relaisMuet(repondre: boolean) {
+  const recu: string[] = [];
+  const liens = new Set<Duplex>();
+  const serveur = createServer((req: IncomingMessage, res) => {
+    recu.push(`${req.method} ${req.url}`);
+    liens.add(req.socket);
+    if (repondre) res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ code: 'ABC234', hostToken: 'HT' }));
+  });
+  serveur.on('upgrade', (req: IncomingMessage, lien: Duplex) => {
+    recu.push(`upgrade ${req.url}`);
+    liens.add(lien);
+    const accepte = createHash('sha1').update(`${req.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+    lien.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accepte}\r\n\r\n`);
+  });
+  serveur.listen(0, '127.0.0.1');
+  await once(serveur, 'listening');
+  const fermer = () => {
+    for (const lien of liens) lien.destroy();
+    serveur.close();
+  };
+  return { url: `http://127.0.0.1:${(serveur.address() as AddressInfo).port}`, recu, fermer };
+}
+
+describe('C5 — la fin de l’entrée borne la sortie, quoi que retienne le relay', () => {
+  it.each([
+    ['la socket ouverte, le relay muet', true, ['POST /rooms', 'upgrade /room/ABC234']],
+    ['`POST /rooms` sans réponse', false, ['POST /rooms']],
+  ])('%s : le relay de `VITE_RELAY_URL` est visé, et le processus sort en 0 dans la borne', async (_cas, repondre, attendu) => {
+    const relais = await relaisMuet(repondre);
+    const p = ouvrirLeProcessus(VIVANT, [], { ...process.env, VITE_RELAY_URL: relais.url });
+    try {
+      await p.prochaine();
+      expect((await p.appel('demarrer', { scenario: 'dome' })).ok).toBe(true);
+      expect((await p.appel('salon', { type: 'heberger', args: ['Anne'] })).ok).toBe(true);
+      await vi.waitFor(() => expect(relais.recu.map((r) => r.split('?')[0])).toEqual(attendu), { timeout: 10_000 });
+      p.processus.stdin.end();
+      const sortie = await Promise.race([once(p.processus, 'exit').then(([code]) => code), delai(BORNE_DE_SORTIE_MS + 5_000, 'toujours vivant')]);
+      expect(sortie).toBe(0);
+    } finally {
+      if (p.processus.exitCode === null) p.processus.kill();
+      relais.fermer();
+    }
+  }, LANCEMENT_MS);
+});
+
+/** Le témoin de `fetch` de D3, préchargé avant `vivant.mjs` : il note l'adresse visée sur la sortie d'erreur et ne
+ *  joint rien. */
+const TEMOIN = "globalThis.fetch = (url) => (process.stderr.write(`[témoin] ${url}\\n`), new Promise(() => {}));";
+
+describe('D3 — le bundle de `vivant.mjs` est de développement', () => {
+  it('sans `VITE_RELAY_URL` ni `NODE_ENV`, `salon { heberger }` vise le relay local, `/rooms`', async () => {
+    const env = sansModeNiRelais();
+    env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --import=data:text/javascript,${encodeURIComponent(TEMOIN)}`.trim();
+    const p = ouvrirLeProcessus(VIVANT, [], env);
+    let erreur = '';
+    p.processus.stderr.on('data', (morceau: Buffer) => { erreur += morceau.toString('utf8'); });
+    const visees = () => [...erreur.matchAll(/^\[témoin\] (\S+)$/gm)].map(([, url]) => url.split('?')[0]);
+    try {
+      await p.prochaine();
+      expect((await p.appel('demarrer', { scenario: 'dome' })).ok).toBe(true);
+      expect((await p.appel('salon', { type: 'heberger', args: ['Anne'] })).ok).toBe(true);
+      await vi.waitFor(() => expect(visees()).toEqual(['http://localhost:8787/rooms']), { timeout: 10_000 });
+    } finally {
+      if (p.processus.exitCode === null) p.processus.kill();
+    }
+  }, LANCEMENT_MS);
 });

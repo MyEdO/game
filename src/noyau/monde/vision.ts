@@ -23,8 +23,7 @@ import { chebyshev } from '../../engine/grid';
 import { effectiveTalents, type PorteurDeTalents } from '../../engine/talentEffects';
 import { findLightLevelById, findTraitById, findPropById } from '../../data';
 import { rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
-import { memoByRef, memoByRefDeps } from './sceneMemo';
-import { versionDesDatasets } from '../../data/versionDataset';
+import { memoByRef } from './sceneMemo';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
  *  vision nocturne (cases qu'il distingue même dans le noir). */
@@ -85,9 +84,10 @@ export const LIT_THRESHOLD = 0.18;
  *  Terrain opaque + décor opaque (`props.json`). Les cloisons de bâtiment sont des `WallSeg` (arêtes),
  *  prises en compte séparément ci-dessous. PUR. */
 export interface Occ { g: Uint8Array; topH: Float32Array; w: number; h: number; walls: Set<string> }
-/** Mémoïsé par IDENTITÉ de `scene` (`memoByRef`, patron unique) : sûr car `buildOpaqueUncached` ne
- *  lit QUE des champs de `scene` (`dimensions`, `entities`, `walls` — et `tileAt`/`heightAt` qui lisent
- *  `layers`/`relief`), et TOUTE mutation de l'un de ces champs (porte/structure/tuile effondrée via
+/** Mémoïsé par IDENTITÉ de `scene` et version des datasets (`memoByRef`) : `buildOpaqueUncached` lit des
+ *  champs de `scene` (`dimensions`, `entities`, `walls` — et `tileAt`/`heightAt` qui lisent
+ *  `layers`/`relief`) et les catalogues des terrains et des décors (`terrainOpaque`, `findPropById`) ; TOUTE
+ *  mutation de l'un de ces champs (porte/structure/tuile effondrée via
  *  `setDoorOpen`/`toggleDoorIn`/`setStructureDown`/`setTileCollapsed` `scene.ts`, mais aussi tout
  *  changement d'`entities`/`walls`/`layers`) renvoie une NOUVELLE réf `{ ...scene, … }` — jamais une
  *  mutation en place. La clé du cache est `scene` (pas un sous-champ) : un re-keying futur sur un
@@ -194,12 +194,10 @@ export function baseSightTiles(scene: Scene, gameTime: number): number {
  */
 export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;
 
-const lumieresPosees = memoByRefDeps<SceneDuVolume, readonly LightSource[]>();
-
 /** Sources de lumière POSÉES sur la carte : props dont le TYPE (`props.json` `light`) émet, ou
  *  override d'instance `SceneEntity.light`. Retenues par `scene` et la version des datasets qu'elles lisent
- *  (`memoByRefDeps`, `versionDesDatasets`). PUR. */
-export const mapLights = (scene: SceneDuVolume): readonly LightSource[] => lumieresPosees(scene, [versionDesDatasets()], () => {
+ *  (`memoByRef`). PUR. */
+export const mapLights = memoByRef((scene: SceneDuVolume): readonly LightSource[] => {
   const out: LightSource[] = [];
   const mpt = sceneMetresPerTile(scene);
   for (const e of scene.entities) {

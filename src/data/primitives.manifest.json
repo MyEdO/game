@@ -1650,7 +1650,7 @@
     "type": "primitives.manifest",
     "label": "memoByRef/memoByRefDeps/memoByDeps",
     "fichier": "src/noyau/monde/sceneMemo.ts",
-    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé",
+    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé ; `memoByRef` et `memoByRefDeps` oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), un `memoByDeps` nu qui lit un catalogue reçoit cette version en dépendance",
     "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web), et tout calcul qui reprend sa variante précédente",
     "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
   },
@@ -2344,7 +2344,7 @@
     "label": "enBase64/depuisBase64",
     "fichier": "src/lib/base64.ts",
     "concept": "base64 des octets (RFC 4648, section 4) dans les deux sens, par blocs sous la borne d’arguments de String.fromCharCode ; seul site de btoa et atob",
-    "perimetre": "toute couche : masque du retrait du monde (src/noyau/monde/volume/volume.ts), maillages de la pile du pont Godot (hotes/godot/pont/pile.ts), base64url des payloads coop (src/net/compress.ts)",
+    "perimetre": "toute couche : masque du retrait du monde (src/noyau/monde/volume/volume.ts), maillages de la pile du pont Godot (hotes/godot/pont/pile.ts), base64url des payloads coop (src/hote/coop/compression.ts)",
     "verrou": "murs/base64 et murs/base64-hote d’oxlint.config.mjs (banc scripts/guards/lib/lint-parite.test.mjs) ; src/lib/base64.test.ts"
   },
   {

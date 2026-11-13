@@ -176,6 +176,38 @@ describe('creerPartie — l’intention sans siège joue l’action de l’état
     }
   });
 
+  it('M3 (e) : chez un invité, une intention qui porte un siège se refuse sans rien jouer, émettre ni envoyer, hors combat et en combat', () => {
+    const attable = creerPartie(chezLInvite(etatAttable()), ENTREES);
+    try {
+      const envoi = vi.fn();
+      attable.etat().transmettreLesIntentions(envoi);
+      const avant = horsJournal(attable);
+      const appel = attable.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id], siege: 1 });
+      expect(appel.issue).toBe('appliquee');
+      expect(appel.journal).toEqual([expect.objectContaining({ de: 'journal', texte: t('coop.siegeHoteSeul') })]);
+      expect(horsJournal(attable), 'l’intention du siège s’est jouée dans la copie de l’invité').toBe(avant);
+      expect(envoi, 'l’intention du siège est partie à l’hôte').not.toHaveBeenCalled();
+    } finally {
+      attable.fermer();
+    }
+    const { H, partie: ouverte } = duel();
+    const garde = ouverte.etat();
+    ouverte.fermer();
+    const partie = creerPartie(chezLInvite({ ...garde, net: { ...garde.net, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } }), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      const avant = horsJournal(partie);
+      const appel = partie.envoyer({ type: 'jetLancer', args: ['attaque'], siege: 1 });
+      expect(appel.evenements, 'le refus a émis').toEqual([]);
+      expect(partie.etat().refus?.texte).toBe(t('coop.siegeHoteSeul'));
+      expect(JSON.stringify({ ...partie.etat(), refus: undefined, journal: undefined, lignesAuJournal: undefined }), 'l’intention du siège s’est jouée').toBe(JSON.stringify({ ...JSON.parse(avant), refus: undefined }));
+      expect(envoi).not.toHaveBeenCalled();
+    } finally {
+      partie.fermer();
+    }
+  });
+
   it('en partie locale et chez l’hôte d’une session, un verbe `hôte` se joue : la porte fermée s’ouvre', () => {
     const scene = emptyScene('scene-test', 4, 4);
     scene.effectZones = [{ id: 'piece', label: 'Pièce', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 1, h: 1 } }];
@@ -410,7 +442,7 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
   });
 
   it('R6 : la suite d’un combat rend sa queue, un combat neuf son journal entier, même égal au dernier reçu', () => {
-    const lancement = { party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' };
+    const lancement = { party: [heroDuDuel()], scene: { ...testScene(), startMessage: { texte: 'Vous entrez dans la salle.' } }, projet: null, combatDirect: 'enc-mutants' };
     let garde = etatInitialDuJeu();
     const [avant, premier, second] = chezLHote(garde, (hote, diffuser) => {
       hote.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null });
@@ -438,11 +470,11 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
       expect(deCombat(partie.recevoir(premier))).toEqual(log(premier));
       const lignesAvant = partie.etat().lignesAuJournal;
       expect(deCombat(partie.recevoir(second)), 'le combat relancé passe pour la suite du premier').toEqual(log(second));
+      expect(partie.etat().lignesAuJournal, 'le second lancement remet le compte du journal à zéro').toBeGreaterThan(lignesAvant);
       expect(deCombat(partie.recevoir(suite))).toEqual(log(suite).slice(log(second).length));
       expect(deCombat(partie.recevoir(suite)), 'le même instantané redit le combat').toEqual([]);
       expect(deCombat(partie.relever()), 'la capture redit le combat reçu').toEqual([]);
       expect(partie.etat().combatsOuverts).toBe(2);
-      expect(partie.etat().lignesAuJournal).toBeGreaterThanOrEqual(lignesAvant);
     });
   });
 
