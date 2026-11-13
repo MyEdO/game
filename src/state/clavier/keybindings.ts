@@ -340,7 +340,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('panoplie', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
+      return !!active && actionGate('panoplie', { active, battle: s.battle!, scene: s.scene, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     // La touche CHOISIT le set suivant (geste de clavier) ; l'EXÉCUTION passe par le registre
     // d'actions (le geste de `panoplie`) — le clavier est un CONSOMMATEUR du registre, pas
@@ -445,7 +445,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('annulation-deplacement', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
+      return !!active && actionGate('annulation-deplacement', { active, battle: s.battle!, scene: s.scene, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     run: (g) => jouerLOffreDeLEcran(g(), 'annulation-deplacement'),
   },

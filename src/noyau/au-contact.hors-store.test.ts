@@ -53,7 +53,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     engageAndActivate(H, [E]);
-    const opts = availableAttacks(live(H.id), banc.getState().battle!);
+    const opts = availableAttacks(banc.getState().scene, live(H.id), banc.getState().battle!);
     expect(opts.some((o) => o.id === 'aucontact' && o.targeting === 'aucontact')).toBe(true);
   });
 
@@ -61,7 +61,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     resetRule('combat-longueur-arme');
     const { H, enemies } = setup();
     engageAndActivate(H, [enemies[0]]);
-    const opts = availableAttacks(live(H.id), banc.getState().battle!);
+    const opts = availableAttacks(banc.getState().scene, live(H.id), banc.getState().battle!);
     expect(opts.some((o) => o.id === 'aucontact')).toBe(false);
   });
 
@@ -173,10 +173,10 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     e.pos = { x: 6, y: 5 }; // adjacents (mêlée)
 
     // Sans contact : l'arme Longue garde son profil.
-    expect(firedWeapon(h, e).damage).toEqual(longWeapon.damage);
+    expect(firedWeapon(banc.getState().scene, h, e).damage).toEqual(longWeapon.damage);
 
     setContact(h, e);
-    const fired = firedWeapon(h, e);
+    const fired = firedWeapon(banc.getState().scene, h, e);
     expect(fired.damage).toEqual({ plusBF: true, flat: 1 }); // improvisée
     expect(fired.qualities).toEqual([{ id: 'inoffensive' }]);
   });

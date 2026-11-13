@@ -226,7 +226,7 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   const battle = s.battle!;
   const target = battle.combatants.find((c) => c.id === pa.targetId)!;
   const encaisse = victimeDuCoup(battle, target, pa);
-  const { compte } = issueAuJet(encaisse, coupAApplique(res, pa.grapple, encaisse), attackWeaponOf(battle, H, target, pa), H);
+  const { compte } = issueAuJet(encaisse, coupAApplique(res, pa.grapple, encaisse), attackWeaponOf(banc.getState().scene, battle, H, target, pa), H);
   const apercu = { critiques: compte.critiques.length, blessures: compte.blessures };
   const avant = structuredClone(victime);
   const visee = structuredClone(cible);

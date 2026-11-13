@@ -104,7 +104,7 @@ describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, 
     const all = [mkEmplacement(poste), gunner, s1, cible];
     applyShipPostes(all);
     const get = mkGet(groundScene(), all, { gunner: 'N' });
-    const r = resolveAttack(get, gunner, cible, undefined, false, false, false, firedWeapon(gunner, cible, poste.item.uid, all));
+    const r = resolveAttack(get, gunner, cible, undefined, false, false, false, firedWeapon(banc.getState().scene, gunner, cible, poste.item.uid, all));
     expect(r).not.toBeNull();
     expect(r!.weapon.uid).toBe(poste.item.uid); // c'est bien la baliste du poste qui a tiré
     expect(r!.res.hit).toBe(true);
@@ -125,7 +125,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     chef.skills = arb();
     const all = [mkEmplacement(poste), chef, mkCrewman('s1', false), mkEnemy('cible', 12, 5)]; // s1 à terre → présent 1, déficit 1
     applyShipPostes(all);
-    const w = firedWeapon(chef, all[3], poste.item.uid, all);
+    const w = firedWeapon(banc.getState().scene, chef, all[3], poste.item.uid, all);
     expect(w.reload).toBe(6); // Recharge 3 ×2 (sous-effectif)
     expect(w.qualities.some((q) => q.id === 'arme-d-equipe')).toBe(false); // équipage RÉEL résolu → retirée
   });
@@ -138,7 +138,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     s1.skills = arb();
     const all = [mkEmplacement(poste), chef, s1, mkEnemy('cible', 12, 5)];
     applyShipPostes(all);
-    const w = firedWeapon(chef, all[3], poste.item.uid, all);
+    const w = firedWeapon(banc.getState().scene, chef, all[3], poste.item.uid, all);
     expect(w.reload).toBe(3); // effectif complet (présent 2 ≥ Indice 2) → pas de ×2
   });
 

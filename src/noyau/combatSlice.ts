@@ -171,7 +171,7 @@ function refusDuTourDe(s: Jeu, acteurId: string, horsDuTour: string): string | n
  *  Refusé, il se dit par `refuserGesteDuSiege` quand l'acteur est piloté (`controlsCombatant`) : au siège
  *  local seulement, jamais chez l'hôte pour un invité. Un acteur de l'IA est refusé sans bandeau. `true` = refusé. */
 function refuseParSonEntree(get: Get, set: Set, entree: string, active: Combatant, battle: BattleState, args?: ContexteDOffre): boolean {
-  const verdict = actionGate(entree, { active, battle, netMode: get().net.mode, gameTime: get().gameTime, args });
+  const verdict = actionGate(entree, { active, battle, scene: get().scene, netMode: get().net.mode, gameTime: get().gameTime, args });
   if (verdict.ok) return false;
   if (controlsCombatant(get(), active)) refuserGesteDuSiege(get, set, verdict.reason!);
   return true;
@@ -604,7 +604,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || !scene || battle.over || battle.movementUsed > 0) return;
       const active = activeCombatant(battle);
       if (!active || active.mountId) return;
-      const montures = mountablesNear(battle, active);
+      const montures = mountablesNear(battle, scene, active);
       // Monture EXPLICITE (pastille de CETTE monture) → elle, et seulement si elle est enfourchable ;
       // sinon (touche du registre) → la plus proche. Même patron que `servirLePoste`.
       const mount = mountId ? montures.find((m) => m.id === mountId) : montures[0];
@@ -835,7 +835,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Pièce INDIRECTE servie (mortier/catapulte, AA 10 l.169/171) : ARMER l'option « Servir … » ouvre le PLACEUR
       // DE CASE (le tir vise un point au sol, pas un combattant) ; le désarmer (retour à 'arme') le referme.
       if (next === attaqueId) {
-        const opt = availableAttacks(active, battle).find((o) => o.id === attaqueId);
+        const opt = availableAttacks(get().scene, active, battle).find((o) => o.id === attaqueId);
         if (opt?.indirect && opt.weaponUid) {
           const w = active.weapons.find((x) => x.uid === opt.weaponUid);
           if (w?.uid) set({ pendingSiegeAim: { gunnerId: active.id, weaponUid: w.uid, radius: siegeBlastRadiusTiles(active, w, get().scene), rangeTiles: null } });
@@ -848,7 +848,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       // Les attaques IMMÉDIATES que l'offre `attaque-zone` énumère (`attaques-de-zone`), abordables (`availableAttacks`).
-      if (!availableAttacks(active, battle).some((x) => x.kind === kind && attaqueImmediate(x))) return;
+      if (!availableAttacks(get().scene, active, battle).some((x) => x.kind === kind && attaqueImmediate(x))) return;
       set({ battle: { ...battle, action: null } }); // referme le menu avant la résolution
       // Hurlement (LDB 85 l.170) : PAS de jet d'attaquant — chaque cible tire son 1d10 + Test de
       // Résistance (jets SUBIS montrés au feed). Aucune modale différable → résolution immédiate (le
@@ -1034,7 +1034,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || isOutOfAction(active)) return;
-      const servable = servablePostes(active, battle.combatants);
+      const servable = servablePostes(get().scene, active, battle.combatants);
       // Pièce DÉSIGNÉE (clic sur la pièce) → ce poste ; sinon (bouton hotbar) → le 1er servable.
       const chosen = posteUid === undefined ? servable[0] : servable.find((sp) => sp.poste.item.uid === posteUid);
       if (!chosen) return;
@@ -1147,12 +1147,12 @@ export function createCombatSlice(get: Get, set: Set) {
       // Cible VALIDE seulement (arme à distance + bande de portée + Ligne de Vue) — sinon on N'OUVRE PAS la
       // modale (le tir résolu hors-tour heurterait la cascade). Le refus se DIT au point du geste
       // (`refusVisible`) : le survol, lui, ne montre plus rien sur une cible invalide (arbitrage 2026-08-24).
-      const weapon = firedWeapon(hero, target, undefined, battle.combatants);
       const scene = get().scene;
+      const weapon = firedWeapon(scene, hero, target, undefined, battle.combatants);
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
       if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
-      if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
+      if (!inFiringBand(scene, hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
       // `pendingAttack.interrupt` → jetValider('attaque') applique le tir sans avancer le tour + épuise son tour normal.
@@ -1256,7 +1256,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active) return;
-      if (STANCE_BLOCK[stance](battle, active)) return;
+      if (STANCE_BLOCK[stance](get().scene, battle, active)) return;
       const armee = battle.stances?.[active.id] ?? {};
       set({ battle: { ...battle, stances: { ...battle.stances, [active.id]: { ...armee, [stance]: !armee[stance] } } } });
     },
@@ -1270,7 +1270,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       const recharge = rechargeDuTour(active, battle, weaponUid);
-      if (recharge) set({ pendingReload: jetDeRecharge(recharge.porteur, recharge.arme, battle.combatants) });
+      if (recharge) set({ pendingReload: jetDeRecharge(get().scene, recharge.porteur, recharge.arme, battle.combatants) });
     },
     seRemettreDeLEtat: (etat: string) => {
       const { battle } = get();
@@ -1634,7 +1634,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { active, battle } = barre;
       // État qui verrouille l'Action (LDB 16 l.52) : le gate du registre `hors-verrou-d-etat`, celui des offres.
       // Seule la fermeture (null) passe.
-      const verrou = ACTION_GATES['hors-verrou-d-etat']({ active, battle, gameTime: get().gameTime });
+      const verrou = ACTION_GATES['hors-verrou-d-etat']({ active, battle, scene: get().scene, gameTime: get().gameTime });
       if (!verrou.ok && a !== null) return void refuserGesteDuSiege(get, set, garanti(verrou.reason, 'hors-verrou-d-etat', 'refus du mode'));
       // Pas d'Action ce tour (Sonné LDB 16 l.125 / Surpris l.135 — lu en DONNÉES via `canTakeAction`/gating,
       // jamais une branche par-nom) ; les manœuvres gratuites (Se relever, Se désengager…) sont des slots
@@ -1667,6 +1667,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (battle.action !== 'soins') return void refuserGesteDuSiege(get, set, t('heal.soinNonArme')); // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
       if (!target) return void refuserGesteDuSiege(get, set, t('medic.patientIntrouvable'));
+      if (!campAuContact(get().scene, battle, healer).some((c) => c.id === target.id)) return void refuserGesteDuSiege(get, set, t('cf.horsDePortee'));
       // L'acte d'ouverture : le premier que le soigneur ouvre sur la cible ; il se change par `jetRegler('soins', 'mode')`.
       const mode = modesDOuverture(target, healer)[0] ?? HEAL_MODES[0];
       const ouverture = soinDOuverture(healer, mode);
@@ -1697,7 +1698,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || battle.acted || !canTakeAction(active) || !hasWaterContainer(active)) return;
-      const candidates = waterSprayCandidates(active, campAuContact(battle, active));
+      const candidates = waterSprayCandidates(active, campAuContact(get().scene, battle, active));
       const target = cibleId ? candidates.find((c) => c.id === cibleId) : candidates[0];
       if (!target) return;
       target.wateredThisRound = true;
@@ -1832,7 +1833,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const mine = domainsOf(lanceur);
       const sup = soutienDetail(population, lanceur, { skill: { id: 'langue', spec: 'magick' }, characteristic: 'intelligence' },
         (c) => c.kind === lanceur.kind && [...domainsOf(c)].some((d) => mine.has(d))
-          && (!battle || !lanceur.pos || (!!c.pos && distanceDeContact(lanceur, c) <= 1)));
+          && (!battle || !lanceur.pos || (!!c.pos && distanceDeContact(get().scene, lanceur, c) <= 1)));
       const value = testValue(lanceur, { skill: { id: 'langue', spec: 'magick' } }) + sup.bonus;
       set({
         pendingDispel: {
@@ -2056,7 +2057,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
         if (!battle || !pa || !pa.forcee || !pa.result || !cible || !attaquant) return;
         const victime = victimeDuCoup(battle, cible, pa);
-        if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(battle, attaquant, cible, pa), attaquant).compte.relance) return;
+        if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(get().scene, battle, attaquant, cible, pa), attaquant).compte.relance) return;
         set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
       },
     },
@@ -2847,7 +2848,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Arme RÉELLEMENT employée (arme naturelle d'une manœuvre de trait comprise) : primitive
       // PARTAGÉE avec la modale d'attaque (#1026) — deux résolutions divergentes rendraient deux
       // verdicts d'interposition opposés pour le même `pa`.
-      const weapon = attacker && target ? attackWeaponOf(battle, attacker, target, pa) : undefined;
+      const weapon = attacker && target ? attackWeaponOf(get().scene, battle, attacker, target, pa) : undefined;
       // Défense SURFACÉE du défenseur (#989) : le jet d'attaquant est FINAL (influence jouée) — on interpose
       // SA fenêtre de défense AVANT toute application, dans la cascade d'attaque EN COURS (le curseur passe
       // sur l'étape 'defense'). `jetValider('defense')` rend la main ICI avec le résultat opposé (`pa.defended`) →
