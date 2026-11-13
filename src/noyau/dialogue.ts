@@ -165,6 +165,8 @@ export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAn
     }
     case 'choix':
       return undefined;
+    default:
+      return flow satisfies never;
   }
 }
 

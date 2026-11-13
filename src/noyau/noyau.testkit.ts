@@ -7,6 +7,8 @@ import { brancherLeJeu, debrancherLeJeu, jeuBranche } from './branchement';
 import { tablesDuJeu } from './tablesDuJeu';
 import { tablesPosees, type TablesDuJeu } from './tablesPosees';
 import type { SequenceDef } from './sequenceContract';
+import { jouerFlowEntier, runFlow } from './combatEffects';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 
 /** Une fixture de tables : une table nommée REMPLACE celle du jeu. Sa table de séquences est OUVERTE
  *  (le socle lit une définition par id, `sequenceDefOf`) : une famille synthétique s'y pose par
@@ -47,4 +49,19 @@ export function avecLesTables(fixture: FixtureDeTables): void {
   });
   debrancherLeJeu();
   brancherLeJeu(jeu.get, jeu.set, { ...tablesDuJeu(), ...fixture } as TablesDuJeu);
+}
+
+/** Pose la table du jeu dont l'applier `kind` joue celui du jeu puis ouvre `flow` (`runFlow`, la porte des nœuds
+ *  de scène), ou rien quand `flow` est `null` ; rend le compte de ses passages. */
+export function applierQuiOuvre(kind: string, flow: Flow | null): { n: number } {
+  const passages = { n: 0 };
+  const jeu = tablesDuJeu().appliers[kind];
+  if (!jeu) throw new Error(`applierQuiOuvre : aucun applier « ${kind} » dans les tables du jeu`);
+  avecLesTables({ appliers: { ...tablesDuJeu().appliers, [kind]: (g, s, step, h, sctx) => {
+    const r = jeu(g, s, step, h, sctx);
+    passages.n++;
+    if (flow) jouerFlowEntier(runFlow(g, s, flow));
+    return r;
+  } } });
+  return passages;
 }
