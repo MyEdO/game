@@ -20,13 +20,14 @@ import { refusDeConsommer } from './consumableFlow';
 import { gameDay, refusDEvaluation } from './merchantFlow';
 import { refusDePoser } from './objetsAuSol';
 import { nomDe } from '../engine/nom';
+import type { SansMarqueNonAffichable } from '../i18n/playerText';
 
 /** Une main du set actif : si elle tient l'objet (son geste la vide alors). */
 export interface MainDuSet extends GesteFermable { tenue: boolean }
 
 /** Un geste à choix : pourquoi il ne se joue pas maintenant, et chacun de ses choix, son nom (`libelle`) et le verbe
  *  qui le joue. */
-export interface GesteAChoix<T> { refus: string | null; choix: { cible: T; libelle: string; geste: GesteDuNoyau }[] }
+export interface GesteAChoix<T> { refus: string | null; choix: { cible: T; libelle: SansMarqueNonAffichable; geste: GesteDuNoyau }[] }
 
 /** Les gestes d'un objet, chacun `null` quand il n'a pas d'objet pour lui. */
 export interface GestesDeLObjet {

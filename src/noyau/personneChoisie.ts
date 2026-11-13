@@ -17,12 +17,13 @@ import { sceneNpc } from './monde/sceneNpc';
 import { nomDe } from '../engine/nom';
 import { inBattleId } from './monde/combatants';
 import type { Jeu } from './etat';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Une personne désignable : son id de combattant (`Combatant.id`, celui d'une entité de scène hors combat),
  *  son nom, son camp et sa case. */
 export interface Personne {
   readonly id: string;
-  readonly label: string;
+  readonly label: PlayerText;
   readonly camp: Camp;
   readonly pos?: GridPt;
 }

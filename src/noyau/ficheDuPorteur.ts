@@ -31,6 +31,7 @@ import { formatMoney } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { careerLabelFor, charAbr, findCreatureById, findSpeciesById, findSpellById, findTalentById, findTraitById, mentionsParNature, qualityRefLabel, skillInstanceLabel, sourceRefLabel, talentConcrete } from '../data';
 import type { NatureDeMention, SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Une Caractéristique : son abréviation, son nom, sa valeur effective (`effectiveChar`). */
 export interface CaracteristiqueDeLaFiche { cle: CharKey; abrege: string; libelle: string; valeur: number }
@@ -69,7 +70,7 @@ export interface MentionsDeLaFiche { nature: NatureDeMention; titre: string; men
 /** La fiche d'un porteur. */
 export interface FicheDuPorteur {
   id: string;
-  nom: string;
+  nom: PlayerText;
   espece: string | null;
   carriere: string | null;
   blessures: [courant: number, max: number];
@@ -121,7 +122,7 @@ export type EnTeteDeFiche = Pick<FicheDuPorteur, 'id' | 'nom' | 'blessures' | 'e
 const aUneFiche = (c: Combatant | undefined): c is Combatant => !!c && !isVehicle(c) && !isEngin(c);
 
 /** L'en-tête de la fiche du combattant `c`, lu sur lui, sous le nom `nom`. */
-const enTeteDuCombattant = (c: Combatant, nom: string): EnTeteDeFiche => ({
+const enTeteDuCombattant = (c: Combatant, nom: PlayerText): EnTeteDeFiche => ({
   id: c.id,
   nom,
   blessures: [c.wounds.current, c.wounds.max],

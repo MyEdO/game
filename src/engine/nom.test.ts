@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { nomDe, poserLeNommeur, type Nommeur } from './nom';
 import { combattantDeTest } from './combattantDeTest.testkit';
+import { t } from '../i18n';
+import { fixtureText } from '../i18n/fixtureText';
 
 const gobelin = combattantDeTest({ id: 'g1', label: 'Gobelin', kind: 'ennemi' });
 
@@ -14,7 +16,7 @@ describe('nomDe — le nom d’un combattant dans un texte du moteur (#4017)', (
   });
 
   it('nommeur posé, sa réponse pour l’id du combattant', () => {
-    pose = poserLeNommeur((id) => (id === 'g1' ? 'Inconnu' : 'autre'));
+    pose = poserLeNommeur((id) => (id === 'g1' ? t('vision.horsDeVue') : fixtureText('autre')));
     expect(nomDe(gobelin)).toBe('Inconnu');
   });
 
@@ -24,7 +26,7 @@ describe('nomDe — le nom d’un combattant dans un texte du moteur (#4017)', (
   });
 
   it('`poserLeNommeur` rend le nommeur précédent', () => {
-    const premier: Nommeur = () => 'premier';
+    const premier: Nommeur = () => fixtureText('premier');
     pose = poserLeNommeur(premier);
     expect(poserLeNommeur(undefined)).toBe(premier);
     expect(poserLeNommeur(undefined)).toBeUndefined();

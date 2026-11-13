@@ -18,6 +18,7 @@ import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { ouvrirLaFinDeSeance, terminerLaSeance } from './partyFlow';
 import { nomDe } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
  *  le récap DÉRIVE de la différence, il n'écrit aucun événement au fil du jeu. */
@@ -39,7 +40,7 @@ export interface ChapterRecap {
   /** Chronique du chapitre — vocabulaire PARTAGÉ des récaps (`RecapLine`, rendu `RecapLineSections`). */
   chronique: RecapLine[];
   /** Héros tombés PENDANT le chapitre (vivants à la borne, morts à la clôture). */
-  tombes: { id: string; label: string }[];
+  tombes: { id: string; label: PlayerText }[];
   /** Libellés des lieux VISIBLES de la carte à la clôture (gating narratif `MapPlace.when`). */
   lieux: string[];
 }

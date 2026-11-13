@@ -22,6 +22,7 @@ import { t } from '../i18n';
 import { refusDuChoixNomme } from './choixDeFenetre';
 import type { AxeDe } from './choixDesFenetres';
 import { refusDeLaValidationNommee } from './validationDeFenetre';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Un geste de la bataille : son nom, le verbe qui le joue, pourquoi il ne se joue pas (`null` s'il se joue). */
 export interface GesteDeBataille { libelle: string; geste: GesteDuNoyau; refus: string | null }
@@ -41,7 +42,7 @@ function gesteDeBataille(s: Jeu, libelle: string, geste: GesteDeLaFenetre): Gest
 export interface ArmeeEnVue { camp: Equipe; nom: string; puissance: number; depart: number; max: number; bonus: number }
 
 /** Un PJ libre qu'une Scène peut poster : son nom, s'il y est posté, et le verbe qui l'y poste ou l'en retire. */
-export interface PosteEnVue { nom: string; poste: boolean; geste: GesteDuNoyau }
+export interface PosteEnVue { nom: PlayerText; poste: boolean; geste: GesteDuNoyau }
 
 /** Une Scène de la situation : son nom, son effet chiffré et sa description, sa position quand elle se tient
  *  (`null` sinon), les PJ libres qui s'y postent (`null` : un combat engage tout le groupe, ou la Scène ne se joue plus

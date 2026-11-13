@@ -22,6 +22,7 @@ import { memoByRefDeps } from './monde/sceneMemo';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
 import { visibilityOf } from './visibility';
 import { computeStateVisible, type VisionInput } from './visionState';
+import type { PlayerText } from '../i18n/playerText';
 
 /** La tranche d'état que lisent les lecteurs : les entrées de la vue du groupe et la mémoire de carte. */
 export type EntreesDeLaConnaissance = VisionInput & Pick<EtatDeJeu, 'explored'>;
@@ -103,9 +104,11 @@ export function entiteConnue(etat: EntreesDeLaConnaissance, e: SceneEntity): boo
 
 /** Le nom du porteur `id` tel que le groupe le connaît : son `label` s'il est en vue (`porteurEnVue`), sinon le nom
  *  neutre `vision.horsDeVue` ; `null` sans porteur. */
-export function nomEnVue(etat: Jeu, id: string): string | null {
+export function nomEnVue(etat: Jeu, id: string): PlayerText | null {
   if (!porteurEnVue(etat, id)) return t('vision.horsDeVue');
-  return porteurParId(etat, id)?.label ?? null;
+  const c = porteurParId(etat, id);
+  // eslint-disable-next-line murs/marques -- #4017 : minteur de `PlayerText` — le nom d'un porteur que le groupe voit.
+  return c ? (c.label as PlayerText) : null;
 }
 
 /** L'octet d'une case au masque de la vision. */

@@ -18,6 +18,7 @@ import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX, type AxeDe, type ChoixDesFenetres } from './choixDesFenetres';
 import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
  *  et son ajout au panier. */
@@ -34,7 +35,7 @@ export interface LigneDuPanierEnVue { id: string; nom: string; qty: number; sous
 export interface PossessionAVendre { uid: string; nom: string; gain: string; refus: string | null; auLot: boolean; basculer: GesteDuNoyau }
 
 /** Les possessions d'un héros. */
-export interface HerosVendeur { id: string; nom: string; possessions: PossessionAVendre[] }
+export interface HerosVendeur { id: string; nom: PlayerText; possessions: PossessionAVendre[] }
 
 /** L'échoppe ouverte. */
 export interface MarchandEnVue {

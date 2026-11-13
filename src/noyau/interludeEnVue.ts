@@ -24,6 +24,7 @@ import { libelleDuChoix } from './libelles';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { nomEnVue } from './visionDuGroupe';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Un geste d'interlude : son nom, le verbe qui le joue, et pourquoi il ne se joue pas maintenant (`null` s'il se joue). */
 export interface GesteDInterlude { libelle: string; geste: GesteDuNoyau; refus: string | null }
@@ -50,7 +51,7 @@ export interface DepotAFaire { geste: GesteDuNoyau; refus: string | null; genres
  *  cibles, l'Événement de sa période (`null` tant que son dé n'est pas tombé), les choix de l'Activité qu'il compose et
  *  sa pratique (`null` : il n'en compose aucune), ses Activités jouées par leur verbe, et son dépôt en banque. */
 export interface HerosDInterlude {
-  id: string; nom: string; restantes: number; recues: number; px: number; bourse: string; evenement: string | null;
+  id: string; nom: PlayerText; restantes: number; recues: number; px: number; bourse: string; evenement: string | null;
   composition: ChoixDInterlude[]; pratiquer: GesteDInterlude | null; activites: ActiviteEnVue[]; depot: DepotAFaire;
 }
 
