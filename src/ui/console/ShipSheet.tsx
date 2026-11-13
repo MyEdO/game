@@ -112,7 +112,7 @@ export function ShipInspectBody({ hull, crew, cap }: { hull: Combatant; crew: Co
           {traits.map(({ ref, def }) => (
             <div className="ship-trait" key={ref.id}>
               <span className="ship-trait-name"><b>{def.label}{def.ranked && ref.value ? ` ${ref.value}` : ''}</b></span>
-              <div className="ship-trait-desc"><Prose md={def.desc} porteur={{ type: 'navalTraits', id: def.id, chemin: 'desc' }} /></div>
+              <div className="ship-trait-desc"><Prose md={def.desc ?? ''} porteur={{ type: 'navalTraits', id: def.id, chemin: 'desc' }} /></div>
             </div>
           ))}
         </div>

@@ -275,6 +275,12 @@ static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) 
 	return Vector2i(case.x, case.y + couche * rangees_par_plan)
 
 
+## La taille d'une image rangée comme le masque de la vision (`texel_de_vision`) : `largeur` cases de large, `couches`
+## plans de `rangees_par_plan` rangées.
+static func taille_du_masque(largeur: int, couches: int, rangees_par_plan: int) -> Vector2i:
+	return Vector2i(largeur, couches * rangees_par_plan)
+
+
 ## La part, de 0 à 1, d'un fondu de `duree` secondes parvenu à la part `part`, `secondes` secondes plus tard.
 static func part_du_fondu(part: float, secondes: float, duree: float) -> float:
 	return minf(1.0, part + secondes / duree)
@@ -291,13 +297,20 @@ static func plus_grand_etat(etat: float, autre: float) -> float:
 	return maxf(etat, autre)
 
 
-## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
-## explorée, vue) : sa part de lumière (`art/monde.gdshader`, `part_de_lumiere`) portée en sRGB (`en_srgb`).
-static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+## La part de lumière linéaire, de 0 à 1, de ce qui est à l'état `etat` (de 0 à 1) sous les teintes `teintes`
+## (inconnue, explorée, vue) : la jumelle de `part_de_lumiere` de `art/vision.gdshaderinc`.
+static func part_de_lumiere(etat: float, teintes: Vector3) -> float:
 	var exploree := 128.0 / 255.0
-	var sous := lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
-	var dessus := lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
-	return Color(sous, sous, sous).linear_to_srgb().r if etat < exploree else Color(dessus, dessus, dessus).linear_to_srgb().r
+	if etat < exploree:
+		return lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
+	return lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
+
+
+## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
+## explorée, vue) : sa part de lumière (`part_de_lumiere`) portée en sRGB.
+static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+	var part := part_de_lumiere(etat, teintes)
+	return Color(part, part, part).linear_to_srgb().r
 
 
 ## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.

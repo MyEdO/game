@@ -650,7 +650,7 @@ Modifications ajoutables après coup à un vaisseau ; d'autres figurent dans le 
 
 **Bélier** — éperon métallique fixé à l'avant : fournit **5 PA** contre les Dégâts de collision/attaque venant de l'avant, et ajoute **+5 au Bonus d'Endurance** pour le calcul de l'Indice de Collision quand le navire au Bélier frappe l'autre de sa proue (`MDG 12 l.215-221`).
 
-**Blindage** — posable uniquement sur chantier spécialisé (2 semaines pour Petits/Moyens, 1 mois au-delà). Fonctionne comme une armure : les coups à la **Coque** voient leurs Dégâts réduits des **PA** puis du **BE** ; contrairement à l'armure personnelle, il **ne peut pas être sacrifié pour éviter une Blessure Critique**. **Bronze : 1 PA** ; **Fer : 2 PA** mais si le navire devient *Sali*, les plaques de fer rouillent et perdent leurs PA (`MDG 12 l.223-236`).
+**Blindage** — posable uniquement sur chantier spécialisé (2 semaines pour Petits/Moyens, 1 mois au-delà) ; ports à chantier retenus en adaptation (champ `chantierNavalSpecialise` de `naval-ports.json`) : Dietershafen (`MDG 03 l.196`), Kraka Ravnsvake, chantier d'Hardrak (`MDG 06 l.104`), Altdorf, chantier Spee (`ACE 05 l.882`). Fonctionne comme une armure : les coups à la **Coque** voient leurs Dégâts réduits des **PA** puis du **BE** ; contrairement à l'armure personnelle, il **ne peut pas être sacrifié pour éviter une Blessure Critique**. **Bronze : 1 PA** ; **Fer : 2 PA** mais si le navire devient *Sali*, les plaques de fer rouillent et perdent leurs PA (`MDG 12 l.223-236`).
 
 **Cabine de luxe** — occupe deux cabines normales ; sur autorisation du MJ, son occupant gagne **+10 aux Tests de Sociabilité** faits à l'intérieur (`MDG 12 l.238-244`).
 

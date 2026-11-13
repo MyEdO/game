@@ -28,7 +28,9 @@ const navalInstallSchema = nommerChamps(z.strictObject({
   weightEnc: installBaremeSchema.optional(),
   /** MDG 12 l.230 ; MDG 12 l.293 */
   jours: installBaremeSchema.optional(),
-}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' } });
+  /** MDG 12 l.230 */
+  chantierSpecialise: z.boolean().optional(),
+}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' }, chantierSpecialise: { label: 'Exige un chantier naval spécialisé' } });
 
 const doc = document(
   'naval-traits',

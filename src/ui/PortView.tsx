@@ -188,7 +188,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const [tab, setTab] = useState<'coque' | 'cargaison' | 'escale'>(initialTab);
 
   const vd = vessel ? findVehicleById(vessel.vehicleId) : undefined;
-  const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote) : [];
+  const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote, port?.ref) : [];
   if (!port || !vessel || !vd?.ship) return null;
   const etat = useGame.getState();
   const devisDe = (cargoId: string) => {
