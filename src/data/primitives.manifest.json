@@ -279,6 +279,15 @@
     "verrou": "tsc : la rangée a le type dérivé du schéma du def (`z.output`), l'id de document est exigé pour la famille `entite` ; fail-fast à l'exécution sur un document absent"
   },
   {
+    "id": "datasetDe",
+    "type": "primitives.manifest",
+    "label": "datasetDe/DatasetDe/EntreeDe",
+    "fichier": "src/data/datasets.ts",
+    "concept": "dataset VIVANT d'un document entier, lu dans le module JSON de son fichier (racine que le seam mute en place) — typé par la sortie du schéma que le def exporte (`DatasetDuDocument`, `grammaire/document.ts`) ; `EntreeDe` en est l'entrée",
+    "perimetre": "tout lecteur d'un dataset (registre `src/data/index.ts`, moteur, noyau) qui ne relit pas une table à rangées (`rangeesDe`)",
+    "verrou": "tsc : un champ renommé au schéma du def rougit ses lecteurs"
+  },
+  {
     "id": "clockLabel",
     "type": "primitives.manifest",
     "label": "clockLabel",

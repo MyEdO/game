@@ -63,7 +63,7 @@ const doc = document(
     /** LDB 50 l.9 ; EDOC 13 l.606 */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** VDM 02 l.238. */
-    tables: z.record(z.string(), z.string()).optional(),
+    tables: z.record(z.string(), idDe('table')).optional(),
 
     effects: z.array(triggeredEffectSchema).optional(),
 

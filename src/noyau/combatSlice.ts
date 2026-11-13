@@ -6,7 +6,8 @@
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode, type EtatDeLaBarre } from './actionRegistry';
+import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type EtatDeLaBarre } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
@@ -148,7 +149,7 @@ const ligneDeDissipation = (lanceur: Combatant, value: number, soutien: SupportD
   rollLine({ actor: lanceur, test: { skill: { id: 'langue', spec: 'magick' } }, difficulty: 'intermediaire', valeur: value, ...(soutien.bonus > 0 ? { soutien } : {}) });
 
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
-  !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
+  !!(pickActiveModalKey(s) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
 
 /** La barre d'un geste de combat hors des verbes de la barre (#3700) : son verdict (`etatDeLaBarre`), et un Sort qui
  *  désigne ses cibles ou pose sa zone (`pendingCast`), qu'elle ne compte pas, tient la main. */

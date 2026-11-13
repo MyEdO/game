@@ -8,15 +8,13 @@ import { tableTotale } from '../../lib/tableTotale';
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { DetailsTextsField } from '../editor/codex/CodexEdit';
+import { DetailsTextsField, type DetailsTexts } from '../editor/codex/CodexEdit';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-type DetailText = { all: string; bySpecies: Record<string, string> };
-type DetailsTexts = Record<string, DetailText>;
 
 let container: HTMLDivElement;
 let root: Root;
