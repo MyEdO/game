@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { breathTypes, domains, etats, lightTones, maneuvers, rendus, siegeEngines } from '../data';
+import { ambiance, breathTypes, domains, etats, lightTones, maneuvers, rendus, siegeEngines } from '../data';
 import { allMusicDefs } from '../data/sons/musique';
-import { sonsDEffet } from '../data/sons/registre';
+import { sonDEffet, sonsDEffet } from '../data/sons/registre';
+import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { TEINTE_DU_FLOTTANT, vitrineDesEffets, type Effet, type GenreDeFlottant } from './effetsDeLAppel';
 
 const coupDe = (e: Effet) => {
@@ -94,6 +96,25 @@ describe('la vitrine des effets de l’atelier (#3777, #3783, #3825, #3822)', ()
     expect(v.zonesQuiDurent.map((z) => z.id)).toEqual(rendus.filter((r) => r.zoneVisuel ?? r.impactVisuel).map((r) => r.id));
     expect(v.zonesQuiDurent.every((z) => z.zone.visuel !== null && z.zone.cases.some((c) => c.x === v.distanceM / v.metresParCase && c.y === 0))).toBe(true);
     expect(v.marques.map((m) => [m.id, m.marque.texte])).toEqual(etats.map((e) => [e.id, e.label]));
+  });
+
+  it('chaque météo du catalogue, dans son ordre, à son libellé, tombe et se pose sur la bande de l’auteur à la cible (#4081)', () => {
+    const catalogue = Object.entries(ambiance.iso.weather);
+    expect(v.meteos.map((m) => [m.id, m.label])).toEqual(catalogue.map(([id]) => [id, libelleDeValeur(sceneWeatherSchema, id)]));
+    const cible = v.distanceM / v.metresParCase;
+    for (const [id, fx] of catalogue) {
+      const { meteo } = v.meteos.find((m) => m.id === id)!;
+      expect(meteo.son).toEqual(fx.son ? sonDEffet(fx.son.id) : null);
+      expect(meteo.nappes.map((n) => n.alpha)).toEqual(fx.brume?.layers.map((c) => c.alpha) ?? []);
+      if (!fx.precip) {
+        expect(meteo.pluie).toBeNull();
+        continue;
+      }
+      const [averse] = meteo.pluie!.averses;
+      expect(meteo.pluie!.averses).toHaveLength(1);
+      expect([averse.centre[0] - averse.demiEtendue[0], averse.centre[0] + averse.demiEtendue[0]]).toEqual([-v.metresParCase / 2, (cible + 0.5) * v.metresParCase]);
+      expect([averse.centre[1], averse.centre[2]]).toEqual([fx.precip.ceilingM, 0]);
+    }
   });
 
   it('l’auteur parcourt un chemin qui tourne depuis sa case, chaque pas à sa longueur sur le sol plat (#3822)', () => {
