@@ -10,7 +10,19 @@ import { d100, RNG } from './dice';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { nomDe } from './nom';
-import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason, type VainqueurOppose, reverseRoll } from './tests';
+import {
+  rollTest,
+  resolveOpposed,
+  evaluateTest,
+  isDoubleRoll,
+  opposedReasons,
+  exactDifficultyFromModifier,
+  cibleMesuree,
+  TestResult,
+  type VerdictReason,
+  type VainqueurOppose,
+  reverseRoll,
+} from './tests';
 import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
@@ -19,7 +31,19 @@ import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue, testValue, type TestDesigne } from './skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine, type Main } from './types';
+import {
+  Combatant,
+  HitLocation,
+  Weapon,
+  BodyShape,
+  RangeBandId,
+  DIFFICULTY_MODIFIERS,
+  locationLabel,
+  type CharKey,
+  type Difficulty,
+  type ModLine,
+  type Main,
+} from './types';
 import { weatherTestMods } from './weatherTestMod';
 import { precipitationTestMods } from './seaWeather';
 import { findTableEntry } from './tables';
@@ -34,16 +58,49 @@ import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDa
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
-import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
+import {
+  qualitySum,
+  attackModQualityIds,
+  qualityCritTriggered,
+  parryDRAdjust,
+  qualityDamageStep,
+  craftTestDRAdjust,
+  hasQuality,
+  canFireWhileEngaged as qCanFireWhileEngaged,
+  attackDRAdjust,
+  vsDefenseDRAdjust,
+  rapideParryMod,
+  protectriceAP,
+  rangedOpposeWeapon,
+  isMagicWeapon,
+  resolveQualities,
+} from './qualities/dispatch';
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
 import { spellEffectOps } from './flowCore';
 import { findPsychologyById, groupeDeLArme, tablesDeLocalisation, testSkillLabel, type RangeeDeRegleData } from '../data';
-import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, ignoresCalledShotPenalty, ignoresSizeRangedMods, sniperRangeAdjust } from './combatFeatures/dispatch';
+import {
+  offHandPenalty,
+  talentDamageBonus,
+  isSlayer,
+  talentRangedAPIgnore,
+  ignoresCalledShotPenalty,
+  ignoresSizeRangedMods,
+  sniperRangeAdjust,
+} from './combatFeatures/dispatch';
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
+import {
+  lancerDuTableau,
+  jeuDeCritique,
+  critiquesDuCoup,
+  relanceLaLocalisation,
+  estUnCoupCritique,
+  critWoundLocation,
+  type CauseCoupCritique,
+  type CompteDesCritiques,
+} from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Jet de la seconde frappe du Maniement de deux armes : le lancer du tableau des Critiques au dé de sa table

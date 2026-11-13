@@ -7,7 +7,14 @@ import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS } from '../../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../../../data/schemas/grammaire/valeurs';
-import { actorFieldSchema, actorRefSchema, hasConditionSchema, hasWhatSchema, relationOrCampSchema, startleCauseSchema } from '../../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  hasConditionSchema,
+  hasWhatSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../../data/schemas/grammaire/mecanique';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import { findTrappingById, refLabel } from '../../../data';
 import { cfgDeLaFeuille } from '../../compendium/refField/RefField';

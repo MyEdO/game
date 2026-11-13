@@ -13,7 +13,19 @@ import { cheminsAbsolus } from './manifeste.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPorte.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbANoeuds, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION, vehiculeDeTest } from './modeles.testkit.ts';
+import {
+  baseDeTest,
+  elementSchema3,
+  GLB_DE_BASE,
+  GLB_D_ELEMENT,
+  GLB_SANS_BASE,
+  glbANoeuds,
+  LICENCE_DE_PRODUCTION,
+  productionDeTest,
+  deposerModeleDeTest,
+  TEXTE_DE_LICENCE_DE_PRODUCTION,
+  vehiculeDeTest,
+} from './modeles.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesAPublier, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,

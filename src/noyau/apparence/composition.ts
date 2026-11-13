@@ -6,7 +6,23 @@
  * `optionsDuNoeud`), et ses axes (`AXES`) ; `lireComposition` la valide, seule validation d'une composition, et
  * `presetDeComposition` rend son entrée JSON, l'enveloppe d'un preset reprise, et les fautes de son schéma.
  */
-import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findGroupeDArmureById, findPresetDePersonnageById, findTeteById, findTrappingById, piecesDeLObjet, presetsDePersonnage, raceAppearance, trappingsInstanciables, type GabaritId, type PresetDePersonnage } from '../../data';
+import {
+  choixDeLaFeuilleDId,
+  matieresDe,
+  findApparenceById,
+  findCoiffureById,
+  findEnsembleParHabille,
+  findGroupeDArmureById,
+  findPresetDePersonnageById,
+  findTeteById,
+  findTrappingById,
+  piecesDeLObjet,
+  presetsDePersonnage,
+  raceAppearance,
+  trappingsInstanciables,
+  type GabaritId,
+  type PresetDePersonnage,
+} from '../../data';
 import type { HitLocation } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { entityAppearanceSchema, type Couleurs } from '../../data/schemas/grammaire/valeurs';
@@ -14,7 +30,13 @@ import { serializeDataset } from '../../data/serialize';
 import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
 import { racineDesCandidats } from '../../engine/items';
 import type { TenueId } from '../../data/schemas/defs/garde-robe';
-import { compositionSchema, surchargesDEmblemesSchema, file as FICHIER_DES_PRESETS, meta as metaDesPresets, schema as schemaDesPresets } from '../../data/schemas/defs/presets-de-personnage';
+import {
+  compositionSchema,
+  surchargesDEmblemesSchema,
+  file as FICHIER_DES_PRESETS,
+  meta as metaDesPresets,
+  schema as schemaDesPresets,
+} from '../../data/schemas/defs/presets-de-personnage';
 import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';

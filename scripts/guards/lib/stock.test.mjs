@@ -7,7 +7,20 @@
 // sont tenus par `src/stock-primitive.test.ts` (vitest).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cleDeContenu, cleDeSite, ecartDuVolet, estEntreeDeSite, estNeuveOuAccrue, lignesDuContenu, naissanceDu, phraseDeNaissance, refusDeCroissance, SEPARATEUR_DE_CLE, sitesEnEntrees, survieDeLecheance } from './stock.mjs'
+import {
+  cleDeContenu,
+  cleDeSite,
+  ecartDuVolet,
+  estEntreeDeSite,
+  estNeuveOuAccrue,
+  lignesDuContenu,
+  naissanceDu,
+  phraseDeNaissance,
+  refusDeCroissance,
+  SEPARATEUR_DE_CLE,
+  sitesEnEntrees,
+  survieDeLecheance,
+} from './stock.mjs'
 
 test('#1739 : « à la naissance » — `naissanceDu` relit ce que `phraseDeNaissance` écrit ; une famille absente rend null', () => {
   const comptes = { a: 3, 'b-c': 148 }

@@ -5,10 +5,30 @@
  * création est un état de l'hôte (`CreationOuverte`) que ses gestes changent (`apresLaCreation`) ; seul l'engagement
  * touche la partie.
  */
-import { apresLeGeste, pagesDeCreation, refusDeLaPage, refusDEngagement, refusDUnNouveauHeros, rubriquesDeLaPage, type Jeu as Partie, type RubriqueDeCreation } from '../noyau/index';
+import {
+  apresLeGeste,
+  pagesDeCreation,
+  refusDeLaPage,
+  refusDEngagement,
+  refusDUnNouveauHeros,
+  rubriquesDeLaPage,
+  type Jeu as Partie,
+  type RubriqueDeCreation,
+} from '../noyau/index';
 import { t } from '../i18n';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
-import { ligne, resume, type Bouton, type Choix, type CreationOuverte, type Element, type GesteDeLaCreation, type Jet, type Ligne, type Puce } from './elements';
+import {
+  ligne,
+  resume,
+  type Bouton,
+  type Choix,
+  type CreationOuverte,
+  type Element,
+  type GesteDeLaCreation,
+  type Jet,
+  type Ligne,
+  type Puce,
+} from './elements';
 
 /** Les options au plus d'un choix montré en rangée ; au-delà, en liste. */
 const RANGEE_AU_PLUS = 11;

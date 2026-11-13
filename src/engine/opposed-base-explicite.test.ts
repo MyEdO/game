@@ -15,7 +15,18 @@
 import { describe, it, expect } from 'vitest';
 import { rollTest, resolveOpposed, opposedReasons, type TestResult } from './tests';
 import { makeRNG } from './dice';
-import { combatBaseValue, combatValue, defenseBaseValue, defenseValue, rollMeleeAttacker, rollMeleeDefender, rollGrappleForce, rollDisengageAttack, resolveMelee, finishMelee } from './combat';
+import {
+  combatBaseValue,
+  combatValue,
+  defenseBaseValue,
+  defenseValue,
+  rollMeleeAttacker,
+  rollMeleeDefender,
+  rollGrappleForce,
+  rollDisengageAttack,
+  resolveMelee,
+  finishMelee,
+} from './combat';
 import { hydrateTR } from './tests';
 import { COND } from './conditions';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';

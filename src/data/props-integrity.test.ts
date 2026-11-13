@@ -3,7 +3,18 @@ import { readFileSync } from 'node:fs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { schema as propsSchema } from './schemas/defs/props';
 import { props, matieresDe, findPropMaterialById, findPropById } from './index';
-import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placesLocalesDuProp, polygonesDePrimitive, sommetLocal, validatePropCatalog, type PropData, type PropPrimitive, type PropVolumeRecipe } from './props.types';
+import {
+  aretesNonAppariees,
+  CAP_IDENTITE_PROP,
+  empreinteDeriveeDuProp,
+  placesLocalesDuProp,
+  polygonesDePrimitive,
+  sommetLocal,
+  validatePropCatalog,
+  type PropData,
+  type PropPrimitive,
+  type PropVolumeRecipe,
+} from './props.types';
 import { sceneMetresPerTile } from '../noyau/monde/scene';
 
 /** Les polygones LOCAUX d'une primitive, réduits aux triplets que mesure `aretesNonAppariees` : la

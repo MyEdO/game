@@ -8,7 +8,14 @@ import { downloadText } from '../web/fileIo';
 import { fileSlug } from '../lib/normalize';
 import { parseProject, documentDeProjet, ProjetRefuse, playerEntryError, refusJoueur, messageDeRefusJoueur, type ProjectDoc } from '../noyau/worldMap';
 import { projectsLoad, projectSave, projetDeLEntree, projectRemove, campagneDeLEntree, estRefusee } from '../state/projectLibrary';
-import { nomDeProjet, IMPORT_FORME_DEPOT, MARQUE_AUTRE_FORMAT, type SavedProject, type EntreeListee, type EntreeEcrite } from '../noyau/persistance/bibliotheque';
+import {
+  nomDeProjet,
+  IMPORT_FORME_DEPOT,
+  MARQUE_AUTRE_FORMAT,
+  type SavedProject,
+  type EntreeListee,
+  type EntreeEcrite,
+} from '../noyau/persistance/bibliotheque';
 import { allBuiltinCampaigns, campagneDuJeu, documentDuJeu, type BuiltinCampaign } from '../scenes/campaign';
 import { Row, Stack } from './Layout';
 import { ChipDeRefus } from './ChipDeRefus';
