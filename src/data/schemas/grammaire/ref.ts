@@ -71,8 +71,8 @@ export const TYPES = {
   // chiffre pas se lit au registre, l'id résout donc AU PARSE comme toute autre référence.
   regleOptionnelle: { espace: 'reglesOptionnelles.json', catalogue: 'règles optionnelles' },
   terrain: { espace: 'terrains.json', catalogue: 'terrains' },
-  // PALIER D'ÉCLAIRAGE (#1716) : la semence d'éclairage d'une scène neuve (`semences-de-scene.json`)
-  // nomme un palier — l'id résout AU PARSE, là où `Scene.ambientLight` reste une chaîne libre.
+  // PALIER D'ÉCLAIRAGE (#1716) : la semence d'éclairage d'une scène neuve (`semences-de-scene.json`) et
+  // `Scene.ambientLight` nomment un palier — l'id résout AU PARSE.
   lightLevel: { espace: 'lightLevels.json', catalogue: 'paliers d’éclairage' },
   prop: { espace: 'props.json', catalogue: 'décors' },
   building: { espace: 'buildings.json', catalogue: 'bâtiments' },
@@ -1026,12 +1026,13 @@ export const aLaFormeDe = (noeud: unknown, valeur: unknown): boolean =>
  * l'« Entrée invalide » générique d'une union.
  */
 export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
-  return z.union(branches, {
-    error: (iss) => {
-      const parBranche = (iss as IssueDeParse).errors ?? [];
-      return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
-    },
-  });
+  return z.union(branches, { error: messageDeFormes });
+}
+
+/** Le message d'une union de formes (`unionDeFormes`), pour l'union qui garde le type de ses branches. */
+export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
+  const parBranche = (iss as IssueDeParse).errors ?? [];
+  return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
 }
 
 /**

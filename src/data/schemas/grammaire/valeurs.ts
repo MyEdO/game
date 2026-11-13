@@ -410,7 +410,7 @@ export type GenreDeFragment = (typeof GENRES_DE_FRAGMENT)[number];
 export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GENRES_DE_FRAGMENT) {
   return marquerProduit(nommerChamps(z
     .strictObject({
-      book: z.string().min(1),
+      book: idDe('book', undefined, { nue: true }),
       /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
        *  le prédicat de sa maison (`estGraphieDeChapitre`, `src/data/source/decoupe.ts`) : des
        *  chiffres, deux au minimum, et un numéro de chapitre — `00` désigne l'index. La largeur JUSTE

@@ -8,7 +8,7 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
 import { z } from 'zod';
 import { caracteristiqueChiffreeSchema, countSpecSchema, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
+import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -188,7 +188,7 @@ const swapGrantSchema = z.union([
 export const optionalSwapSchema = nommerNoeud(nommerChamps(z.strictObject({
   note: z.literal('swap'),
   label: z.string(),
-  remove: z.array(z.string()),
+  remove: z.array(idDe('trait', undefined, { nue: true })),
   /** Un ou plusieurs octrois (Vouivre ZI : 4 — 3 caractéristiques + 1 compétence). */
   grant: z.array(swapGrantSchema),
   size: sizeCategorySchema.optional(),
@@ -309,7 +309,7 @@ function formesDeDotation<T, A = never>(soi: () => z.ZodType<T>, ...autres: z.Zo
     sommeSchema,
     marquerProduit(nommerChamps(z.strictObject({ choice: z.array(z.lazy(soi)) }), { choice: { label: "choix" } }), 'formesDeDotation', 'choix'),
     jokerDeDotationSchema,
-  ]);
+  ], { error: messageDeFormes });
 }
 
 /** Dotation sans texte ni mention : `classes.json`. LDB 05 l.552 ; #4053 */

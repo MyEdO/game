@@ -21,8 +21,8 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
     countDie: z.number(),
     countDivide: z.number(),
     first: mutationKindSchema,
-    mentalTable: z.string(),
-    physTable: z.string(),
+    mentalTable: idDe('mutationTable'),
+    physTable: idDe('mutationTable'),
   }), {
     countDie: { label: 'Dé du nombre' },
     countDivide: { label: 'Diviseur du nombre' },
