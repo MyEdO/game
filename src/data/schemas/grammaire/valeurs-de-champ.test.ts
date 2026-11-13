@@ -251,7 +251,7 @@ const NOMMES = [
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
-  'personne|immeuble|titre|intangible',
+  'personne|bete|vehicule|immeuble|titre|intangible',
 ].sort();
 
 /**

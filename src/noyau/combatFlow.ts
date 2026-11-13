@@ -8571,7 +8571,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   const enemy = inBattleId(battle, enemyId);
   if (!enemy || isOutOfAction(enemy)) return advanceTurn(get, set);
   // Re-test du prédicat de contrôle À L'ENTRÉE : `maybeRunEnemyTurn` l'a évalué AVANT de
-  // différer par `programmer`, et `setGmSeat` (`netFlow.ts`) n'attend aucune fenêtre de combat —
+  // différer par `programmer`, et `affecterLeSiegeMJ` (`reseau.ts`) n'attend aucune fenêtre de combat —
   // un siège MJ pris entre la planification et le tir rend cet acteur conduit à la MAIN. On rend la main
   // sans jouer : le MJ le pilote via l'UI (`controlsCombatant`), l'IA n'a plus à décider pour lui.
   if (!aiDriven(get(), enemy)) return;

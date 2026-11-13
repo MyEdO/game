@@ -103,7 +103,10 @@ export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOpt
   return [{ label: advancementLabel(category, a), wildcard: false }]; // tirage aléatoire (« N Talent aléatoire »)
 }
 
-function slotsOfLevel(level: CareerLevelData, kind: 'skill' | 'talent'): CareerSlot[] {
+/** Ce que les emplacements d'un Niveau de Carrière lisent : son rang, ses Compétences et ses Talents. */
+export type EmplacementsDuNiveau = Pick<CareerLevelData, 'level' | 'skills' | 'talents'>;
+
+function slotsOfLevel(level: EmplacementsDuNiveau, kind: 'skill' | 'talent'): CareerSlot[] {
   const refs = kind === 'skill' ? level.skills : level.talents;
   const cat = kind === 'skill' ? 'skills' : 'talents';
   return refs.map((ref, i) => {
@@ -125,23 +128,23 @@ function resumeDesOptions(options: SlotOption[]): string {
 }
 
 /** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.76). */
-export function skillSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
+export function skillSlots(levels: readonly EmplacementsDuNiveau[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'skill'));
 }
 
 /** Slots de TALENTS achetables : niveau courant UNIQUEMENT (LDB 07 l.103). */
-export function talentSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
+export function talentSlots(levels: readonly EmplacementsDuNiveau[], level: number): CareerSlot[] {
   const cur = levels.find((l) => l.level === level);
   return cur ? slotsOfLevel(cur, 'talent') : [];
 }
 
 /** TOUS les slots de talents des niveaux ≤ courant (pour l'unicité des désignations). */
-export function talentSlotsUpTo(levels: CareerLevelData[], level: number): CareerSlot[] {
+export function talentSlotsUpTo(levels: readonly EmplacementsDuNiveau[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'talent'));
 }
 
 /** Caractéristiques de carrière disponibles : cumul des niveaux ≤ courant (LDB 07 l.43). */
-export function availableChars(levels: CareerLevelData[], level: number): CharKey[] {
+export function availableChars(levels: readonly Pick<CareerLevelData, 'level' | 'characteristics'>[], level: number): CharKey[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => l.characteristics);
 }
 

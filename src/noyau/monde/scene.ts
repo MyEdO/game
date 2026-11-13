@@ -651,7 +651,9 @@ export function climbAt(scene: Pick<Scene, 'walls'>, x: number, y: number, side:
 
 /** Segment ESCALADABLE sur l'arête CANONIQUE (cardinale) séparant deux cases adjacentes `a`/`b`, ou
  *  undefined (non adjacentes cardinales, ou pas de grimpe posée). Réutilise `edgeOf` (arête canonique
- *  partagée avec `wallBetween`). PUR. */
+ *  partagée avec `wallBetween`). La paroi se pose à la couche du PIED, la plus basse des deux cases :
+ *  `(a, b)` et `(b, a)` lisent le même segment, la montée et la descente voient la même arête (LDB 15
+ *  l.57). PUR. */
 export function climbEdgeBetween(
   scene: Pick<Scene, 'walls'>,
   a: { x: number; y: number; z?: number },
@@ -659,7 +661,7 @@ export function climbEdgeBetween(
 ): WallSeg | undefined {
   const e = edgeOf(a.x, a.y, b.x, b.y);
   if (!e) return undefined;
-  return climbAt(scene, e.x, e.y, e.side, a.z ?? 0);
+  return climbAt(scene, e.x, e.y, e.side, Math.min(a.z ?? 0, b.z ?? 0));
 }
 
 /** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime

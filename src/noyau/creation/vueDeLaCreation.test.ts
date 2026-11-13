@@ -3,12 +3,12 @@
  * dé ne parle avant le geste qui le jette.
  */
 import { describe, it, expect } from 'vitest';
-import { carrieresOffertes, draftSpecies, newDraft, withCareer, withCoastalSwap, withSpecies, type CreatorDraft } from './brouillon';
+import { carrieresOffertes, draftSpecies, newDraft, rollDraftCareer, withCareer, withCoastalSwap, withSpecies, type CreatorDraft } from './brouillon';
 import { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, rubriquesDeLaPage, type RubriqueDeCreation } from './vueDeLaCreation';
-import { carrieresAleatoires, fabricationAtouts, findQualityById, species } from '../../data';
+import { carrieresAleatoires, especesAleatoires, fabricationAtouts, findQualityById, offreDuJet, species, talentsAleatoires, varianteDe } from '../../data';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
-import { setDataset } from '../../data/overrides';
+import { setDataset, type DatasetKey } from '../../data/overrides';
 import { rollCareer } from '../../engine/creation';
 import { deFixe, deMin } from '../../engine/dice.testkit';
 
@@ -64,8 +64,15 @@ describe('la race puis la lignée : les espèces se groupent par race (`refChar`
 });
 
 describe('les carrières offertes : celles que le tirage offre sur la table effective (LDB 05 l.204-212 ; MDG 09 l.9)', () => {
-  /** Les carrières que `rollCareer` rend, d100 de 1 à 100, à l'espèce du brouillon sous son remplacement. */
-  const tirees = (d: CreatorDraft) => [...new Set(Array.from({ length: 100 }, (_, i) => rollCareer(draftSpecies(d)!, d.coastalSwap, deFixe(i + 1)).ids).flat())].sort();
+  /** Ce qu'offrent les jets de `rollCareer`, d100 de 1 à 100, à l'espèce du brouillon sous son remplacement, sans ou avec
+   *  chaque rangée du second lancer (`offreDuJet`, `varianteDe`). */
+  const tirees = (d: CreatorDraft) => {
+    const sp = draftSpecies(d)!;
+    return [...new Set(Array.from({ length: 100 }, (_, i) => {
+      const { id } = rollCareer(sp, d.coastalSwap, deFixe(i + 1));
+      return [...offreDuJet(sp, { id }), ...(varianteDe(id, sp)?.entries ?? []).flatMap((second) => offreDuJet(sp, { id, second }))];
+    }).flat())].sort();
+  };
   const offertes = (d: CreatorDraft) => carrieresOffertes(d).map((c) => c.id).sort();
   const brouillon = (speciesId: string, swap: boolean) => withCoastalSwap(withSpecies(newDraft(1), speciesId), swap);
 
@@ -85,13 +92,68 @@ describe('les carrières offertes : celles que le tirage offre sur la table effe
         edite.find((x) => x.id === 'humain')!.entries[0].id = imprimes.find((x) => x.id === document)!.entries.find((r) => r.id === id)!.id;
         setDataset('carrieresAleatoires', edite);
         const d = brouillon('humains-reiklander', swap);
-        expect(rollCareer(draftSpecies(d)!, swap, deMin).ids[0]).toBe(id);
+        expect(rollCareer(draftSpecies(d)!, swap, deMin).id).toBe(id);
         expect(offertes(d), `swap=${swap}`).toContain(id);
         expect(offertes(d), `swap=${swap}`).toEqual(tirees(d));
       }
     } finally {
       setDataset('carrieresAleatoires', imprimes);
     }
+  });
+});
+
+describe('le second lancer : un geste offert au jet dont la carrière a une variante (AA 02 l.109-111 ; VDM 03 l.17-19)', () => {
+  /** Le premier brouillon d'un Reiklander, graines 1.., dont le premier jet de carrière vérifie `voulu`. */
+  const premierJetOu = (voulu: (d: CreatorDraft) => boolean) => {
+    for (let graine = 1; graine < 5000; graine++) {
+      const d = rollDraftCareer(withSpecies(newDraft(graine), 'humains-reiklander'));
+      if (voulu(d)) return d;
+    }
+    throw new Error('aucune graine');
+  };
+  const aUneVariante = (d: CreatorDraft) => !!varianteDe(d.careerRolls[0].id, draftSpecies(d)!);
+
+  it('offert sur un jet à variante, il tire le second d100, que le tirage dit, puis ne s’offre plus', () => {
+    const soldat = premierJetOu((d) => d.careerRolls[0].id === 'soldat');
+    const offert = rubrique(rubriquesDeLaPage(soldat, 'career'), 'variante/0');
+    expect(offert.genre === 'geste' && offert.libelle).toBe('Second lancer : Soldat');
+    const engage = apresLeGeste(soldat, (offert as Extract<RubriqueDeCreation, { genre: 'geste' }>).geste);
+    const [jet] = engage.careerRolls;
+    const page = rubriquesDeLaPage(engage, 'career');
+    expect(page.filter((r) => r.id.startsWith('variante/')), 'fait, le second lancer ne s’offre plus').toEqual([]);
+    const tirage = rubrique(page, 'tirage');
+    expect(tirage.genre === 'jet' && tirage.resultat, 'le tirage dit les deux d100').toBe(`${jet.roll} → ${jet.second!.roll}`);
+  });
+
+  it('absent sur un jet dont la carrière n’a pas de variante', () => {
+    const sans = premierJetOu((d) => !aUneVariante(d));
+    expect(rubriquesDeLaPage(sans, 'career').filter((r) => r.id.startsWith('variante/'))).toEqual([]);
+  });
+});
+
+describe('les tirages disent le dé de leur table, jamais un littéral (#3578)', () => {
+  const libelle = (d: CreatorDraft, page: Parameters<typeof rubriquesDeLaPage>[1]) => rubrique(rubriquesDeLaPage(d, page), 'tirage').libelle;
+  const sousLeDeDe = <K extends DatasetKey>(cle: K, documents: Parameters<typeof setDataset<K>>[1], corps: () => void) => {
+    const imprimes = [...documents];
+    setDataset(cle, imprimes.map((x) => (typeof x === 'object' && 'die' in x ? { ...x, die: 'd10' } : x)));
+    try { corps(); } finally { setDataset(cle, imprimes); }
+  };
+  const humain = () => withSpecies(newDraft(1), 'humains-reiklander');
+
+  it('sans surcharge, le dé imprimé', () => {
+    expect(libelle(newDraft(1), 'species')).toBe('Race au 1d100 (+20 PX)');
+    expect(libelle(humain(), 'career')).toBe('Carrière au 1d100 (+50 PX)');
+    expect(libelle(rollDraftCareer(humain()), 'career')).toBe('Carrière au 1d100');
+    expect(libelle(humain(), 'skills.talents')).toBe('Tirer 3 Talents au 1d100');
+  });
+
+  it('sous un dé posé au Codex, le dé de la table tirée', () => {
+    sousLeDeDe('especesAleatoires', especesAleatoires, () => expect(libelle(newDraft(1), 'species')).toBe('Race au 1d10 (+20 PX)'));
+    sousLeDeDe('carrieresAleatoires', carrieresAleatoires, () => {
+      expect(libelle(humain(), 'career')).toBe('Carrière au 1d10 (+50 PX)');
+      expect(libelle(rollDraftCareer(humain()), 'career')).toBe('Carrière au 1d10');
+    });
+    sousLeDeDe('talentsAleatoires', talentsAleatoires, () => expect(libelle(humain(), 'skills.talents')).toBe('Tirer 3 Talents au 1d10'));
   });
 });
 

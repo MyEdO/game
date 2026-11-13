@@ -9,6 +9,7 @@ import { matieresDe } from '../../../data';
 import { hash32 } from '../../../data/hash';
 import type { TerrainDef } from '../../../data/terrains.types';
 import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef, RoofMaterialDef } from '../../../data/materials.types';
+import type { EntreeVivante } from '../../../data/datasets';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from './missing';
 import { facadeStructureAppearance, wallPartColor } from './structures';
 import type { WallPart } from '../../../data/structureAppearance.types';
@@ -35,7 +36,7 @@ export function terrainDef(id: string): TerrainDef {
 }
 
 /** Entrée de REPLI VISIBLE (#877) : un relief au ton d'alarme, jamais l'apparence d'un autre matériau. */
-const RELIEF_MANQUANT: ReliefMaterialDef = {
+const RELIEF_MANQUANT: EntreeVivante<ReliefMaterialDef> = {
   id: MISSING_ID,
   type: 'materials',
   label: MISSING_LABEL,
@@ -49,14 +50,14 @@ const RELIEF_MANQUANT: ReliefMaterialDef = {
 /** Matériau de relief par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution
  *  VIVANTE (`matieresDe`) : le document se mute en place à l'édition, un index cuit à l'import servirait
  *  encore l'ancien relief. */
-export function reliefMaterial(id: string): ReliefMaterialDef {
+export function reliefMaterial(id: string): EntreeVivante<ReliefMaterialDef> {
   return catalogEntry((cle) => matieresDe('relief').find((m) => m.id === cle), id, 'relief', RELIEF_MANQUANT);
 }
 
 /** Entrée de REPLI VISIBLE (#877) : une matière de décor au ton d'alarme, jamais l'apparence d'un autre matériau. Sa
  *  réponse à la lumière est NEUTRE (diffus pur, aucun métal) : le repli ne peint pas un vernis ni un bronze qu'aucune
  *  donnée n'a authorés. */
-const DECOR_MANQUANT: PropMaterialData = {
+const DECOR_MANQUANT: EntreeVivante<PropMaterialData> = {
   id: MISSING_ID,
   type: 'materials',
   label: MISSING_LABEL,
@@ -68,13 +69,13 @@ const DECOR_MANQUANT: PropMaterialData = {
 
 /** Matériau de décor par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution VIVANTE
  *  (`matieresDe`), comme `reliefMaterial`. */
-export function propMaterial(id: string): PropMaterialData {
+export function propMaterial(id: string): EntreeVivante<PropMaterialData> {
   return catalogEntry((cle) => matieresDe('prop').find((m) => m.id === cle), id, 'matière de décor', DECOR_MANQUANT);
 }
 
 /** Entrée de REPLI VISIBLE (#877) : une couverture au ton d'alarme sur tous ses pans et sur son plan vu
  *  du dessus, jamais l'apparence d'un autre matériau. */
-const COUVERTURE_MANQUANTE: RoofMaterialDef = {
+const COUVERTURE_MANQUANTE: EntreeVivante<RoofMaterialDef> = {
   id: MISSING_ID,
   type: 'materials',
   label: MISSING_LABEL,
@@ -93,7 +94,7 @@ const COUVERTURE_MANQUANTE: RoofMaterialDef = {
 /** Matériau de toit par id ; id absent du registre → repli VISIBLE + avertissement DEV. Résolution
  *  VIVANTE (`matieresDe`) : le document se mute en place à l'édition, un index cuit à l'import servirait
  *  encore l'ancienne couverture. */
-export function roofMaterial(id: string): RoofMaterialDef {
+export function roofMaterial(id: string): EntreeVivante<RoofMaterialDef> {
   return catalogEntry((cle) => matieresDe('roof').find((m) => m.id === cle), id, 'toiture', COUVERTURE_MANQUANTE);
 }
 
@@ -103,7 +104,7 @@ export function roofMaterial(id: string): RoofMaterialDef {
 export const FASCIA_THICK_M = 0.26;
 
 /** ÉPAISSEUR MONDE (m) de la planche de rive d'une couverture — SOURCE UNIQUE du backend volumique. */
-export function roofFasciaThickM(mat: RoofMaterialDef): number {
+export function roofFasciaThickM(mat: EntreeVivante<RoofMaterialDef>): number {
   return mat.fasciaThickM ?? FASCIA_THICK_M;
 }
 

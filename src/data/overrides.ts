@@ -39,7 +39,7 @@ import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/tra
 import { TAVERN_GAMES } from '../engine/tavernGame';
 import { OBSESSIONS } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
-import { CARGO_ENTRIES, type CargoEntry } from '../engine/cargo';
+import { CARGO_ENTRIES } from '../engine/cargo';
 import { MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS, FAST_VOYAGE_PALIERS } from '../engine/seaVoyage';
 import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
@@ -163,7 +163,7 @@ const ARRAYS = {
   // marqueurs de l'Index, des deux voies), pas la vue filtrée `marchandisesDe` — sinon une réécriture
   // du dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
   // VUE, `noyau/codex/registry.ts`).
-  cargoes: CARGO_ENTRIES as CargoEntry[], riverPerils: RIVER_PERILS,
+  cargoes: CARGO_ENTRIES, riverPerils: RIVER_PERILS,
   crewMoraleFactors: MORALE_FACTORS, crewMoraleBands: MORALE_BANDS, steamBreakdowns: STEAM_BREAKDOWNS,
   criticalsTete, criticalsBras, criticalsCorps, criticalsJambe,
   aaCriticalsTete, aaCriticalsBras, aaCriticalsCorps, aaCriticalsJambe,

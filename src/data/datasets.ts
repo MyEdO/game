@@ -14,16 +14,25 @@ interface DefDeDocument {
   readonly file?: string;
 }
 
-/** L'id FERMÉ d'une entrée de `D` : l'union GÉNÉRÉE de l'espace de son fichier (`IdsParEspace`), instantané au
- *  commit ; `never` quand le fichier n'a pas d'espace. */
-type IdFerme<D extends DefDeDocument> = D extends { readonly file: infer F extends keyof IdsParEspace } ? IdsParEspace[F] : never;
+/** Le fichier de `D` quand il ouvre un espace d'ids générés (`IdsParEspace`), `never` sinon. */
+type EspaceDuFichier<D extends DefDeDocument> = D extends { readonly file: infer F extends keyof IdsParEspace } ? F : never;
+
+/** Les sous-listes générées de l'espace `F` que nomme un champ de l'entrée `E` (`garde-robe.json?kind=piece`). */
+type SousListesDe<E, F extends string> = { [K in keyof E]-?: Exclude<E[K], undefined> extends string ? Extract<`${F}?${K & string}=${Exclude<E[K], undefined>}`, keyof IdsParEspace> : never }[keyof E];
+
+/** L'id FERMÉ de l'entrée `E` de l'espace `F` : l'union GÉNÉRÉE (`IdsParEspace`), instantané au commit, des sous-listes
+ *  que ses champs nomment, de l'espace entier à défaut. */
+type IdFerme<E, F extends keyof IdsParEspace> = IdsParEspace[[SousListesDe<E, F>] extends [never] ? F : SousListesDe<E, F>];
 
 /** L'entrée `E`, son `id` pris dans `I`. */
 type AvecId<E, I> = { [K in keyof E]: K extends 'id' ? I : E[K] };
 
-/** Le dataset du def `D`, tel que son fichier le porte ; une liste d'entrées y prend l'id fermé de son espace (`IdFerme`). */
+/** Le dataset du def `D`, tel que son fichier le porte ; une liste d'entrées y prend, cas par cas, l'id fermé de son espace
+ *  (`IdFerme`). */
 export type DatasetDe<D extends DefDeDocument> =
-  z.output<D['schema']> extends readonly (infer E)[] ? ([IdFerme<D>] extends [never] ? E : AvecId<E, IdFerme<D>>)[] : z.output<D['schema']>;
+  z.output<D['schema']> extends readonly (infer E)[]
+    ? ([EspaceDuFichier<D>] extends [never] ? E : E extends unknown ? AvecId<E, IdFerme<E, EspaceDuFichier<D>>> : never)[]
+    : z.output<D['schema']>;
 
 /** Une entrée écrite au régime VIVANT (le seam, `overrides.ts`, qui la valide au schéma) : son id n'est pas tenu à
  *  l'instantané du commit (`IdFerme`). */
