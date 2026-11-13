@@ -1,9 +1,9 @@
 import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
-/** LDB 05 l.214-299 ; MDG 09 l.9, l.21-30 ; AA 02 l.109-128 */
+/** LDB 05 l.214-299 ; MDG 09 l.9, l.21-30 ; AA 02 l.109-128 ; VDM 03 l.17-31 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, ecartsDeCouverture, ecartsDuDeDeLaTable, enumNomme, plageSchema } from '../grammaire/valeurs';
-import { idDe, ref, refs } from '../grammaire/ref';
+import { idDe, ref } from '../grammaire/ref';
 
 export const file = 'carrieres-aleatoires.json';
 export const famille = 'entite';
@@ -38,7 +38,7 @@ const LIBELLES_DE_KIND = { colonne: 'Colonne', portion: 'Portion', variante: 'Va
 
 /** Un document du tableau tel que le lit l'affinage du fichier : sa charge, bornée par sa sorte
  *  (`espace.chargeParDiscriminant`), y est encore celle de la donnée, que `refusDeCharge` nomme. */
-type Document = { id: string; die?: string; kind: keyof typeof LIBELLES_DE_KIND; colonne?: string; carriere?: string; colonnes?: string[]; entries: z.output<typeof rangee>[] };
+type Document = { id: string; die?: string; kind: keyof typeof LIBELLES_DE_KIND; colonne?: string; carriere?: string; entries: z.output<typeof rangee>[] };
 /** Un document qui porte le dé de son tirage : une colonne, une variante (`chargeParDiscriminant`). */
 type DocumentADe = Document & { die: string };
 
@@ -53,13 +53,14 @@ const doc = document(
     colonne: idDe('carrieresAleatoires', 'colonne').optional(),
     /** AA 02 l.117 */
     carriere: idDe('career').optional(),
-    colonnes: refs('carrieresAleatoires', { sousListe: 'colonne' }).optional(),
+    /** AA 02 l.109 ; VDM 03 l.17 */
+    tableauDuLdb: z.boolean().optional(),
   },
   {
     kind: { label: 'Sorte', hint: 'Colonne imprimée, portion qui en remplace une étendue au choix du joueur avant le jet, ou variante tirée après une carrière — les clés admises en dépendent' },
     colonne: { label: 'Colonne remplacée en partie', hint: 'La colonne dont la portion remplace l’étendue qu’elle couvre' },
     carriere: { label: 'Carrière détaillée', hint: 'La carrière dont le tirage ouvre ce jet optionnel' },
-    colonnes: { label: 'Colonnes concernées', hint: 'Les colonnes dont le tirage de la carrière détaillée ouvre ce jet optionnel' },
+    tableauDuLdb: { label: 'Tableau du Livre de base', hint: 'La colonne est l’un des tableaux de Carrières aléatoires du Livre de base : le tirage d’une carrière détaillée y ouvre le jet optionnel de sa variante' },
   },
   {
     codex: { keys: ['carrieresAleatoires'] },
@@ -68,7 +69,7 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    espace: { discriminant: 'kind', chargeParDiscriminant: { colonne: ['die'], portion: ['colonne'], variante: ['carriere', 'colonnes', 'die'] } },
+    espace: { discriminant: 'kind', chargeParDiscriminant: { colonne: ['die', 'tableauDuLdb'], portion: ['colonne'], variante: ['carriere', 'die'] }, requisesParDiscriminant: { colonne: ['die'] } },
     affinerDataset: (dataset) =>
       couvertureDuDeParDocument<DocumentADe>(file, nomDeRangee, (t: Document) => t.die !== undefined)(dataset).superRefine((v, ctx) => {
         const documents = v as Document[];
@@ -105,13 +106,6 @@ const doc = document(
           }
           variantes.set(carriere, d.id);
           if (!d.entries.some((r) => r.id === carriere)) refus(i, 'entries', `aucune rangée ne désigne la carrière détaillée « ${carriere} »`);
-          for (const col of d.colonnes ?? []) {
-            const base = colonneDeBase(col);
-            if (!base) continue;
-            const portion = documents.find((p) => p.kind === 'portion' && p.colonne === col)?.entries;
-            const tables = [tableDeCarrieres(base.entries), tableDeCarrieres(base.entries, portion)];
-            if (!tables.some((t) => t.some((r) => r.id === carriere))) refus(i, 'colonnes', `la colonne « ${col} » ne tire pas la carrière détaillée « ${carriere} »`);
-          }
         }
       }),
   },

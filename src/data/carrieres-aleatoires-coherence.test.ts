@@ -3,7 +3,7 @@
  * `carrieres-aleatoires.json` ensemble (le refine d'un fichier n'en lit aucun autre) :
  *  - une portion (MDG 09 l.9) ne porte que des carrières d'UNE Classe, et l'étendue qu'elle couvre dans sa
  *    colonne ne porte que des carrières d'UNE autre Classe, la Classe remplacée ;
- *  - une carrière d'une variante (AA 02 l.109-128) ou qui se choisit à la place d'une autre (ADE I 07 l.11-23)
+ *  - une carrière d'une variante (AA 02 l.109-128 ; VDM 03 l.17-31) ou qui se choisit à la place d'une autre (ADE I 07 l.11-23)
  *    porte ses `races` (AA 02 l.137 ; ADE I 07 l.11), qui l'admettent au tirage.
  */
 import { describe, expect, it } from 'vitest';
@@ -108,5 +108,21 @@ describe('bornes des colonnes Middenheim et Gnome au livre (Middenheim 09 l.13-9
       const rangee = DOCUMENTS.find((d) => d.id === colonne)!.entries.find((r) => r.id === carriere);
       expect(rangee ? `${rangee.min}-${rangee.max}` : '–', colonne).toBe(attendu);
     }
+  });
+});
+
+/** Second lancer du VDM, `de-à:carrière` par rangée imprimée (VDM 03 l.23-31). */
+const SECONDS_LANCERS: readonly [ref: string, carriere: string, rangees: string][] = [
+  ['VDM 03 l.26', 'apothicaire', '1-15:alchimiste-ordinaire 16-100:apothicaire'],
+  ['VDM 03 l.27', 'sorcier', '1-95:sorcier 96-100:magister-vigilant'],
+  ['VDM 03 l.29', 'garde', '1-15:bedeau 16-100:garde'],
+  ['VDM 03 l.31', 'mystique', '1-10:devin 11-100:mystique'],
+];
+
+describe('variantes du VDM au livre (VDM 03 l.17-31)', () => {
+  it.each(SECONDS_LANCERS)('%s — %s', (_ref, carriere, rangees) => {
+    const variante = DOCUMENTS.find((d) => d.kind === 'variante' && d.carriere === carriere);
+    expect(variante, `aucune variante de « ${carriere} »`).toBeDefined();
+    expect(variante!.entries.map((r) => `${r.min}-${r.max}:${r.id}`).join(' ')).toBe(rangees);
   });
 });

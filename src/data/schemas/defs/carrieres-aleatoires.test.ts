@@ -1,13 +1,13 @@
 /** #3578 L2a — le Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299), ses portions (MDG 09 l.9) et ses
  *  variantes (AA 02 l.109-128) : couverture du dé, une portion par colonne, étendue d'un seul tenant, coupures de la
- *  base, colonnes désignées, carrière détaillée et portée d'une variante. */
+ *  base, carrière détaillée d'une variante, portée des seconds jets portée par la colonne (`tableauDuLdb`). */
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import carrieresAleatoiresJson from '../../carrieres-aleatoires.json';
 import speciesJson from '../../species.json';
 
 type Rangee = { id: string; min: number; max: number };
-type Colonne = { id: string; die?: string; kind: string; colonne?: string; carriere?: string; colonnes?: string[]; entries: Rangee[] };
+type Colonne = { id: string; die?: string; kind: string; colonne?: string; carriere?: string; tableauDuLdb?: boolean; entries: Rangee[] };
 const clone = () => structuredClone(carrieresAleatoiresJson) as unknown as Colonne[];
 const doc = (docs: Colonne[], id: string) => docs.find((d) => d.id === id)!;
 const FICHIER = 'carrieres-aleatoires.json';
@@ -96,44 +96,32 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
     expect(validateDataset(FICHIER, docs)).toMatch(/« nain » \(kind « colonne »\) exige « die »/);
   });
 
-  it('REFUSE, en la nommant, une variante sans `carriere`, et une sans `colonnes`', () => {
-    const sansCarriere = clone();
-    delete doc(sansCarriere, 'variantes-erudit').carriere;
-    expect(validateDataset(FICHIER, sansCarriere)).toMatch(/« variantes-erudit » \(kind « variante »\) exige « carriere »/);
-    const sansPortee = clone();
-    delete doc(sansPortee, 'variantes-cavalier').colonnes;
-    expect(validateDataset(FICHIER, sansPortee)).toMatch(/« variantes-cavalier » \(kind « variante »\) exige « colonnes »/);
+  it('REFUSE, en la nommant, une variante sans `carriere`', () => {
+    const docs = clone();
+    delete doc(docs, 'variantes-erudit').carriere;
+    expect(validateDataset(FICHIER, docs)).toMatch(/« variantes-erudit » \(kind « variante »\) exige « carriere »/);
   });
 
-  it('REFUSE, en la nommant, une colonne qui porte `colonnes`', () => {
-    const docs = clone();
-    doc(docs, 'ogre').colonnes = ['humain'];
-    expect(validateDataset(FICHIER, docs)).toMatch(/« colonnes » n’appartient qu’au\(x\) cas kind « variante » — refusée sur « ogre » \(kind « colonne »\)/);
+  it('REFUSE, en la nommant, `tableauDuLdb` sur une portion et sur une variante : la portée est un fait de la colonne (AA 02 l.109 ; VDM 03 l.17)', () => {
+    const surPortion = clone();
+    doc(surPortion, 'cotiers-humain').tableauDuLdb = true;
+    expect(validateDataset(FICHIER, surPortion)).toMatch(/« tableauDuLdb » n’appartient qu’au\(x\) cas kind « colonne » — refusée sur « cotiers-humain » \(kind « portion »\)/);
+    const surVariante = clone();
+    doc(surVariante, 'variantes-sorcier').tableauDuLdb = true;
+    expect(validateDataset(FICHIER, surVariante)).toMatch(/« tableauDuLdb » n’appartient qu’au\(x\) cas kind « colonne » — refusée sur « variantes-sorcier » \(kind « variante »\)/);
   });
 
-  it('REFUSE, en la nommant, une colonne de `colonnes` qui ne tire pas la carrière détaillée', () => {
+  it('REFUSE, en la nommant, une portée `colonnes` sur une variante', () => {
     const docs = clone();
-    doc(docs, 'variantes-chevalier').colonnes!.push('halfling');
-    expect(validateDataset(FICHIER, docs)).toMatch(/variantes-chevalier : la colonne « halfling » ne tire pas la carrière détaillée « chevalier »/);
+    Object.assign(doc(docs, 'variantes-soldat'), { colonnes: ['humain'] });
+    expect(validateDataset(FICHIER, docs)).toMatch(/élément « variantes-soldat »: Clé non reconnue : "colonnes"/);
   });
 
-  it('REFUSE, en les nommant, deux variantes de la même carrière détaillée sur des colonnes disjointes', () => {
+  it('REFUSE, en les nommant, deux variantes de la même carrière détaillée', () => {
     const docs = clone();
-    const soldat = docs.find((d) => d.id === 'variantes-soldat');
-    expect(soldat, 'la variante « variantes-soldat » manque à carrieres-aleatoires.json').toBeDefined();
-    const colonnes = soldat!.colonnes!;
-    const moitie = Math.ceil(colonnes.length / 2);
-    const seconde = structuredClone(soldat!);
+    const seconde = structuredClone(doc(docs, 'variantes-soldat'));
     seconde.id = 'variantes-soldat-bis';
-    seconde.colonnes = colonnes.slice(moitie);
-    soldat!.colonnes = colonnes.slice(0, moitie);
     docs.push(seconde);
     expect(validateDataset(FICHIER, docs)).toMatch(/variantes-soldat-bis : la carrière détaillée « soldat » porte déjà la variante « variantes-soldat » : une seule variante par carrière détaillée/);
-  });
-
-  it('REFUSE une variante dont `colonnes` désigne une portion ou une variante', () => {
-    const docs = clone();
-    doc(docs, 'variantes-soldat').colonnes!.push('cotiers-humain');
-    expect(validateDataset(FICHIER, docs)).toMatch(/« cotiers-humain » est hors de la sous-liste « colonne »/);
   });
 });

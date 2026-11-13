@@ -3118,9 +3118,9 @@ export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDe
  *  par colonne imprimée, les portions (MDG 09 l.9) et les variantes (AA 02 l.109-128) — app-owned éditable au
  *  Codex (`setDataset`), même référence. */
 export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesCarrieresAleatoires>> & (
-  | { kind: 'colonne'; die: string }
+  | { kind: 'colonne'; die: string; tableauDuLdb?: boolean }
   | { kind: 'portion'; colonne: string }
-  | { kind: 'variante'; die: string; carriere: string; colonnes: string[] }
+  | { kind: 'variante'; die: string; carriere: string }
 ))[];
 /** La colonne de base `id`, lue à l'appel. */
 export const colonneDeCarrieres = (id: string) =>
@@ -3135,12 +3135,12 @@ export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: 
   return { die: deDeLaTableTiree(base), entries: tableAvecPortion(base.entries, avecPortion ? portionDeLaColonne(colonne)?.entries : undefined) };
 }
 /** Les carrières que le tirage de `tiree` offre en plus à l'espèce `sp`, admises à sa race (`races`) : celles qui
- *  se choisissent à sa place (`aLaPlaceDe`, ADE I 07 l.11-23), puis celles de sa variante portée par la colonne
- *  de `sp` (AA 02 l.109-128). */
+ *  se choisissent à sa place (`aLaPlaceDe`, ADE I 07 l.11-23), puis celles de sa variante quand la colonne de `sp`
+ *  est un tableau du Livre de base (`tableauDuLdb` ; AA 02 l.109-128 ; VDM 03 l.17-31). */
 export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] {
   const admise = (c: CareerData | undefined) => c?.races?.includes(sp.refChar) === true;
   const substitutions = careers.filter((c) => c.aLaPlaceDe === tiree && admise(c)).map((c) => c.id);
-  const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree && d.colonnes.includes(sp.refCareer));
+  const variante = colonneDeCarrieres(sp.refCareer).tableauDuLdb ? carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree) : undefined;
   const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admise(findCareerById(id)));
   return [...substitutions, ...variantes];
 }
