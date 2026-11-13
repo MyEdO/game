@@ -192,7 +192,7 @@ export function lineOfSightCover(
   if (sameFloor && wallOnSight(scene, from, to, from.z ?? 0)) return { blocked: true, cover: 'totale' };
   // Angle mort VERTICAL (dead ground) : le parapet masque la vue trop plongeante sur ce qui est COLLÉ
   // au pied du perchoir — symétrique (la cible en contrebas ne voit pas non plus le tireur en hauteur).
-  // Seuil DESIGN (comme `STEP_MAX_M`, relief.ts — aucune règle RAW ne chiffre cette géométrie) : bloqué
+  // Seuil de géométrie de la grille, comme `STEP_MAX_M` (`relief.ts`, #151) : bloqué
   // quand l'écart de hauteur (m, `heightAt`) dépasse la distance horizontale parcourue (m) — angle de
   // dépression > 45°. Au-delà de ce seuil, la vue par-dessus le parapet redevient dégagée (tests cross-z).
   if (!sameFloor) {
