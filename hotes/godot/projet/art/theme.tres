@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=32 format=3]
+[gd_resource type="Theme" load_steps=28 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -13,35 +13,11 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="Cadre_de_fenetre"]
-bg_color = Color(0.11, 0.1, 0.09, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.55, 0.47, 0.33, 1)
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-
 [sub_resource type="StyleBoxFlat" id="Fond_du_monde"]
 bg_color = Color(0.086, 0.075, 0.059, 1)
 
 [sub_resource type="StyleBoxFlat" id="Fond_du_paysage"]
 bg_color = Color(0.114, 0.098, 0.075, 1)
-
-[sub_resource type="StyleBoxFlat" id="Cadre_de_la_carte_du_voyage"]
-bg_color = Color(0.114, 0.098, 0.075, 0.94)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.353, 0.306, 0.227, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_puce"]
 bg_color = Color(0.2, 0.18, 0.15, 1)
@@ -269,17 +245,6 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="Fond_du_recit"]
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 16.0
-bg_color = Color(0.086, 0.075, 0.059, 0.9)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
 [sub_resource type="StyleBoxFlat" id="Fond_du_journal"]
 content_margin_left = 18.0
 content_margin_top = 14.0
@@ -297,22 +262,6 @@ content_margin_bottom = 12.0
 bg_color = Color(0.114, 0.098, 0.075, 1)
 border_width_top = 1
 border_color = Color(0.227, 0.196, 0.149, 1)
-
-[sub_resource type="StyleBoxFlat" id="Parchemin"]
-content_margin_left = 1.0
-content_margin_top = 1.0
-content_margin_right = 1.0
-content_margin_bottom = 1.0
-bg_color = Color(0.831, 0.761, 0.6, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.36, 0.3, 0.2, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="Medaillon"]
 content_margin_left = 6.0
@@ -409,9 +358,7 @@ Monde/styles/panel = SubResource("Fond_du_monde")
 Paysage/base_type = &"PanelContainer"
 Paysage/styles/panel = SubResource("Fond_du_paysage")
 CarteDuVoyage/base_type = &"PanelContainer"
-CarteDuVoyage/styles/panel = SubResource("Cadre_de_la_carte_du_voyage")
 Fenetre/base_type = &"PanelContainer"
-Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
 Puce/base_type = &"PanelContainer"
 Puce/styles/panel = SubResource("Fond_de_puce")
 TeteDEntite/base_type = &"PanelContainer"
@@ -465,13 +412,11 @@ RangeeDeTrajet/styles/panel = SubResource("Rangee_de_trajet")
 CarteDeHeros/base_type = &"PanelContainer"
 CarteDeHeros/styles/panel = SubResource("Carte_de_heros")
 Recit/base_type = &"PanelContainer"
-Recit/styles/panel = SubResource("Fond_du_recit")
 Journal/base_type = &"PanelContainer"
 Journal/styles/panel = SubResource("Fond_du_journal")
 Pied/base_type = &"PanelContainer"
 Pied/styles/panel = SubResource("Fond_du_pied")
 Parchemin/base_type = &"PanelContainer"
-Parchemin/styles/panel = SubResource("Parchemin")
 Medaillon/base_type = &"PanelContainer"
 Medaillon/styles/panel = SubResource("Medaillon")
 Vie/base_type = &"ProgressBar"
@@ -488,6 +433,13 @@ Dessin/colors/parchment = Color(0.871, 0.796, 0.616, 1)
 Dessin/colors/gold = Color(0.722, 0.569, 0.184, 1)
 Dessin/colors/gold2 = Color(0.847, 0.725, 0.329, 1)
 Dessin/colors/accent = Color(0.486, 0.114, 0.071, 1)
+Dessin/colors/chene = Color(0.11, 0.075, 0.045, 1)
+Dessin/colors/fer = Color(0.16, 0.155, 0.15, 1)
+Dessin/colors/fer_clair = Color(0.42, 0.4, 0.37, 1)
+Dessin/colors/fer_sombre = Color(0.05, 0.045, 0.04, 1)
+Dessin/colors/laiton_clair = Color(0.85, 0.7, 0.38, 1)
+Dessin/colors/laiton_sombre = Color(0.36, 0.26, 0.1, 1)
+Dessin/colors/roussi = Color(0.42, 0.24, 0.08, 1)
 Dessin/colors/ciel_aube_haut = Color(0.173, 0.208, 0.322, 1)
 Dessin/colors/ciel_aube_bas = Color(0.69, 0.478, 0.361, 1)
 Dessin/colors/ciel_jour_haut = Color(0.2, 0.282, 0.369, 1)

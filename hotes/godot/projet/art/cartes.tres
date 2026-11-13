@@ -1,4 +1,7 @@
-[gd_resource type="Theme" format=3]
+[gd_resource type="Theme" load_steps=2 format=3]
+
+[ext_resource type="StyleBox" path="res://art/cadre_de_fenetre.tres" id="1_fenetre"]
 
 [resource]
+Fenetre/styles/panel = ExtResource("1_fenetre")
 HFlowContainer/constants/h_separation = 32

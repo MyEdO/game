@@ -1,8 +1,34 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" load_steps=7 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+[ext_resource type="Script" path="res://scripts/cadre.gd" id="2_cadre"]
+[ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="3_ombre"]
+[ext_resource type="StyleBox" path="res://art/cadre_de_fenetre.tres" id="4_fenetre"]
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Cadre_du_recit"]
+content_margin_left = 20.0
+content_margin_top = 20.0
+content_margin_right = 20.0
+content_margin_bottom = 20.0
+script = ExtResource("2_cadre")
+cadre = "chene-ferre"
+matiere = "prop--bois-chene"
+teinte = Color(0.62, 0.55, 0.48, 1)
+ombre = ExtResource("3_ombre")
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Parchemin"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+script = ExtResource("2_cadre")
+cadre = "parchemin"
 
 [resource]
+CarteDuVoyage/styles/panel = SubResource("Parchemin")
+Fenetre/styles/panel = ExtResource("4_fenetre")
+Parchemin/styles/panel = SubResource("Parchemin")
+Recit/styles/panel = SubResource("Cadre_du_recit")
 Rubrique/base_type = &"Label"
 Rubrique/colors/font_color = Color(0.816, 0.69, 0.42, 1)
 Rubrique/font_sizes/font_size = 17
