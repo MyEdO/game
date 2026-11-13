@@ -32,7 +32,7 @@
 // (`empaqueterLeProcessus`, `embarque.mjs`) et le Node qui joue l'export ; l'export de son préréglage sur son modèle
 // épinglé ; à côté, les modèles en scène ; puis l'exécutable joue une partie sur son noyau embarqué
 // (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
-// déclarant `const RECETTE_RENDUE := true` (`rendre`) ; la CI le joue (`npm run godot:rendus`). L'import de ce module
+// déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`). L'import de ce module
 // ne lance rien et ne charge aucun asset.
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
@@ -404,6 +404,11 @@ function surUneCopie(binaire, figerLesDessins, faire) {
   }
 }
 
+/** Les arguments d'une recette jouée sur la copie `copie` : `--pont=<VIVANT>`, que la copie ne porte pas sous
+ *  `res://../vivant.mjs`, et `--stockage=<fichier de la copie>`, pour qu'aucune ne touche aux sauvegardes de
+ *  l'utilisateur (`user://`). */
+const argumentsDuPont = (copie) => ['--', `--pont=${VIVANT}`, `--stockage=${join(copie, 'stockage.json')}`]
+
 /** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé, les vues de
  *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, et le véhicule de l'atelier
  *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, l'atelier du
@@ -411,8 +416,7 @@ function surUneCopie(binaire, figerLesDessins, faire) {
  *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
  *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
  *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes ; chaque recette reçoit
- *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier de la copie>`,
- *  pour qu'aucune ne touche aux sauvegardes de l'utilisateur. */
+ *  les arguments du pont (`argumentsDuPont`). */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
@@ -433,7 +437,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
       /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
     for (const recette of recettes) {
       console.log(`[godot] recette autonome : ${recette}`)
-      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(copie, 'stockage.json')}`])
+      const resultat = godot(binaire, copie, ['--script', recette, ...argumentsDuPont(copie)])
       console.log(resultat.lignes.join('\n'))
       erreurs.push(...resultat.erreurs)
     }
@@ -450,7 +454,8 @@ const RENDUS = ['forward_plus', 'gl_compatibility']
 const ECRAN_VIRTUEL = process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', '-screen 0 1280x720x24'] : []
 
 /** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
- *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui). Une recette rendue dit son
+ *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), avec les arguments du pont
+ *  (`argumentsDuPont`). Une recette rendue dit son
  *  rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient pas, et que Godot remplace, est une erreur.
  *  Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne de clôture (`erreurs=<n>`) ; ce que le
  *  moteur écrit ensuite en se fermant n'en est pas. */
@@ -464,7 +469,7 @@ function rendre(binaire, { figerLesDessins }) {
     for (const recette of recettes) {
       for (const rendu of RENDUS) {
         console.log(`[godot] recette rendue sous ${rendu} : ${recette}`)
-        const { lignes, echec } = lancer(commande, [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette])
+        const { lignes, echec } = lancer(commande, [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette, ...argumentsDuPont(copie)])
         console.log(lignes.join('\n'))
         const cloture = lignes.findLastIndex((l) => /\] erreurs=\d+$/.test(l.trim()))
         erreurs.push(...erreursDe(lignes.slice(0, cloture + 1)), ...echec)

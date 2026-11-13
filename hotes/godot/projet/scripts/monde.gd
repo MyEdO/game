@@ -696,7 +696,9 @@ func _zoomer(sens: float) -> void:
 ## cases qu'elle sépare (`cases`), fondue comme le reste, en sRGB (`MiseEnPage.teinte_d_instance`, jumelle de
 ## `part_de_lumiere` du shader, recette `projet/recettes/voile-du-bati.gd`) ; sans vision, blanche. Ses matières n'ont
 ## pas de spéculaire, que la couleur d'instance ne voilerait pas. La couleur d'instance, en sRGB, se lit de même sous
-## les deux rendus (`vertex_color_is_srgb`). Le reflet d'un fragment voilé suit sa part de lumière.
+## les deux rendus (`vertex_color_is_srgb`). Le reflet d'un fragment voilé suit sa part de lumière. Un navire monté se
+## voile par la même vision, chaque surface à l'état de la case qu'elle regarde (`VolumeDeScene.voile`,
+## `art/voile.gdshader`, recettes `projet/recettes/voile-de-la-barge.gd` et `voile-de-la-caraque.gd`).
 ## La part est exacte par passe de lumière ; sous un soleil qui porte une ombre, le pilote de compatibilité somme deux
 ## passes déjà encodées en sRGB, et la part rendue s'abaisse avec la luminance du pixel, mesurée jusqu'à 0,10 sous la
 ## teinte (#3950, `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs`). Sous Forward+, le brouillard volumétrique

@@ -2,14 +2,11 @@
 ## (`hotes/godot/pont/CONTRAT.md`, « Corps d'un combattant », `CorpsDuVehicule`), peinte de sa palette et de son emblème,
 ## les pièces de ses postes montées à leur bord (`monter_au_poste`), celles de ses Améliorations à leur place
 ## (`monter_l_amelioration`), les nœuds que changent ses Améliorations cachés (`cacher_selon`), coupé à une hauteur
-## (`couper`), voilé à une part de lumière (`voiler`). Chaque combattant du plateau (`combattant.gd`) et l'atelier
+## (`couper`), voilé par la vision du groupe (`voiler`). Chaque combattant du plateau (`combattant.gd`) et l'atelier
 ## (`atelier.gd`) en sont deux porteurs : l'un le pose sur son empreinte, tourné vers son cap, l'autre au sol, sous un
 ## cadrage à sa taille ; le plateau y monte aussi chaque navire de la scène, coupé sous les ponts que le regard retire.
 class_name MontageDeVehicule
 extends Node3D
-
-## Le voile de la vision sur un véhicule (`voiler`).
-const VOILE := preload("res://art/voile.gdshader")
 
 ## L'id de l'élément posé (`null` : aucun).
 var element: Variant = null
@@ -37,10 +34,10 @@ var _boite_de_coupe: Variant = null
 var _coupees: Array[MeshInstance3D] = []
 ## Le seuil d'opacité que la coupe pose sur chaque matière de sa scène (`_appliquer_la_coupe`), 0 : rien n'est écarté.
 var _seuil := 0.0
-## La part de lumière de sa scène (`voiler`), 1 : aucun voile.
-var part := 1.0
-## Le voile de sa scène (`art/voile.gdshader`), un seul pour toutes ses pièces, `null` avant le premier `voiler` sous 1.
+## Le voile de sa scène (`voiler`), un seul pour toutes ses pièces, `null` : aucun.
 var _voile: ShaderMaterial = null
+## Les matières locales de sa scène (`MontageDeComposition.materiau_local`), qu'il tient au-delà de leur vie.
+var _locaux: Dictionary = {}
 
 
 ## Le corps `vehicule` (`null` : aucun), s'il a changé depuis le dernier reçu : le GLB de son élément tiré par `montage`
@@ -76,7 +73,7 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	if posee == null:
 		return true
 	var texture: ImageTexture = montage.texture_de_l_embleme(vehicule.embleme.id) if vehicule.has("embleme") else null
-	if peindre_l_element(posee, vehicule.element, vehicule.palette, texture):
+	if peindre_l_element(posee, vehicule.element, vehicule.palette, texture, _locaux):
 		embleme = vehicule.embleme.id
 	elif texture != null:
 		montage.erreurs.append("blason-sans-surface : %s" % vehicule.element)
@@ -90,12 +87,12 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	placer.call(posee)
 	for i in pieces.size():
 		if pieces[i] != null:
-			peindre_l_element(pieces[i], vehicule.postes[i].element, vehicule.postes[i].palette, null)
+			peindre_l_element(pieces[i], vehicule.postes[i].element, vehicule.postes[i].palette, null, _locaux)
 			monter_au_poste(posee, pieces[i], vehicule.postes[i])
 			postes.append(vehicule.postes[i].element)
 	for i in montees.size():
 		if montees[i] != null:
-			peindre_l_element(montees[i], vehicule.ameliorations[i].element, vehicule.palette, null)
+			peindre_l_element(montees[i], vehicule.ameliorations[i].element, vehicule.palette, null, _locaux)
 			monter_l_amelioration(posee, montees[i], vehicule.ameliorations[i])
 			ameliorations.append(vehicule.ameliorations[i].element)
 	cacher_selon(posee, vehicule.caches)
@@ -159,29 +156,24 @@ func _appliquer_la_coupe() -> void:
 	_poser_le_voile()
 
 
-## Sa scène voilée à la part de lumière linéaire `lumiere` (de 0 à 1) : 1, aucun voile ; sinon chaque mesh de sa scène,
-## pièces de ses postes et de ses Améliorations comprises, multiplie ce qu'il dessine par cette part (`art/voile.gdshader`,
-## un seul `ShaderMaterial` en `material_overlay`), sans toucher à son ombre, et le voile écarte ce que la coupe écarte.
-## La part vaut pour chaque scène que `monter` pose ensuite. Sous Forward+, la part rendue est exacte ; sous le rendu de
-## compatibilité, qui mélange après l'encodage sRGB, un pixel de luminance linéaire `x` prend
-## lin(srgb(x)·srgb(part)) / x de sa lumière (`recettes/voile-du-navire.gd`).
-func voiler(lumiere: float) -> void:
-	part = lumiere
+## Sa scène voilée par `voile` (`VolumeDeScene.voile`, `art/voile.gdshader`), `null` : aucun voile ; sinon chaque mesh
+## de sa scène, pièces de ses postes et de ses Améliorations comprises, le porte en
+## `material_overlay`, et le voile écarte ce que la coupe écarte. Le voile vaut pour chaque scène que `monter` pose
+## ensuite. Sous Forward+, la part rendue est exacte ; sous le rendu de compatibilité, qui mélange après l'encodage sRGB,
+## un pixel de luminance linéaire `x` prend lin(srgb(x)·srgb(part)) / x de sa lumière (`recettes/voile-du-navire.gd`).
+func voiler(voile: ShaderMaterial) -> void:
+	_voile = voile
 	_poser_le_voile()
 
 
-## Le voile (`voiler`) et le seuil de la coupe (`_seuil`) sur chaque mesh de sa scène : aucun à la part 1. Rien sans scène.
+## Le voile (`voiler`) et le seuil de la coupe (`_seuil`) sur chaque mesh de sa scène. Rien sans scène.
 func _poser_le_voile() -> void:
 	if scene == null:
 		return
-	if part != 1.0 and _voile == null:
-		_voile = ShaderMaterial.new()
-		_voile.shader = VOILE
 	if _voile != null:
-		_voile.set_shader_parameter("part", part)
 		_voile.set_shader_parameter("coupe", _seuil)
 	for piece: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
-		piece.material_overlay = null if part == 1.0 else _voile
+		piece.material_overlay = _voile
 
 
 ## Le mesh de `piece` recopié, chaque sommet blanc, d'opacité sa hauteur dans la boîte `boite` de son repère
@@ -209,7 +201,7 @@ func _porter_la_hauteur(piece: MeshInstance3D, boite: AABB) -> void:
 		copie.surface_set_material(rang, source.surface_get_material(rang))
 	piece.mesh = copie
 	for rang in copie.get_surface_count():
-		var locale := MontageDeComposition.materiau_local(piece, rang)
+		var locale := MontageDeComposition.materiau_local(piece, rang, _locaux)
 		locale.vertex_color_use_as_albedo = true
 		locale.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 
@@ -263,9 +255,10 @@ static func boite(noeud: Node, dans: Node3D) -> Variant:
 
 
 ## Les meshes de la scène `scene` de l'élément `element` habillés de `palette` et de l'emblème `texture` (`null` :
-## aucun) (`MontageDeComposition.peindre`, les `surfaces` de l'élément) ; rend si l'emblème est posé sur une surface.
-static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary, texture: ImageTexture) -> bool:
-	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette)
+## aucun) (`MontageDeComposition.peindre`, les `surfaces` de l'élément), ses matériaux propres tenus dans `locaux` ; rend
+## si l'emblème est posé sur une surface.
+static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary, texture: ImageTexture, locaux: Dictionary) -> bool:
+	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette, locaux)
 
 
 ## La scène `piece` d'une pièce montée sous la scène `scene` de son véhicule, au poste `poste` (`postes` du corps) : à

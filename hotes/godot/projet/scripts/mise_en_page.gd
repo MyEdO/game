@@ -275,6 +275,12 @@ static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) 
 	return Vector2i(case.x, case.y + couche * rangees_par_plan)
 
 
+## La taille d'une image rangée comme le masque de la vision (`texel_de_vision`) : `largeur` cases de large, `couches`
+## plans de `rangees_par_plan` rangées.
+static func taille_du_masque(largeur: int, couches: int, rangees_par_plan: int) -> Vector2i:
+	return Vector2i(largeur, couches * rangees_par_plan)
+
+
 ## La part, de 0 à 1, d'un fondu de `duree` secondes parvenu à la part `part`, `secondes` secondes plus tard.
 static func part_du_fondu(part: float, secondes: float, duree: float) -> float:
 	return minf(1.0, part + secondes / duree)
@@ -292,7 +298,7 @@ static func plus_grand_etat(etat: float, autre: float) -> float:
 
 
 ## La part de lumière linéaire, de 0 à 1, de ce qui est à l'état `etat` (de 0 à 1) sous les teintes `teintes`
-## (inconnue, explorée, vue) : la jumelle de `part_de_lumiere` de `art/monde.gdshader`.
+## (inconnue, explorée, vue) : la jumelle de `part_de_lumiere` de `art/vision.gdshaderinc`.
 static func part_de_lumiere(etat: float, teintes: Vector3) -> float:
 	var exploree := 128.0 / 255.0
 	if etat < exploree:
