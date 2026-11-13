@@ -113,6 +113,21 @@ test('repli : une déclaration que ne suit aucun saut de ligne', async () => {
   assert.deepEqual(await fusion(base, ours, theirs), ordinaire(base, ours, theirs))
 })
 
+test('repli : un nom que le code de l’autre côté lie ou exporte déjà ; lié sans être exporté, il s’exporte', async () => {
+  const code = `\nf1();\nf2();\nf3();\n\n`
+  const base = `import { a } from './a';\n${code}`
+  const versions = (courant, entrant) => [base, `import { a, b } from './a';\n${code}${courant}`, `import { a, c } from './a';\n${entrant}${code}`]
+  for (const [courant, entrant] of [
+    [`export function x() {}\n`, `export { x };\n`],
+    [`export const x = 1;\n`, `export { x } from './m';\n`],
+    [`const [x] = [1];\n`, `import { x } from './m';\n`],
+    [`export default class {}\n`, `export { c as default } from './c';\n`],
+  ]) assert.deepEqual(await fusion(...versions(courant, entrant)), ordinaire(...versions(courant, entrant)))
+  assert.deepEqual(await fusion(...versions(`function x() {}\n`, `export { x };\n`)), {
+    text: `import {\n  a,\n  b,\n  c,\n} from './a';\nexport { x };\n${code}function x() {}\n`, conflict: false,
+  })
+})
+
 test('repli : un bloc qui mêle import et code', async () => {
   const [base, ours, theirs] = [1, 2, 3].map((n) => `import { a${n > 1 ? `, n${n}` : ''} } from './a';\nconst x = ${n};\n`)
   assert.deepEqual(await fusion(base, ours, theirs), ordinaire(base, ours, theirs))

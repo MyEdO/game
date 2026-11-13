@@ -38,6 +38,13 @@ function imprimer({ genre, type, tete, queue, indentation }, liaisons) {
   return unNomParLigne({ tete: ouvre, noms, queue: `}${queue}`, indentation })
 }
 
+/** Les noms que lie `instruction`, de premier niveau, hors déclaration d'import ou d'export. */
+function nomsLies(ts, instruction) {
+  const de = (nom) => (ts.isIdentifier(nom) ? [nom.text] : (nom.elements ?? []).flatMap((e) => (ts.isBindingElement(e) ? de(e.name) : [])))
+  if (ts.isVariableStatement(instruction)) return instruction.declarationList.declarations.flatMap((d) => de(d.name))
+  return instruction.name ? de(instruction.name) : []
+}
+
 /**
  * @typedef {object} DeclarationDImport
  * @property {number} debut @property {number} fin positions dans le texte lu
@@ -49,19 +56,28 @@ function imprimer({ genre, type, tete, queue, indentation }, liaisons) {
  */
 
 /**
- * Les déclarations d'import et d'export de premier niveau de `texte`, dans l'ordre, et `seules` : le module ne porte
- * aucune autre instruction. `null` si le texte ne se parse pas.
+ * Les déclarations d'import et d'export de premier niveau de `texte`, dans l'ordre ; `seules` : le module ne porte
+ * aucune autre instruction ; `locaux` et `exportes` : les noms que ces autres instructions lient dans le module et
+ * ceux qu'elles exportent. `null` si le texte ne se parse pas.
  * @param {string} chemin son extension choisit le dialecte @param {string} texte
- * @returns {{ declarations: DeclarationDImport[], seules: boolean } | null}
+ * @returns {{ declarations: DeclarationDImport[], seules: boolean, locaux: string[], exportes: string[] } | null}
  */
 export function declarationsDImport(chemin, texte) {
   const ts = typescript()
   const { sourceFile: arbre, diagnostics } = analyserTexte({ rel: chemin, text: texte })
   if (diagnostics.length) return null
   const declarations = []
+  const [locaux, exportes] = [[], []]
   for (const instruction of arbre.statements) {
     const estImport = ts.isImportDeclaration(instruction)
-    if (!estImport && !ts.isExportDeclaration(instruction)) continue
+    if (!estImport && !ts.isExportDeclaration(instruction)) {
+      const noms = nomsLies(ts, instruction)
+      const modificateurs = (instruction.modifiers ?? []).map((m) => m.kind)
+      locaux.push(...noms)
+      if (modificateurs.includes(ts.SyntaxKind.DefaultKeyword) || (ts.isExportAssignment(instruction) && !instruction.isExportEquals)) exportes.push('default')
+      else if (modificateurs.includes(ts.SyntaxKind.ExportKeyword)) exportes.push(...noms)
+      continue
+    }
     const debut = instruction.getStart(arbre)
     const fin = instruction.getEnd()
     const clause = estImport ? instruction.importClause : instruction.exportClause
@@ -95,5 +111,5 @@ export function declarationsDImport(chemin, texte) {
     }
     declarations.push(declaration)
   }
-  return { declarations, seules: declarations.length === arbre.statements.length }
+  return { declarations, seules: declarations.length === arbre.statements.length, locaux, exportes }
 }

@@ -17,11 +17,11 @@
 // (`unNomParLigne`).
 // REPLIS, la région restant en conflit : une vue qui ne se parse pas ou porte autre chose qu'une
 // déclaration (commentaire compris), le même nom lié deux fois par une vue, une liaison changée des deux
-// côtés, un import d'effet ajouté de chaque côté (leur rang compte), une déclaration que ne suit aucun saut
-// de ligne, une déclaration à réimprimer que son texte ne permet pas (commentaire interne, forme que la
-// grammaire refuse). REPLI du fichier entier sur la fusion ordinaire : le même nom lié deux fois d'une
-// région à une autre, toute exception. Les autres conflits du fichier restent des conflits : marqueurs
-// dans %A et sortie 1.
+// côtés, deux imports d'effet différents ajoutés chacun d'un côté (leur rang compte), une déclaration que
+// ne suit aucun saut de ligne, une déclaration à réimprimer que son texte ne permet pas (commentaire
+// interne, forme que la grammaire refuse). REPLI du fichier entier sur la fusion ordinaire : le même nom
+// lié deux fois, d'une région à une autre ou à une déclaration du code, toute exception. Les autres
+// conflits du fichier restent des conflits : marqueurs dans %A et sortie 1.
 import '../node-requis.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { threeWay, threeWayDiff3 } from './three-way.mjs'
@@ -62,11 +62,13 @@ function marquer(lire, texte) {
 const vueDe = (atomes, cote) => atomes.map((a) => ('ligne' in a ? a.ligne : a[cote].join(''))).join('').replaceAll(MARQUE, '')
 
 /**
- * Les liaisons de `declarations` réunies par clé (`parCle`), ses LIENS, chaque liaison sous son identité (le nom
- * qu'elle lie dans le module, ou sa clé et elle-même quand elle n'en lie aucun), et les clés de ses imports d'effet.
- * `NonAdmis` si deux liaisons ont la même identité.
+ * Les liaisons des déclarations d'un texte lu réunies par clé (`parCle`), ses LIENS, chaque liaison sous son identité
+ * (le nom qu'elle lie dans le module, ou sa clé et elle-même quand elle n'en lie aucun), et les clés de ses imports
+ * d'effet. `NonAdmis` si deux liaisons ont la même identité, ou une liaison celle d'un nom que le code du module lie
+ * ou exporte.
  */
-function liensDe(declarations) {
+function liensDe({ declarations, locaux, exportes }) {
+  const duCode = new Set([...locaux.map((nom) => `import ${nom}`), ...exportes.map((nom) => `export ${nom}`)])
   /** @type {Map<string, Set<string>>} */
   const parCle = new Map()
   /** @type {Map<string, { cle: string, liaison: string }>} */
@@ -75,7 +77,7 @@ function liensDe(declarations) {
     if (!parCle.has(d.cle)) parCle.set(d.cle, new Set())
     for (const [liaison, nom] of d.liaisons) {
       const identite = nom === null ? `${d.cle} ${liaison}` : `${d.cle.split('|')[0]} ${nom}`
-      if (liens.has(identite)) throw new NonAdmis()
+      if (liens.has(identite) || duCode.has(identite)) throw new NonAdmis()
       liens.set(identite, { cle: d.cle, liaison })
       parCle.get(d.cle).add(liaison)
     }
@@ -91,7 +93,7 @@ function lireRegion(lire, vue) {
   let reste = vue
   for (const d of lu.declarations.toReversed()) reste = reste.slice(0, d.debut) + reste.slice(d.fin)
   if (reste.trim()) throw new NonAdmis()
-  return { declarations: lu.declarations, ...liensDe(lu.declarations) }
+  return { declarations: lu.declarations, ...liensDe(lu) }
 }
 
 /** La déclaration de `region` de même clé que `d` qui partage le plus de liaisons avec elle ; sans partage, la seule
@@ -168,7 +170,7 @@ function fusionDeRegion(lire, atomes) {
 }
 
 /** Les trois versions où chaque région d'imports en conflit est fusionnée par ensemble ; `null` si aucune ne l'est.
- *  `NonAdmis` si la version courante ou entrante lie alors deux fois le même nom, d'une région à une autre. */
+ *  `NonAdmis` si la version courante ou entrante lie alors deux fois le même nom, d'une région à une autre ou à son code. */
 function resoudreLesRegions(lire, versions) {
   const marquees = COTES.map((cote) => marquer(lire, versions[cote]))
   const { text, taille } = threeWayDiff3(...marquees)
@@ -205,7 +207,7 @@ function resoudreLesRegions(lire, versions) {
   for (const cote of ['ours', 'theirs']) {
     const lu = lire(vues[cote])
     if (!lu) throw new NonAdmis()
-    liensDe(lu.declarations)
+    liensDe(lu)
   }
   return vues
 }
