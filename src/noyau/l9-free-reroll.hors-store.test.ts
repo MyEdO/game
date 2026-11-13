@@ -28,10 +28,10 @@ function blessedHero(fortune = 0) {
   return hero;
 }
 
-function openFailedTest(heroId: string, heroName: string) {
+function openFailedTest(heroId: string) {
   banc.setState({
     pendingTest: {
-      actorId: heroId, actorName: heroName, label: 'Test de Force', skillValue: 50,
+      actorId: heroId, label: 'Test de Force', skillValue: 50,
       difficulty: 'intermediaire', requireSL: 0, target: 50, roll: null, success: false, sl: 0,
       onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
     },
@@ -47,7 +47,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
   it('fortune 0 + drapeau : la relance marche, consomme le drapeau, pas la Chance', () => {
     const hero = blessedHero(0);
     banc.setState({ party: [hero] });
-    openFailedTest(hero.id, hero.label);
+    openFailedTest(hero.id);
     banc.getState().jetRelancer('test');
     const h = banc.getState().party[0];
     expect(banc.getState().pendingTest!.rerolled).toBe(true); // relance effectuée
@@ -59,7 +59,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sec', seed: 6 });
     hero.fortune = 0;
     banc.setState({ party: [hero] });
-    openFailedTest(hero.id, hero.label);
+    openFailedTest(hero.id);
     banc.getState().jetRelancer('test');
     expect(banc.getState().pendingTest!.rerolled).toBeFalsy();
   });
@@ -67,7 +67,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
   it('drapeau ET fortune : le drapeau est consommé d’abord, la Chance est préservée', () => {
     const hero = blessedHero(2);
     banc.setState({ party: [hero] });
-    openFailedTest(hero.id, hero.label);
+    openFailedTest(hero.id);
     banc.getState().jetRelancer('test');
     const h = banc.getState().party[0];
     expect(h.fortune).toBe(2); // Chance intacte

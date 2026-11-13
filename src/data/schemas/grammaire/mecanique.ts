@@ -751,12 +751,11 @@ const DECLARATIONS_D_OPS = {
     }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, entries: { label: "rangées" } }),
     nommerChamps(z.strictObject({
       op: z.literal('rollTable'),
-      die: deDeTirageSchema.optional(),
       mod: z.number().optional(),
       addNegativeSL: z.boolean().optional(),
       extraRollsPerStep: z.number().optional(),
       tableId: idDe('table'),
-    }), { op: { label: "opération"  }, die: { label: "dé de tirage" , texte: { regime: "technique"} }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" , texte: { regime: "technique"} } }),
+    }), { op: { label: "opération"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" , texte: { regime: "technique"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { entries?: unknown; tableId?: unknown };

@@ -462,6 +462,17 @@ export function heightAt(scene: SceneDuVolume, x: number, y: number, z = 0): num
   return layer.height?.[y * scene.dimensions.w + x] ?? 0;
 }
 
+/** Le plafond (m) de la case `p` : le plus bas des sols posés plus haut que le sien sur une couche au-dessus de la
+ *  sienne, dans sa colonne ; `Infinity` à ciel ouvert. PUR. */
+export function plafondDe(scene: SceneDuVolume, p: Pt): number {
+  const sol = heightAt(scene, p.x, p.y, p.z ?? 0);
+  const dessus = scene.layers
+    .filter((l) => l.z > (p.z ?? 0) && !estAbsent(tileAt(scene, p.x, p.y, l.z)))
+    .map((l) => heightAt(scene, p.x, p.y, l.z))
+    .filter((h) => h > sol);
+  return Math.min(Infinity, ...dessus);
+}
+
 /**
  * HAUTEUR MÉTRIQUE d'un point de grille — LE SOCLE : la hauteur de la surface sous `p`, sur la couche
  * `p.z`. DÉCOUPLÉE de l'index de couche, qui ne sert qu'au TRI : la couche 0 porte du relief comme

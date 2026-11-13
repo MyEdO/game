@@ -6,7 +6,7 @@
  *          3) Dégâts = Dégâts d'arme + DR
  *          4) Application = Dégâts − (Bonus d'Endurance + PA de la localisation)
  */
-import { RNG } from './dice';
+import { d100, RNG } from './dice';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { nomDe } from './nom';
@@ -44,17 +44,23 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
+import { lancerDuTableau, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
-/** Jet de la seconde frappe du Maniement de deux armes. LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544. */
+/** Jet de la seconde frappe du Maniement de deux armes : le lancer du tableau des Critiques au dé de sa table
+ *  (`lancerDuTableau`) ; sans Localisation (objet inanimé, `isInanimate`), le dé du Test. LDB 10 l.773 ; LDB 18 l.53 ;
+ *  LDB 41 l.170 ; #1595 c.6229550544 ; #1667. */
 export function lancerDeLaSecondeMain(
-  touche: Pick<AttackResult, 'critical' | 'lancerDuTableau'>,
+  touche: Pick<AttackResult, 'critical' | 'lancerDuTableau' | 'critLocation' | 'location'>,
   mainRoll: number,
   rng: RNG,
   twice: boolean,
 ): number {
-  return touche.critical ? (touche.lancerDuTableau ?? lancerDuTableau(rng, twice)) : reverseRoll(mainRoll);
+  if (!touche.critical) return reverseRoll(mainRoll);
+  if (touche.lancerDuTableau != null) return touche.lancerDuTableau;
+  const lieu = touche.critLocation ?? touche.location;
+  if (lieu) return lancerDuTableau(jeuDeCritique(twice), lieu, rng, twice);
+  return twice ? Math.max(d100(rng), d100(rng)) : d100(rng);
 }
 
 // ── Localisation des coups — FOYER UNIQUE data-driven (`src/data/localisation.json`) ──────────────
@@ -520,8 +526,8 @@ export interface AttackResult {
   /** Blessures critiques INFLIGÉES par CE coup, écrites à l'application (`appliquerLesCritiques`). LDB 18
    *  l.17 ; AA 07 l.42 ; LDB 63 l.30. */
   critiques?: number;
-  /** d100 nu du tableau des Critiques du Coup Critique de CE coup, quand une table l'a tiré. LDB 10 l.773 ;
-   *  LDB 18 l.53. */
+  /** Dé nu du tableau des Critiques du Coup Critique de CE coup (`critiqueDie`), quand une table l'a tiré.
+   *  LDB 10 l.773 ; LDB 18 l.53. */
   lancerDuTableau?: number;
   /** #1595 c.6221792068 Q2. */
   sansPrise?: SansPrise;
