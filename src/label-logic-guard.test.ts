@@ -816,10 +816,10 @@ describe('garde de FACE D’AFFICHAGE (#1988 §7)', () => {
 
   it('MUTATION (d) sur la face RÉELLE : réintroduire `\' ou \'` dans `trappingRefLabel` rougit', () => {
     const reel = readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8');
-    const site = 'if (\'choice\' in ref) return ouListe(ref.choice.map(trappingRefLabel));';
+    const site = 'if (\'pick\' in ref) return libelleDuParmi(ref.pick, ref.of.map(trappingRefLabel));';
     expect(reel, 'le site de la mutation a bougé : re-pointer ce test').toContain(site);
     expect(scanLiantsLitterauxDesFaces('src/data/index.ts', reel)).toEqual([]);
-    const mute = reel.replace(site, 'if (\'choice\' in ref) return dataLabel(ref.choice.map(trappingRefLabel).join(\' ou \'));');
+    const mute = reel.replace(site, 'if (\'pick\' in ref) return dataLabel(ref.of.map(trappingRefLabel).join(\' ou \'));');
     expect(scanLiantsLitterauxDesFaces('src/data/index.ts', mute).map((f) => f.face)).toEqual(['trappingRefLabel']);
   });
 });

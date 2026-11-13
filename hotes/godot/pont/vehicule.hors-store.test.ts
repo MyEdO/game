@@ -8,7 +8,7 @@ import { baseDeTest, vehiculeDeTest } from '../asset/modeles.testkit.ts';
 import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
 import type { CombattantProjete } from '../../../src/hote/projection';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 
 const { appel } = table();
 const servir = (manifestes: Record<string, unknown>) => servirLesModeles(appel, COMMITES, manifestes);

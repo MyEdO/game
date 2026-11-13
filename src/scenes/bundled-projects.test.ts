@@ -319,7 +319,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   it('CONTRE-PREUVE : un `style` hors de `buildings.json` est REFUSÉ À LA PORTE, qui NOMME le champ et la valeur', () => {
-    expect(buildings.some((b) => b.id === 'bourg'), '« bourg » est devenu un type de bâtiment : la contre-preuve n’a plus de sujet.').toBe(false);
+    expect(buildings.map((b) => b.id), '« bourg » est devenu un type de bâtiment : la contre-preuve n’a plus de sujet.').not.toContain('bourg');
     expect(() => parseProject(PAQUET_ARCHITECTURE(['bourg']))).toThrow(/style/);
     expect(() => parseProject(PAQUET_ARCHITECTURE(['bourg']))).toThrow(/bourg/);
   });
@@ -413,7 +413,7 @@ describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré
   });
 
   it('chaque prose sourcée déclare un livre du REGISTRE et son folio', () => {
-    const ids = new Set(books.map((b) => b.id));
+    const ids = new Set<string>(books.map((b) => b.id));
     const fautives = prosesSourcees.flatMap((p) => {
       if (typeof p.source.book !== 'string' || !ids.has(p.source.book)) return [`${p.chemin} : book « ${String(p.source.book)} » absent de books.json`];
       if (typeof p.source.page !== 'number') return [`${p.chemin} : folio manquant (source.page)`];
@@ -442,7 +442,7 @@ type DocDeProvenance = Pick<ProjectDoc, 'source' | 'scenes' | 'narratif'>;
 
 /** #2001 ; #2427. */
 function fautesDeProvenance(doc: DocDeProvenance, fichier: string): string[] {
-  const livres = new Set(books.map((b) => b.id));
+  const livres = new Set<string>(books.map((b) => b.id));
   const fautes: string[] = [];
   const marche = (v: unknown, chemin: string): void => {
     if (Array.isArray(v)) return v.forEach((x, i) => marche(x, `${chemin}[${i}]`));

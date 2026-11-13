@@ -6,16 +6,22 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { availableParallelism, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { envDeDepotForge, forgerDepot } from './lib/depotGabarit.mjs'
+import { enFileBornee } from './lib/fileBornee.mjs'
 import { INDEX, SUIVI, commitDe, depotDe, ecrireBlob, listerImage, poserDansIndex, reussi, shaDe } from './lib/gitPorte.mjs'
+import { spawnBorne } from './lib/processusBorne.mjs'
 import { cleDeSite } from './lib/stock.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { diffDuCommit } from '../git-hooks/porte-du-commit.mjs'
+import { coeurs } from '../test/partition.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
+
+/** Échéance d'un processus de jugement mené de front. */
+const ECHEANCE_MS = 900_000
 
 /** Longueur maximale des chemins d'un `git add` : sous la ligne de commande de win32 (32 767 caractères). */
 const LIGNE_MAX = 24_000
@@ -58,10 +64,10 @@ const ajouterOp = (choisir) => (texte) => {
   return JSON.stringify(spells)
 }
 
-/** Les verdicts de `jugerLesComptes` sur chaque `[base, tete]` du dépôt `racine`, dans UN processus `tsx` (la mesure
- *  d'un commit s'y mémoïse), sous l'env d'un dépôt forgé. Les verdicts sont sa sortie ENTIÈRE : la génération et la
- *  mesure d'une image tournent dans des processus enfants à sortie capturée. */
-function jugerDansTsx(racine, plages) {
+/** Le lancement du processus `tsx` qui rend, en JSON sur sa sortie, les verdicts de `jugerLesComptes` sur chaque
+ *  `[base, tete]` du dépôt `racine` (la mesure d'un commit s'y mémoïse), sous l'env d'un dépôt forgé. Les verdicts sont
+ *  sa sortie ENTIÈRE : la génération et la mesure d'une image tournent dans des processus enfants à sortie capturée. */
+function lancementDuJugement(racine, plages) {
   const module = (rel) => JSON.stringify(pathToFileURL(join(RACINE, rel)).href)
   const code = [
     `import { depotDe } from ${module('scripts/guards/lib/gitPorte.mjs')};`,
@@ -71,11 +77,37 @@ function jugerDansTsx(racine, plages) {
     'const verdicts = plages.map(([base, tete, message]) => jugerLesComptes({ depot, base, tete, message }));',
     'process.stdout.write(JSON.stringify(verdicts));',
   ].join('\n')
-  const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), '--input-type=module', '-e', code, '--', JSON.stringify([racine, plages])], {
-    cwd: RACINE, env: envDeDepotForge(), encoding: 'utf8', maxBuffer: 1 << 26,
-  })
+  return {
+    argv: [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), '--input-type=module', '-e', code, '--', JSON.stringify([racine, plages])],
+    cwd: RACINE, env: envDeDepotForge(), maxBuffer: 1 << 26,
+  }
+}
+
+/** Les verdicts de `jugerLesComptes` sur chaque `[base, tete]` du dépôt `racine`, dans UN processus `tsx`. */
+function jugerDansTsx(racine, plages) {
+  const { argv, ...options } = lancementDuJugement(racine, plages)
+  const vu = spawnSync(process.execPath, argv, { ...options, encoding: 'utf8' })
   assert.equal(vu.status, 0, `mesure tsx en échec (${vu.status ?? vu.signal}) : ${vu.stderr}`)
   return JSON.parse(vu.stdout)
+}
+
+/** Les verdicts de chaque groupe de plages de `groupes`, un processus `tsx` par groupe, menés de front par
+ *  `enFileBornee`, un par cœur (`coeurs`), lancés par `spawnBorne` et arrêtés avec `signal` (#2586) : un commit que deux
+ *  plages d'un MÊME groupe partagent ne s'y mesure qu'une fois. */
+async function jugerDeFront(racine, groupes, signal) {
+  const journaux = mkdtempSync(join(tmpdir(), 'comptes-plage-jugements-'))
+  try {
+    return await enFileBornee(groupes.map((plages, i) => async (s) => {
+      const r = await spawnBorne({
+        ...lancementDuJugement(racine, plages), fichier: join(journaux, `${i}.log`), limiteMs: ECHEANCE_MS,
+        signal: s, fluxDistincts: true, site: `comptes-plage/jugement ${i}`,
+      })
+      assert.equal(r.code, 0, `mesure tsx en échec (${r.status ?? r.signal}${r.error ? `, ${r.error.code ?? ''} ${r.error.message}` : ''}) : ${r.stderr}`)
+      return JSON.parse(r.stdout)
+    }), { deFront: coeurs(process.env, availableParallelism), signal })
+  } finally {
+    rmSync(journaux, { recursive: true, force: true })
+  }
 }
 
 /** `texte` où `avant`, présent, devient `apres`. */
@@ -370,7 +402,7 @@ test('#1463 `--base` sans ref, ou suivi d’un drapeau, est une erreur nommée',
   }
 })
 
-test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un schéma qui régresse et une op inscrite à `OPS_NON_TYPEES` sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient ; un CLASSEMENT changé sans donnée est une baisse du détecteur, un `idDe` retiré une baisse de donnée (#2969)',{ timeout: 900_000 }, () => {
+test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un schéma qui régresse et une op inscrite à `OPS_NON_TYPEES` sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient ; un CLASSEMENT changé sans donnée est une baisse du détecteur, un `idDe` retiré une baisse de donnée (#2969)',{ timeout: 900_000 }, async (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
@@ -426,8 +458,12 @@ test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un
       ),
     }, 'idDe retiré')
 
-    const [passe, refus, liee, symetrique] = jugerDansTsx(dossier, [[fondation, typee], [typee, lache], [lache, croisee], [lecteur, renommee]])
-    const [duDetecteur, deDonnee] = jugerDansTsx(dossier, [[renommee, reclasse], [renommee, retire]])
+    const [[passe, refus], [liee], [symetrique], [duDetecteur, deDonnee]] = await jugerDeFront(dossier, [
+      [[fondation, typee], [typee, lache]],
+      [[lache, croisee]],
+      [[lecteur, renommee]],
+      [[renommee, reclasse], [renommee, retire]],
+    ], t.signal)
     assert.equal(passe.ok, true, passe.texte)
     assert.doesNotMatch(passe.texte, /paire sautée/, passe.texte)
     assert.equal(refus.ok, false, refus.texte)

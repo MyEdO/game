@@ -144,9 +144,13 @@ type ChargeDuDocument<O extends OptionsDocument> = O extends { readonly rangee: 
     ? { entries: Record<O extends { readonly cleRecord: z.ZodType<infer K extends string> } ? K : string, V> }
     : unknown;
 
+/** Les champs du def au type ; aucun champ n'en ajoute aucun (`z.output` d'un objet vide est une signature d'index à
+ *  `never`, qui ôterait toute clé à un `Omit` de l'entrée, `EntreeVivante`). */
+type ChampsDuDocument<C extends Record<string, z.ZodType>> = [keyof C] extends [never] ? unknown : z.output<z.ZodObject<C>>;
+
 /** L'ENTRÉE d'un document au type : enveloppe, champs du def, charge. */
 type EntreeDuDocument<T extends string, C extends Record<string, z.ZodType>, O extends OptionsDocument> = EnveloppeDuDocument<T, O> &
-  z.output<z.ZodObject<C>> &
+  ChampsDuDocument<C> &
   ChargeDuDocument<O>;
 
 /**

@@ -22,6 +22,7 @@ import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, R
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
+import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
  *  liste construite à la main n'en a aucun. */
@@ -205,6 +206,21 @@ function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.Refineme
   } else if (!varianteAdmise(type, 'groupe')) {
     ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise pas un Groupe : voir ses « cibles » (psychology.json).` });
   }
+}
+
+/** Un vivre posé dans la cale du navire est l'un des vivres de `sea-navigation.json` `longsVoyages.vivresDeCale`.
+ *  MDG 14 l.245-252 */
+function refuserLeVivreHorsCale(id: string, path: PropertyKey[], ctx: z.RefinementCtx): void {
+  if (!(VIVRES_DE_CALE.vivres as readonly string[]).includes(id)) {
+    ctx.addIssue({ code: 'custom', path, message: `« ${id} » n'est pas un vivre de la cale (sea-navigation.json, longsVoyages.vivresDeCale : ${VIVRES_DE_CALE.vivres.join(', ')}).` });
+  }
+}
+
+/** Un vivre posé par `setVessel`/`adjustVessel` : le vivre et ses rations (jours-homme) vont ensemble. MDG 14 l.245-252 */
+export function refuserLeVivreDuNavire(o: { vivre?: { id: string }; provisions?: number }, ctx: z.RefinementCtx): void {
+  if (o.vivre && o.provisions == null) ctx.addIssue({ code: 'custom', path: ['provisions'], message: `« provisions » manque : le vivre « ${o.vivre.id} » reçoit un nombre de rations (jours-homme).` });
+  if (!o.vivre && o.provisions != null) ctx.addIssue({ code: 'custom', path: ['vivre'], message: `« vivre » manque : les ${o.provisions} rations visent un vivre de la cale.` });
+  if (o.vivre) refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx);
 }
 
 /** Le SUJET d'un jet : ce qu'il teste, Compétence ou Caractéristique (LDB 12 l.7, l.131). */
@@ -500,7 +516,7 @@ const DECLARATIONS_D_OPS = {
   rationsDEscale: nommerChamps(z.strictObject({
     op: z.literal('rationsDEscale'),
     montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de cale" } }),
+  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de vivres frais" } }),
   /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
    *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
   marcheDuPort: z.union([
@@ -518,18 +534,22 @@ const DECLARATIONS_D_OPS = {
         : undefined;
     },
   }),
-  /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations de mer (`rations`) OU tonneaux
-   *  d'eau (`eauTonneaux`), exclusifs. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
+  /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations (`rations`) OU tonneaux
+   *  d'eau (`eauTonneaux`), exclusifs ; `jours` et `rations` nomment leur vivre de la cale (`vivre`).
+   *  MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242, l.245-252 */
   provisions: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema }), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
     nommerChamps(z.strictObject({ op: z.literal('provisions'), gateesPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, gateesPct: { label: "part gâtée (%)" } }),
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema }), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
     nommerChamps(z.strictObject({ op: z.literal('provisions'), eauTonneaux: formulaSchema }), { op: { label: "opération"  }, eauTonneaux: { label: "tonneaux d’eau" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
-      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown };
-      return [v.jours, v.gateesPct, v.rations, v.eauTonneaux].filter((x) => x !== undefined).length !== 1
-        ? 'Provisions EXCLUSIVES : « jours » (vivres gagnés), « gateesPct » (part gâtée), « rations » (rations de mer) OU « eauTonneaux » (tonneaux d’eau) — exactement un des quatre.'
+      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown; vivre?: unknown };
+      if ([v.jours, v.gateesPct, v.rations, v.eauTonneaux].filter((x) => x !== undefined).length !== 1) {
+        return 'Provisions EXCLUSIVES : « jours » (vivres gagnés), « gateesPct » (part gâtée), « rations » (rations d’un vivre) OU « eauTonneaux » (tonneaux d’eau) — exactement un des quatre.';
+      }
+      return (v.jours !== undefined || v.rations !== undefined) && v.vivre === undefined
+        ? 'Provisions : « jours » et « rations » nomment leur « vivre » (un vivre de la cale, sea-navigation.json longsVoyages.vivresDeCale).'
         : undefined;
     },
   }),

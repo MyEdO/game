@@ -31,9 +31,11 @@ ouvert sans ces champs est libre, sauf PR ouverte sur une branche `chantier/<N>�
   cloud : `list_issues` (`state: OPEN`, `field_filters: [{ field_name: 'Statut', value: 'En cours' }]`,
   `fields: ['number', 'title', 'field_values']`) ; un ticket seul : `issue_read` `get`, clé `field_values`, après
   le corps. Les champs s'écrivent par `issue_write` `issue_fields` : `field_option_name` pour `Statut`, `value`
-  pour `Tenu par`, `delete: true` pour vider.
+  pour `Tenu par`, `delete: true` pour vider. Sur le poste, `gh issue view` ne rend pas les champs : sa lecture
+  ne dit rien de la tenue (#4083).
 - **Libre** : avant d'explorer, mets `Statut` à `En cours` et `Tenu par` à ta signature suivie de ta branche,
-  puis relis le ticket. Si `Tenu par` nomme un autre fil, il l'a pris après toi : le lot est à lui.
+  puis relis le ticket. Si `Tenu par` nomme un autre fil, il l'a pris après toi : le lot est à lui. Ta branche
+  se nomme `chantier/<N>…` : c'est par ce nom que les autres fils et le facteur trouvent ta PR.
 - **Tenu par un autre fil** : tu n'écris pas ses champs. Ce que tu en sais lui part en courrier. Le lui retirer,
   même s'il ne répond plus, est un choix d'objectif qui revient à l'utilisateur : tu écris alors `Tenu par`, et
   ton courrier au fil dessaisi cite la décision, datée, et dit ce qu'elle lui laisse (une PR à finir).
@@ -51,7 +53,8 @@ rougit `main`, une consigne neuve touche son chantier, un prérequis qu'il atten
 recoupe son lot.
 
 - **Où.** En commentaire de conversation sur la PR du fil destinataire, ou au ticket de son lot : le facteur le
-  porte à ses PR ouvertes. Un courrier ne s'adresse qu'aux fils d'un lot, jamais à tous.
+  porte à ses PR ouvertes de branche `chantier/<N>…`, une PR d'une autre branche ne reçoit que le courrier posé
+  sur elle. Un courrier ne s'adresse qu'aux fils d'un lot, jamais à tous.
 - **Forme.** Un sujet par courrier, aucune mention `@`.
 
       **Courrier** pour le fil qui tient <#N ou cette PR> · de <signature> · réponse sur #<ta PR, sinon ton ticket>

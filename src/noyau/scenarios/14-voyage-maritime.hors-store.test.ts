@@ -148,6 +148,16 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     expect(get().journal.join('\n')).toMatch(/Accostage|Marienburg/);
   });
 
+  it('#1652 — la cale passe aux biscuits de mer : le facteur de Moral est posé avant le premier recalcul hebdomadaire (MDG 14 l.143, l.166)', () => {
+    const semaine = get().vessel!.morale.lastMoraleWeek;
+    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jourParJour' });
+    sailToPort();
+    const v = get().vessel!;
+    expect(v.morale.lastMoraleWeek).toBe(semaine);
+    expect(v.provisions).toMatchObject({ 'nourriture-courses-journee': 0 });
+    expect(v.morale.factors).toContain('nourriture-biscuits-de-mer');
+  });
+
   it('à quai : l’écran Port ouvre et propose réparation + offres de commerce', () => {
     get().partirEnVoyage('route-marienburg', 'mer');
     sailToPort();

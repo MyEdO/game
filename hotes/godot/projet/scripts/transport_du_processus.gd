@@ -19,8 +19,13 @@ extends PontDuNoyau.Transport
 ## sa réponse est la chaîne que `wfrpPont.resoudreLaPile` rend (`PileResolue`, en JSON).
 ## Godot l'attend image après image, sans bloquer.
 ## Les réponses sortent dans l'ordre des requêtes, pile comprise.
-## Godot n'écrit aucune requête tant qu'un appel attend :
+## Seul un appel reçoit des octets, et Godot l'attend sans écrire d'autre requête :
 ## les octets d'une réponse sont la fin de la sortie jusqu'à la requête suivante.
+## Ce que Godot publie pour qui pilote le lieu (`publier`) part en requête `["publier", json]`, `json` le tableau
+## `[nom, valeur]`, sans attendre sa réponse, la ligne `null` ; publié avant l'ouverture, il est retenu, sa dernière
+## valeur par nom écrite à l'ouverture : publier n'ouvre pas le lieu.
+## Hors d'une page, rien n'appelle Godot depuis le lieu : un rappel exposé (`exposer`) reste à `exposes`, où l'appelle
+## qui pilote le lieu dans le processus de Godot (`projet/recettes/pilote.gd`).
 ## Sa sortie d'erreur passe à celle de Godot.
 ## Sa mort, octets attendus compris, est une panne, qui dit son code de sortie.
 ## Le processus meurt quand le pont quitte l'arbre.
@@ -87,6 +92,10 @@ var _sortie: Tuyau = null
 var _erreurs: Tuyau = null
 var _url := ""
 var _mort := false
+## Les rappels exposés (`exposer`), par nom.
+var exposes := {}
+## Ce qui est publié avant l'ouverture (`publier`), la dernière valeur de chaque nom.
+var _a_publier := {}
 ## Les réponses attendues, dans l'ordre des requêtes écrites : chacune un tableau vide que sa réponse remplit.
 var _attendues: Array[Array] = []
 ## Le nombre d'octets qu'annonce la réponse en cours (`ANNONCE_DES_OCTETS`), `-1` hors d'une telle réponse.
@@ -131,6 +140,9 @@ func ouvrir() -> bool:
 		var lue: Variant = JSON.parse_string(annonce)
 		if lue is Dictionary and lue.get("url") is String:
 			_url = lue.url
+			for nom: String in _a_publier:
+				publier(nom, _a_publier[nom])
+			_a_publier.clear()
 		else:
 			_mourir("annonce illisible du processus du pont : %s" % str(annonce).left(200))
 	_ouvert.emit(_url != "")
@@ -159,12 +171,16 @@ func resoudre_la_pile(demande: String) -> Variant:
 	return null if reponse.is_empty() else reponse[0]
 
 
-func publier(_nom: String, _valeur: Variant) -> void:
-	pass
+func publier(nom: String, valeur: Variant) -> void:
+	if not est_ouvert():
+		_a_publier[nom] = valeur
+		return
+	_demander("publier", JSON.stringify([nom, valeur]))
+	_recevoir()
 
 
-func exposer(_nom: String, _rappel: Callable) -> void:
-	pass
+func exposer(nom: String, rappel: Callable) -> void:
+	exposes[nom] = rappel
 
 
 func adresse(relative: String) -> String:

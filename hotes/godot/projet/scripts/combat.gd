@@ -20,7 +20,7 @@
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
 ## et la partie se joue sans corps. Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque
-## cadrage du monde, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
+## cadrage du monde, il publie ce que l'écran porte, une fois l'interface mise en page (`PublicationDeLEcran`), que la
 ## recette lit ; hors recette, rien. La bulle de l'aperçu
 ## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
 ## l'interface lui laisse.
@@ -87,17 +87,20 @@ var _zones: Array[Zone] = []
 ## Ce que les suites ont ajouté à l'écran depuis le début de la partie (`zones`), par source : une zone posée en
 ## cours de partie (`Disposition`) le reçoit en entier.
 var _ajouts := {}
-## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
-var _publication_prevue := false
+## La publication de l'écran, attendue jusqu'à ce que l'interface soit mise en page (`_publier_l_ecran`).
+var _publication: PublicationDeLEcran
 
 
 func _ready() -> void:
 	_musique.name = "Musique"
 	add_child(_musique)
+	_publication = PublicationDeLEcran.new(_pont, self, self, _ecran_publie)
 	_plateau.case_cliquee.connect(_cliquer)
 	_plateau.case_inspectee.connect(_inspecter)
 	_plateau.habille.connect(_publier_l_ecran)
+	_pont.suivre_les_listes(_ecran, _publier_l_ecran)
 	_monde.cadrage_change.connect(_recadrer)
+	_monde.volume.fondu_fini.connect(_publier_l_ecran)
 	_scene.resized.connect(func() -> void: _monde.cadre = _scene.get_global_rect())
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
@@ -359,25 +362,21 @@ func _republier(_valeur: Variant) -> void:
 	_publier_l_ecran()
 
 
-## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois la vue mise en page, une
-## fois par image ; rien si le combat a quitté l'arbre avant cette image (la partie quittée, une sauvegarde chargée).
+## L'écran publié à la recette (`_ecran_publie`), une fois l'interface mise en page (`PublicationDeLEcran`) ; rien si
+## le combat a quitté l'arbre entre-temps (la partie quittée, une sauvegarde chargée).
 func _publier_l_ecran() -> void:
-	if _publication_prevue:
-		return
-	_publication_prevue = true
-	await get_tree().process_frame
-	_publication_prevue = false
-	if is_inside_tree():
-		_pont.publier_l_ecran(_ecran_publie)
+	_publication.demander()
 
 
-## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
-## l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et
-## les navires posés (`Plateau.navires`).
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, si la
+## caméra glisse (`Monde.glisse`), si la vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de l'écran où
+## le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les
+## navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), cases = _plateau.points(),
+		glisse = _monde.glisse(), fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 
@@ -386,9 +385,9 @@ func _ecran_publie() -> Dictionary:
 ## un cadrage en JSON, sous le regard de la partie (`Plateau.cadrer`) ; la caméra posée et deux images dessinées, `rendre`
 ## reçoit la réponse en JSON : `{ ok: true, camera }` (`Plateau.camera`), ou
 ## `{ ok: false, erreur: { categorie: "validation", message } }`.
-func _cadrer(args: Array) -> void:
-	var cadrage: Variant = JSON.parse_string(str(args[0]))
-	var refus := _plateau.cadrer(cadrage) if cadrage is Dictionary else "cadrage illisible : %s" % args[0]
+func _cadrer(entree: String, rendre: Callable) -> void:
+	var cadrage: Variant = JSON.parse_string(entree)
+	var refus := _plateau.cadrer(cadrage) if cadrage is Dictionary else "cadrage illisible : %s" % entree
 	var reponse := {ok = refus == ""}
 	if refus == "":
 		await RenderingServer.frame_post_draw
@@ -396,7 +395,7 @@ func _cadrer(args: Array) -> void:
 		reponse.camera = _plateau.camera()
 	else:
 		reponse.erreur = {categorie = "validation", message = refus}
-	(args[1] as JavaScriptObject).call("call", null, JSON.stringify(reponse))
+	rendre.call(JSON.stringify(reponse))
 
 
 ## La touche du regard (`changer_de_regard`) passe au regard suivant (`regarder`, `plateau.regardSuivant`).

@@ -1037,22 +1037,34 @@ export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
 
 /**
  * Choix « n parmi » : `{ pick, of: [...] }` (liste énumérée) ou `{ pick, table }` (tirage sur une
- * table d100). Remplace les graphies `choice[]` et `random` des lots L2/L3.
+ * table d100).
  *
  * Une entrée de `of` est l'UNION des trois façons de désigner une option : référence nue `ref(type)`,
  * référence à spécialisation `specRef(type)` (`{id, spec}` XOR `{id, choix}`, validée contre le pool
- * de l'entrée À TRAVERS l'`of`), ou un `pick` IMBRIQUÉ (un « n parmi » dont une option est elle-même
- * un choix). La récursion se referme sur le nœud LUI-MÊME (`noeud`).
+ * de l'entrée À TRAVERS l'`of`), ou un `pick` IMBRIQUÉ (`parmi`).
  *
  * `optionsDuPorteur` ouvre l'`of` aux formes que le PORTEUR admet en plus des trois ci-dessus —
  * même composition FERMÉE que l'`extra` de `ref()`/`specRef()` : le porteur déclare ce qu'il
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
-export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
-  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
-  const noeud: z.ZodType<unknown> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
+export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur: readonly z.ZodType<O>[] = []): z.ZodType<Parmi<number, O | RefASpecialisation>> {
+  return parmi<O | RefASpecialisation, number>([ref(type), specRef(type) as z.ZodType<RefASpecialisation>, ...optionsDuPorteur], nombreDeTirages());
+}
+
+/**
+ * Le nœud `{ pick, of }` : `pick` est le nœud `nombre` que le porteur admet, une entrée de `of` est l'une des
+ * `options` ou un `{ pick, of }` IMBRIQUÉ — la récursion se referme sur le nœud LUI-MÊME. Le seul constructeur du
+ * nœud ; il n'ajoute aucune option (cf. `pick`, `formesDeDotation` de `reference.ts`).
+ */
+export function parmi<O, N extends number>(options: readonly z.ZodType<O>[], nombre: z.ZodType<N>): z.ZodType<Parmi<N, O>> {
+  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([noeud, ...options]));
+  const noeud = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of') as z.ZodType<Parmi<N, O>>;
   return noeud;
 }
+
+/** FORME de sortie d'un nœud `{ pick, of }` (`parmi`) — DÉCLARÉE, même raison que `RefASpecialisation` : `N`, le
+ *  nombre que le porteur admet ; une option est une forme `O` ou un `{ pick, of }` imbriqué. */
+export interface Parmi<N extends number, O> { pick: N; of: (O | Parmi<N, O>)[] }
 
 /** Le nombre `n` d'un « n parmi » ou d'un tirage. */
 const nombreDeTirages = (): z.ZodNumber => z.number().int().positive();
