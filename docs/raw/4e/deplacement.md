@@ -529,6 +529,89 @@ commun** (EDOC 08 l.110-122).
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementoption-attraper-froid)
 
+### Rencontres d'Étape
+
+**Source :** EDOC 08 l.182-233 (règle de tirage par catégorie l.188, l.203, l.221 ; tables l.190-198,
+l.205-216, l.223-233) ; EDOC 09 l.3-5 (usage facultatif, nombre par Étape).
+
+- **Quand :** une Rencontre se résout au cours de chaque Étape, après Météo et Activités (EDOC 08 l.9,
+  l.15-19).
+- **Combien :** « il est rarement conseillé d'utiliser plus d'une Rencontre au cours d'une Étape
+  d'un voyage » (EDOC 09 l.5) — un conseil, pas un plafond.
+- **Facultatif :** « Leur usage est entièrement facultatif, et les résultats constituent plutôt des
+  conseils » ; le MJ peut choisir une autre Rencontre, ou aucune (EDOC 09 l.3).
+- **Déclencheurs par catégorie** (au MJ ou au résultat des Tests ; les trois textes se recoupent) :
+  - Positives : Succès Impressionnant ou mieux lors d'un voyage, ou récompense du MJ (EDOC 08 l.188).
+  - Fortuites : « si le Personnage n'a pas obtenu un Succès Impressionnant ou a eu un Échec
+    Impressionnant lors d'une Activité de voyage », ou couleur locale au gré du MJ (EDOC 08 l.203).
+  - Dangereuses : « Si l'un des Personnages, ou la majorité des Personnages, échouent dans leur
+    Activité de voyage, l'une des mésaventures suivantes peut advenir » (EDOC 08 l.221).
+
+**Rencontres positives (d100)**
+
+| d100 | Rencontre | Réf | Effet |
+|:---:|---|---|---|
+| 01–25 | **Bonne compagnie** | EDOC 08 l.192 | Voyageurs honnêtes rencontrés ; aucun effet chiffré — au MJ. |
+| 26–45 | **Voilà qui est utile !** | EDOC 08 l.193 | Découverte utile à l'aventure (ragot, message, scène) — contenu d'aventure, au MJ. |
+| 46–60 | **Un merveilleux hébergement** | EDOC 08 l.194 | Contre « quelques pièces » (montant non chiffré), auberge-relais : corps guéri de tout État persistant. Ligne Source défectueuse (« auberge Exténué relais »). |
+| 61–75 | **Temps libre** | EDOC 08 l.195 | Chaque Personnage peut effectuer une Activité de voyage supplémentaire. |
+| 76–90 | **Un mot gentil** | EDOC 08 l.196 | Au moins un PNJ de la destination a une bonne opinion d'eux — au MJ. |
+| 91–95 | **Raccourci** | EDOC 08 l.197 | Ils peuvent sauter l'Étape suivante. |
+| 96–00 | **Voyage tranquille** | EDOC 08 l.198 | Ils peuvent guérir toutes les Blessures et récupérer de tous les États *Exténué*. |
+
+**Rencontres fortuites (d100)**
+
+| d100 | Rencontre | Réf | Effet |
+|:---:|---|---|---|
+| 1–10 | **Environnement suspect** | EDOC 08 l.207 | Ambiance ; aucun effet chiffré — au MJ. |
+| 11–20 | **Champ de bataille** | EDOC 08 l.208 | Site de bataille à piller ; coupables à proximité incertaine — au MJ. |
+| 21–30 | **Déplacement de masse** | EDOC 08 l.209 | Procession pouvant cacher une menace — au MJ. |
+| 31–40 | **Oh non, pas eux !** | EDOC 08 l.210 | Rival ou source d'ennui ; renvoi à Delberz Trötte (page 52) — contenu d'aventure, au MJ. |
+| 41–50 | **Tentations sur la route** | EDOC 08 l.211 | Détour tentant, dangers cachés — au MJ. |
+| 51–65 | **Mauvaise influence !** | EDOC 08 l.212 | Un voyageur lésé répand des rumeurs sur le groupe ; aucun effet chiffré — au MJ. |
+| 66–75 | **Route à péage** | EDOC 08 l.213 | Péage aux frais « en fonction de leur Statut social », ou évasion ; renvoi Postes de péages (page 40). |
+| 76–80 | **La chose qui ne devrait pas être** | EDOC 08 l.214 | Phénomène étrange, rumeurs — au MJ. |
+| 81–90 | **La Providence** | EDOC 08 l.215 | Présage divin ; Test de Savoir (Théologie) possible pour plus d'informations (difficulté non dite). |
+| 91–00 | **Un ami dans le besoin** | EDOC 08 l.216 | Voyageurs à aider ou escorter ; gratitude à l'arrivée — au MJ. |
+
+**Rencontres dangereuses (d100)**
+
+| d100 | Rencontre | Réf | Effet |
+|:---:|---|---|---|
+| 1–10 | **Voyage fatigant !** | EDOC 08 l.225 | Route bloquée : un Personnage fait un Test de **Survie en extérieur Accessible (+20)** ; sinon tout le monde reçoit un État *Exténué*. |
+| 11–20 | **Voleurs !** | EDOC 08 l.226 | Biens dérobés ; le voleur est revu pendant la Phase d'arrivée ; renvois Wolmar Rotte (page 47), Wilhelm Kind (page 53) — au MJ. |
+| 21–30 | **Territoire hostile** | EDOC 08 l.227 | Traverser : chaque Personnage réussit un Test de **Discrétion (Rural) Intermédiaire (+0)** ou tombe dans une embuscade ; contourner : État *Exténué*. Ligne Source défectueuse (« en sans quoi »). |
+| 31–40 | **Terre empoisonnée** | EDOC 08 l.228 | Approvisionnement, achats ou séjour prolongé exposent à poisons, maladies, peut-être Corruption — non chiffré, au MJ. |
+| 41–50 | **Même la nature vous déteste !** | EDOC 08 l.229 | Danger naturel : affrontement, État ou confrontation mineure, au choix ; créatures LDB p.314 suggérées — au MJ. |
+| 51–70 | **Très mauvais temps** | EDOC 08 l.230 | +40 au prochain jet de Météo ; à la dernière Étape, les intempéries frappent la destination. |
+| 71–80 | **Équipement essentiel endommagé** | EDOC 08 l.231 | Un équipement de voyage crucial perdu ou détruit (exemples : ciré, tente, roue) ; réparations, ou Test d'Exposition (WFJDR p.181). Objet non désigné — au MJ. |
+| 81–90 | **Conditions répugnantes !** | EDOC 08 l.232 | Tous les Personnages exposés à la Vérole du Tanneur (contraction : LDB p.187). |
+| 91–00 | **Monture en fuite** | EDOC 08 l.233 | Une monture s'enfuit ; la récupérer coûte un État *Exténué* à un Personnage, plus un Test d'Exposition de nuit sous pluie, neige ou blizzard. |
+
+**Implémente :** [État calculé](../implemente.generated.md#4edeplacementrencontres-d-etape)
+
+### Phase d'arrivée
+
+**Source :** EDOC 09 l.11-29 (section « ARRIVER AVEC… CLASSE ? ») ; place dans le voyage : EDOC 08 l.9, l.19.
+
+- **Quand :** la Phase d'arrivée a lieu lorsque les Personnages atteignent leur destination, à la dernière
+  Étape (EDOC 08 l.9, l.19).
+- **Exténué à l'arrivée :** un Personnage arrivé avec un État *Exténué* doit « se rendre présentable » ou
+  subir une pénalité aux Tests de Sociabilité selon son Échelon : Or −20, Argent −10, Bronze aucune
+  (EDOC 09 l.19). Le texte ne dit ni comment se rendre présentable, ni combien de temps dure la pénalité.
+- **Maladies en incubation :** toute maladie contractée sur la route avec une période d'Incubation se
+  déclare pendant la Phase d'arrivée (EDOC 09 l.21) ; le Rhume commun de l'option « Attraper Froid » y
+  renvoie (EDOC 08 l.92).
+- **Fournitures et services :** Test de **Savoir (Région) Accessible (+20)** réussi → le meilleur endroit
+  pour les trouver est identifié ; sinon, demander autour de soi, sans Test ni effet chiffré (EDOC 09 l.23).
+- **Rumeurs :** Test de **Ragot Intermédiaire (+0)** réussi → le Personnage en apprend plus sur les bruits
+  qui courent ; le contenu (rumeurs de L'Ennemi dans l'Ombre p.15 et p.57) est renvoyé au MJ (EDOC 09 l.23).
+- **Au MJ :** description de l'arrivée, rumeurs qui précèdent le groupe, opinions des habitants,
+  retournements ou accueil à la destination (EDOC 09 l.13-17, l.25-29) — conseil de narration, aucun effet
+  chiffré. La phrase de l.13 s'arrête sans point dans le Source.
+
+**Implémente :** [État calculé](../implemente.generated.md#4edeplacementphase-d-arrivee)
+
 ### Activités de Voyage (1 par Étape)
 
 **Source :** EDOC 08 l.129-180
