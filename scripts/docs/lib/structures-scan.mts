@@ -413,7 +413,7 @@ const trieCles = (cles: Map<string, CleNiveau1>): CleNiveau1[] =>
 /**
  * Graphies dont la valeur n'est PAS un id (objet enveloppé, texte narratif) : un objet dont la
  * signature n'est faite QUE de celles-là est une forme de référence même quand rien ne résout —
- * `{wildcard:{…}}`, `{choice:[…]}`, `{text:"…"}` (#1463).
+ * `{wildcard:{…}}`, `{text:"…"}` (#1463).
  */
 const GRAPHIES_SANS_ID: ReadonlySet<string> = new Set<string>([...GRAPHIES_ENVELOPPANTES, 'text']);
 
@@ -942,7 +942,7 @@ export function scannerDonnees(
 
   /**
    * Classement d'une occurrence de référence : la signature PROJETÉE telle quelle, sauf sous une
-   * graphie ENVELOPPANTE (`ref`, `wildcard`, `choice`, `random`), où l'intérieur porte le CHEMIN
+   * graphie ENVELOPPANTE (`ref`, `wildcard`, `random`), où l'intérieur porte le CHEMIN
    * de graphie (`ref>id`, `wildcard>id`) et HÉRITE du statut de l'enveloppe : `{ref:{id}}` se lit
    * `ref>id / historique`, jamais `id / cible`. Le statut se lit aux poses de l'objet `o`.
    */
@@ -1009,7 +1009,7 @@ export function scannerDonnees(
    * Compte UNE occurrence de référence à sa forme ET l'inscrit à ses cases `(porteur, clé)` : l'unique
    * site où la strate `Référence` compte, pour que le couple attribué soit celui de la forme.
    * Ses cases sont ses cases de RÉFÉRENCE : une clé dont la valeur est une chaîne, hors `CLES_DE_SPECIALISATION`
-   * (#3021) ; un nombre (`{random:N}`) ou un tableau d'objets (`{choice:[…]}`) n'en ouvre aucune.
+   * (#3021) ; un nombre (`{random:N}`) ou un tableau d'objets (`{pick:N,of:[…]}`) n'en ouvre aucune.
    */
   const inscrireReference = (
     concept: Concept,

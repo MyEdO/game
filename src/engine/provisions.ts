@@ -34,6 +34,7 @@
  * de Résistance (`resVal`) et le Bonus d'Endurance (`be`) sont passés par l'appelant, qui applique
  * lui-même les dégâts (via `loseWounds`).
  */
+import { nomDe } from './nom';
 import { Combatant, CharKey, ItemInstance, UpkeepDeferTest, type TestIds } from './types';
 import { RNG, d10 } from './dice';
 import { rollTest } from './tests';
@@ -240,7 +241,7 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
     h.tests += 1;
     // Test résolu SANS fenêtre (entretien du jour) : sa ligne se DÉRIVE (`traceLineOf`).
     res.log.push(traceLineOf({
-      who: c.label, label: t('prov.testLabel', { kind: t('prov.faim'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: h.tests > 1 ? t('prov.fragTestMalus', { n: (h.tests - 1) * 10 }) : '' }),
+      who: nomDe(c), label: t('prov.testLabel', { kind: t('prov.faim'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: h.tests > 1 ? t('prov.fragTestMalus', { n: (h.tests - 1) * 10 }) : '' }),
       roll: t2.roll, target: t2.target, sl: t2.sl, success: t2.success, issue: t2.success ? t('prov.holdsOn') : t('prov.fail'),
     }));
     if (!t2.success) {
@@ -316,7 +317,7 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   const t2 = rollTest(resVal, 'intermediaire', rng, penalty);
   s.tests += 1;
   res.log.push(traceLineOf({
-    who: c.label, label: t('prov.testLabel', { kind: t('prov.soif'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: s.tests > 1 ? t('prov.fragTestMalus', { n: (s.tests - 1) * 10 }) : '' }),
+    who: nomDe(c), label: t('prov.testLabel', { kind: t('prov.soif'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: s.tests > 1 ? t('prov.fragTestMalus', { n: (s.tests - 1) * 10 }) : '' }),
     roll: t2.roll, target: t2.target, sl: t2.sl, success: t2.success, issue: t2.success ? t('prov.holdsOn') : t('prov.fail'),
   }));
   if (!t2.success) {

@@ -415,7 +415,7 @@ describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré
   });
 
   it('chaque prose sourcée déclare un livre du REGISTRE et son folio', () => {
-    const ids = new Set(books.map((b) => b.id));
+    const ids = new Set<string>(books.map((b) => b.id));
     const fautives = prosesSourcees.flatMap((p) => {
       if (typeof p.source.book !== 'string' || !ids.has(p.source.book)) return [`${p.chemin} : book « ${String(p.source.book)} » absent de books.json`];
       if (typeof p.source.page !== 'number') return [`${p.chemin} : folio manquant (source.page)`];
@@ -444,7 +444,7 @@ type DocDeProvenance = Pick<ProjectDoc, 'source' | 'scenes' | 'narratif'>;
 
 /** #2001 ; #2427. */
 function fautesDeProvenance(doc: DocDeProvenance, fichier: string): string[] {
-  const livres = new Set(books.map((b) => b.id));
+  const livres = new Set<string>(books.map((b) => b.id));
   const fautes: string[] = [];
   const marche = (v: unknown, chemin: string): void => {
     if (Array.isArray(v)) return v.forEach((x, i) => marche(x, `${chemin}[${i}]`));

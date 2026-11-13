@@ -19,6 +19,7 @@
  * Tout est PARAMÉTRABLE par la donnée (carte du monde / route, éditeur) ; les défauts ci-dessous
  * sont les valeurs RAW citées, ou des choix documentés quand le canon est muet.
  */
+import { nomDe } from './nom';
 import type { IconId } from '../data/icons';
 import { Combatant } from './types';
 import type { Possession } from './possession';
@@ -37,17 +38,12 @@ import {
 } from './mountTravel';
 import { VehicleData } from './types';
 import { traceLineOf } from './traceLine';
-import vehiclesJson from '../data/vehicles.json';
-import { indexParId, memoParVersion } from '../data/versionDataset';
-import { refLabel } from '../data';
+import { memoParVersion } from '../data/versionDataset';
+import { findVehicleById, refLabel, vehicles } from '../data';
 import { t } from '../i18n';
 
-/** FOYER UNIQUE des véhicules/embarcations (`src/data/vehicles.json`), data-driven (cf. `VehicleData`). */
-export const VEHICLES_LIST = vehiclesJson as VehicleData[];
-const vehicleById = indexParId('vehicles', VEHICLES_LIST);
-
 /** Transports payants RAW (LDB 51 l.180-189) = véhicules dotés d'une facette `travel` (passage payant). */
-export const travelVehicles = memoParVersion('vehicles', (): VehicleData[] => VEHICLES_LIST.filter((v) => v.travel));
+export const travelVehicles = memoParVersion('vehicles', (): VehicleData[] => vehicles.filter((v) => v.travel));
 
 /** Mode de voyage : `'pied'` (Mouvement du groupe), `'monture'` (bêtes possédées, EDOC 7 — règle
  *  optionnelle `voyage-allures`) OU l'`id` d'un véhicule à passage payant (`vehicles.json`). */
@@ -56,7 +52,7 @@ export type TravelMode = 'pied' | 'monture' | string;
 /** Facette `travel` (passage payant) d'un mode ≠ `'pied'` — source UNIQUE des classes/Déplacement.
  *  Renvoie `undefined` si le mode n'est pas un véhicule à passage payant. */
 export function vehicleTravel(mode: TravelMode): NonNullable<VehicleData['travel']> | undefined {
-  return mode === 'pied' ? undefined : vehicleById(mode)?.travel;
+  return mode === 'pied' ? undefined : findVehicleById(mode)?.travel;
 }
 
 /** Libellé d'affichage par mode de voyage — les modes FIXES, plus un libellé par véhicule payant
@@ -88,7 +84,7 @@ export function travelModeIcon(mode: TravelMode): IconId {
   if (mode === 'pied') return 'voyage/a-pied';
   if (mode === 'monture') return 'voyage/en-selle';
   if (mode === 'mer') return 'voyage/ancre';
-  return vehicleById(mode)?.icon ?? 'voyage/diligence';
+  return findVehicleById(mode)?.icon ?? 'voyage/diligence';
 }
 
 /** Défauts paramétrables (surchargés par la carte du monde / la route dans l'éditeur). */
@@ -248,7 +244,7 @@ export function forcedMarchTest(c: Combatant, rng: RNG): ForcedMarchResult | nul
   const r = applyForcedMarch(c, tr.success);
   // Test résolu SANS fenêtre (jour de marche) : sa ligne se DÉRIVE (`traceLineOf`).
   const line = traceLineOf({
-    who: c.label, label: t('trv.forcedMarchLabel', { skill }),
+    who: nomDe(c), label: t('trv.forcedMarchLabel', { skill }),
     roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success,
     issue: tr.success ? t('trv.issueHold') : t('trv.issueFail', { n: r.gained, over: r.gained > 1 ? t('trv.fragOverloaded') : '' }),
   });

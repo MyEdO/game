@@ -173,6 +173,7 @@ func _ready() -> void:
 	_recueil = _erreurs
 	_montage.erreurs = _erreurs
 	_montage.empilee.connect(_publier)
+	_pont.suivre_les_listes(_interface, _publier_l_ecran)
 	%Recharger.pressed.connect(_recharger)
 	%Lecture.pressed.connect(_lire)
 	%Pause.pressed.connect(_mettre_en_pause)
