@@ -41,6 +41,7 @@ import { inBattleId } from './monde/combatants';
 import { portalsForParty, type RoomPortal } from './monde/roomPortals';
 import type { Pt } from './monde/path';
 import type { BattleState } from './etat';
+import { nomDe } from '../engine/nom';
 
 /** Ce qu'une arête OFFRE. Identité STABLE (le libellé est de l'affichage). */
 export type CapaciteArete = 'structure' | 'chute' | 'fenetre' | 'escalade' | 'porte';
@@ -287,7 +288,7 @@ function structures(ctx: ContexteAretes): AreteUtilisable[] {
       capacite: 'structure',
       ancrage: { x: w.x, y: w.y, z },
       largeurPrise: LARGEUR_PRISE_ARETE.structure,
-      libelle: sc.label,
+      libelle: nomDe(sc),
       cid,
     });
   }

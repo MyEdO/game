@@ -17,6 +17,7 @@ import { formatDice } from '../engine/dice';
 import { massBattleHazardsDie } from '../data';
 import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import { t } from '../i18n';
 import { refusDuChoixNomme } from './choixDeFenetre';
 import type { AxeDe } from './choixDesFenetres';
@@ -82,7 +83,7 @@ function scenesDuRound(s: Jeu, mb: MassBattleState): SceneEnVue[] {
       position: sc.sceneKind === 'hold' && sc.hold ? positionDe(mb, id, sc.hold.breakpoint) : null,
       postes: combat || resolue || mb.awaitingNext ? null : libres.map((h) => {
         const poste = postes.includes(h.id);
-        return { nom: h.label, poste, geste: { verbe: 'fenetreChoisir', args: ['batailleDeMasse', poste ? 'retirerDuPoste' : 'ajouterAuPoste', id, h.id] } };
+        return { nom: garanti(nomEnVue(s, h.id), h.id, 'héros posté'), poste, geste: { verbe: 'fenetreChoisir', args: ['batailleDeMasse', poste ? 'retirerDuPoste' : 'ajouterAuPoste', id, h.id] } };
       }),
       engager: gesteDeBataille(s, t(combat ? 'mbf.engagerLeCombat' : 'mbf.resoudre'), { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'scene', id] }),
     };

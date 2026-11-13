@@ -17,6 +17,7 @@ import { visiblePlaces } from './worldMap';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { ouvrirLaFinDeSeance, terminerLaSeance } from './partyFlow';
+import { nomDe } from '../engine/nom';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
  *  le récap DÉRIVE de la différence, il n'écrit aucun événement au fil du jeu. */
@@ -62,7 +63,7 @@ export function deriveChapterRecap(args: {
   const px = party.reduce((n, h) => n + ((h.xp ?? 0) - (depuis?.xpParHeros[h.id] ?? h.xp ?? 0)), 0);
   const tombes = party
     .filter((h) => h.dead && (depuis == null || depuis.vivants.includes(h.id)))
-    .map((h) => ({ id: h.id, label: h.label }));
+    .map((h) => ({ id: h.id, label: nomDe(h) }));
   const chronique: RecapLine[] = [
     ...objectifsSoldes.map((o): RecapLine => ({ text: o.text, icon: 'outil-de-carte/depart', tone: 'reussite', paquet: true })),
     ...tombes.map((t): RecapLine => ({ text: t.label, icon: 'interface/fermer', tone: 'echec' })),

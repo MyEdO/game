@@ -19,6 +19,7 @@ import { refusEmplacementDeMain } from './partyFlow';
 import { refusDeConsommer } from './consumableFlow';
 import { gameDay, refusDEvaluation } from './merchantFlow';
 import { refusDePoser } from './objetsAuSol';
+import { nomDe } from '../engine/nom';
 
 /** Une main du set actif : si elle tient l'objet (son geste la vide alors). */
 export interface MainDuSet extends GesteFermable { tenue: boolean }
@@ -50,7 +51,7 @@ export interface GestesDeLObjet {
 }
 
 /** L'id d'un porteur et son nom. */
-const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'heros' ? [c.hero.id, c.hero.label] : [c.possession.uid, possessionLabel(c.possession)]);
+const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'heros' ? [c.hero.id, nomDe(c.hero)] : [c.possession.uid, possessionLabel(c.possession)]);
 
 /** Les gestes de l'objet `uid` du porteur `porteurId` (`resolveCarrier` : un héros du groupe ou une possession),
  *  `null` sans lui ou sans l'objet. PUR. */

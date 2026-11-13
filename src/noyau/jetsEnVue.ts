@@ -33,6 +33,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { APPRAISE_SKILL } from './merchantFlow';
 import { ligneDeFrenesie, ligneDuTestNomme } from './rollFlowSpecs';
 import { JET_FIGE, jetFigeRevele } from './netOwnership';
+import { nomEnVue } from './visionDuGroupe';
 
 /** Le dé d'une ligne de Test, une fois tombé. */
 export interface DeDuTest { d100: number; dr: number; reussi: boolean }
@@ -408,7 +409,7 @@ function etapeCourante(s: Jeu): CascadeStep | undefined {
 /** La ligne d'une rangée de bande (`BatchParticipant`). */
 function ligneDeBande(s: Jeu, part: BatchParticipant): LigneDeJet {
   const r = jete(part.result);
-  return ligne(part.id, libelleDeRangee(part) ?? part.label ?? pool(s).find((c) => c.id === part.id)?.label ?? part.id, r, part.target);
+  return ligne(part.id, libelleDeRangee(part) ?? part.label ?? nomEnVue(s, part.id) ?? part.id, r, part.target);
 }
 
 /** Le jet FIGÉ d'une étape opposée (`meta.opposed`) face à une réponse, révélé selon le calendrier (`jetFigeRevele`). */

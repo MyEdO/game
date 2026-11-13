@@ -16,6 +16,7 @@ import { actorIn } from './monde/combatants';
 import { refusDeDetermination } from '../engine/conditions';
 import { libelleDeLaFermeture, libelleDuLitteral, libelleDuParametre } from './libelles';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import { t } from '../i18n';
 
 const [DEPENSER] = VERBES_DU_JET_PSY;
@@ -60,7 +61,7 @@ export function fenetreDeDetermination(s: Jeu): FenetreDeDetermination | null {
   if (!ids) return null;
   const options = ids.flatMap((id) => {
     const c = id ? actorIn(s, id) : undefined;
-    return c ? [{ valeur: c.id, libelle: c.label, refus: refusDImmunite(s, c) ?? null }] : [];
+    return c ? [{ valeur: c.id, libelle: garanti(nomEnVue(s, c.id), c.id, 'porteur de la Détermination'), refus: refusDImmunite(s, c) ?? null }] : [];
   });
   return {
     porteur: { geste: { verbe: DEPENSER }, parametre: 'combattantId', libelle: libelle('combattantId'), choisie: null, options },

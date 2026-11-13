@@ -32,6 +32,8 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { nomDIndividu } from './monde/sceneNpc';
 import { applyZoneCrossings } from './combatPlacement';
 import { fixtureText } from '../i18n/fixtureText';
+import { personnesCandidates } from './personneChoisie';
+import { enTeteDuPorteur, ficheDuPorteur } from './ficheDuPorteur';
 
 const INCONNU = t('vision.horsDeVue');
 
@@ -304,5 +306,41 @@ describe('cf.traverseeDeZone — la traversée d’une zone par un combattant (`
   it('en vue : son nom', () => {
     const { banc, vu } = siege();
     expect(ligneDeTraversee(banc, vu)).toContain(t('cf.traverseeDeZone', { name: fixtureText(vu.label), zone: 'Flaque acide' }));
+  });
+});
+
+describe('personnesCandidates — la personne désignable d’un Trait psy accordé en combat (`personneChoisie`)', () => {
+  /** Le nom sous lequel la personne `id` est offerte au héros qui reçoit le Trait. */
+  function nomOffert(banc: ReturnType<typeof siege>['banc'], id: string): string | undefined {
+    const etat = banc.getState() as unknown as Jeu;
+    return personnesCandidates(etat, etat.party[0]).find((p) => p.id === id)?.label;
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { banc, cache } = siege();
+    expect(nomOffert(banc, cache.id)).toBe(INCONNU);
+  });
+
+  it('en vue : son nom', () => {
+    const { banc, vu } = siege();
+    expect(nomOffert(banc, vu.id)).toBe(vu.label);
+  });
+});
+
+describe('enTeteDuPorteur et ficheDuPorteur — l’en-tête de la fiche qu’un hôte sert pour un combattant', () => {
+  it('hors de vue : « Inconnu »', () => {
+    const { banc, cache } = siege();
+    const etat = banc.getState() as unknown as Jeu;
+    expect(enTeteDuPorteur(etat, cache.id)?.nom).toBe(INCONNU);
+    expect(ficheDuPorteur(etat, cache.id)?.nom).toBe(INCONNU);
+  });
+
+  it('en vue : son nom', () => {
+    const { banc } = siege();
+    const etat = banc.getState() as unknown as Jeu;
+    const vu = etat.battle!.combatants.find((c) => c.kind === 'ennemi' && combattantEnVue(etat, c) && enTeteDuPorteur(etat, c.id));
+    expect(vu, 'un assaillant en vue qui a une fiche').toBeDefined();
+    expect(enTeteDuPorteur(etat, vu!.id)?.nom).toBe(vu!.label);
+    expect(ficheDuPorteur(etat, vu!.id)?.nom).toBe(vu!.label);
   });
 });

@@ -67,6 +67,7 @@ import { type SequencePotTurn, type SequenceThrowTurn, type SequenceThrowOutcome
 import type { RNG } from '../engine/dice';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import { pnjAuProfil, sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import type { Scene } from './monde/scene';
@@ -1780,6 +1781,7 @@ function tavernSettle(get: Get, set: Set, seq: SequenceState<TavernPayload>, out
 function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard | undefined {
   const p = seq.chargeUtile;
   const { game, challenger } = partieEnCours(get, p, 'tableau de taverne');
+  const joueur = dataLabel(garanti(nomEnVue(get(), challenger.id), challenger.id, 'joueur de taverne'));
   const ph = sequencePhaseOf(seq.parametres, seq.manche);
   const phase = ph.total > 0 ? { manches: ph.total, phase: stepFraction(ph.phase, ph.count) } : {};
   if (game.roundShape === 'pot') return potBoard(game, p);
@@ -1793,7 +1795,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
     return {
       title: dataLabel(game.label),
       camps: [
-        { id: CAMP_PLAYER, label: dataLabel(challenger.label), score: volleyScore(seq, CAMP_PLAYER), ...jauge, ...(st?.seat === 0 && note ? { note } : {}) },
+        { id: CAMP_PLAYER, label: joueur, score: volleyScore(seq, CAMP_PLAYER), ...jauge, ...(st?.seat === 0 && note ? { note } : {}) },
         { id: CAMP_OPPONENT, label: dataLabel(p.opponentName), score: volleyScore(seq, CAMP_OPPONENT), ...jauge, ...(st?.seat === 1 && note ? { note } : {}) },
       ],
       manche: st?.manche ?? 1,
@@ -1807,7 +1809,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
     return {
       title: dataLabel(game.label),
       camps: [
-        { id: CAMP_PLAYER, label: dataLabel(challenger.label), score: seq.cumuls[CAMP_PLAYER] ?? 0, note: t('tavern.cerevisNote') },
+        { id: CAMP_PLAYER, label: joueur, score: seq.cumuls[CAMP_PLAYER] ?? 0, note: t('tavern.cerevisNote') },
         { id: CAMP_OPPONENT, label: dataLabel(p.opponentName), score: seq.cumuls[CAMP_OPPONENT] ?? 0 },
       ],
       manche: p.combined?.tour ?? 1,
@@ -1822,7 +1824,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
     return {
       title: dataLabel(game.label),
       camps: [
-        { id: CAMP_PLAYER, label: stepPrecision(dataLabel(challenger.label), dataLabel(camps.mien.label)), score: seq.cumuls[CAMP_PLAYER] ?? 0, target: Math.floor(camps.sien.pieces / 2) + 1 },
+        { id: CAMP_PLAYER, label: stepPrecision(joueur, dataLabel(camps.mien.label)), score: seq.cumuls[CAMP_PLAYER] ?? 0, target: Math.floor(camps.sien.pieces / 2) + 1 },
         { id: CAMP_OPPONENT, label: stepPrecision(dataLabel(p.opponentName), dataLabel(camps.sien.label)), score: seq.cumuls[CAMP_OPPONENT] ?? 0, target: Math.floor(camps.mien.pieces / 2) + 1 },
       ],
       manche: seq.manche,
@@ -1857,7 +1859,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
   return {
     title: dataLabel(game.label),
     camps: [
-      { id: CAMP_PLAYER, label: dataLabel(challenger.label), score: seq.cumuls[CAMP_PLAYER] ?? 0, ...(seq.parametres.target != null ? { target: seq.parametres.target } : {}) },
+      { id: CAMP_PLAYER, label: joueur, score: seq.cumuls[CAMP_PLAYER] ?? 0, ...(seq.parametres.target != null ? { target: seq.parametres.target } : {}) },
       { id: CAMP_OPPONENT, label: dataLabel(p.opponentName), score: seq.cumuls[CAMP_OPPONENT] ?? 0, ...(seq.parametres.target != null ? { target: seq.parametres.target } : {}) },
     ],
     manche: seq.manche,

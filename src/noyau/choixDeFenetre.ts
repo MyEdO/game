@@ -7,6 +7,7 @@
  */
 import { t } from '../i18n';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import { fateSaveOptions } from '../engine/fortune';
 import { isHealable } from '../engine/healing';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';
@@ -48,7 +49,6 @@ import { formatDice } from '../engine/dice';
 import { massBattleHazardsDie } from '../data';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
-import { inBattleId } from './monde/combatants';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
 import { creaturesDeLaRecolte, refusDeDepecer } from './combatEffects';
@@ -137,8 +137,11 @@ const nuitDuDormeur = (s: Jeu, pid: IdDeHeros | undefined) => {
 /** Une valeur du repos, nommée par son axe (`couchage`, `pitance`). */
 const duRepos = (v: string, axe: 'couchage' | 'pitance'): ValeurDuReglage => ouverte(v, garanti(libelleDuLitteral(v, axe), v, 'valeur du repos'));
 
+/** Le nom du porteur `id` tel que le groupe le connaît (`nomEnVue`, #4017). */
+const nomDuPorteur = (s: Jeu, id: string): string => garanti(nomEnVue(s, id), id, 'porteur du réglage');
+
 /** Le combattant `id` de la bataille, nommé. */
-const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, garanti(inBattleId(s.battle, id), id, 'combattant de la pause').label);
+const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, nomDuPorteur(s, id));
 
 /** Ce qu'une valeur coûte, dit avec elle : une valeur de liste ne se montre que par son libellé. */
 export const auPrix = (label: string, prix: string): string => t('interlude.prix', { label, prix });
@@ -250,7 +253,7 @@ export const OUVERTS_DU_CHOIX = {
   infirmerie: {
     patient: reglage('infirmerie', 'patient', (s) => {
       const verrou = soinEnCours(s) ? libelleDeLaFermeture('soinEnCours') : null;
-      return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
+      return s.party.map((h) => ouverte(h.id, nomDuPorteur(s, h.id), verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
     }, (s) => s.medic?.patientId ?? null),
     abandon: reglage('infirmerie', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('infirmerie', 'abandon'))] : [])),
     plaie: reglage('infirmerie', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? s.pendingHeal?.plaie ?? null),
@@ -258,7 +261,7 @@ export const OUVERTS_DU_CHOIX = {
   dialogue: { reponse: reglage('dialogue', 'reponse', (s) => reponsesDuNoeud(s).map((r) => ouverte(r.id, r.label, r.refus ?? (conversationRepond(s) ? null : t('barre.mainTenue'))))) },
   // EDO 02 l.91 : seuls les héros vivants se désignent.
   designationHeros: {
-    heros: reglage('designationHeros', 'heros', (s) => (s.pendingDesignationHeros ? s.party.filter((h) => !h.dead).map((h) => ouverte(h.id, h.label)) : [])),
+    heros: reglage('designationHeros', 'heros', (s) => (s.pendingDesignationHeros ? s.party.filter((h) => !h.dead).map((h) => ouverte(h.id, nomDuPorteur(s, h.id))) : [])),
   },
   // MDG 15 l.268 : une Activité par héros, ou aucune ; fermée pour tous (`seaActivityBlocked`), ou pour ce héros seul
   // (`seaActivityRefus`, LDB 09 l.30). Hors de toute rangée, chaque Activité avec ce qui la ferme pour tous.
@@ -297,11 +300,11 @@ export const OUVERTS_DU_CHOIX = {
     refuser: aLEchoppe('refuser', (_s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeRefusDuMarche(m, mode)))),
     marchander: aLEchoppe('marchander', (s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeMarchandage(s, m, mode)))),
     chercher: aLEchoppe('chercher', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'chercher'), refusDeRecherche(s, m))]),
-    reparer: aLEchoppe('reparer', (s) => objetsAReparer(s.party).map((o) => ouverte(o.item.uid, `${o.item.label} · ${o.hero.label}`, o.refus))),
+    reparer: aLEchoppe('reparer', (s) => objetsAReparer(s.party).map((o) => ouverte(o.item.uid, `${o.item.label} · ${nomDuPorteur(s, o.hero.id)}`, o.refus))),
     // LDB 59 l.64-76
     trocCeder: aLEchoppe('trocCeder', (s) => optionsDeTroc(s.party).map((o) => {
       const hero = garanti(s.party.find((h) => h.id === o.heroId), o.heroId, 'héros cédant');
-      return ouverte(exemplaireCede(hero, o.trappingId), `${garanti(findTrappingById(o.trappingId), o.trappingId, 'bien cédé').label} ×${o.count} (${hero.label})`, o.refus);
+      return ouverte(exemplaireCede(hero, o.trappingId), `${garanti(findTrappingById(o.trappingId), o.trappingId, 'bien cédé').label} ×${o.count} (${nomDuPorteur(s, hero.id)})`, o.refus);
     }), (s) => {
       const cede = s.merchant?.troc?.cede;
       const hero = cede && s.party.find((h) => h.id === cede.heroId);
@@ -424,7 +427,7 @@ const reglageDeLaRangee = (s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoix): Reg
   parametre: PARAMETRE_DE_RANGEE,
   libelle: libelleDuParametre(VERBE_DE_CHOIX, PARAMETRE_DE_RANGEE),
   courant: null,
-  valeurs: s.party.filter((h) => ouvreUneValeur(reglageDuChoixDeFenetre(s, fenetre, axe, h.id))).map((h) => ouverte(h.id, h.label)),
+  valeurs: s.party.filter((h) => ouvreUneValeur(reglageDuChoixDeFenetre(s, fenetre, axe, h.id))).map((h) => ouverte(h.id, nomDuPorteur(s, h.id))),
   bornes: null,
   note: null,
 });

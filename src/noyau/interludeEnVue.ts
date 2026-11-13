@@ -133,7 +133,7 @@ export function interludeEnVue(s: Jeu): InterludeEnVue | null {
     heros: s.party.filter((h) => !h.dead && itl.perHero[h.id]).map((h) => {
       const st = itl.perHero[h.id];
       return {
-        id: h.id, nom: h.label, restantes: st.left, recues: st.granted, px: h.xp ?? 0, bourse: formatMoney(bourseOf(h)), evenement: st.eventRoll == null ? null : eventLabelOf(st),
+        id: h.id, nom: garanti(nomEnVue(s, h.id), h.id, 'héros de l’interlude'), restantes: st.left, recues: st.granted, px: h.xp ?? 0, bourse: formatMoney(bourseOf(h)), evenement: st.eventRoll == null ? null : eventLabelOf(st),
         ...compositionDuHeros(s, h), activites: activitesDuHeros(s, h), depot: depotDuHeros(s, h),
       };
     }),

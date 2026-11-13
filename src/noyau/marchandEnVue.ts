@@ -17,6 +17,7 @@ import { totalDesBourses } from './bourseFlow';
 import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX, type AxeDe, type ChoixDesFenetres } from './choixDesFenetres';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 
 /** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
  *  et son ajout au panier. */
@@ -103,7 +104,7 @@ export function marchandEnVue(s: Jeu): MarchandEnVue | null {
     },
     vente: {
       heros: s.party.map((h) => ({
-        id: h.id, nom: h.label,
+        id: h.id, nom: garanti(nomEnVue(s, h.id), h.id, 'héros vendeur'),
         possessions: (h.items ?? []).map((it) => ({
           uid: it.uid, nom: it.label, gain: formatMoney(sellGain(it, m)), refus: sellRefusal(it), auLot: auLot.has(it.uid),
           basculer: choix(auLot.has(it.uid) ? 'retirerDeLaVente' : 'ajouterALaVente', it.uid),

@@ -14,6 +14,7 @@ import { ciblePsy, refDeCible } from '../engine/psych/ciblage';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { sceneNpc } from './monde/sceneNpc';
+import { nomDe } from '../engine/nom';
 import { inBattleId } from './monde/combatants';
 import type { Jeu } from './etat';
 
@@ -26,7 +27,7 @@ export interface Personne {
   readonly pos?: GridPt;
 }
 
-const personneDe = (c: Combatant): Personne => ({ id: c.id, label: c.label, camp: campOf(c), ...(c.pos ? { pos: c.pos } : {}) });
+const personneDe = (c: Combatant): Personne => ({ id: c.id, label: nomDe(c), camp: campOf(c), ...(c.pos ? { pos: c.pos } : {}) });
 
 /** Ce que lit `personnesCandidates` de l'état de la partie. */
 export type EtatDesPersonnes = Pick<Jeu, 'battle' | 'party' | 'scene' | 'campaignNarratif'>;
