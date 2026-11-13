@@ -19,7 +19,6 @@ export type PhenomenonTestMod = NonNullable<ArcanePhenomenon['testMods']>[number
 /** Tests qu'un phénomène peut modifier — surensemble de `WindTest` (`engine/domainAttributes.ts`). */
 export type PhenomenonTest = PhenomenonTestMod['tests'][number];
 export type PhenomenonScope = NonNullable<PhenomenonTestMod['scope']>;
-export type SaturationEffect = NonNullable<ArcanePhenomenon['saturation']>;
 
 /** Le document VIVANT, lu ici seul : `data/overrides.ts` l'importe pour le seam. */
 export const arcanePhenomenaData = datasetDe<typeof arcaneDef>(arcaneJson);

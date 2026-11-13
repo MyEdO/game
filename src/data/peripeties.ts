@@ -3,7 +3,7 @@
  * `tirageQuotidien` en donnée ; sa face, `MapRoute.perilDie`, défaut 8, 0 = éteint).
  *
  * La DONNÉE vit dans `peripeties.json` (éditable, comme `creatures.json`), dé `die` compris ; ce
- * module = type + chargement. Ajouter/régler une péripétie = éditer le JSON, jamais ce fichier. Le
+ * module = chargement. Ajouter/régler une péripétie = éditer le JSON, jamais ce fichier. Le
  * tirage est une étape de MONDE à table (`perilATerreTable`, `noyau/travelFlow.ts`).
  *
  * `kind` = ce que le MOTEUR sait jouer :
@@ -14,11 +14,9 @@
  */
 import { peripeties } from './index';
 import peripetiesJson from './peripeties.json';
-import { deDeTirageDe, type RangeeDe } from './rangees';
+import { deDeTirageDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
-
-export type Peripetie = RangeeDe<typeof tableDesPeripeties>;
 
 export const PERIPETIES = peripeties;
 /** Le dé de la Table des Péripéties, lu à l'appel. */
