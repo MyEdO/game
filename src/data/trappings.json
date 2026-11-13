@@ -17400,7 +17400,6 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "d10",
                 "tableId": "vdm-maladie-coups-de-poing-maudits"
               }
             ]

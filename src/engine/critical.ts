@@ -445,9 +445,11 @@ export interface OptionsCritique {
   forcedRoll?: number;
 }
 
-/** Lancer du tableau des Critiques de la seconde main. LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544. */
-export function lancerDuTableau(rng: RNG, twice: boolean): number {
-  return twice ? Math.max(d100(rng), d100(rng)) : d100(rng);
+/** Lancer du tableau des Critiques de la `location` dans le `jeu`, au dé de sa table (`critiqueDie`), meilleur
+ *  de deux sous `twice`. LDB 18 l.53 ; LDB 10 l.773 ; LDB 41 l.170 ; AA 07 l.32 ; #1667. */
+export function lancerDuTableau(jeu: JeuDeCritique, location: HitLocation, rng: RNG, twice: boolean): number {
+  const de = critiqueDie(jeu, critTableKeyFor(location));
+  return twice ? Math.max(rollDice(de, rng), rollDice(de, rng)) : rollDice(de, rng);
 }
 
 /**
@@ -466,8 +468,7 @@ export function resolveCritique(
   const { overkill = 0, twice = false, forcedRoll } = options;
   const regime = regimeDe(jeu);
   const be = bonus(effectiveChar(target, 'endurance'));
-  const de = critiqueDie(jeu, critTableKeyFor(location)); // LDB 18 l.53 ; AA 07 l.32 ; #1667
-  const raw = forcedRoll ?? (twice ? Math.max(rollDice(de, rng), rollDice(de, rng)) : rollDice(de, rng)); // LDB 41 l.170
+  const raw = forcedRoll ?? lancerDuTableau(jeu, location, rng, twice);
   const roll = Math.max(1, raw + regime.severite(target, overkill));
   const entry = structuredClone(findTableEntry(rangeesLues(critiqueTable(jeu, location)), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];
