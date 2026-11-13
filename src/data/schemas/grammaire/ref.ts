@@ -970,7 +970,7 @@ function noeudASpecialisation<T extends TypeEntite>(
 export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
-): z.ZodType<unknown> {
+): z.ZodType<RefASpecialisation> {
   return noeudASpecialisation(type, extra, 'specOuChoix');
 }
 
@@ -1048,7 +1048,7 @@ export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
 export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur: readonly z.ZodType<O>[] = []): z.ZodType<Parmi<number, O | RefASpecialisation>> {
-  return parmi<O | RefASpecialisation, number>([ref(type), specRef(type) as z.ZodType<RefASpecialisation>, ...optionsDuPorteur], nombreDeTirages());
+  return parmi<O | RefASpecialisation, number>([ref(type), specRef(type), ...optionsDuPorteur], nombreDeTirages());
 }
 
 /**

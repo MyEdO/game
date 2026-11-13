@@ -69,7 +69,7 @@ describe('Piétinement en combat (store)', () => {
     useGame.getState().jetValider('attaque');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
-    expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
+    expect(availableAttacks(useGame.getState().scene, h, useGame.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
   });
 
   it('héros Énorme : Annuler avant le jet rend l’Avantage et l’option', () => {
@@ -82,6 +82,6 @@ describe('Piétinement en combat (store)', () => {
     useGame.getState().jetAnnuler('attaque');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.advantage).toBe(3);
-    expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(true);
+    expect(availableAttacks(useGame.getState().scene, h, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(true);
   });
 });

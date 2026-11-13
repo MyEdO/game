@@ -49,8 +49,8 @@ function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; taille
   return { H, E };
 }
 
-const optionDe = (c: Combatant) => availableAttacks(c, g().battle!).find((o) => o.id === PIETINEMENT.id);
-const porteOuverte = (c: Combatant) => ACTION_GATES['pietinement-gratuit']({ active: c, battle: g().battle!, gameTime: g().gameTime }).ok;
+const optionDe = (c: Combatant) => availableAttacks(banc.getState().scene, c, g().battle!).find((o) => o.id === PIETINEMENT.id);
+const porteOuverte = (c: Combatant) => ACTION_GATES['pietinement-gratuit']({ scene: banc.getState().scene, active: c, battle: g().battle!, gameTime: g().gameTime }).ok;
 
 /** L'IA de `E` joue ses gratuites ; rend le nombre de Piétinements déclarés, les Blessures infligées et le
  *  solde d'Avantage de `E` (payé moins gagné). */

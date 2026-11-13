@@ -142,7 +142,7 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
       const w = g.weapons.find((x) => x.uid === g.mannedPoste!.item.uid);
       expect(w?.type).toBe('distance'); // le pierrier servi est une arme à distance
       expect(w?.subType).toBe('armes-de-siege');
-      const serve = availableAttacks(g, battle).find((o) => o.id === 'poste');
+      const serve = availableAttacks(banc.getState().scene, g, battle).find((o) => o.id === 'poste');
       expect(serve).toBeDefined(); // bouton « Servir le pierrier »
       expect(serve!.weaponUid).toBe(g.mannedPoste!.item.uid); // épingle le canon (≠ arme perso auto-choisie)
     }

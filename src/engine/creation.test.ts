@@ -26,7 +26,7 @@ import {
   XP_CHARS_REASSIGNED,
   XP_STAR_ROLLED,
 } from './creation';
-import { careersForSpecies, findSpeciesById, species, stars, type SpeciesData } from '../data';
+import { careersForSpecies, findSpeciesById, offreDuJet, species, stars, type SpeciesData } from '../data';
 import { setDataset } from '../data/overrides';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 
@@ -188,8 +188,7 @@ describe('Tableau des Classes et Carrières aléatoires (LDB 05 l.214+)', () => 
     const accessibles = new Set(careersForSpecies(sylvain).map((c) => c.id));
     for (let seed = 1; seed <= 20; seed++) {
       const r = rollCareer(sylvain, false, makeRNG(seed));
-      expect(r.ids.length).toBeGreaterThan(0);
-      for (const id of r.ids) expect(accessibles, id).toContain(id);
+      for (const id of offreDuJet(sylvain, r)) expect(accessibles, id).toContain(id);
     }
   });
 });
