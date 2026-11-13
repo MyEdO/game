@@ -24,6 +24,34 @@ describe('lireDeclaration', () => {
     await assert.rejects(jugerDeclaration({ ...declaration, clips: { repos: 'Idle_Loop' } }, 'sans-marche.json'), /^Error: sans-marche\.json : clips\.marche, nom de clip attendu$/)
   })
 
+  it('accepte des clips écartés qu’aucun rôle ne joue et que `prisesOccupees` ne nomme pas', async () => {
+    const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
+    const juge = await jugerDeclaration({ ...declaration, clipsEcartes: ['Dance_Loop'], prisesOccupees: {} }, 'ecarte.json')
+    assert.deepEqual(juge.clipsEcartes, ['Dance_Loop'])
+  })
+
+  it('refuse d’écarter un clip qu’un rôle de `clips` joue, en nommant clip et rôle', async () => {
+    const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
+    await assert.rejects(jugerDeclaration({ ...declaration, clipsEcartes: ['Sword_Attack'] }, 'ecarte-role.json'), /^Error: ecarte-role\.json : clipsEcartes Sword_Attack, joué par le rôle clips\.melee$/)
+  })
+
+  it('refuse d’écarter un clip qu’une table de `clipsDeuxMains` joue, en nommant clip et rôle', async () => {
+    const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
+    await assert.rejects(jugerDeclaration({ ...declaration, clipsEcartes: ['Hampe_Touche'] }, 'ecarte-deux-mains.json'), /^Error: ecarte-deux-mains\.json : clipsEcartes Hampe_Touche, joué par le rôle clipsDeuxMains\.hampe\.coup$/)
+  })
+
+  it('refuse d’écarter un clip que `prisesOccupees` nomme encore', async () => {
+    const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
+    await assert.rejects(jugerDeclaration({ ...declaration, clipsEcartes: ['Chest_Open'] }, 'ecarte-prise.json'), /^Error: ecarte-prise\.json : clipsEcartes Chest_Open, encore nommé par prisesOccupees$/)
+  })
+
+  it('refuse des clips écartés qui ne sont pas une liste de noms', async () => {
+    const declaration = JSON.parse(readFileSync(HUMANOIDE, 'utf8'))
+    for (const clipsEcartes of ['Dance_Loop', ['Dance_Loop', 3]]) {
+      await assert.rejects(jugerDeclaration({ ...declaration, clipsEcartes }, 'ecarte-forme.json'), /^Error: ecarte-forme\.json : clipsEcartes, liste de noms de clip attendue$/)
+    }
+  })
+
   it('refuse une Taille que la donnée ne donne pas à la race, en nommant champ, déclaré et donnée', async () => {
     await assert.rejects(jugerAvec('taille', { taille: 'grande' }), /porteur\.taille grande, la donnée donne moyenne à la race humain/)
   })

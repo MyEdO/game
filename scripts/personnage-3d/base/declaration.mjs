@@ -1,5 +1,6 @@
 // LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, ses bornes articulaires
-// (`bornesArticulaires`, #2992), la table rôle → clip (`clips`, dont `marche`, la marche plantée et mesurée), celle des rôles tenus à deux mains (`clipsDeuxMains`, #3319), les prises que le geste de chaque clip occupe (`prisesOccupees`, #3806) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
+// (`bornesArticulaires`, #2992), la table rôle → clip (`clips`, dont `marche`, la marche plantée et mesurée), celle des rôles tenus à deux mains (`clipsDeuxMains`, #3319), les prises que le geste de chaque clip occupe (`prisesOccupees`, #3806), les clips des packs que la construction retire
+// (`clipsEcartes`, #3810, absents du manifeste) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
 // lue par le module runner de Vite (`chargerAssets`, `charger.mjs`).
 import { readFileSync } from 'node:fs'
 import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
@@ -19,13 +20,23 @@ export const champsDeclares = ({ base, porteur, bornesArticulaires, clips, clips
 /** La déclaration du corps à `chemin`, jugée par `jugerDeclaration`. */
 export const lireDeclaration = (chemin, lireDonnee) => jugerDeclaration(JSON.parse(readFileSync(chemin, 'utf8')), chemin, lireDonnee)
 
-/** `declaration`, lue à `chemin`, refusée sans clip du rôle `marche` (`clips.marche`), si l'espèce du porteur n'est pas portée par
+/** `declaration`, lue à `chemin`, refusée sans clip du rôle `marche` (`clips.marche`), si `clipsEcartes` n'est pas une liste
+ *  de noms de clip, en écarte un qu'un rôle joue (`clips`, une table de `clipsDeuxMains`) ou que `prisesOccupees` nomme, si l'espèce du porteur n'est pas portée par
  *  le plan de bestiaire sur la base humanoïde (#2993), si son gabarit n'existe pas dans la donnée, ou si sa Taille ou son
  *  échelle d'art diffère de celle que la donnée donne à sa race (`echelle` de l'espèce au plan). `lireDonnee` rend les
  *  lectures de la donnée (`planDeBestiaire`, `gabarits`, `taillesDeLaRace`). */
 export async function jugerDeclaration(declaration, chemin, lireDonnee = chargerDonnee) {
   const { porteur, clips } = declaration
   if (typeof clips?.marche !== 'string') throw new Error(`${chemin} : clips.marche, nom de clip attendu`)
+  const { clipsEcartes = [], clipsDeuxMains = {}, prisesOccupees = {} } = declaration
+  if (!Array.isArray(clipsEcartes) || clipsEcartes.some((nom) => typeof nom !== 'string')) throw new Error(`${chemin} : clipsEcartes, liste de noms de clip attendue`)
+  const roles = [...Object.entries(clips).map(([role, nom]) => [`clips.${role}`, nom]),
+    ...Object.entries(clipsDeuxMains).flatMap(([maniement, table]) => Object.entries(table).map(([role, nom]) => [`clipsDeuxMains.${maniement}.${role}`, nom]))]
+  for (const nom of clipsEcartes) {
+    const joue = roles.find(([, clip]) => clip === nom)
+    if (joue) throw new Error(`${chemin} : clipsEcartes ${nom}, joué par le rôle ${joue[0]}`)
+    if (Object.hasOwn(prisesOccupees, nom)) throw new Error(`${chemin} : clipsEcartes ${nom}, encore nommé par prisesOccupees`)
+  }
   const { planDeBestiaire, gabarits, taillesDeLaRace } = await lireDonnee()
   const espece = planDeBestiaire.find((e) => e.id === porteur?.espece)
   const race = espece?.race?.id

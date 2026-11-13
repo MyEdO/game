@@ -167,6 +167,7 @@
     "lourde2m": { "repos": "Lourde_Repos_Loop", "marche": "Lourde_Marche_Loop", "melee": "Lourde_Attaque", "coup": "Lourde_Touche", "mort": "Lourde_Mort" },
     "hampe": { "repos": "Hampe_Repos_Loop", "marche": "Hampe_Marche_Loop", "melee": "Hampe_Attaque", "coup": "Hampe_Touche", "mort": "Hampe_Mort" }
   },
+  "clipsEcartes": ["Idle_FoldArms_Loop", "LayToIdle", "Pistol_Aim_Down"],
   "prisesOccupees": {
     "A_TPose": ["main", "secondaire"],
     "Chest_Open": ["secondaire"],
@@ -178,7 +179,6 @@
     "Farm_PlantSeed": ["main", "secondaire"],
     "Farm_Watering": ["main", "secondaire"],
     "Fixing_Kneeling": ["main", "secondaire"],
-    "Idle_FoldArms_Loop": ["main", "secondaire"],
     "Idle_Lantern_Loop": ["main"],
     "Idle_Rail_Call": ["main", "secondaire"],
     "Idle_Rail_Loop": ["main", "secondaire"],
@@ -187,12 +187,10 @@
     "Idle_TalkingPhone_Loop": ["main"],
     "Idle_Torch_Loop": ["secondaire"],
     "Interact": ["secondaire"],
-    "LayToIdle": ["main", "secondaire"],
     "Melee_Hook": ["main", "secondaire"],
     "Melee_Hook_Rec": ["main", "secondaire"],
     "OverhandThrow": ["main"],
     "PickUp_Table": ["secondaire"],
-    "Pistol_Aim_Down": ["secondaire"],
     "Pistol_Aim_Neutral": ["secondaire"],
     "Pistol_Aim_Up": ["secondaire"],
     "Pistol_Idle_Loop": ["secondaire"],
