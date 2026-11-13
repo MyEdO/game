@@ -63,7 +63,7 @@ export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
 export { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 export { intentEluLocalement } from './targetingModes';
 export { refuserGesteDuSiege } from './refusVisible';
-export { DESIGNATIONS } from './designations';
+export { DESIGNATIONS, type Designation } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
 export { capDuGroupe, casesDuGroupe, porteurParId, PARTY_MAX } from './monde/combatants';

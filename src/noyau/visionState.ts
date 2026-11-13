@@ -31,7 +31,7 @@ export interface VisionInput {
  *  le même gate de port et les mêmes rayons. PUR. */
 export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'party' | 'partyPos'>): LightSource[] {
   const mpt = sceneMetresPerTile(s.scene!);
-  const sources = mapLights(s.scene!);
+  const sources = [...mapLights(s.scene!)];
   if (s.battle) {
     for (const c of s.battle.combatants) sources.push(...combatantLights(c, mpt));
     return sources;

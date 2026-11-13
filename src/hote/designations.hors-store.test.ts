@@ -6,7 +6,7 @@
  * la forme du sien (#3368, #3369).
  */
 import { describe, it, expect, afterAll, beforeAll } from 'vitest';
-import { DESIGNATIONS } from '../noyau/index';
+import { DESIGNATIONS, type Designation } from '../noyau/index';
 import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
 import type { Forme } from './formes';
 import { argumentsDuVerbe, gesteDuVerbe, SANS_PISTE } from './geste';
@@ -93,5 +93,33 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
       const heroId = etat.party[0].id;
       expect(argumentsDuVerbe(etat, 'fenetreChoisir', ['repos', 'couchage', 'commune', heroId], VERBES.fenetreChoisir)).toEqual(['repos', 'couchage', 'commune', heroId]);
     });
+  });
+});
+
+describe('une désignation nomme ses ids sur ce qu’elle a lu une fois de l’état (#3975)', () => {
+  it('nommer un id, connu ou non, ne relit aucun champ de l’état', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const etat = partie.etat();
+      const lus: string[] = [];
+      const espionne = new Proxy(etat, {
+        get: (cible, cle, recepteur) => {
+          lus.push(String(cle));
+          return Reflect.get(cible, cle, recepteur);
+        },
+      });
+      const relus: string[] = [];
+      let nommes = 0;
+      for (const [cle, designation] of Object.entries(DESIGNATIONS) as [string, Designation][]) {
+        const nommer = designation.nom(espionne);
+        lus.length = 0;
+        for (const id of [...designation.lire(etat), 'id-absent']) if (nommer(id) !== null) nommes += 1;
+        if (lus.length) relus.push(`${cle} : ${[...new Set(lus)].join(', ')}`);
+      }
+      expect(relus).toEqual([]);
+      expect(nommes, 'aucun id nommé : la fixture ne désigne rien').toBeGreaterThan(0);
+    } finally {
+      partie.fermer();
+    }
   });
 });
