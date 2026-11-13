@@ -1,19 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { vehicles, trappings } from '../data';
-import { VEHICLES_LIST, travelVehicles, travelModeLabels, vehicleTravel, travelModeIcon } from './travel';
+import { travelVehicles, travelModeLabels, vehicleTravel, travelModeIcon } from './travel';
 
 /**
  * Fondation données « véhicule à coque » (`vehicles.json`) — FOYER UNIQUE des transports payants.
  * On garantit l'intégrité du catalogue et l'accès data-driven (aucun `id` de véhicule codé en dur côté moteur).
  */
 describe('catalogue véhicules (data-driven)', () => {
-  it('expose les mêmes données via data/index et engine/travel', () => {
-    expect(VEHICLES_LIST).toBe(vehicles);
-    expect(VEHICLES_LIST.length).toBeGreaterThanOrEqual(2);
-  });
-
   it('ids uniques (pas de doublon de véhicule)', () => {
-    const ids = VEHICLES_LIST.map((v) => v.id);
+    const ids = vehicles.map((v) => v.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
@@ -50,7 +45,7 @@ describe('catalogue véhicules (data-driven)', () => {
 describe('dédup trappings ⊥ vehicles (foyer unique)', () => {
   it('aucun id de véhicule ne subsiste en double dans trappings.json', () => {
     const trapIds = new Set(trappings.map((t) => t.id));
-    const collisions = VEHICLES_LIST.filter((v) => trapIds.has(v.id)).map((v) => v.id);
+    const collisions = vehicles.filter((v) => trapIds.has(v.id)).map((v) => v.id);
     expect(collisions).toEqual([]);
   });
 

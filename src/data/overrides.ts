@@ -31,7 +31,7 @@ import {
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
 // vient déjà d'`engine/massBattle.ts`). Le module JSON est un singleton ESM : cette référence EST la
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
-import type { TraumaFiche } from '../engine/trauma';
+import { TRAUMA_FICHES } from '../engine/trauma';
 import { versDisque } from './schemas/grammaire/prose';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
@@ -56,7 +56,6 @@ import { bumperDataset, memoParVersion } from './versionDataset';
 import type { EntreeVivante } from './datasets';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
-import traumasRawJson from './traumas.json';
 // #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
 // Conduite d'attelage (09) et Ivresse (09), Surchargé par palier (61).
 import advancementCostsRawJson from './advancementCosts.json';
@@ -74,11 +73,9 @@ import type * as imparfaites from './schemas/defs/miscast';
 import sizesRawJson from './sizes.json';
 // #851 : Magie environnementale (VDM 14, `arcane-phenomena.json`) — fiche de règle UNIQUE portant 4
 // tableaux frères NICHÉS (`saturationLevels`/`windSaturationEffects`/`phenomena`/`tables`, même patron
-// que `sizes`/`waterExposure`). Importé RAW (comme `sizesRawJson`) : `data/arcanePhenomena.ts` (lu par
-// `engine/magicEnvironment.ts`) importe le MÊME module JSON singleton, sans index précalculé — une
-// édition Compendium reste visible en direct, sans rechargement de page.
-import arcanePhenomenaRawJson from './arcane-phenomena.json';
-import type { ArcaneData } from './arcanePhenomena';
+// que `sizes`/`waterExposure`) : le document que lit `data/arcanePhenomena.ts` (lu par
+// `engine/magicEnvironment.ts`), sans index précalculé — une édition Compendium reste visible en direct.
+import { arcanePhenomenaData } from './arcanePhenomena';
 // V9 #1318 : registre des règles optionnelles (`engine/policy.ts`, tableau RACINE) et Tableau de
 // Surincantation (VDM 02, tableau NICHÉ dans `{source,ref,table}`) — importés comme les autres
 // datasets migrés du CODE en donnée, MÊME module JSON singleton que leur lecteur moteur.
@@ -94,8 +91,6 @@ import { estObjet } from '../lib/objet.mjs';
  *  du dialecte (sin-paramétrage), projetés par un renderer DÉDIÉ côté Codex (jamais `passiveSection`,
  *  qui suppose de vrais `GameOp`). */
 export type MiscastRowEntry = RangeeDe<typeof imparfaites>;
-
-const traumas = traumasRawJson as TraumaFiche[];
 
 /** Entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET AA « approche
  *  alternative ») — MÊME schéma pour les DEUX jeux depuis leur fusion (#1657). ALIAS de `CritEntry`
@@ -161,7 +156,7 @@ const ARRAYS = {
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, navalTraits: NAVAL_TRAITS,
   montures: MOUNT_PROFILES, incidentsMonture: MOUNT_INCIDENTS, problemesVehicule: VEHICLE_PROBLEMS,
   tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS, merchants: MERCHANT_ARCHETYPES,
-  structureCriticals: STRUCTURE_CRITICALS, traumas,
+  structureCriticals: STRUCTURE_CRITICALS, traumas: TRAUMA_FICHES,
   // Catalogue des cargaisons (#1684) : le dataset éditable est le tableau BRUT du JSON (marchandises ET
   // marqueurs de l'Index, des deux voies), pas la vue filtrée `marchandisesDe` — sinon une réécriture
   // du dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
@@ -232,9 +227,6 @@ const ARRAYS = {
 export type DatasetKey = keyof typeof ARRAYS;
 export const DATASET_KEYS = Object.keys(ARRAYS) as DatasetKey[];
 
-/** `arcane-phenomena.json` (#851) : 4 tableaux frères NICHÉS. */
-const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcaneData;
-
 /** Datasets-OBJETS uniques : pas un tableau d'entités mais UN objet de config (`details`) ou une fiche
  *  de règle UNIQUE (`waterExposure`, MSRC 16). Mutés EN PLACE (mêmes garanties que les tableaux) →
  *  preview live + écriture disque par l'éditeur du Codex. Le fichier disque est celui du def qui
@@ -259,7 +251,7 @@ const OBJECTS = {
   // fiche de règle UNIQUE, même patron ; les 3 tables sont NICHÉES (cf. la fusion en place ci-dessous).
   sizes: sizesRawJson,
   // #851 : Magie environnementale (VDM 14) — fiche de règle UNIQUE, même patron, 4 tableaux NICHÉS.
-  arcanePhenomena: arcanePhenomenaFile,
+  arcanePhenomena: arcanePhenomenaData,
 } as const;
 export type ObjectDatasetKey = keyof typeof OBJECTS;
 export const OBJECT_DATASET_KEYS = Object.keys(OBJECTS) as ObjectDatasetKey[];

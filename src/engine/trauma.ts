@@ -117,8 +117,9 @@ export interface TraumaFiche {
   maison?: string;
 }
 
-const FICHES = traumasJson as TraumaFiche[];
-const ficheById = indexParId('traumas', FICHES);
+/** Les fiches de `traumas.json`, lues ici seul : le seam (`data/overrides.ts`) les importe. */
+export const TRAUMA_FICHES = traumasJson as TraumaFiche[];
+const ficheById = indexParId('traumas', TRAUMA_FICHES);
 
 /** Fiche de Traumatisme par id STABLE (`traumas.json`). Lève si l'id est inconnu (réf cassée = bug data). */
 export function traumaFicheById(id: string): TraumaFiche {
@@ -422,7 +423,7 @@ export function amputationCombatPenalty(c: Combatant, weapon: Weapon): number {
 }
 
 /** Fiches à règle de cumul déclarée (`TraumaCumul`) — l'ordre du registre fixe l'ordre de consolidation. */
-const cumulFiches = memoParVersion('traumas', () => FICHES.filter((f) => f.cumul));
+const cumulFiches = memoParVersion('traumas', () => TRAUMA_FICHES.filter((f) => f.cumul));
 const IS_CUMUL = (t: Trauma): boolean => cumulFiches().some((f) => f.id === t.traumaId);
 
 /** Séquelle cumulative agrégée : `total` unités à `loc`, ops recalculées ; le libellé porte la
