@@ -37,6 +37,56 @@ const surfaceSchema = z.enum([
   'bandeau-de-phase', 'interlude', 'pastille-etat', 'pastille-entite', 'frise', 'geste-secondaire',
 ]);
 
+/** Les PRÉDICATS d'offre qu'une action nomme (`gate`), implémentés par `ACTION_GATES` (`src/noyau/actionRegistry.ts`). */
+export const GATES_D_ACTION = [
+  'toujours', 'hors-verrou-d-etat', 'peut-agir', 'action-libre', 'action-libre-hors-frenesie', 'action-libre-hors-frenesie-fantassin',
+  'mouvement-intact', 'mouvement-restant-fantassin', 'deplacement-annulable', 'charge-possible', 'mouvement-restant', 'desengagement',
+  'course-possible', 'determination-en-reserve', 'attaque-libre-frenesie', 'pietinement-gratuit', 'set-commutable', 'etat-porte',
+  'remede-atteignable', 'etat-recuperable-par-test', 'avantage-sous-plafond', 'tir-immobile-armable', 'tir-dans-le-tas-armable',
+  'battement-cible-eligible', 'distraire-cible-eligible', 'sort-focalisable', 'coop', 'equipage-suffisant', 'navire-action',
+  'arme-a-recharger', 'chanteur-disponible', 'pieces-au-navire', 'fantassin', 'pas-deja-en-joue', 'set-de-melee', 'tireur',
+  'arme-de-repousse', 'engage', 'battement-connu', 'distraire-connu', 'frenesie-possible', 'equipe-a-aider', 'monte', 'poste-servi',
+  'a-la-barre', 'navire', 'vehicule', 'pause-de-round',
+] as const;
+export type GateDAction = (typeof GATES_D_ACTION)[number];
+
+/** Les SÉLECTEURS de candidats qu'une action nomme (`candidates`), implémentés par `ACTION_CANDIDATES`. */
+export const SELECTEURS_D_ACTION = [
+  'montures-adjacentes', 'pieces-servables', 'piece-poussable', 'cibles-soin', 'cibles-aspersion', 'sorts-dissipables',
+  'sorts-a-dissiper', 'competences-avantage', 'attaques-de-trait', 'attaques-de-zone', 'sorts-du-heros', 'etats-retirables',
+  'consommables', 'objets-portes', 'armes-a-distance', 'armes-a-recharge', 'munitions-compatibles', 'manoeuvres-sur-soi',
+  'sets-d-armes', 'objets-au-sol',
+] as const;
+export type SelecteurDAction = (typeof SELECTEURS_D_ACTION)[number];
+
+/** Les ENTRÉES d'offre qu'une action nomme (`run`), implémentées par `ENTREES_PAR_RUN` : chaque verbe de la barre
+ *  (`VerbesDeLaBarre`, `src/noyau/actionsDuNoyau.ts`), puis les entrées hors de la barre. */
+export const RUNS_D_ACTION = [
+  'armerLIntention', 'armerLeMode', 'armerLAttaque', 'lancerLAttaqueDeZone', 'prendreLaVisee', 'rechargerLArme',
+  'approvisionnerLArme', 'basculerLaRepousse', 'basculerLaPosture', 'aspergerDEau', 'prendreLaDefensive', 'rompreLEngagement',
+  'gagnerLAvantage', 'seRemettreDeLEtat', 'seRelever', 'faireUnBattement', 'tenterDeDistraire', 'entrerEnFrenesie',
+  'manoeuvrerSurSoi', 'monterEnSelle', 'mettrePiedATerre', 'servirLePoste', 'quitterLePoste', 'pousserLEngin', 'aiderLEquipe',
+  'manoeuvrerLeNavire', 'chanterLaChanson', 'annulerLeDeplacement', 'terminerLeTour',
+  'utiliserLObjet', 'poserLObjet', 'ramasserLObjet', 'incanterLeSort', 'focaliserLeSort', 'dissiperLeSort', 'prendreLaPanoplie',
+  'immuniserALaPsychologie', 'ignorerLesCritiques', 'retirerUnEtat', 'lancerLeRound', 'leverLaMain', 'fermerLeBalayage',
+  'renoncerALaSecondeFrappe', 'renoncerALaCarte', 'renoncerALaZone', 'desarmerLaBatterie', 'resterSurPlace',
+] as const;
+export type RunDAction = (typeof RUNS_D_ACTION)[number];
+
+/** Les PORTÉES d'intention qu'une action nomme (`intent`), implémentées par `INTENT_REACH` (`src/noyau/localIntent.ts`). */
+export const PORTEES_D_INTENTION = ['portee-mouvement', 'portee-course', 'portee-charge', 'portee-arme'] as const;
+export type PorteeDIntention = (typeof PORTEES_D_INTENTION)[number];
+
+/** Les modes ARMABLES de `battle.action` (`BattleState.action`) : le `mode` d'une action `armed`, et `teleportation`,
+ *  armé par la résolution d'un sort de Téléportation (`combatFlow`), jamais par une case. */
+export const MODES_ARMABLES = ['incantation', 'soins', 'dissipation', 'bordee', 'poussee', 'teleportation'] as const;
+export type BattleActionMode = (typeof MODES_ARMABLES)[number];
+
+/** Les MODES de ciblage qu'une action nomme (`mode`), implémentés par `TARGETING_MODES` (`src/noyau/targetingModes.ts`) :
+ *  les modes armables, l'attaque par défaut, et les fenêtres qui détiennent le ciblage (`detenteurDuCiblage`). */
+export const MODES_DE_CIBLAGE = [...MODES_ARMABLES, 'attaque', 'surincantation', 'frappeMortelle', 'deuxArmes', 'poseDeLaZone'] as const;
+export type IdDeModeDeCiblage = (typeof MODES_DE_CIBLAGE)[number];
+
 /** Ce que l'acte consomme dans l'économie du Tour. */
 const coutActionSchema = z.enum(['action', 'mouvement', 'gratuit', 'aucun']);
 
@@ -45,16 +95,16 @@ const coutActionSchema = z.enum(['action', 'mouvement', 'gratuit', 'aucun']);
 type EntreeAction = {
   id: string;
   surface: z.infer<typeof surfaceSchema>;
-  gate: string | string[];
-  candidates?: string;
-  run?: string;
-  intent?: string;
+  gate: GateDAction | GateDAction[];
+  candidates?: SelecteurDAction;
+  run?: RunDAction;
+  intent?: PorteeDIntention;
   stance?: 'tirImmobile' | 'dansLeTas';
   blocked?: { ticket: string; raison: string };
   exitSafe?: boolean;
   role?: 'valide' | 'renonce';
   hote?: { id: string };
-  mode?: string;
+  mode?: IdDeModeDeCiblage;
   armed?: true;
 };
 
@@ -66,18 +116,18 @@ const doc = document(
     /** Id de PRÉDICAT enregistré dans `ACTION_GATES` (`src/noyau/actionRegistry.ts`), ou LISTE d'ids :
      *  ils se composent alors par l'ET séquentiel d'`actionGate` (toutes passent, sinon la première
      *  raison refusée est rendue). Une condition de plus sur une action = un id de plus ici. */
-    gate: z.union([z.string(), z.array(z.string()).min(2)]),
+    gate: z.union([z.enum(GATES_D_ACTION), z.array(z.enum(GATES_D_ACTION)).min(2)]),
     /** Id de SÉLECTEUR impur enregistré dans `ACTION_CANDIDATES` (liste des cibles/objets offerts). */
-    candidates: z.string().optional(),
+    candidates: z.enum(SELECTEURS_D_ACTION).optional(),
     /** Id de l'ENTRÉE d'`ENTREES_PAR_RUN` (`src/noyau/actionRegistry.ts`) : le verbe qui joue l'offre et ses arguments,
      *  résolu au chargement du registre. Absent = `blocked`. */
-    run: z.string().optional(),
-    /** Id de `TargetingMode` EXISTANT (`src/noyau/targetingModes.ts`) armé par cette action. */
-    mode: z.string().optional(),
+    run: z.enum(RUNS_D_ACTION).optional(),
+    /** Id de `TargetingMode` (`src/noyau/targetingModes.ts`) armé par cette action. */
+    mode: z.enum(MODES_DE_CIBLAGE).optional(),
     /** Id de PORTÉE d'INTENTION (`INTENT_REACH`, `src/noyau/localIntent.ts`) : la case ARME le mode
      *  local qui peint cette portée sur le champ. Le clic qui suit reste le geste par défaut du grid,
      *  et dissout l'intention (spec zone 4). */
-    intent: z.string().optional(),
+    intent: z.enum(PORTEES_D_INTENTION).optional(),
     /** L'action ARME son `mode` : il s'écrit dans `battle.action` (mode à bouton). */
     armed: z.literal(true).optional(),
     /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
@@ -167,6 +217,9 @@ const doc = document(
     }
     if (a.armed && !a.mode) {
       ctx.addIssue({ code: 'custom', message: `${a.id} : action armée sans mode de ciblage (mode) — rien ne s’écrirait dans battle.action` });
+    }
+    if (a.armed && a.mode && !(MODES_ARMABLES as readonly string[]).includes(a.mode)) {
+      ctx.addIssue({ code: 'custom', message: `${a.id} : action armée sur le mode « ${a.mode} », qui n’est pas un mode armable de battle.action (${MODES_ARMABLES.join(', ')})` });
     }
     if (a.exitSafe !== undefined && a.surface !== 'interlude') {
       ctx.addIssue({ code: 'custom', message: `${a.id} : exitSafe hors d’une action d’interlude (aucune touche d’annulation ne la vise)` });

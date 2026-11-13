@@ -122,6 +122,7 @@ export const TYPES = {
   // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
   cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
+  colonneDuMarchand: { espace: 'vocabulaire:colonnesDuMarchand', catalogue: 'colonnes de stats du marchand' },
   action: { espace: 'actions.json', catalogue: 'actions' },
   location: { espace: 'locations.json', catalogue: 'lieux' },
   serviceDeLieu: { espace: 'lieux-services.json', catalogue: 'services de lieu' },

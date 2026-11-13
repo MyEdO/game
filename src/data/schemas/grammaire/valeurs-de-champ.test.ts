@@ -18,10 +18,18 @@ import { descendre } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
+import { traitCapabilitiesSchema } from '../defs/traits';
+import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
  *  vocabulaire qu'il ÉNUMÈRE des entités plutôt qu'un univers de mots. */
 const IDS_CONNUS: ReadonlySet<string> = new Set(Object.values(IDS_PAR_ESPACE).flat());
+
+/** Les vocabulaires d'ids des REGISTRES DE CODE que `actions.json` nomme (`defs/actions.ts`, #4056), par leurs options :
+ *  chaque id désigne l'entrée d'un registre du noyau, qui porte son sens. */
+const VOCABULAIRES_DE_REGISTRES: ReadonlySet<string> = new Set(
+  [GATES_D_ACTION, SELECTEURS_D_ACTION, RUNS_D_ACTION, PORTEES_D_INTENTION, MODES_DE_CIBLAGE].map((ids) => ids.join('|')),
+);
 
 /**
  * Un vocabulaire d'IDS ne se nomme JAMAIS : ses options sont les ids d'un dataset, dont le nom FR est
@@ -236,6 +244,8 @@ const NOMMES = [
   'carenage|evenementDeBord',
   // `cibleDeFeuilleSchema` (#3606 M2e) : la cible d'une feuille `ops` nommée par une chaîne.
   'groupe|heros|navire|membreAuHasard|target|caster',
+  // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
+  Object.keys(traitCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|immeuble|titre|intangible',
 ].sort();
@@ -356,7 +366,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
 describe('libellés de VALEURS — stock nominatif décroissant des VOCABULAIRES', () => {
   it('le stock des vocabulaires SANS libellés est celui déclaré, et il DÉCROÎT', () => {
     const stock = [...vocabulairesDuRegistre()]
-      .filter(([cle, c]) => c.nommes === 0 && !estVocabulaireDIds(cle.split('|')))
+      .filter(([cle, c]) => c.nommes === 0 && !estVocabulaireDIds(cle.split('|')) && !VOCABULAIRES_DE_REGISTRES.has(cle))
       .map(([cle]) => cle)
       .sort();
     expect(stock).toEqual(VOCABULAIRES_SANS_LIBELLES.slice().sort());

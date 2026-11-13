@@ -60,3 +60,15 @@ export interface Enfant extends Parent { recover?: string }
   const { entites } = mesurerCanaux([f])
   assert.deepEqual(entites.map((e) => e.entite), ['Parent'])
 })
+
+test('un type de drapeaux INFÉRÉ d’un schéma (`z.infer<typeof S>`) prend les champs de son objet zod, dans un autre fichier', () => {
+  const schema = forger('schema.ts', `
+export const fauxCapabilitiesSchema = nommerChamps(z.strictObject({ fumbleOn9: z.boolean().optional(), crewedTeam: z.boolean().optional() }), {});
+`)
+  const entite = forger('entite.ts', `
+export type FauxCapabilities = z.infer<typeof fauxCapabilitiesSchema>;
+export interface FauxData { capabilities?: FauxCapabilities }
+`)
+  const { typesDrapeaux } = mesurerCanaux([entite, schema])
+  assert.deepEqual(typesDrapeaux.map((t) => [t.nom, t.fichier, t.champs]), [['FauxCapabilities', entite, ['fumbleOn9', 'crewedTeam']]])
+})

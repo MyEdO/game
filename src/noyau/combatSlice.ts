@@ -6,7 +6,8 @@
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode, type EtatDeLaBarre } from './actionRegistry';
+import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type EtatDeLaBarre } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
