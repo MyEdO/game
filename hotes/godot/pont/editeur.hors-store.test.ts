@@ -657,6 +657,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const doktor = presser(boutonDe(medecin, 'carriere/medecin/niveau/3'));
     expect(boutonDe(doktor, 'carriere/medecin/niveau/3').presse).toBe(true);
     expect(ligneDe(doktor, 'profil/statut')).toMatch(/Argent 5/);
+    expect(ligneDe(doktor, 'profil/mentions/personne'), 'ses mentions, une ligne par nature').toBe('Personnes : Apprenti');
     const chirurgien = presser(boutonDe(doktor, 'carriere/medecin/talents/2/chirurgie'));
     expect(boutonDe(chirurgien, 'carriere/medecin/talents/2/chirurgie').presse).toBe(true);
     expect(ligneDe(chirurgien, 'profil/talents')).toMatch(/Chirurgie/);

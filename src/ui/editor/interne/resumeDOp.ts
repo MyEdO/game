@@ -75,7 +75,7 @@ export function opSummary(o: GameOp): string {
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
     case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.characteristic]}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'skillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${refLabel('skills', o.skill)}`;
-    case 'skillDRBonus': return `+${formulaSummary(o.bonus)} DR ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.testType ? (findCrewTestTypeById(o.testType)?.label ?? o.testType) : '— compétence ou test à choisir —'}`;
+    case 'skillDRBonus': return `+${formulaSummary(o.bonus)} DR ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.testType ? (findCrewTestTypeById(o.testType.id)?.label ?? o.testType.id) : '— compétence ou test à choisir —'}`;
     case 'charDRBonus': return `+${formulaSummary(o.bonus)} DR ${CHAR_LABELS[o.characteristic]}`;
     case 'crewTestMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} (Tests d’équipage)`;
     case 'fall': return `hauteur lue dans « ${findFallTable(o.hauteur.table.id)?.label ?? (o.hauteur.table.id || '— table à choisir —')} »`;

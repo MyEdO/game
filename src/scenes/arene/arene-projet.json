@@ -8646,7 +8646,7 @@
          "kind": "effet",
          "effet": {
           "type": "inflictDisease",
-          "disease": "Fièvre du Rongeur"
+          "disease": "fievre-du-rongeur"
          }
         },
         {
@@ -9577,7 +9577,7 @@
             "kind": "effet",
             "effet": {
              "type": "inflictDisease",
-             "disease": "Blessure Purulente"
+             "disease": "blessure-purulente"
             }
            },
            {
@@ -12892,7 +12892,7 @@
             "kind": "effet",
             "effet": {
              "type": "inflictDisease",
-             "disease": "Infection Mineure"
+             "disease": "infection-mineure"
             }
            },
            {
@@ -24050,7 +24050,7 @@
             "kind": "effet",
             "effet": {
              "type": "inflictDisease",
-             "disease": "Infection Mineure"
+             "disease": "infection-mineure"
             }
            },
            {
@@ -25422,7 +25422,7 @@
          "kind": "effet",
          "effet": {
           "type": "inflictDisease",
-          "disease": "Courante Galopante"
+          "disease": "courante-galopante"
          }
         },
         {
