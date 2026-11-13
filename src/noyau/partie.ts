@@ -13,7 +13,8 @@ import type { EtatDeJeu } from './etat';
 import type { Get } from './flowTypes';
 import type { Jeton } from './plateforme';
 import { ouvrirLeProprietaire } from './proprietaireDuJeu';
-import { appliquerLIntentionDUnSiege, type IssueDIntention } from './intentionsDeSiege';
+import { appliquerLIntentionDUnSiege, refusDuVerbeDHote, type IssueDIntention } from './intentionsDeSiege';
+import { refuserGeste } from './refusVisible';
 import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenario';
 import { bus, EVT, type ChargesDuBus } from './bus';
 import { verbeDeJetDe, type RollVerb } from './flowVerbs';
@@ -64,7 +65,9 @@ export interface ResultatDeLAppel {
 export interface Partie {
   etat: Get;
   /** Joue l'intention : au nom de son `siege` s'il est posé (`appliquerLIntentionDUnSiege`), sinon par l'action de
-   *  l'état (`get()[type]`), celle qu'un invité a enrobée pour la demander à l'hôte (`transmettreLesIntentions`). */
+   *  l'état (`get()[type]`), celle qu'un invité a enrobée pour la demander à l'hôte (`transmettreLesIntentions`).
+   *  Chez un invité, un verbe de classe `hôte` ne se joue pas : il se refuse (`refusDuVerbeDHote`, `refuserGeste`),
+   *  l'issue reste `'appliquee'`. */
   envoyer: (intention: Intention) => ResultatDeLAppel;
   /** Lance un scénario construit par l'hôte (`lancerLeScenario`), comme tout appel : ce que le lancement émet
    *  et écrit revient dans SON résultat. */
@@ -143,6 +146,11 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     envoyer: (intention) => appeler('envoyer', () => {
       if (LANCERS_DU_JOUEUR.has(verbeDeJetDe(intention.type))) bus.emit(EVT.DICE_ROLL);
       if (intention.siege !== undefined) return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args);
+      const refus = refusDuVerbeDHote(get(), intention.type);
+      if (refus) {
+        refuserGeste(get, set, refus);
+        return 'appliquee';
+      }
       (get()[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
       return 'appliquee';
     }),

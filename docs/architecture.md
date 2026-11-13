@@ -860,9 +860,10 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/noyau/intentionsDeSiege.ts  Allowlist coop : la classe de chaque action du noyau (invité, hôte,
-                            local, interne), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, et
-                            `appliquerLIntentionDUnSiege`, seul point d'entrée d'une intention chez l'hôte.
-src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte, interne).
+                            local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusDuVerbeDHote`
+                            que `Partie.envoyer` lit chez l'invité, et `appliquerLIntentionDUnSiege`, seul point
+                            d'entrée d'une intention chez l'hôte.
+src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte).
 src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
                             paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
                             plutôt que poser les tuiles une à une. `parseAsciiRows(rows,

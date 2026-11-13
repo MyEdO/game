@@ -8,6 +8,10 @@ import { creerPartie, etatInitialDuJeu, previewAttack, type EntreesDeLaPartie, t
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { BRUNA, etatAttable, rangsAssis } from './taverneAttablee.testkit';
 import { testScene } from '../scenes/test-fixture';
+import { CLASSE_DES_ACTIONS_DU_NOYAU } from './intentionsDeSiege';
+import { portesDuMobile } from './marcheDuGroupe';
+import { emptyScene } from './monde/scene';
+import { t } from '../i18n';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -124,6 +128,70 @@ describe('creerPartie — l’intention sans siège joue l’action de l’état
       expect(combattant(partie, H.id).pos, 'le clic ne s’est pas joué chez l’invité').toEqual(H.pos);
     } finally {
       partie.fermer();
+    }
+  });
+
+  /** Les verbes de classe `hôte`, lus à la table. */
+  const VERBES_D_HOTE = Object.entries(CLASSE_DES_ACTIONS_DU_NOYAU).flatMap(([verbe, classe]) => (classe === 'hôte' ? [verbe as keyof typeof CLASSE_DES_ACTIONS_DU_NOYAU] : []));
+  /** L'intention d'un verbe envoyée sans argument : la garde passe avant toute lecture des arguments. */
+  const sansArgument = (verbe: string): Intention => ({ type: verbe, args: [] }) as unknown as Intention;
+  /** L'état sans fonction ni journal : ce qu'un geste refusé ne doit pas changer. */
+  const horsJournal = (partie: Partie): string => JSON.stringify({ ...partie.etat(), journal: undefined });
+
+  it('chez un invité, hors combat, chaque verbe `hôte` se refuse au journal sans rien jouer ni envoyer', () => {
+    expect(VERBES_D_HOTE.length, 'la table ne compte aucun verbe `hôte`').toBeGreaterThan(0);
+    const partie = creerPartie(chezLInvite(etatAttable()), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      for (const verbe of VERBES_D_HOTE) {
+        const avant = horsJournal(partie);
+        const appel = partie.envoyer(sansArgument(verbe));
+        expect(appel.issue, verbe).toBe('appliquee');
+        expect(appel.journal, `${verbe} : le refus n’est pas la seule ligne de l’appel`).toEqual([expect.objectContaining({ de: 'journal', texte: t('coop.hoteSeul') })]);
+        expect(horsJournal(partie), `${verbe} s’est joué dans la copie de l’invité`).toBe(avant);
+      }
+      expect(envoi, 'un verbe `hôte` est parti à l’hôte').not.toHaveBeenCalled();
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('chez un invité, en combat, chaque verbe `hôte` pose son refus à la bannière', () => {
+    const { partie: ouverte } = duel();
+    const garde = ouverte.etat();
+    ouverte.fermer();
+    const partie = creerPartie(chezLInvite(garde), ENTREES);
+    try {
+      for (const verbe of VERBES_D_HOTE) {
+        const refusPrecedent = partie.etat().refus;
+        partie.envoyer(sansArgument(verbe));
+        expect(partie.etat().refus, `${verbe} n’a pas posé de refus neuf`).not.toBe(refusPrecedent);
+        expect(partie.etat().refus?.texte, verbe).toBe(t('coop.hoteSeul'));
+      }
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('en partie locale et chez l’hôte d’une session, un verbe `hôte` se joue : la porte fermée s’ouvre', () => {
+    const scene = emptyScene('scene-test', 4, 4);
+    scene.effectZones = [{ id: 'piece', label: 'Pièce', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 1, h: 1 } }];
+    scene.walls = [{ x: 1, y: 1, side: 'N', door: true, closed: true }];
+    const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+    ouverture.lancer({ party: [heroDuDuel()], scene, projet: null });
+    const garde = { ...ouverture.etat(), partyPos: { x: 1, y: 1 } };
+    ouverture.fermer();
+    for (const mode of ['local', 'hote'] as const) {
+      const partie = creerPartie({ ...garde, net: { ...garde.net, mode, roomCode: mode === 'hote' ? 'ABCDEF' : garde.net.roomCode } }, ENTREES);
+      try {
+        const porte = portesDuMobile(partie.etat()).find((p) => p.kind === 'door-closed');
+        expect(porte, `${mode} : fixture sans porte fermée`).toBeTruthy();
+        partie.envoyer({ type: 'actionnerLaPorte', args: [porte!.id] });
+        expect(portesDuMobile(partie.etat()).find((p) => p.id === porte!.id)?.kind, `${mode} : la porte ne s’est pas ouverte`).toBe('door-open');
+      } finally {
+        partie.fermer();
+      }
     }
   });
 

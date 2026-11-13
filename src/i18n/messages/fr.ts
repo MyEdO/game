@@ -3690,6 +3690,7 @@ export const fr = {
 
   // ── #1318 V8c₄ — COOP EN LIGNE (`state/netFlow.ts`, `coop.*` — le namespace du salon, déjà posé).
   'coop.intentRefused': 'Action refusée : elle ne revient pas au joueur qui l’a demandée.',
+  'coop.hoteSeul': 'L’hôte seul fait ce geste.',
   'coop.hote.lienPerdu': 'Connexion au service coop perdue — session terminée.',
   'coop.alreadyInSession': 'Déjà en session.',
   'coop.badCode': 'Code invalide — 6 caractères.',
