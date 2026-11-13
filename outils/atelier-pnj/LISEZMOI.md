@@ -4,7 +4,7 @@ Générateur de PNJ pour WFRP 4e, publié en artefact claude.ai : https://claude
 
 ## Construire
 
-`node outils/atelier-pnj/build.cjs` écrit `outils/atelier-pnj/atelier-des-pnj.html` (non suivi) : les données du dépôt et celles de `entrees/` injectées dans `template.html`. Les mots abîmés (U+FFFD) de `talents.json` (2) et de `careers.json` (6) sont réparés au build jusqu'à #3628 ; tout autre U+FFFD fait échouer le build.
+`node outils/atelier-pnj/build.mjs` écrit `outils/atelier-pnj/atelier-des-pnj.html` (non suivi) : les données du dépôt et celles de `entrees/` injectées dans `template.html`. Les mots abîmés (U+FFFD) de `talents.json` (2) et de `careers.json` (6) sont réparés au build jusqu'à #3628 ; tout autre U+FFFD fait échouer le build.
 
 Pour publier : un Claude ayant l'accès en écriture à l'artefact (menu Partager de la page) publie ce fichier sur l'URL ci-dessus, avec la capacité `downloads` (export de Mes PNJ).
 
@@ -16,7 +16,7 @@ Pour publier : un Claude ayant l'accès en écriture à l'artefact (menu Partage
 
 Les modèles de carrière, les profils de héros (Chef d'unité, Héros mineur, Héros majeur) et les rôles de bête (Prédateur, Proie) viennent du *Bestiaire non officiel* (Le Ratier Bretonnien, v2.03, p.4-5). Ils sont marqués comme tels dans la page.
 
-Les profils du *Guide fan v4.5* et les créatures du *Bestiaire non officiel* absentes du jeu et du guide sont ajoutés par `build.cjs` depuis `entrees/`, avec leurs traits et sorts manquants, tous tagués « (maison) » par le nom de leur livre. Décision de Clément, 2026-11-06 : « Pour les éléments manquants, tu peux les reprendre du fanmade et le tagger ainsi ? ». Elle remplace l'exclusion antérieure des nouveaux traits (« Ce qui me dérange c'est les nouveaux traits/talents », même jour).
+Les profils du *Guide fan v4.5* et les créatures du *Bestiaire non officiel* absentes du jeu et du guide sont ajoutés par `build.mjs` depuis `entrees/`, avec leurs traits et sorts manquants, tous tagués « (maison) » par le nom de leur livre. Décision de Clément, 2026-11-06 : « Pour les éléments manquants, tu peux les reprendre du fanmade et le tagger ainsi ? ». Elle remplace l'exclusion antérieure des nouveaux traits (« Ce qui me dérange c'est les nouveaux traits/talents », même jour).
 
 ## Carrières suivantes (2026-11-06)
 
