@@ -60,6 +60,36 @@ describe('enregistrerEntree — transaction d’une entrée éditée', () => {
   });
 });
 
+describe('enregistrerEntree — une référence morte d’un champ typé est refusée au parse, son catalogue nommé', () => {
+  afterEach(() => resetData());
+  /** L'issue d'une entrée `modifiee` de `categorie` à la position 0 ; le dataset reste celui d'avant. */
+  const refus = (categorie: string, modifiee: (e: Entree) => Entree): string => {
+    const ds = CATEGORY_DATASET_DERIVE[categorie] as DatasetKey;
+    const premiere = (datasetArray(ds) as unknown as Entree[])[0];
+    const issue = enregistrerEntree(categorie, modifiee(premiere), 0);
+    expect(issue.ok, categorie).toBe(false);
+    expect((datasetArray(ds) as unknown as Entree[])[0], categorie).toBe(premiere);
+    return issue.ok ? '' : issue.erreurs.join('\n');
+  };
+
+  it('un Trait inconnu d’une créature', () => {
+    expect(refus('creatures', (e) => ({ ...e, traits: [{ id: 'trait-fantome' }] }))).toMatch(/« trait-fantome » est absent du catalogue des traits/);
+  });
+
+  it('un LIBELLÉ écrit à la place de l’id d’une séquelle de Critique (#173)', () => {
+    expect(refus('criticalsTete', (e) => ({ ...e, traumas: ['Fracture'] }))).toMatch(/« Fracture » est absent du catalogue des séquelles/);
+  });
+
+  it('une dotation de POSSESSION `{ id, type }` d’un véhicule inconnu', () => {
+    const marchand = (datasetArray('careerLevels') as unknown as Entree[]).findIndex((e) => e.id === 'marchand-1');
+    const entree = (datasetArray('careerLevels') as unknown as Entree[])[marchand];
+    const trappings = (entree.trappings as Entree[]).map((t) => (t.type === 'vehicle' ? { ...t, id: 'vehicule-fantome' } : t));
+    const issue = enregistrerEntree('careerLevels', { ...entree, trappings }, marchand);
+    expect(issue.ok).toBe(false);
+    expect(issue.ok ? '' : issue.erreurs.join('\n')).toMatch(/« vehicule-fantome » est absent du catalogue des véhicules/);
+  });
+});
+
 describe('enregistrerEntree — écritures d’en-tête de la table (#1667)', () => {
   afterEach(() => resetData());
   const rangees = () => datasetArray('drunkenness') as unknown as Entree[];

@@ -6,6 +6,7 @@ import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/
 import { catalogEntryOf } from './merchantFlow';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
+import type { IdDeColonneDuMarchand } from '../data/schemas/grammaire/vocabulaires';
 
 /** Colonnes de stats par famille (tableau comparatif). `get` prend directement l'`id` de la ligne —
  *  chaque famille fait SON lookup (trapping ou catalogue généralisé), aucune résolution par défaut
@@ -26,16 +27,15 @@ function unitCapacity(id: string): string {
   const v = findVehicleById(unit.id);
   return v?.chargement != null ? `Chargement ${v.chargement}` : DASH;
 }
-/** Registre FIXE des colonnes de stats disponibles pour une famille (`merchantFamilies.json:columns`
- *  y référence par id), lu par le panneau du marchand et par la garde de cohérence
- *  (`noyau/merchantFamilies.test.ts`). */
-export const MERCHANT_COL_RENDERERS: Record<string, { label: string; get: (id: string) => string }> = {
-  damage: { label: 'Dégâts', get: trapCol(dmg) },
-  reach: { label: 'Allonge', get: trapCol((t) => t.reach || DASH) },
+/** Le rendu de chaque colonne de stats du vocabulaire `colonnesDuMarchand` (`merchantFamilies.json › columns`),
+ *  lu par le panneau du marchand. */
+export const MERCHANT_COL_RENDERERS: Record<IdDeColonneDuMarchand, { get: (id: string) => string }> = {
+  damage: { get: trapCol(dmg) },
+  reach: { get: trapCol((t) => t.reach || DASH) },
   // « N m » fixe / « BF×k m » jet ; sinon modificateur de munition (« ×½ »)
-  range: { label: 'Portée', get: trapCol((t) => rangeSpecLabel(t.range) ?? (ammoRangeModLabel(t.ammoRangeMod) || DASH)) },
-  protection: { label: 'Protection', get: trapCol((t) => { const q = (t.qualities ?? []).find((x) => x.id === 'protectrice'); return q ? `Protectrice ${q.value ?? ''}`.trim() : DASH; }) },
-  pa: { label: 'PA', get: trapCol((t) => (t.pa != null ? String(t.pa) : DASH)) },
-  availability: { label: 'Disponibilité', get: (id) => { const av = catalogEntryOf(id)?.availability; return av ? libelleDeValeur(availabilitySchema, av) : DASH; } },
-  capacity: { label: 'Capacité', get: unitCapacity },
+  range: { get: trapCol((t) => rangeSpecLabel(t.range) ?? (ammoRangeModLabel(t.ammoRangeMod) || DASH)) },
+  protection: { get: trapCol((t) => { const q = (t.qualities ?? []).find((x) => x.id === 'protectrice'); return q ? `Protectrice ${q.value ?? ''}`.trim() : DASH; }) },
+  pa: { get: trapCol((t) => (t.pa != null ? String(t.pa) : DASH)) },
+  availability: { get: (id) => { const av = catalogEntryOf(id)?.availability; return av ? libelleDeValeur(availabilitySchema, av) : DASH; } },
+  capacity: { get: unitCapacity },
 };

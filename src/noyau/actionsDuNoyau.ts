@@ -1,6 +1,6 @@
 import type { CharKey, Main } from '../engine/types';
 import type { GenreDeDepot } from '../engine/activities';
-import type { BattleActionMode } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShootingStanceKey } from './etat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { OptionDeDetermination } from './combatSlice';

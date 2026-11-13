@@ -9,7 +9,7 @@ import type { Equipe } from '../../../engine/relations';
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
-import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
+import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
 import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
@@ -25,7 +25,7 @@ import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
 import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
+import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg } from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
@@ -1685,18 +1685,14 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   );
 }
 
-/** Rendu d'un champ, avec suggestions (`SaisieSuggeree`) des libellés du dataset pour les listes de références. `sujet` = sa
+/** Rendu d'un champ ; une liste de références passe par le mode liste de `RefField` (`cfgDeLaListe`). `sujet` = sa
  *  POSITION dans un conteneur (« de la rangée 2 de windModifiers »), qui complète ses noms accessibles :
  *  deux champs de même libellé, dans deux rangées, ne se confondent pas. */
 function Field({ chemin, sujet, field, value, onChange }: { chemin: string; sujet?: string; field: FieldDesc; value: unknown; onChange: (v: unknown) => void }) {
-  // `key` = IDENTITÉ du champ (jointures de valeurs, `REF_LIST_DATASET`) ; `label` = AFFICHAGE (#1466).
-  const { key, kind, label } = field;
-  const refDs = REF_LIST_DATASET[key];
+  const { kind, label } = field;
   const nom = sujet ? `${label} ${sujet}` : label;
   const nomPositionne = sujet ? nom : undefined;
   const cfgListe = kind === 'stringList' ? cfgDeLaListe(field.noeud) : undefined;
-  const libelles = useValeursDistinctes(kind === 'stringList' && !cfgListe ? refDs : undefined, 'label');
-  const { partagees, datalist } = useSuggestionsPartagees(libelles);
 
   const cfgType = cfgDuNoeudType(field.noeud);
   if (cfgType) return <RefField cfg={cfgType} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
@@ -1708,15 +1704,14 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     const set = (next: string[]) => onChange(next);
     return (
       <div className="ed-field">
-        <span>{label}{refDs && libelleDeDataset(refDs) && <em className="ed-hint"> (suggestions : {libelleDeDataset(refDs)})</em>}</span>
+        <span>{label}</span>
         {list.map((item, i) => (
           <div key={i} className="fieldrow">
-            <SaisieSuggeree ariaLabel={`${nom} — valeur ${i + 1}`} value={item} suggestions={partagees}
+            <SaisieSuggeree ariaLabel={`${nom} — valeur ${i + 1}`} value={item}
               onChange={(v) => set(list.map((x, j) => (j === i ? v : x)))} />
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        {datalist}
         <button className="btn small" aria-label={`Ajouter à ${nom}`} onClick={() => set([...list, ''])}>+ Ajouter</button>
       </div>
     );
