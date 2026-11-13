@@ -135,7 +135,7 @@ export const MANDAT_SLOTS =
  * garde les référence, les autres sites y RENVOIENT.
  */
 export const ANGLES_MORTS_SLOTS: readonly string[] = [
-  'Une occurrence de référence dont AUCUNE case ne porte de chaîne (`{random:N}`, `{pick:N,of:[{…}]}`) n’ouvre aucune case (`inscrireReference`, `structures-scan.mts`) : un couple ne compte que ses occurrences à case, et les feuilles d’un choix comptent sous leur propre couple (`careerLevels.json | of`).',
+  'Une occurrence de référence dont AUCUNE case ne porte de chaîne (`{random:N}`, `{pick:N,of:[{…}]}`) n’ouvre aucune case (`inscrireReference`, `structures-scan.mts`) : un couple ne compte que ses occurrences à case, et les feuilles d’un choix comptent sous le couple du champ qui porte le choix (`careerLevels.json | trappings`, `parcourir`).',
   'Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.',
 ];
 

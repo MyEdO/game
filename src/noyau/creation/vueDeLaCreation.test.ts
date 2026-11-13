@@ -5,7 +5,9 @@
 import { describe, it, expect } from 'vitest';
 import { carrieresOffertes, draftSpecies, newDraft, rollDraftCareer, withCareer, withCoastalSwap, withSpecies, type CreatorDraft } from './brouillon';
 import { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, rubriquesDeLaPage, type RubriqueDeCreation } from './vueDeLaCreation';
-import { carrieresAleatoires, especesAleatoires, offreDuJet, species, talentsAleatoires, varianteDe } from '../../data';
+import { carrieresAleatoires, especesAleatoires, fabricationAtouts, findQualityById, offreDuJet, species, talentsAleatoires, varianteDe } from '../../data';
+import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
+import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { setDataset, type DatasetKey } from '../../data/overrides';
 import { rollCareer } from '../../engine/creation';
 import { deFixe, deMin } from '../../engine/dice.testkit';
@@ -152,5 +154,24 @@ describe('les tirages disent le dé de leur table, jamais un littéral (#3578)',
       expect(libelle(rollDraftCareer(humain()), 'career')).toBe('Carrière au 1d10');
     });
     sousLeDeDe('talentsAleatoires', talentsAleatoires, () => expect(libelle(humain(), 'skills.talents')).toBe('Tirer 3 Talents au 1d10'));
+  });
+});
+
+describe('les possessions : l’Atout au choix d’une arme au choix suit son arme, à son adresse (LDB 60 l.9-32)', () => {
+  it('un joker à Atout donne deux rubriques, l’arme puis l’Atout à `[...chemin, 0]`, et le geste de l’Atout pose sa valeur là', () => {
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
+      const dot = adresseDeCreation.dotation;
+      const d = withCareer(withSpecies(brouillonDeLaPartie(7, 0), 'humains-reiklander'), CARRIERE_FIXTURE);
+      const page = rubriquesDeLaPage(d, 'trappings');
+      const ids = page.map((r) => r.id);
+      expect(ids.indexOf(dot([7, 0])), 'l’Atout suit l’arme').toBe(ids.indexOf(dot([7])) + 1);
+      expect(options(rubrique(page, dot([7]))).length).toBeGreaterThan(0);
+      const atout = rubrique(page, dot([7, 0]));
+      expect(options(atout).map((o) => o.libelle)).toEqual(fabricationAtouts().map((id) => findQualityById(id)!.label));
+      const solide = options(atout).find((o) => o.libelle === findQualityById('solide')!.label)!;
+      const pose = apresLeGeste(d, solide.geste);
+      expect(pose.trappingChoices?.[dot([7, 0])]).toBe('solide');
+      expect(options(rubrique(rubriquesDeLaPage(pose, 'trappings'), dot([7, 0]))).filter((o) => o.choisie).map((o) => o.libelle)).toEqual([solide.libelle]);
+    });
   });
 });

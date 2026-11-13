@@ -52,9 +52,10 @@
 //   en tactique et au plateau : son regard pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`,
 //   section « Écran publié ») regarde depuis la case et la couche demandées, à l'azimut demandé, le plan de sa couche
 //   (`plan` du pont, l'œil marqué) s'écrit au journal, et la vue se capture sous son nom.
-// - `bord` (`--scenario a-bord-de-la-caraque --route <route.json>`) : les fenêtres closes, le monde posé, chaque case
-//   de la route atteinte au clic et chaque échelle franchie par son geste (« Escalader », « Descendre en escalade »),
-//   une capture par couche atteinte.
+// - `bord` (`--scenario a-bord-de-la-caraque --route <route.json>`) : les fenêtres closes, le monde posé, le regard
+//   `plateau` pris à la touche V, chaque case de la route atteinte au clic (`cliquerCase`) et chaque échelle franchie
+//   par son geste (« Escalader », « Descendre en escalade »), une capture par couche atteinte ; un clic raté écrit au
+//   journal la dernière ligne que Godot a reçue pour son journal (`SONDER_LA_PAGE`, `recetteJournal`), le refus montré.
 // - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
 //   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
@@ -1197,12 +1198,23 @@ function lireLesVues(fichier) {
   return vues
 }
 
+/** Le regard `regard` pris à la touche V, regard après regard (`plateau.regardSuivant`). */
+async function prendreLeRegard(regard) {
+  for (let v = await vue(); v.plateau.regard !== regard; v = await vue()) {
+    const suivant = v.plateau.regardSuivant
+    await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
+    await attendreLaVue(`v.plateau.regard === '${suivant}'`, 300000)
+  }
+}
+
 async function parcoursBord() {
   const { etapes } = JSON.parse(readFileSync(o.route, 'utf8'))
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await fermerLesFenetres()
   await attendreLeMonde()
+  await evaluate(session, SONDER_LA_PAGE)
+  await prendreLeRegard('plateau')
   const ou = async () => { const x = (await vue()).projection.exploration; return { x: x.groupe[0], y: x.groupe[1], z: x.etage ?? 0 } }
   const cleDe = (c) => `${c.x},${c.y},${c.z}`
   const fautes = []
@@ -1214,12 +1226,10 @@ async function parcoursBord() {
   }
   async function aller(c) {
     if (cleDe(await ou()) === cleDe(c)) return true
-    const pt = (await ecranPose()).cases[cleDe(c)]
-    if (!pt) return false
-    await cliquerPoint(pt[0], pt[1])
+    await cliquerCase(c)
     const ok = await arriver(c)
     const v = await vue()
-    noter(`clic ${cleDe(c)} : ${ok ? 'atteinte' : 'groupe en ' + cleDe(await ou()) + ' ; fenêtre ' + JSON.stringify(v.projection.fenetre?.genre ?? v.projection.fenetre ?? null).slice(0, 120) + ' ; journal ' + JSON.stringify((v.zones?.['journal'] ?? []).slice(-1)).slice(0, 200)}`)
+    noter(`clic ${cleDe(c)} : ${ok ? 'atteinte' : 'groupe en ' + cleDe(await ou()) + ' ; fenêtre ' + JSON.stringify(v.projection.fenetre?.genre ?? v.projection.fenetre ?? null).slice(0, 120) + ' ; journal ' + JSON.stringify(await evaluate(session, 'globalThis.recetteJournal.at(-1) ?? null'))}`)
     return ok
   }
   async function noterLaCouche(z) { if (!couches.has(z)) { couches.add(z); await capturer(`bord-couche-${z}`) } }
@@ -1268,11 +1278,7 @@ async function parcoursCadrages() {
   await fermerLesFenetres()
   await attendreLeMonde()
   for (const { nom, ...cadrage } of vues) {
-    for (let v = await vue(); v.plateau.regard !== cadrage.regard; v = await vue()) {
-      const suivant = v.plateau.regardSuivant
-      await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
-      await attendreLaVue(`v.plateau.regard === '${suivant}'`, 300000)
-    }
+    await prendreLeRegard(cadrage.regard)
     const camera = await cadrer(cadrage, nom)
     const plan = { z: cadrage.etage ?? 0, ...(camera.case && { oeil: { case: camera.case, lacet: camera.lacet } }) }
     noter(`${nom} : plan de la couche ${plan.z}\n${JSON.parse(await lire(`wfrpPont.appeler('plan', ${JSON.stringify(JSON.stringify(plan))})`)).plan}`)
@@ -2980,13 +2986,20 @@ async function choisirDansLaListe(cle, article, sens = 1) {
   await nouvelEcran()
 }
 
-/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appelerEnOctets`
- *  enveloppé, la porte du transport de la page (`projet/scripts/transport_de_la_page.gd`), relue sur
- *  `globalThis.wfrpPont` à chaque appel ; le tampon des mesures de ressources élargi pour que chaque requête y entre. */
+/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page, et le texte de chaque ligne que
+ *  leurs suites ajoutent à son journal (`zones['journal.lignes']`, `pont/CONTRAT.md`, section « Suite »), dans
+ *  `recetteJournal` : `wfrpPont.appelerEnOctets` enveloppé, la porte du transport de la page
+ *  (`projet/scripts/transport_de_la_page.gd`), relue sur `globalThis.wfrpPont` à chaque appel ; le tampon des mesures
+ *  de ressources élargi pour que chaque requête y entre. */
 const SONDER_LA_PAGE = `(() => {
   performance.setResourceTimingBufferSize(1e6)
-  const pont = globalThis.wfrpPont, appelerEnOctets = pont.appelerEnOctets, n = (globalThis.recetteAppels = {})
-  pont.appelerEnOctets = function (methode, ...reste) { n[methode] = (n[methode] ?? 0) + 1; return appelerEnOctets.call(this, methode, ...reste) }
+  const pont = globalThis.wfrpPont, appelerEnOctets = pont.appelerEnOctets, n = (globalThis.recetteAppels = {}), journal = (globalThis.recetteJournal = [])
+  pont.appelerEnOctets = function (methode, ...reste) {
+    n[methode] = (n[methode] ?? 0) + 1
+    const r = appelerEnOctets.call(this, methode, ...reste)
+    if (typeof r === 'string' && r.includes('"journal.lignes":[{')) journal.push(...JSON.parse(r).zones['journal.lignes'].map((l) => l.texte))
+    return r
+  }
   return true
 })()`
 /** Le nombre d'appels `methode` de Godot au pont depuis `SONDER_LA_PAGE`. */

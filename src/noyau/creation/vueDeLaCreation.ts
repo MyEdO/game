@@ -29,7 +29,7 @@ import { refKey, talentMaxReached } from '../../engine/careerSlots';
 import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
 import { formatDice, hashSeed } from '../../engine/dice';
-import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementRacine, idChoisi, libelleDeLaValeur, sousEmplacement, valeursDeLEmplacement, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementRacine, idChoisi, libelleDeLaValeur, sousEmplacementActif, valeursDeLEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import type { AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { idsDeLaSousListe, type RefASpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -324,20 +324,24 @@ function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, l'emplacement que porte la branche choisie
- *  dessous ; une arme au choix ; un Atout de Fabrication (LDB 60 l.9-32), `DEFAULT_FABRICATION_ATOUT` à défaut. */
+/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, une arme au choix, un Atout de Fabrication
+ *  (LDB 60 l.9-32, `DEFAULT_FABRICATION_ATOUT` à défaut), puis l'emplacement qui le suit (`sousEmplacementActif`). */
 function dotation(d: CreatorDraft, e: EmplacementDeDotation): RubriqueDeCreation[] {
   const choisis = d.trappingChoices ?? {};
+  const sous = sousEmplacementActif(e, choisis);
+  return [rubriqueDeDotation(e, choisis), ...(sous ? dotation(d, sous) : [])];
+}
+
+function rubriqueDeDotation(e: EmplacementDeDotation, choisis: ChoixDeDotation): RubriqueDeCreation {
   switch (e.sorte) {
     case 'branches': {
       const j = brancheChoisie(e, choisis);
-      const sous = j === undefined ? undefined : sousEmplacement(e, j);
-      return [choix(e.adresse, t('crea.vue.auChoix'), valeursDeLEmplacement(e).map((k) => option(libelleDeLaValeur(e, k), geste('dotation', e.adresse, k), k === j))), ...(sous ? dotation(d, sous) : [])];
+      return choix(e.adresse, t('crea.vue.auChoix'), valeursDeLEmplacement(e).map((k) => option(libelleDeLaValeur(e, k), geste('dotation', e.adresse, k), k === j)));
     }
-    case 'joker': return [choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)))];
+    case 'joker': return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)));
     case 'atout': {
       const atout = idChoisi(e, choisis) ?? DEFAULT_FABRICATION_ATOUT;
-      return [choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), id === atout)))];
+      return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), id === atout)));
     }
   }
 }
