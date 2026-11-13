@@ -7,18 +7,6 @@
       "date": "2026-09-08",
       "quoi": "L'Ennemi dans l'Ombre, ch.10 (compétences) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
-    "MDG 3": {
-      "sites": ["src/noyau/restFlow.ts", "src/noyau/riverVoyageFlow.ts", "src/noyau/seaActivities.ts"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "La Mer des Griffes, ch.3 (repos, activités de bord) — aucune fiche de l'Atlas ne cite ce chapitre."
-    },
-    "MDG 6": {
-      "sites": ["src/data/species.json"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "La Mer des Griffes, ch.6 (espèces) — aucune fiche de l'Atlas ne cite ce chapitre."
-    },
     "MSRC 10": {
       "sites": ["src/data/naval-traits.json", "src/ui/ship-stations-panel.test.tsx", "src/noyau/codex/registry-enveloppe.test.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
