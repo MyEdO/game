@@ -296,6 +296,15 @@ jobs:
         run: npm run test:ops
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:runner
+      # `godot:recette` (#3945) : les jeux `combat` et `editeur` des recettes natives de l'hôte Godot
+      # (`lot-de-recettes.mjs --natif`), sans export ni navigateur, dans ce job pour rester hors du chemin critique de
+      # la CI (`types`) ; `canari.yml` joue le lot natif entier. Les caches de la chaîne 3D la précèdent : elle dépose
+      # les modèles, les textures et l'éditeur qu'elle lit.
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - name: Godot — recettes natives
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:recette
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

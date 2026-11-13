@@ -3,3 +3,11 @@
 export function empaqueter(sortie: string | null): Promise<{ code: string; modules: string[] }>;
 
 export function empaqueterLeProcessus(sortie: string): Promise<{ chemin: string; modules: string[] }>;
+
+export function piloter(options: {
+  args: string[];
+  env: Record<string, string>;
+  rendu?: string;
+  lance: (tuer: () => void) => void;
+  encore: () => boolean;
+}): Promise<{ lignes: string[]; erreurs: string[] }>;

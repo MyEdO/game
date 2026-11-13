@@ -2654,8 +2654,8 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.ref'), r.ref),
         fact(tr('codex.fiche.controle'), valeurFR('reglesOptionnelles.json', 'kind', r.kind)),
         fact(tr('codex.fiche.defaut'), ruleValueLabel(r.default)),
-        fact(tr('codex.fiche.valeurs'), r.options?.join(' · ') ?? null),
-        fact(tr('codex.fiche.bornes'), r.kind === 'param' && r.min != null && r.max != null ? tr('codex.fiche.deA', { min: r.min, max: r.max, v: r.step ? tr('codex.fiche.pasDe', { step: r.step }) : '' }) : null),
+        fact(tr('codex.fiche.valeurs'), r.kind === 'mode' ? r.options.join(' · ') : null),
+        fact(tr('codex.fiche.bornes'), r.kind === 'param' ? tr('codex.fiche.deA', { min: r.min, max: r.max, v: r.step ? tr('codex.fiche.pasDe', { step: r.step }) : '' }) : null),
         fact(tr('codex.fiche.actionAttachee'), r.action ? tr('codex.fiche.si', { label: r.action.label, v: ruleValueLabel(r.action.when) }) : null),
       ),
     })),
@@ -2761,7 +2761,7 @@ export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex,
 /** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
  *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
  *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
-function couleursDuTableau(table: typeof tableDesYeux, de: DeDeTable): CodexItem[] {
+function couleursDuTableau(table: typeof tableDesYeux | typeof tableDesCheveux, de: DeDeTable): CodexItem[] {
   const rangee = (e: (typeof eyes)[number]) => e.rand;
   const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
   /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */

@@ -7,35 +7,51 @@ import { document } from '../grammaire/document';
 export const file = 'reglesOptionnelles.json';
 export const famille = 'entite';
 
-/** La FORME d'un réglage (règle optionnelle, préférence) que juge `ecartDeValeur` : `flag` = interrupteur, `param` =
- *  nombre borné, `mode` = choix parmi `options`. */
-export interface FormeDeValeur {
-  readonly kind: 'flag' | 'param' | 'mode';
-  readonly min?: number;
-  readonly max?: number;
-  readonly options?: readonly string[];
-}
+/** La forme du contrôle qu'un réglage (règle optionnelle, préférence de `noyau/preferences.ts`) fait auto-rendre au
+ *  panneau, celle que juge `ecartDeValeur`. */
+export type FormeDeControle =
+  /** un interrupteur. */
+  | { readonly kind: 'flag' }
+  /** un choix parmi `options`. */
+  | { readonly kind: 'mode'; readonly options: readonly string[] }
+  /** un nombre entre `min` et `max`, au pas `step` (1 sans lui). */
+  | { readonly kind: 'param'; readonly min: number; readonly max: number; readonly step?: number };
 
 /** Pourquoi `v` n'est pas une valeur de la forme `forme`, `undefined` si elle l'est : `flag` booléen, `param` nombre
  *  fini dans ses bornes, `mode` l'une de ses `options`. SEUL juge de conformité d'une valeur de réglage. */
-export function ecartDeValeur(forme: FormeDeValeur, v: unknown): string | undefined {
+export function ecartDeValeur(forme: FormeDeControle, v: unknown): string | undefined {
   const vu = typeof v === 'string' ? `la chaîne « ${v} »` : String(v);
   switch (forme.kind) {
     case 'flag':
       return typeof v === 'boolean' ? undefined : `un interrupteur (kind « flag ») vaut un booléen, pas ${vu}`;
     case 'param':
       if (typeof v !== 'number' || !Number.isFinite(v)) return `un nombre (kind « param ») vaut un nombre, pas ${vu}`;
-      return (forme.min !== undefined && v < forme.min) || (forme.max !== undefined && v > forme.max)
-        ? `${v} sort des bornes [${forme.min ?? '−∞'}, ${forme.max ?? '+∞'}]`
-        : undefined;
+      return v < forme.min || v > forme.max ? `${v} sort des bornes [${forme.min}, ${forme.max}]` : undefined;
     case 'mode':
       if (typeof v !== 'string') return 'un choix (kind « mode ») vaut une des valeurs proposées';
-      return (forme.options ?? []).includes(v) ? undefined : `« ${v} » n'est pas une des valeurs proposées (${(forme.options ?? []).join(', ')})`;
+      return forme.options.includes(v) ? undefined : `« ${v} » n'est pas une des valeurs proposées (${forme.options.join(', ')})`;
   }
 }
 
 /** `v` est-elle une valeur de la forme `forme` (`ecartDeValeur`) ? */
-export const valeurConforme = (forme: FormeDeValeur, v: unknown): v is z.output<typeof ruleValueSchema> => ecartDeValeur(forme, v) === undefined;
+export const valeurConforme = (forme: FormeDeControle, v: unknown): v is z.output<typeof ruleValueSchema> => ecartDeValeur(forme, v) === undefined;
+
+/** La forme que déclare l'entrée brute `entry`, ce qui lui manque pour en déclarer une (un `mode` propose au moins
+ *  deux valeurs, un `param` déclare ses bornes), ou `undefined` sans `kind` connu. */
+function formeDeLEntree(entry: Readonly<Record<string, unknown>>): FormeDeControle | string | undefined {
+  switch (entry.kind) {
+    case 'flag':
+      return { kind: 'flag' };
+    case 'mode': {
+      const options = Array.isArray(entry.options) ? (entry.options as unknown[]).filter((o): o is string => typeof o === 'string') : [];
+      return options.length < 2 ? 'options : un choix (kind « mode ») propose au moins deux valeurs' : { kind: 'mode', options };
+    }
+    case 'param': {
+      const { min, max } = entry;
+      return typeof min === 'number' && typeof max === 'number' ? { kind: 'param', min, max } : 'min/max : un nombre (kind « param ») déclare ses bornes';
+    }
+  }
+}
 
 /**
  * Règle optionnelle (V9 #1318) : ses VALEURS (`default`, `action.when`) sont de sa forme (`ecartDeValeur`), celle que
@@ -44,20 +60,14 @@ export const valeurConforme = (forme: FormeDeValeur, v: unknown): v is z.output<
  * (`validateEntry`, `atelierDuCodex.ts`), en plus du contrôle typé du formulaire (`RuleValueField`).
  */
 export function ecartsDeLaRegle(entry: Readonly<Record<string, unknown>>): string[] {
-  const kind = entry.kind;
-  if (kind !== 'flag' && kind !== 'param' && kind !== 'mode') return [];
-  const options = Array.isArray(entry.options) ? (entry.options as unknown[]).filter((o): o is string => typeof o === 'string') : [];
-  const min = typeof entry.min === 'number' ? entry.min : undefined;
-  const max = typeof entry.max === 'number' ? entry.max : undefined;
-  const forme: FormeDeValeur = { kind, options, min, max };
+  const forme = formeDeLEntree(entry);
+  if (forme === undefined) return [];
+  if (typeof forme === 'string') return [forme];
   const action = entry.action as { when?: unknown } | undefined;
-  const out = ([['default', entry.default], ['action.when', action?.when]] as const).flatMap(([champ, v]) => {
+  return ([['default', entry.default], ['action.when', action?.when]] as const).flatMap(([champ, v]) => {
     const ecart = v === undefined ? undefined : ecartDeValeur(forme, v);
     return ecart ? [`${champ} : ${ecart}`] : [];
   });
-  if (kind === 'mode' && options.length < 2) out.push('options : un choix (kind « mode ») propose au moins deux valeurs');
-  if (kind === 'param' && (min === undefined || max === undefined)) out.push('min/max : un nombre (kind « param ») déclare ses bornes');
-  return out;
 }
 
 const doc = document(

@@ -86,8 +86,8 @@ export const LANE_LOCALE_DE_JOB = {
   corpus: {
     lane: 'types',
     raison:
-      '`test:corpus`, `test:corpus-isole`, `mods:check`, `test:ops` et `test:runner` ont leur job pour raccourcir le ' +
-      'chemin critique de la CI (#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+      '`test:corpus`, `test:corpus-isole`, `mods:check`, `test:ops`, `test:runner` et `godot:recette` (#3945) ont leur ' +
+      'job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
   },
   'docs-tests': {
     lane: 'docs',
