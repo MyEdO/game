@@ -1307,11 +1307,6 @@
     "type": "reglesOptionnelles",
     "label": "Réparation temporaire : Difficulté du Test d’Endurance du navire",
     "ref": "MDG 13 l.651",
-    "source": {
-      "book": "mer-des-griffes",
-      "page": 116,
-      "note": "MDG 13 l.651"
-    },
     "maison": "MDG 13 l.651 exige un Test d’Endurance du navire par jour de voyage et à chaque Test de Manœuvre après une réparation temporaire, sans en chiffrer la Difficulté : Difficulté maison, défaut Accessible (+20), celle que MSRC 7 l.117 imprime pour le même Test au fleuve.",
     "group": "Voyage",
     "kind": "mode",
@@ -1331,11 +1326,6 @@
     "type": "reglesOptionnelles",
     "label": "Réparation temporaire : Test d’Endurance du bateau à chaque Test de Navigation",
     "ref": "MSRC 7 l.117",
-    "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 30,
-      "note": "MSRC 7 l.117"
-    },
     "maison": "MSRC 7 l.117 laisse au MJ d’exiger d’autres Tests d’Endurance Accessible (+20) du bateau réparé « quand le Personnage au gouvernail doit faire un Test de Navigation, par exemple » : défaut maison activé, chaque Test de Navigation du barreur est suivi de ce Test.",
     "group": "Voyage",
     "kind": "flag",
@@ -1347,11 +1337,6 @@
     "type": "reglesOptionnelles",
     "label": "Réparation temporaire : Test d’Endurance du bateau à chaque nouveau Dégât",
     "ref": "MSRC 7 l.117",
-    "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 30,
-      "note": "MSRC 7 l.117"
-    },
     "maison": "MSRC 7 l.117 laisse au MJ d’exiger d’autres Tests d’Endurance Accessible (+20) du bateau réparé « quand le bateau subit de nouveaux Dégâts » : défaut maison activé, chaque étape qui inflige des Dégâts à la coque est suivie de ce Test.",
     "group": "Voyage",
     "kind": "flag",

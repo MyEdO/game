@@ -174,7 +174,7 @@ const CLES: Record<string, string> = {
   "montures": 'c36032d40e3c6576',
   "tavernGames": '632aa0a2a519310f',
   "obsessions": '06f42ede145518a6',
-  "reglesOptionnelles": '054c1d7d4e653592',
+  "reglesOptionnelles": '1c5ecb5575a73f57',
   "surincantation": '865800cac699c951',
   "structureCriticals": 'ed935a21da6026cc',
   "artilleryMisfire": 'ed935a21da6026cc',

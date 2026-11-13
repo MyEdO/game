@@ -29,7 +29,16 @@ import { effectTargets, openWaterExposure } from './combatEffects';
 import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
 import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { arriverAuLieu } from './lieuFlow';
-import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak, reparationTemporaireFluviale, reparationTemporaireTient, appliquerLaReparationTemporaire, poserLaReparationTemporaire } from './seaVoyageFlow';
+import {
+  damageVesselHull,
+  healVesselHull,
+  syncHullWoundsFromVessel,
+  spoilVesselCargoOnLeak,
+  reparationTemporaireFluviale,
+  reparationTemporaireTient,
+  appliquerLaReparationTemporaire,
+  poserLaReparationTemporaire,
+} from './seaVoyageFlow';
 import { rule } from '../engine/policy';
 import { baseHoursPerDay } from './travelFlow';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
