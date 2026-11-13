@@ -14,7 +14,8 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
-import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaSel, type CadreDuPorteur, type Sel } from '../sceneEditLecture';
+import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, projetAvecLePorteur, type AccesDuPorteur, type CadreDuPorteur, type ProjetDEdition, type Sel } from '../sceneEditLecture';
+import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
@@ -675,5 +676,35 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
       'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
       ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
     ].sort());
+  });
+});
+
+describe('l’accès d’un porteur à son document du projet (#3606 L2a, B3, S1)', () => {
+  const MURS = [{ x: 1, y: 2, side: 'N' as const }, { x: 3, y: 0, side: 'E' as const, z: 1 }];
+  const SCENE: Scene = { ...emptyScene('salle', 4, 4), walls: MURS };
+  const CARTE: WorldMap = { ...emptyWorldMap('carte'), routes: [{ id: 'route', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }] };
+  const projet = (worldMap?: WorldMap) => ({ scenes: [SCENE], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) }) as unknown as ProjetDEdition;
+  type Route = WorldMap['routes'][number];
+  type Mur = NonNullable<Scene['walls']>[number];
+  const ROUTES: AccesDuPorteur<Route> = { document: 'carte', collection: 'routes' };
+  const LA_CARTE: AccesDuPorteur<WorldMap> = { document: 'carte' };
+
+  it('un porteur de collection s’identifie par la clé que le schéma de son document déclare à la collection', () => {
+    const murs: AccesDuPorteur<Mur> = { document: 'scene', collection: 'walls' };
+    expect(porteurDuProjet<Mur>(murs, projet(), 'salle', '3,0,E,1')).toEqual({ donnee: MURS[1], chemin: ['walls', 1] });
+    const plein = { ...MURS[0], kind: 'door' as const };
+    expect(projetAvecLePorteur<Mur>(murs, projet(), 'salle', MURS[0], plein).scenes[0].walls).toEqual([plein, MURS[1]]);
+  });
+
+  it('un porteur d’un document absent du projet n’a aucun porteur ; présent, ceux de sa collection', () => {
+    expect([porteursDuProjet<Route>(ROUTES, projet(), 'salle'), porteursDuProjet<WorldMap>(LA_CARTE, projet(), 'salle')]).toEqual([[], []]);
+    expect(porteursDuProjet<Route>(ROUTES, projet(CARTE), 'salle')).toEqual(CARTE.routes);
+  });
+
+  it('le porteur singulier d’un document est le document, sous son identifiant, au chemin vide', () => {
+    expect(porteurDuProjet<WorldMap>(LA_CARTE, projet(CARTE), 'salle', 'carte')).toEqual({ donnee: CARTE, chemin: [] });
+    const renommee = { ...CARTE, label: 'Le Reikland' };
+    const ecrit = projetAvecLePorteur<WorldMap>(LA_CARTE, projet(CARTE), 'salle', CARTE, renommee);
+    expect([ecrit.worldMap, ecrit.scenes[0]]).toEqual([renommee, SCENE]);
   });
 });

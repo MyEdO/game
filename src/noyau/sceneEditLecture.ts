@@ -9,7 +9,9 @@ import { dialoguesDeLaScene, sceneMetresPerTile, type Dialogue, type DialogueCho
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { dialogueSchema, encounterDefSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
-import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
+import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
+import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
 import { porteeDeLaFeuille } from '../data/schemas/grammaire/ref';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
@@ -442,14 +444,53 @@ type CheminsOfferts = readonly (readonly Segment[])[];
  *  `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
 export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif'>; source: SourceDeLEdition }
 
-/** La clé de `Scene` dont la collection, présente ou non, a pour élément exactement `D`. */
-type CollectionDe<D> = { [K in keyof Scene]-?: NonNullable<Scene[K]> extends readonly (infer E)[] ? ([E] extends [D] ? ([D] extends [E] ? K : never) : never) : never }[keyof Scene];
+/** Le projet édité : le document que tient un cran de l'historique de l'éditeur. */
+export type ProjetDEdition = Omit<ProjectDoc, 'schema'>;
 
-/** Ce qu'un porteur de formulaire tiré du schéma déclare : la collection de la scène où il vit, le type de la sélection
+/** Le type de chaque document du projet édité où vit un porteur. */
+interface TypesDesDocuments { scene: Scene; carte: NonNullable<ProjectDoc['worldMap']>; narratif: ProjectDoc['narratif'] }
+
+/** La sorte d'un document du projet édité. */
+type SorteDeDocument = keyof TypesDesDocuments;
+
+/** Ce qu'un document du projet édité déclare : sa lecture dans le projet `projet` où la scène `sceneId` est montrée
+ *  (`undefined` : absent du projet), le projet où il devient `doc`, et son schéma. */
+interface DocumentDuProjet<T> {
+  lire: (projet: ProjetDEdition, sceneId: string) => T | undefined;
+  ecrire: (projet: ProjetDEdition, sceneId: string, doc: T) => ProjetDEdition;
+  schema: unknown;
+}
+
+/** Les documents du projet édité : la scène montrée, la carte du monde, le narratif. #3606 B3 */
+export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<TypesDesDocuments[K]> } = {
+  scene: {
+    lire: (projet, sceneId) => projet.scenes.find((sc) => sc.id === sceneId),
+    ecrire: (projet, sceneId, scene) => ({ ...projet, scenes: projet.scenes.map((sc) => (sc.id === sceneId ? scene : sc)) }),
+    schema: sceneSchema,
+  },
+  carte: { lire: (projet) => projet.worldMap, ecrire: (projet, _sceneId, worldMap) => ({ ...projet, worldMap }), schema: worldMapSchema },
+  narratif: { lire: (projet) => projet.narratif, ecrire: (projet, _sceneId, narratif) => ({ ...projet, narratif }), schema: narratifSchema },
+};
+
+/** La clé du type `T` dont la collection, présente ou non, a pour élément exactement `D`. */
+type CollectionDe<T, D> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly (infer E)[] ? ([E] extends [D] ? ([D] extends [E] ? K : never) : never) : never }[keyof T];
+
+/** `A` et `B` sont-ils le même type ? */
+type Egaux<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+
+/** Où vit un porteur de donnée `D` : son document, et sa collection dans ce document ; sans collection, le porteur
+ *  SINGULIER de son document, qui est le document, identifié par son `id`. */
+export type AccesDuPorteur<D> = {
+  [K in SorteDeDocument]:
+    | { document: K; collection: CollectionDe<TypesDesDocuments[K], D> }
+    | (Egaux<TypesDesDocuments[K], D> extends true ? (D extends { id: string } ? { document: K; collection?: undefined } : never) : never);
+}[SorteDeDocument];
+
+/** Ce qu'un porteur de formulaire tiré du schéma déclare : où il vit (`AccesDuPorteur`), le type de la sélection
  *  qui le désigne (`Sel`), le nœud de sa donnée, les champs qu'il offre, et les choix que son contexte pose à un chemin
  *  de sa donnée (`choixDuChamp`), dans son cadre. */
 interface FormulaireDuPorteur<D> {
-  collection: CollectionDe<D>;
+  acces: AccesDuPorteur<D>;
   sel: TypeDeSelParId;
   schema: unknown;
   /** Le porteur se liste à la zone Logique de l'éditeur, qui le sélectionne ; sinon il s'atteint sur la carte. */
@@ -668,7 +709,7 @@ const champsDeLaRencontre = (enc: EncounterDef): CheminsOfferts =>
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
  *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
-const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'collection' | 'sel' | 'schema'> } = {
+const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'acces' | 'sel' | 'schema'> } = {
   personnage: { champs: champsDuPersonnage, choix: choixDuPersonnage },
   prop: { champs: () => [ACTIONS_DU_DECOR], choix: choixDuDecor },
   heroStart: { champs: () => [] },
@@ -681,17 +722,17 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`) ; d'une rencontre, ses
  *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
-  zone: { collection: 'effectZones', sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
-  declencheur: { collection: 'triggers', sel: 'trigger', schema: triggerSchema, logique: true, champs: () => [['when'], ['flow']] },
+  zone: { acces: { document: 'scene', collection: 'effectZones' }, sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
+  declencheur: { acces: { document: 'scene', collection: 'triggers' }, sel: 'trigger', schema: triggerSchema, logique: true, champs: () => [['when'], ['flow']] },
   entite: {
-    collection: 'entities',
+    acces: { document: 'scene', collection: 'entities' },
     sel: 'entity',
     schema: sceneEntitySchema,
     champs: (ent, cadre) => FORMULAIRE_DU_TYPE[ent.kind].champs(ent, cadre),
     choix: (ent, chemin, cadre) => FORMULAIRE_DU_TYPE[ent.kind].choix?.(ent, chemin, cadre),
   },
-  dialogue: { collection: 'dialogues', sel: 'dialogue', schema: dialogueSchema, logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
-  rencontre: { collection: 'encounters', sel: 'encounter', schema: encounterDefSchema, logique: true, champs: champsDeLaRencontre },
+  dialogue: { acces: { document: 'scene', collection: 'dialogues' }, sel: 'dialogue', schema: dialogueSchema, logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
+  rencontre: { acces: { document: 'scene', collection: 'encounters' }, sel: 'encounter', schema: encounterDefSchema, logique: true, champs: champsDeLaRencontre },
 };
 
 /** Le porteur de formulaire que la sélection `sel` désigne (`FORMULAIRES`, `sel`) : sa sorte et son identifiant ;
@@ -705,9 +746,69 @@ export function porteurDeLaSel(sel: Sel): { sorte: SorteDePorteur; id: string } 
 /** La sélection qui désigne le porteur de sorte `sorte` d'identifiant `id` (`FORMULAIRES`, `sel`). */
 export const selDuPorteur = (sorte: SorteDePorteur, id: string): Sel => ({ type: FORMULAIRES[sorte].sel, id });
 
-/** Les porteurs de sorte `sorte` de la scène `scene`, dans sa collection (`FORMULAIRES`), absente lue vide. */
-export const porteursDeLaScene = <S extends SorteDePorteur>(scene: Scene, sorte: S): readonly DonneeDuPorteur[S][] =>
-  (scene[FORMULAIRES[sorte].collection] ?? []) as unknown as readonly DonneeDuPorteur[S][];
+/** Où vit le porteur de sorte `sorte` (`FORMULAIRES`). */
+export const accesDe = <S extends SorteDePorteur>(sorte: S): AccesDuPorteur<DonneeDuPorteur[S]> => (FORMULAIRES[sorte] as FormulaireDuPorteur<DonneeDuPorteur[S]>).acces;
+
+/** Ce que l'accès d'un porteur dit de son document `doc` : ses porteurs, le document où ils deviennent `porteurs`,
+ *  l'identifiant d'un porteur, et le chemin du porteur de rang `rang` depuis le document. */
+interface LectureDeLAcces {
+  document: DocumentDuProjet<unknown>;
+  porteurs: (doc: unknown) => readonly unknown[];
+  avec: (doc: unknown, porteurs: readonly unknown[]) => unknown;
+  id: (porteur: unknown) => string | undefined;
+  chemin: (rang: number) => Segment[];
+}
+
+/** Les lectures déjà faites, par accès. */
+const LECTURES = new WeakMap<object, LectureDeLAcces>();
+
+/** La lecture de l'accès `acces`, seule à le lire : dans sa collection, absente lue vide, chacun identifié par la clé que
+ *  le schéma de son document déclare à cette collection (`listeCle`, `collectionDe`) ; sans collection, le document
+ *  seul, identifié par son `id`. #3606 S1 */
+function lectureDe(acces: AccesDuPorteur<unknown>): LectureDeLAcces {
+  const deja = LECTURES.get(acces);
+  if (deja) return deja;
+  const document = DOCUMENTS[acces.document] as unknown as DocumentDuProjet<unknown>;
+  const collection = acces.collection as string | undefined;
+  const marque = collection === undefined ? undefined : ouverts(pasDeDonnee([document.schema], collection)).map(collectionDe).find((m) => m !== undefined);
+  const lecture: LectureDeLAcces = collection === undefined
+    ? { document, porteurs: (doc) => [doc], avec: (_doc, [seul]) => seul, id: (doc) => (doc as { id: string }).id, chemin: () => [] }
+    : {
+      document,
+      porteurs: (doc) => ((doc as Record<string, unknown>)[collection] ?? []) as readonly unknown[],
+      avec: (doc, porteurs) => ({ ...(doc as object), [collection]: porteurs }),
+      id: (porteur) => (marque?.forme === 'liste' ? marque.de(porteur) : undefined),
+      chemin: (rang) => [collection, rang],
+    };
+  LECTURES.set(acces, lecture);
+  return lecture;
+}
+
+/** Les porteurs d'accès `acces` du projet `projet` où la scène `sceneId` est montrée (`lectureDe`) ; aucun si leur
+ *  document est absent du projet. */
+export function porteursDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdition, sceneId: string): readonly D[] {
+  const { document, porteurs } = lectureDe(acces as AccesDuPorteur<unknown>);
+  const doc = document.lire(projet, sceneId);
+  return (doc === undefined ? [] : porteurs(doc)) as readonly D[];
+}
+
+/** Le porteur d'accès `acces` et d'identifiant `id` du projet `projet` où la scène `sceneId` est montrée, et son chemin
+ *  depuis son document ; `undefined` sans lui. */
+export function porteurDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdition, sceneId: string, id: string): { donnee: D; chemin: Segment[] } | undefined {
+  const lecture = lectureDe(acces as AccesDuPorteur<unknown>);
+  const porteurs = porteursDuProjet(acces, projet, sceneId);
+  const rang = porteurs.findIndex((p) => lecture.id(p) === id);
+  return rang < 0 ? undefined : { donnee: porteurs[rang], chemin: lecture.chemin(rang) };
+}
+
+/** Le projet `projet`, où la scène `sceneId` est montrée, dont le porteur d'accès `acces` qui porte l'identifiant de
+ *  `avant` devient `apres`, dans son document (`DOCUMENTS`, `ecrire`). */
+export function projetAvecLePorteur<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdition, sceneId: string, avant: D, apres: D): ProjetDEdition {
+  const { document, porteurs, avec, id } = lectureDe(acces as AccesDuPorteur<unknown>);
+  const doc = document.lire(projet, sceneId)!;
+  const cle = id(avant);
+  return document.ecrire(projet, sceneId, avec(doc, porteurs(doc).map((p) => (id(p) === cle ? apres : p))));
+}
 
 /** `a` est-il un préfixe du chemin `b` ? */
 const prefixe = (a: readonly Segment[], b: readonly Segment[]): boolean => a.length <= b.length && a.every((p, i) => p === b[i]);

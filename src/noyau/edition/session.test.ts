@@ -36,7 +36,7 @@ import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
-import { refusDeLaValeur, refusDeRetrait, refusHorsDeLaScene } from './session';
+import { refusDeLaValeur, refusDeRetrait } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { creatures, findCreatureById, MERCHANT_ARCHETYPES, siegeEngines, spells, talents, traits } from '../../data';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
@@ -937,11 +937,15 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     expect(jouer(pris, { geste: 'nommer', nom: 'enc-libre' })).toBe(pris);
   });
 
-  it('une rencontre qu’une embuscade de route du projet lance ne se renomme ni ne se retire, et son refus se dit (B4)', () => {
-    const s = choisie('enc-bois');
-    expect(jouer(s, { geste: 'nommer', nom: 'enc-foret' })).toBe(s);
-    expect(refusHorsDeLaScene(s)).toContain('« route-bois »');
-    expect(refusDeRetrait(s)).toContain('« route-bois »');
+  it('nommer une rencontre qu’une embuscade de route du projet lance la renomme à l’embuscade de chaque route qui vise sa scène, sur un cran ; son retrait reste refusé, la route dite (B8, D2)', () => {
+    const ailleurs = { id: 'route-ailleurs', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'], ambush: { scene: { id: 'autre' }, encounter: 'enc-bois' } } satisfies WorldMap['routes'][number];
+    const s = choisie('enc-bois', { ...CARTE, routes: [...CARTE.routes, ailleurs] });
+    const renomme = jouer(s, { geste: 'nommer', nom: ' enc-foret ' });
+    expect([renomme.sel, ids(renomme), renomme.historique.passe.length]).toEqual([{ type: 'encounter', id: 'enc-foret' }, ['enc-foret', 'enc-pont', 'enc-libre'], s.historique.passe.length + 1]);
+    expect(projetEdite(renomme).worldMap!.routes.map((r) => [r.id, r.ambush?.encounter])).toEqual([['route-bois', 'enc-foret'], ['route-ailleurs', 'enc-bois']]);
+    expect(projetEdite(jouer(renomme, { geste: 'annuler' })).worldMap!.routes[0].ambush?.encounter).toBe('enc-bois');
+    expect(refusDeRetrait(renomme)).toBe('La rencontre « enc-foret » est l’embuscade de la route « route-bois » de la carte du monde.');
+    expect(jouer(renomme, { geste: 'supprimer' })).toBe(renomme);
   });
 
   it('supprimer une rencontre qu’un effet de la scène lance est sans objet, et son refus se dit ; une rencontre libre se retire sur un cran', () => {

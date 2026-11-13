@@ -1352,8 +1352,9 @@ export function creerPont(stockage: Stockage | null) {
      * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
      * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
      * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
-     * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison, comme un formulaire refusé (le nom d'une
-     * rencontre que désigne une embuscade de la carte du monde) et un enregistrement que la porte refuse
+     * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
+     * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
+     * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade
      */
     editer(json) {
       const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));

@@ -6,8 +6,8 @@
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
  */
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
-import { editer, ouvrirLEdition, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
-import { FORMULAIRES, porteurDeLaSel, type SorteDePorteur } from './noyau/sceneEditLecture';
+import { editer, idDeLaSceneEditee, ouvrirLEdition, projetEdite, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
+import { accesDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type SorteDePorteur } from './noyau/sceneEditLecture';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { estObjet } from './lib/objet.mjs';
@@ -103,8 +103,7 @@ const forme = (v: unknown): string => (Array.isArray(v) ? '[]' : estObjet(v) ? O
  *  chemin aux rangs effacés, la forme du porteur et de chaque objet que le chemin traverse, celle de la valeur jouée.
  *  Deux écritures de même empreinte écrivent les mêmes champs du même type : la seconde ne s'ajoute à rien. */
 function empreinte(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'valeur' }>, saisie: string): string {
-  const porteurs: readonly unknown[] = sceneEditee(s)[FORMULAIRES[geste.porteur.sorte].collection] ?? [];
-  let v: unknown = porteurs.find((p) => estObjet(p) && p.id === geste.porteur.id);
+  let v: unknown = porteurDu(s, geste.porteur)?.donnee;
   const formes = [forme(v)];
   for (const pas of geste.chemin.slice(0, -1)) {
     v = estObjet(v) || Array.isArray(v) ? (v as Record<string | number, unknown>)[pas] : undefined;
@@ -112,6 +111,12 @@ function empreinte(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'v
   }
   return JSON.stringify([geste.porteur.sorte, geste.chemin.map((p) => (typeof p === 'number' ? '#' : p)), saisie, formes, forme(geste.valeur)]);
 }
+
+/** Le porteur `porteur` de la session `s` (`porteurDuProjet`) : sa donnée et son chemin depuis son document. */
+const porteurDu = (s: SessionDEdition, porteur: { sorte: SorteDePorteur; id: string }) => porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id);
+
+/** Les porteurs de sorte `sorte` de la session `s` (`porteursDuProjet`). */
+const porteursDe = (s: SessionDEdition, sorte: SorteDePorteur): readonly { id: string }[] => porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s));
 
 /** Les empreintes déjà jouées de chaque partie (`ecrituresJouees`), par son `out`. */
 const empreintesJouees = new WeakMap<EcritureJouee[], Set<string>>();
@@ -161,15 +166,13 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
 function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'valeur' }>, saisie: string, out: EcritureJouee[], discriminant?: string): SessionDEdition {
   const avant = sceneEditee(s);
   const apres = sceneEditee(jouer(s, geste));
-  const { collection } = FORMULAIRES[geste.porteur.sorte];
-  const porteurs: readonly { id: string }[] = avant[collection] ?? [];
-  const rang = porteurs.findIndex((p) => p.id === geste.porteur.id);
-  const quittee = geste.chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), porteurs[rang]);
+  const porteur = porteurDu(s, geste.porteur)!;
+  const quittee = geste.chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), porteur.donnee);
   const variante = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur ? geste.valeur : undefined;
   const ecrits = variante && estObjet(quittee)
     ? Object.keys(variante).filter((cle) => cle === discriminant || !(estObjet(quittee) && cle in quittee)).map((cle) => ({ chemin: [...geste.chemin, cle], valeur: variante[cle] }))
     : [{ chemin: geste.chemin, valeur: geste.valeur }];
-  for (const ecrit of ecrits) out.push({ avant, apres, chemin: [collection, rang, ...ecrit.chemin], valeur: ecrit.valeur, saisie });
+  for (const ecrit of ecrits) out.push({ avant, apres, chemin: [...porteur.chemin, ...ecrit.chemin], valeur: ecrit.valeur, saisie });
   return jouer(s, geste);
 }
 
@@ -179,10 +182,9 @@ function ajouter(s: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]
   const avant = sceneEditee(s);
   const suite = presser(s, `logique/${sorte}/ajouter`);
   const porteur = porteurDeLaSel(suite.sel);
-  const { collection } = FORMULAIRES[sorte];
-  const porteurs: readonly { id: string }[] = sceneEditee(suite)[collection] ?? [];
-  if (porteur?.sorte !== sorte || !porteurs.some((p) => p.id === porteur.id)) throw new Error(`la zone Logique n’a pas ajouté de porteur ${sorte}`);
-  out.push({ avant, apres: sceneEditee(suite), chemin: [collection], valeur: porteurs, saisie: 'bouton' });
+  const cree = porteur?.sorte === sorte ? porteurDu(suite, porteur) : undefined;
+  if (!cree) throw new Error(`la zone Logique n’a pas ajouté de porteur ${sorte}`);
+  out.push({ avant, apres: sceneEditee(suite), chemin: cree.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
   return suite;
 }
 
@@ -199,11 +201,9 @@ function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJ
   if (geste?.geste !== 'identifier' || !porteur) throw new Error(`aucun formulaire ${id} qui change un identifiant`);
   const avant = sceneEditee(s);
   const suite = jouer(s, geste);
-  const { collection } = FORMULAIRES[porteur.sorte];
-  const porteurs: readonly { id: string; nodes?: readonly { id: string }[] }[] = avant[collection] ?? [];
-  const rang = porteurs.findIndex((p) => p.id === porteur.id);
-  const noeud = porteurs[rang].nodes!.findIndex((n) => n.id === element);
-  out.push({ avant, apres: sceneEditee(suite), chemin: [collection, rang, 'nodes', noeud, 'id'], valeur: vers, saisie: 'saisieTexte' });
+  const { donnee, chemin } = porteurDu(s, porteur)!;
+  const noeud = (donnee as { nodes: readonly { id: string }[] }).nodes.findIndex((n) => n.id === element);
+  out.push({ avant, apres: sceneEditee(suite), chemin: [...chemin, 'nodes', noeud, 'id'], valeur: vers, saisie: 'saisieTexte' });
   return suite;
 }
 

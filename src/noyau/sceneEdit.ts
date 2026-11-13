@@ -33,7 +33,7 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, refusDeLEntite, sceneSchema, typeNonNomme,type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { entityKindSchema, refusDeLEntite, typeNonNomme,type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type ChoixDuContexte, type ContexteDuChamp } from './codex/editFields';
 import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
@@ -49,7 +49,7 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { cheminOffert, choixDuChamp, ecritureOfferte, FORMULAIRES, noeudNeuf, formeDuPorteur, porteursDeLaScene, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { accesDe, cheminOffert, choixDuChamp, DOCUMENTS, ecritureOfferte, noeudNeuf, formeDuPorteur, projetAvecLePorteur, type CadreDuPorteur, type ProjetDEdition, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
 
@@ -1190,12 +1190,6 @@ export function avecLAdresseRescellee<S extends SorteDePorteur>(sorte: S, donnee
   return rescellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: rescellee as DonneeDuPorteur[S] };
 }
 
-/** La scène `scene` où le porteur de sorte `sorte` d'identifiant `id` est remplacé par `donnee`, dans sa collection
- *  (`porteursDeLaScene`). */
-function porteurRemplace<S extends SorteDePorteur>(scene: Scene, sorte: S, id: string, donnee: DonneeDuPorteur[S]): Scene {
-  return { ...scene, [FORMULAIRES[sorte].collection]: porteursDeLaScene(scene, sorte).map((d) => (d.id === id ? donnee : d)) };
-}
-
 /** La scène `scene` où l'entité `avant` devient `apres`, chaque champ de premier niveau qui change posé par sa porte
  *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas
  *  (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
@@ -1217,26 +1211,89 @@ function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity):
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: ecrite };
 }
 
-/** Ce que la table d'écriture d'une sorte de porteur déclare : la scène où sa donnée `avant` devient `apres`, ou son
+/** Ce qu'une table d'écriture déclare d'un porteur de la scène : la scène où sa donnée `avant` devient `apres`, ou son
  *  refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
- *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne ; celle où le porteur `id` est retiré ; celle où
- *  l'élément `de` de la sous-collection à clé du porteur `id` prend l'identifiant `vers` ; ce qui, hors de la scène
- *  `sceneId`, sur la carte du monde, désigne le porteur `id`, dit. Un renommage sous un identifiant vide ou déjà pris
- *  rend la scène telle quelle. */
-interface EcritureDuPorteur<D> {
+ *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne dans la scène ; celle où le porteur `id` est retiré ;
+ *  celle où l'élément `de` de la sous-collection à clé du porteur `id` prend l'identifiant `vers`. Un renommage sous un
+ *  identifiant vide ou déjà pris rend la scène telle quelle. */
+interface EcritureDeScene<D> {
   ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
   creer?: (scene: Scene) => { scene: Scene; id: string };
   renommer?: (scene: Scene, de: string, vers: string) => Scene;
   retirer?: (scene: Scene, id: string) => Scene;
   renommerElement?: (scene: Scene, id: string, de: string, vers: string) => Scene;
-  viseHorsDeLaScene?: (worldMap: WorldMap, sceneId: string, id: string) => string | undefined;
 }
 
-/** Ce qui, sur la carte du monde `worldMap`, désigne la rencontre `id` de la scène `sceneId` : les embuscades de route
- *  qui la lancent (`WorldMap.routes[].ambush`), dites ; `undefined` sans elles. #3606 */
-function embuscadesDeLaRencontre(worldMap: WorldMap, sceneId: string, id: string): string | undefined {
-  const routes = worldMap.routes.filter((r) => r.ambush?.scene.id === sceneId && r.ambush.encounter === id).map((r) => `« ${r.id} »`);
+/** Ce que la table d'écriture d'une sorte de porteur déclare, sur le projet `projet` où la scène `sceneId` est
+ *  montrée : le projet où sa donnée `avant` devient `apres`, ou son refus ; et, pour la sorte qui les a, le projet où un
+ *  porteur neuf est créé, sous son identifiant ; celui où le porteur `de` prend l'identifiant `vers`, propagé à ce qui
+ *  le désigne ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la sous-collection à clé du porteur
+ *  `id` prend l'identifiant `vers` ; et ce qui refuse le retrait du porteur `id`, dit. Un renommage sous un identifiant
+ *  vide ou déjà pris rend le projet tel quel. #3606 B8 */
+interface EcritureDuPorteur<D> {
+  ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D) => EcritureDeValeur<ProjetDEdition>;
+  creer?: (projet: ProjetDEdition, sceneId: string) => { projet: ProjetDEdition; id: string };
+  renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => ProjetDEdition;
+  retirer?: (projet: ProjetDEdition, sceneId: string, id: string) => ProjetDEdition;
+  renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => ProjetDEdition;
+  refusDeRetirer?: (projet: ProjetDEdition, sceneId: string, id: string) => string | undefined;
+}
+
+/** L'écriture du porteur que la table `e` écrit dans la scène montrée du projet (`DOCUMENTS`, `scene`) : chacun de ses
+ *  écrivains relevé au projet, la scène lue puis réécrite, le projet tel quel quand elle l'est. */
+function deLaScene<D>(e: EcritureDeScene<D>): EcritureDuPorteur<D>;
+function deLaScene(e: Omit<EcritureDeScene<never>, 'ecrire'>): Omit<EcritureDuPorteur<never>, 'ecrire'>;
+function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur<D>> {
+  const { lire, ecrire } = DOCUMENTS.scene;
+  const releve = (projet: ProjetDEdition, sceneId: string, f: (scene: Scene) => Scene): ProjetDEdition => {
+    const scene = lire(projet, sceneId)!;
+    const ecrite = f(scene);
+    return ecrite === scene ? projet : ecrire(projet, sceneId, ecrite);
+  };
+  const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement } = e;
+  return {
+    ...(ecrireLaScene && { ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D): EcritureDeValeur<ProjetDEdition> => {
+      const ecrite = ecrireLaScene(lire(projet, sceneId)!, avant, apres);
+      return ecrite.ok ? { ok: true, valeur: ecrire(projet, sceneId, ecrite.valeur) } : ecrite;
+    } }),
+    ...(creer && { creer: (projet: ProjetDEdition, sceneId: string) => {
+      const cree = creer(lire(projet, sceneId)!);
+      return { projet: ecrire(projet, sceneId, cree.scene), id: cree.id };
+    } }),
+    ...(renommer && { renommer: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommer(sc, de, vers)) }),
+    ...(retirer && { retirer: (projet: ProjetDEdition, sceneId: string, id: string) => releve(projet, sceneId, (sc) => retirer(sc, id)) }),
+    ...(renommerElement && { renommerElement: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommerElement(sc, id, de, vers)) }),
+  };
+}
+
+/** L'écriture du porteur de sorte `sorte` qui remplace sa donnée dans son document (`projetAvecLePorteur`). */
+const remplace = <S extends SorteDePorteur>(sorte: S): EcritureDuPorteur<DonneeDuPorteur[S]>['ecrire'] =>
+  (projet, sceneId, avant, apres) => ({ ok: true, valeur: projetAvecLePorteur(accesDe(sorte), projet, sceneId, avant, apres) });
+
+/** Les routes de la carte du monde du projet `projet` dont l'embuscade lance la rencontre `id` de la scène `sceneId`
+ *  (`WorldMap.routes[].ambush`). */
+const routesDeLEmbuscade = (projet: ProjetDEdition, sceneId: string, id: string): WorldMap['routes'] =>
+  (projet.worldMap?.routes ?? []).filter((r) => r.ambush?.scene.id === sceneId && r.ambush.encounter === id);
+
+/** Ce qui, sur la carte du monde du projet `projet`, désigne la rencontre `id` de la scène `sceneId` : les embuscades
+ *  de route qui la lancent (`routesDeLEmbuscade`), dites ; `undefined` sans elles. #3606 */
+function embuscadesDeLaRencontre(projet: ProjetDEdition, sceneId: string, id: string): string | undefined {
+  const routes = routesDeLEmbuscade(projet, sceneId, id).map((r) => `« ${r.id} »`);
   return routes.length ? tr('ecran.editeur.rencontre.embuscade', { id, routes: routes.join(', ') }) : undefined;
+}
+
+/** Le projet `projet` où la rencontre `de` de la scène `sceneId` prend l'identifiant `vers` (`renameEncounter`), propagé
+ *  à l'embuscade de chaque route qui la lance (`routesDeLEmbuscade`). #3606 D2 */
+function rencontreRenommee(projet: ProjetDEdition, sceneId: string, de: string, vers: string): ProjetDEdition {
+  const scene = DOCUMENTS.scene.lire(projet, sceneId)!;
+  const renommee = renameEncounter(scene, de, vers);
+  if (renommee === scene) return projet;
+  const avec = DOCUMENTS.scene.ecrire(projet, sceneId, renommee);
+  const routes = new Set(routesDeLEmbuscade(projet, sceneId, de));
+  const carte = projet.worldMap;
+  if (!carte || !routes.size) return avec;
+  const encounter = vers.trim();
+  return DOCUMENTS.carte.ecrire(avec, sceneId, { ...carte, routes: carte.routes.map((r) => (routes.has(r) ? { ...r, ambush: { ...r.ambush!, encounter } } : r)) });
 }
 
 /** La scène `scene` où l'action authorée `de` du décor `id` prend l'identifiant `vers` (`renameActionAuthoree`). */
@@ -1249,50 +1306,44 @@ function actionRenommee(scene: Scene, id: string, de: string, vers: string): Sce
 
 /** La scène `scene` où le nœud `de` du dialogue `id` prend l'identifiant `vers` (`renameDialogueNode`). */
 function noeudRenomme(scene: Scene, id: string, de: string, vers: string): Scene {
-  const dialogue = porteursDeLaScene(scene, 'dialogue').find((d) => d.id === id);
+  const dialogue = scene.dialogues.find((d) => d.id === id);
   const renomme = dialogue && renameDialogueNode(dialogue, de, vers);
-  return dialogue && renomme !== dialogue ? porteurRemplace(scene, 'dialogue', id, renomme!) : scene;
+  return dialogue && renomme !== dialogue ? replaceDialogue(scene, id, renomme!) : scene;
 }
 
 /** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur, d'un dialogue ou
- *  d'une rencontre, le remplacement dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le renommage
- *  d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son retrait
- *  (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
+ *  d'une rencontre, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
+ *  renommage d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son
+ *  retrait (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
  *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`) ; d'une rencontre, sa création
- *  (`addEncounter`), son renommage (`renameEncounter`), son retrait (`removeEncounter`) et les embuscades de route qui
- *  la désignent (`embuscadesDeLaRencontre`). */
+ *  (`addEncounter`), son renommage propagé aux embuscades de route (`rencontreRenommee`), son retrait
+ *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`). Les écrivains de
+ *  la scène y sont relevés au projet (`deLaScene`). */
 export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
-  zone: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'zone', avant.id, apres) }) },
-  declencheur: {
-    ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'declencheur', avant.id, apres) }),
-    renommer: renameTrigger,
-    retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }),
-  },
-  entite: { ecrire: sceneAvecLEntite, renommerElement: actionRenommee },
-  dialogue: {
-    ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'dialogue', avant.id, apres) }),
-    creer: addDialogue,
-    renommer: renameDialogue,
-    retirer: removeDialogue,
-    renommerElement: noeudRenomme,
-  },
+  zone: { ecrire: remplace('zone') },
+  declencheur: { ...deLaScene({ renommer: renameTrigger, retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }) }), ecrire: remplace('declencheur') },
+  entite: deLaScene({ ecrire: sceneAvecLEntite, renommerElement: actionRenommee }),
+  dialogue: { ...deLaScene({ creer: addDialogue, renommer: renameDialogue, retirer: removeDialogue, renommerElement: noeudRenomme }), ecrire: remplace('dialogue') },
   rencontre: {
-    ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'rencontre', avant.id, apres) }),
-    creer: addEncounter,
-    renommer: renameEncounter,
-    retirer: removeEncounter,
-    viseHorsDeLaScene: embuscadesDeLaRencontre,
+    ...deLaScene({ creer: addEncounter, retirer: removeEncounter }),
+    ecrire: remplace('rencontre'),
+    renommer: rencontreRenommee,
+    refusDeRetirer: embuscadesDeLaRencontre,
   },
 };
 
-/** La scène `scene` où le porteur `porteur` est retiré par la table de sa sorte (`ECRITURES_DES_PORTEURS`, `retirer`) ;
- *  ou son refus : la première faute du parse de la scène (`sceneSchema`) que la scène d'avant ne portait pas
- *  (`fauteNeuve`), dite. `undefined` : sa sorte ne se retire pas par la table. */
-export function sceneSansLePorteur(scene: Scene, porteur: { sorte: SorteDePorteur; id: string }): { ok: true; valeur: Scene } | { ok: false; regle: string } | undefined {
-  const retirer = ECRITURES_DES_PORTEURS[porteur.sorte].retirer;
+/** Le projet `projet`, où la scène `sceneId` est montrée, sans le porteur `porteur`, retiré par la table de sa sorte
+ *  (`ECRITURES_DES_PORTEURS`, `retirer`) ; ou son refus : celui que la table dit (`refusDeRetirer`), sinon la première
+ *  faute du parse de son document (`DOCUMENTS`, `schema`) que le document d'avant ne portait pas (`fauteNeuve`), dite.
+ *  `undefined` : sa sorte ne se retire pas par la table. */
+export function projetSansLePorteur(projet: ProjetDEdition, sceneId: string, porteur: { sorte: SorteDePorteur; id: string }): { ok: true; valeur: ProjetDEdition } | { ok: false; regle: string } | undefined {
+  const { retirer, refusDeRetirer } = ECRITURES_DES_PORTEURS[porteur.sorte];
   if (!retirer) return undefined;
-  const apres = retirer(scene, porteur.id);
-  const faute = fauteNeuve(sceneSchema, scene, apres);
+  const refus = refusDeRetirer?.(projet, sceneId, porteur.id);
+  if (refus !== undefined) return { ok: false, regle: refus };
+  const apres = retirer(projet, sceneId, porteur.id);
+  const document = DOCUMENTS[accesDe(porteur.sorte).document] as { lire: (p: ProjetDEdition, id: string) => unknown; schema: unknown };
+  const faute = fauteNeuve(document.schema, document.lire(projet, sceneId), document.lire(apres, sceneId));
   return faute === undefined ? { ok: true, valeur: apres } : { ok: false, regle: faute };
 }
 
@@ -1349,7 +1400,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
   }
   if (sel?.type === 'effectZone') {
     const zone = scene.effectZones?.find((z) => z.id === sel.id);
-    return zone ? porteurRemplace(scene, 'zone', sel.id, zoneDEffetPatchee(zone, patch)) : scene;
+    return zone ? replaceEffectZone(scene, sel.id, zoneDEffetPatchee(zone, patch)) : scene;
   }
   return scene;
 }
@@ -1358,8 +1409,8 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
  *  barrière…). `id`, `area` et `z` restent au créateur — ils viennent du geste, pas de l'appelant. */
 export type EffectZoneSeed = Partial<Omit<SceneEffectZone, 'id' | 'area' | 'z'>>;
 
-/** Remplace la zone d'effet `id` par `zone` (`porteurRemplace`). */
-export const replaceEffectZone = (scene: Scene, id: string, zone: SceneEffectZone): Scene => porteurRemplace(scene, 'zone', id, zone);
+/** Remplace la zone d'effet `id` par `zone`. */
+export const replaceEffectZone = (scene: Scene, id: string, zone: SceneEffectZone): Scene => ({ ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === id ? zone : z)) });
 
 /** Crée une ZONE D'EFFET sur `rect`, à l'étage `z` (id frais pour le rendu/sélection). Tout ce que la
  *  zone PORTE vient de `seed` : sans seed, elle naît DESCRIPTIVE (`isDescriptiveZone`) et libellée par

@@ -486,15 +486,15 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
     expect(lance).toEqual(['enc-cour']);
   });
 
-  it('une rencontre qu’une embuscade de route lance ne se renomme ni ne se supprime, le refus dit à l’auteur', () => {
+  it('une rencontre qu’une embuscade de route lance se renomme, à cette embuscade aussi ; la supprimer reste refusé, la route dite à l’auteur', () => {
     const { appel, presser, e } = ouverte('arene-route-embuscade');
     const choisie = presser(boutonDe(e, 'logique/rencontre/enc-embuscade'));
-    const nom = inspecte(choisie, 'nommer') as Formulaire;
-    expect(nom.refus).toContain('« route-futaie »');
-    expect(erreurDe(appel('editer', { type: 'nommer', args: ['enc-bois'] }))).toEqual(expect.objectContaining({ categorie: 'regle', message: `editer : ${nom.refus}` }));
-    const supprimer = boutonDe(choisie, 'rencontre/supprimer');
-    expect(supprimer.refus).toBe(nom.refus);
-    expect(erreurDe(appel('editer', supprimer.jeu))).toEqual(expect.objectContaining({ categorie: 'regle', message: `editer : ${nom.refus}` }));
+    expect((inspecte(choisie, 'nommer') as Formulaire).refus).toBeNull();
+    const renommee = editionDe(appel('editer', { type: 'nommer', args: ['enc-bois'] }));
+    expect(boutonDe(renommee, 'logique/rencontre/enc-bois').presse).toBe(true);
+    const supprimer = boutonDe(renommee, 'rencontre/supprimer');
+    expect([supprimer.refus?.includes('« enc-bois »'), supprimer.refus?.includes('« route-futaie »')]).toEqual([true, true]);
+    expect(erreurDe(appel('editer', supprimer.jeu))).toEqual(expect.objectContaining({ categorie: 'regle', message: `editer : ${supprimer.refus}` }));
   });
 
   it('la cible d’un objectif « seuil de dommage » se choisit parmi les membres ; la monture chevauchée, parmi les seules montures', () => {

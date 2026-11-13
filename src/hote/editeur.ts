@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, porteurDeLaSel, porteursDeLaScene, refusDeRetrait, refusHorsDeLaScene, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -319,14 +319,14 @@ export interface ZonesDeLEditeur {
    * et des entrées qu'il couvre ; le supprimer, `{ geste: 'supprimer' }`, refusé avec sa raison tant qu'une référence le
    * désigne (`refusDeRetrait`, `removeDialogue`).
    *
-   * D'une rencontre : le formulaire qui la renomme, de son identifiant (`renameEncounter`), refusé avec sa raison
-   * quand une embuscade de route de la carte du monde la lance (`refusHorsDeLaScene`) ; la ligne `rencontre/membres`
+   * D'une rencontre : le formulaire qui la renomme, de son identifiant (`renameEncounter`), propagé à l'embuscade de
+   * chaque route de la carte du monde qui la lance (`rencontreRenommee`) ; la ligne `rencontre/membres`
    * qui compte ses membres, enrôlés à l'inspecteur du personnage (`{ geste: 'membre' }`), puis, pour chacun, la ligne
    * `rencontre/membre/<entité>`, le nom de son entité, son côté et s'il est une monture ; le formulaire tiré du schéma
    * (`formulaireDe('rencontre', …)`) de ses circonstances, de sa fin (la cible d'un objectif `woundsThreshold` parmi
    * ses membres), des entrées qu'elle couvre, et de chaque membre sa monture et celle qu'il chevauche, parmi les
    * montures, la liste des membres sans « Retirer », « Monter » ni « Ajouter » ; la supprimer, refusé avec sa raison
-   * comme un dialogue, ou tant qu'une embuscade la lance (`removeEncounter`).
+   * comme un dialogue, ou tant qu'une embuscade de route la lance, la route dite (`removeEncounter`, `embuscadesDeLaRencontre`).
    *
    * D'une zone : la poignée qui la redimensionne ; d'un déclencheur, le formulaire qui le renomme ; d'une zone d'effet,
    * le formulaire qui la nomme et celui qui change son identifiant, sa nature (non déclarée, intérieur ou extérieur),
@@ -1564,10 +1564,9 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  de ses porteurs dans la scène éditée, chacun en liste, pressé s'il est sélectionné, qui le sélectionne ; « Ajouter »
  *  quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`). #3606 décision 7 */
 function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
-  const scene = sceneEditee(s);
   const choisi = porteurDeLaSel(s.sel);
   return (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((sorte) => FORMULAIRES[sorte].logique).flatMap((sorte) => {
-    const ids = porteursDeLaScene(scene, sorte).map((d) => d.id);
+    const ids = porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s)).map((d) => d.id);
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
     return [
       ligne(`logique/${sorte}`, t(texte(''), { n: ids.length })),
@@ -1580,14 +1579,13 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
 
 /** L'inspecteur du porteur de formulaire `porteur` de la session `s` qui se renomme par la table de sa sorte
  *  (`ECRITURES_DES_PORTEURS`, `renommer`), ses éléments d'id `<prefixe>/…` : le formulaire qui le nomme, de son
- *  identifiant, refusé avec ce qui le désigne hors de la scène (`refusHorsDeLaScene`) ; ses éléments `propres` ; le
- *  formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer, refusé avec la raison du retrait
- *  (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 C4 */
+ *  identifiant ; ses éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer,
+ *  refusé avec la raison du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 C4 */
 function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
-  const donnee = porteursDeLaScene(sceneEditee(s), porteur.sorte).find((d) => d.id === porteur.id)!;
+  const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
   const refus = ECRITURES_DES_PORTEURS[porteur.sorte].retirer ? refusDeRetrait(s) : null;
   return [
-    { ...formulaireDuNom(porteur.id, false), refus: refusHorsDeLaScene(s) },
+    formulaireDuNom(porteur.id, false),
     ...propres,
     ...elementsDuFormulaire(porteur, formulaireDe(porteur.sorte, donnee, cadreDeLaSession(s)), donnee as unknown as Record<string, unknown>),
     bouton(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
@@ -1654,7 +1652,7 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   const entree = entreeDeLaSelection(s);
   const zone = zonesLues(scene).find((z) => sameSel(z.sel, s.sel));
   const porteur = porteurDeLaSel(s.sel);
-  const logique = porteur && FORMULAIRES[porteur.sorte].logique ? porteursDeLaScene(scene, porteur.sorte).find((d) => d.id === porteur.id) : undefined;
+  const logique = porteur && FORMULAIRES[porteur.sorte].logique ? porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee : undefined;
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
   if (zone) return inspecteurDeZone(s, zone);

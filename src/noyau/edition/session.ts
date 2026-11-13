@@ -20,8 +20,8 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, sceneSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
-import { FORMULAIRES, entiteDeLaSelection, porteurDeLaSel, porteursDeLaScene, selDuPorteur, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, projetSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
+import { DOCUMENTS, FORMULAIRES, accesDe, entiteDeLaSelection, porteurDeLaSel, porteurDuProjet, porteursDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -128,7 +128,7 @@ export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: nu
 /** La session `s` amenée au fautif de l'avertissement `w` de sa scène `scene`, à sa couche : un défaut de plan, suivi,
  *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un ouvrage d'architecture sélectionné à
  *  l'outil d'architecture ; une entité, un déclencheur, un dialogue ou une rencontre sélectionné à l'outil de sélection
- *  (`selDuPorteur`), l'entité et le déclencheur à leur couche. */
+ *  (`selDuPorteur`), à sa couche s'il est posé sur la carte (`selPos`, `selZ`). */
 function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): SessionDEdition {
   const vers = (z: number | undefined, sel: Sel, outil: OutilDeLEditeur, defaut: string | null = null): SessionDEdition => ({
     ...s, z: z !== undefined && coucheVue(scene, z) ? z : s.z, sel, outil, defaut, geste: null, volee: [], brouillon: null,
@@ -148,11 +148,8 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
             : corps?.storeys[0]?.z;
     return vers(z, archi, { mode: 'architecture', action: 'selection' });
   }
-  const sorte = SORTE_DE_LA_PORTEE[w.scope]!;
-  const z = sorte === 'entite' ? scene.entities.find((e) => e.id === w.refId)?.z
-    : sorte === 'declencheur' ? scene.triggers.find((t) => t.id === w.refId)?.rect.z
-      : undefined;
-  return vers(z, selDuPorteur(sorte, w.refId!), { mode: 'selection' });
+  const sel = selDuPorteur(SORTE_DE_LA_PORTEE[w.scope]!, w.refId!);
+  return vers(selPos(scene, sel) ? selZ(scene, sel) : undefined, sel, { mode: 'selection' });
 }
 
 /** Les scènes du projet de la session `s` autour de la scène éditée. */
@@ -375,7 +372,7 @@ export interface SessionDEdition {
  *  sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; poser une troupe de `nombre` copies du personnage sélectionné (`poserUneTroupe`,
- *  `nombre` entre `BORNES_DE_LA_TROUPE`) ; supprimer la sélection, par la table de sa sorte s'il y a lieu (`sceneSansLePorteur`) ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
+ *  `nombre` entre `BORNES_DE_LA_TROUPE`) ; supprimer la sélection, par la table de sa sorte s'il y a lieu (`projetSansLePorteur`) ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  mettre la scène à l'essai, que l'hôte joue (`essaiDeLaScene`), la session telle quelle ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
  *  calque, le caler, le retirer ; l'issue du chargement du chapitre attendu, son texte ou rien. */
@@ -633,12 +630,18 @@ function porter(s: SessionDEdition, effet: EffetDuPointeur): SessionDEdition {
   };
 }
 
-/** L'historique de la session `s` où la scène éditée devient `scene`, à sa place dans le projet, sur un cran neuf
- *  (`cran`) ou à la place du présent : les autres scènes, la carte du monde et le narratif gardent leur identité. */
+/** L'historique de la session `s` où la scène éditée devient `scene`, à sa place dans le projet (`DOCUMENTS`, `scene`),
+ *  sur un cran neuf (`cran`) ou à la place du présent : les autres scènes, la carte du monde et le narratif gardent leur
+ *  identité. */
 function avecLaScene(s: SessionDEdition, scene: Scene, cran: boolean): Historique<CranDEdition> {
   const { projet, sceneId } = s.historique.present;
-  return poser(s.historique, { projet: { ...projet, scenes: projet.scenes.map((sc) => (sc.id === sceneId ? scene : sc)) }, sceneId }, cran);
+  return poser(s.historique, { projet: DOCUMENTS.scene.ecrire(projet, sceneId, scene), sceneId }, cran);
 }
+
+/** Le projet `projet` écrit sur un cran neuf, sa scène montrée gardée, la sélection et son brouillon levés, ou `sel`
+ *  sélectionnée. */
+const ecrireLeProjet = (s: SessionDEdition, projet: ProjetDEdition, sel: Sel = null): SessionDEdition =>
+  ({ ...s, historique: poser(s.historique, { projet, sceneId: idDeLaSceneEditee(s) }, true), sel, brouillon: null });
 
 /** La scène `scene` écrite sur un cran neuf, la sélection et son brouillon levés, ou `sel` sélectionnée. */
 const ecrire = (s: SessionDEdition, scene: Scene, sel: Sel = null): SessionDEdition => ({ ...s, historique: avecLaScene(s, scene, true), sel, brouillon: null });
@@ -725,48 +728,43 @@ export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene
 /** Ce qu'un geste écrit au formulaire d'un porteur, dans le cadre `cadre` : sa donnée écrite, ou son refus. */
 type EcritureDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
 
-/** La scène éditée de la session `s` où `ecriture` écrit au formulaire du porteur `porteur`, dans son cadre
+/** Le projet édité de la session `s` où `ecriture` écrit au formulaire du porteur `porteur`, dans son cadre
  *  (`cadreDeLaSession`), par la table d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`) ; ou son refus, un porteur absent
- *  de sa collection (`porteursDeLaScene`) n'offrant aucun chemin. */
-function sceneAvecLePorteur<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, ecriture: EcritureDuPorteur): EcritureDeValeur<Scene> {
-  const cadre = cadreDeLaSession(s);
-  const avant = porteursDeLaScene(cadre.scene, porteur.sorte).find((d) => d.id === porteur.id);
+ *  du projet (`porteurDuProjet`) n'offrant aucun chemin. */
+function projetAvecLaDonnee<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, ecriture: EcritureDuPorteur): EcritureDeValeur<ProjetDEdition> {
+  const projet = projetEdite(s);
+  const sceneId = idDeLaSceneEditee(s);
+  const avant = porteurDuProjet(accesDe(porteur.sorte), projet, sceneId, porteur.id)?.donnee;
   if (!avant) return { ok: false, refus: 'nonOffert' };
-  const ecrite = ecriture(porteur.sorte, avant, cadre);
-  const table: { ecrire: (scene: Scene, avant: DonneeDuPorteur[S], apres: DonneeDuPorteur[S]) => EcritureDeValeur<Scene> } = ECRITURES_DES_PORTEURS[porteur.sorte];
-  return ecrite.ok ? table.ecrire(cadre.scene, avant, ecrite.valeur) : ecrite;
+  const ecrite = ecriture(porteur.sorte, avant, cadreDeLaSession(s));
+  const table: { ecrire: (projet: ProjetDEdition, sceneId: string, avant: DonneeDuPorteur[S], apres: DonneeDuPorteur[S]) => EcritureDeValeur<ProjetDEdition> } = ECRITURES_DES_PORTEURS[porteur.sorte];
+  return ecrite.ok ? table.ecrire(projet, sceneId, avant, ecrite.valeur) : ecrite;
 }
 
-/** Les collections des porteurs de formulaire de la scène `sc` (`FORMULAIRES`). */
-const collectionsDesPorteurs = (sc: Scene) => Object.values(FORMULAIRES).map((f) => sc[f.collection]);
+/** La session `s` où le projet `projet` s'écrit sur un cran neuf si les porteurs de formulaire de sa scène montrée
+ *  (`FORMULAIRES`, `porteursDuProjet`) y changent : sinon, `s` telle quelle. La sélection reste. */
+function ecrireSurLesPorteurs(s: SessionDEdition, projet: ProjetDEdition): SessionDEdition {
+  const porteurs = (p: ProjetDEdition) => jsonCanonique((Object.keys(FORMULAIRES) as SorteDePorteur[]).map((sorte) => porteursDuProjet(accesDe(sorte), p, idDeLaSceneEditee(s))));
+  return porteurs(projet) === porteurs(projetEdite(s)) ? s : ecrireLeProjet(s, projet, s.sel);
+}
 
-/** La scène éditée de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
- *  (`avecLaValeurDuPorteur`, `sceneAvecLePorteur`), ou son refus. */
-const sceneAvecLaValeur = (s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> =>
-  sceneAvecLePorteur(s, g.porteur, (sorte, donnee, cadre) => avecLaValeurDuPorteur(sorte, donnee, g.chemin, g.valeur, cadre));
+/** Le projet édité de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
+ *  (`avecLaValeurDuPorteur`, `projetAvecLaDonnee`), ou son refus. */
+const projetAvecLaValeur = (s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<ProjetDEdition> =>
+  projetAvecLaDonnee(s, g.porteur, (sorte, donnee, cadre) => avecLaValeurDuPorteur(sorte, donnee, g.chemin, g.valeur, cadre));
 
 /** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`RefusDeValeur`) ; `null` si elle l'écrit. */
 export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): RefusDeValeur | null {
-  const ecrite = sceneAvecLaValeur(s, g);
+  const ecrite = projetAvecLaValeur(s, g);
   return ecrite.ok ? null : ecrite.refus;
 }
 
-/** Pourquoi le porteur de la sélection de la session `s` ne se renomme ni ne se retire : ce qui le désigne hors de sa
- *  scène, sur la carte du monde de son projet, par la table de sa sorte (`ECRITURES_DES_PORTEURS`, `viseHorsDeLaScene`),
- *  dit à l'auteur ; `null` sans lui. #3606 */
-export function refusHorsDeLaScene(s: SessionDEdition): string | null {
-  const porteur = porteurDeLaSel(s.sel);
-  const worldMap = projetEdite(s).worldMap;
-  return (porteur && worldMap && ECRITURES_DES_PORTEURS[porteur.sorte].viseHorsDeLaScene?.(worldMap, idDeLaSceneEditee(s), porteur.id)) ?? null;
-}
-
-/** Pourquoi la session `s` ne supprime pas sa sélection : ce qui désigne son porteur hors de sa scène
- *  (`refusHorsDeLaScene`), ou le refus du retrait de son porteur par la table de sa sorte (`sceneSansLePorteur`), dit à
- *  l'auteur ; `null` si elle la supprime. */
+/** Pourquoi la session `s` ne supprime pas sa sélection : le refus du retrait de son porteur par la table de sa sorte
+ *  (`projetSansLePorteur`), dit à l'auteur ; `null` si elle la supprime. #3606 B8 */
 export function refusDeRetrait(s: SessionDEdition): string | null {
   const porteur = porteurDeLaSel(s.sel);
-  const retrait = porteur && sceneSansLePorteur(sceneEditee(s), porteur);
-  return refusHorsDeLaScene(s) ?? (retrait && !retrait.ok ? retrait.regle : null);
+  const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
+  return retrait && !retrait.ok ? retrait.regle : null;
 }
 
 /** La session après le geste `g`, sur la couche éditée, l'une de la vue (`vueDeLaScene`) : les ponts d'un navire en sont.
@@ -779,10 +777,9 @@ export function refusDeRetrait(s: SessionDEdition): string | null {
  *  cran. Un geste sans objet (retirer la couche 0 ou une couche que seuls les ponts d'un navire posent, une couche
  *  absente, poser un navire dans une scène qui n'est pas à l'échelle de son plan, poser
  *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, écrire une valeur que refuse
- *  `refusDeLaValeur`, sélectionner un porteur absent de sa collection, ajouter un porteur d'une sorte qui ne se crée pas
+ *  `refusDeLaValeur`, sélectionner un porteur absent du projet, ajouter un porteur d'une sorte qui ne se crée pas
  *  par la table, renommer une entrée, un déclencheur, un dialogue ou une rencontre, ou réidentifier une zone d'effet ou un
- *  élément d'un porteur, d'un nom vide ou déjà pris, renommer un porteur que désigne un site hors de sa scène
- *  (`refusHorsDeLaScene`), supprimer un porteur dont le retrait est refusé (`refusDeRetrait`), copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
+ *  élément d'un porteur, d'un nom vide ou déjà pris, supprimer un porteur dont le retrait est refusé (`refusDeRetrait`), copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
  *  dupliquer sans entité sélectionnée, poser une troupe sans personnage sélectionné ou sans case où en poser une copie, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, d'un chapitre qui n'est pas celui qu'elle attend, demander une planche pendant un chargement, régler ou retirer un calque
  *  absent) la rend telle quelle. */
@@ -863,12 +860,12 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'zone':
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
-      const ecrite = sceneAvecLaValeur(s, g);
-      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, collectionsDesPorteurs) : s;
+      const ecrite = projetAvecLaValeur(s, g);
+      return ecrite.ok ? ecrireSurLesPorteurs(s, ecrite.valeur) : s;
     }
     case 'resceller': {
-      const ecrite = sceneAvecLePorteur(s, g.porteur, (sorte, donnee, cadre) => avecLAdresseRescellee(sorte, donnee, g.chemin, cadre));
-      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, collectionsDesPorteurs) : s;
+      const ecrite = projetAvecLaDonnee(s, g.porteur, (sorte, donnee, cadre) => avecLAdresseRescellee(sorte, donnee, g.chemin, cadre));
+      return ecrite.ok ? ecrireSurLesPorteurs(s, ecrite.valeur) : s;
     }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);
@@ -883,19 +880,19 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       }
       const porteur = porteurDeLaSel(s.sel);
       const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommer;
-      if (!porteur || !renommer || refusHorsDeLaScene(s) !== null) return s;
-      const renommee = renommer(scene, porteur.id, g.nom);
-      return renommee === scene ? s : ecrire(s, renommee, selDuPorteur(porteur.sorte, g.nom.trim()));
+      if (!porteur || !renommer) return s;
+      const renomme = renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom);
+      return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, selDuPorteur(porteur.sorte, g.nom.trim()));
     }
     case 'selectionner': {
       const { sorte, id } = g.porteur;
-      return porteursDeLaScene(scene, sorte).some((d) => d.id === id) ? { ...s, sel: selDuPorteur(sorte, id), geste: null, brouillon: null } : s;
+      return porteurDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s), id) ? { ...s, sel: selDuPorteur(sorte, id), geste: null, brouillon: null } : s;
     }
     case 'ajouter': {
       const creer = ECRITURES_DES_PORTEURS[g.sorte].creer;
       if (!creer) return s;
-      const cree = creer(scene);
-      return ecrire(s, cree.scene, selDuPorteur(g.sorte, cree.id));
+      const cree = creer(projetEdite(s), idDeLaSceneEditee(s));
+      return ecrireLeProjet(s, cree.projet, selDuPorteur(g.sorte, cree.id));
     }
     case 'corps': {
       const corps = scene.architecture?.find((c) => c.id === g.id);
@@ -925,8 +922,8 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       if (g.element !== undefined) {
         const porteur = porteurDeLaSel(s.sel);
         const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommerElement;
-        const renommee = porteur && renommer ? renommer(scene, porteur.id, g.element, g.id) : scene;
-        return renommee === scene ? s : ecrire(s, renommee, s.sel);
+        const renomme = porteur && renommer ? renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.element, g.id) : projetEdite(s);
+        return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, s.sel);
       }
       if (s.sel === null) return sceneRenommee(s, scene, g.id);
       if (s.sel?.type !== 'effectZone') return s;
@@ -959,8 +956,8 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'supprimer': {
       const porteur = porteurDeLaSel(s.sel);
-      const retrait = porteur && sceneSansLePorteur(scene, porteur);
-      if (retrait) return retrait.ok && refusHorsDeLaScene(s) === null ? ecrire(s, retrait.valeur) : s;
+      const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
+      if (retrait) return retrait.ok ? ecrireLeProjet(s, retrait.valeur) : s;
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;
     }
     case 'annuler':
@@ -1009,10 +1006,10 @@ function calquesElagues(s: SessionDEdition): { calques?: CalquesDuProjet } {
 }
 
 /** Le porteur de formulaire de la sélection de la session `s` (`porteurDeLaSel`) : le schéma de sa sorte
- *  (`FORMULAIRES`) et sa donnée dans sa collection (`porteursDeLaScene`) ; `undefined` sans lui. */
+ *  (`FORMULAIRES`) et sa donnée dans le projet (`porteurDuProjet`) ; `undefined` sans lui. */
 function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: unknown } | undefined {
   const porteur = porteurDeLaSel(s.sel);
-  return porteur && { schema: FORMULAIRES[porteur.sorte].schema, donnee: porteursDeLaScene(sceneEditee(s), porteur.sorte).find((d) => d.id === porteur.id) };
+  return porteur && { schema: FORMULAIRES[porteur.sorte].schema, donnee: porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee };
 }
 
 /** La session `s`, le chapitre qu'elle attend posé si elle n'en attend aucun et que l'hôte sert le `Source/` : celui de
