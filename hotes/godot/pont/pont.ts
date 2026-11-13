@@ -611,8 +611,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   let ouverte: Tenue | null = null;
   /** La partie que le pont tient pendant qu'il rejoint un salon, avant que son joueur soit assis (méthode `salon`). */
   let jonction: Tenue | null = null;
-  /** Les lignes des miroirs clos que `nouvelles` dira (`quittee`), `null` sans clôture à dire. */
-  let quittee: ZonesDeLaSuite['journal.lignes'] | null = null;
+  /** Les lignes des miroirs clos que `nouvelles` dira (`quittee`), le rang de la suivante et le jour dit
+   *  (`lignesDuJournal`), `null` sans clôture à dire. */
+  let quittee: { lignes: ZonesDeLaSuite['journal.lignes']; rang: number; jour: number | null } | null = null;
   /** Le service `persisterLeHeros` du pont : le héros déjà au roster de son stockage y est mis à jour (#3041). */
   const persisterLeHeros = (hero: Combatant): void => mettreAJourLeRoster(stockage, hero);
   /** Le numéro du premier jeton de la prochaine partie : celui qui suit le dernier de la partie quittée (`quitter`). */
@@ -818,12 +819,14 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
 
   /** La clôture du miroir ou de la jonction `o`, son salon quitté : la partie fermée (`fermerLaPartie`), les réglages
    *  du joueur reposés ; dite (`dite`), la partie relevée d'abord, ce que sa file tenait en lignes du journal
-   *  (`lignesDuJournal`) s'ajoute à `quittee`. Rien ne se sauvegarde. */
+   *  (`lignesDuJournal`) s'ajoute à `quittee`, à la suite de ses lignes pendantes. Rien ne se sauvegarde. */
   const clore = (o: Tenue, dite: boolean): void => {
     if (dite) {
       o.partie.relever();
       const journal = o.file.splice(0).flatMap((r) => r.journal);
-      quittee = [...(quittee ?? []), ...lignesDuJournal(o.partie.etat(), o.lignes, journal, o.jour).lignes];
+      const avant = quittee ?? { lignes: [], rang: o.lignes, jour: o.jour };
+      const { lignes, jour } = lignesDuJournal(o.partie.etat(), avant.rang, journal, avant.jour);
+      quittee = { lignes: [...avant.lignes, ...lignes], rang: avant.rang + journal.length, jour };
     }
     fermerLaPartie(o);
     reposerLesReglages();
@@ -1471,7 +1474,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
             ouverte = j;
             return;
           }
-          j.file.push({ issue: 'appliquee', evenements: [], journal: [{ de: 'journal', texte: issue, heure: j.partie.etat().gameTime }] });
+          j.partie.etat().ecrireAuJournal(issue);
           clore(j, true);
         });
         return { zones: zones() };
@@ -1512,7 +1515,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     nouvelles(json) {
       entreeDe('nouvelles', json, []);
       if (quittee) {
-        const lignes = quittee;
+        const { lignes } = quittee;
         quittee = null;
         return { quittee: { lignes } };
       }

@@ -50,12 +50,15 @@ afterEach(() => {
 const zonesDe = (appel: Appel): ZonesDuSalon => (appel('salon') as unknown as { zones: ZonesDuSalon }).zones;
 const gestes = (z: ZonesDuSalon) => z['salon.gestes'].map((g) => g.id);
 const textesDuJournal = (journal: LigneDuJournal[]) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
-/** Les lignes de la `quittee` de `r`, hors la date d'un jour (`lignesDuJournal`). */
-const quitteeDe = (r: Reponse): string[] => {
+/** Les lignes de la `quittee` de `r`. */
+const lignesDeQuittee = (r: Reponse): Ligne[] => {
   const q = (r as unknown as { quittee?: { lignes: Ligne[] } }).quittee;
   if (!q) throw new Error(`aucune quittee : ${JSON.stringify(r).slice(0, 200)}`);
-  return q.lignes.filter((l) => !l.id.startsWith('journal/jour/')).map((l) => l.texte);
+  return q.lignes;
 };
+const estUneDate = (l: Ligne) => l.id.startsWith('journal/jour/');
+/** Les textes de la `quittee` de `r`, hors la date d'un jour (`lignesDuJournal`). */
+const quitteeDe = (r: Reponse): string[] => lignesDeQuittee(r).filter((l) => !estUneDate(l)).map((l) => l.texte);
 const bouton = (entites: Entite[], id: string, prefixe: string): Bouton =>
   entites.find((e) => e.id === id)!.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith(`${prefixe}/`))!;
 const message = (m: Parameters<typeof serializeMessage>[0]) => JSON.stringify({ data: serializeMessage(m) });
@@ -86,15 +89,31 @@ function quitterLHote(appel: Appel) {
   poserLesReglesMaisonPersistees({});
 }
 
-/** Les trames d'un hôte qui a lancé `la-diligence` (règle maison PLAFOND à 12), Anna assise au siège 1, puis validé
- *  l'ouverture et déplacé le groupe : chaque instantané envoyé au siège 1, et la scène et la case du groupe de sa vue
- *  au départ de chacun. L'hôte quitté ensuite. */
-async function tramesDeLHote() {
+/** Un hôte (règle maison PLAFOND à 12) qui a ouvert une partie et recruté deux prétirés : son `appel` et sa
+ *  dernière `Suite`. */
+function groupeDeLHote() {
   const { appel } = table(stockageEnMemoire(), reseau());
   appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] });
   let s = suiteDe(appel('ouvrir', { graine: 7 }));
   s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/harbull-piedvelu', 'recruter').jeu));
   s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/werner-murrmann', 'recruter').jeu));
+  return { appel, s };
+}
+
+/** Le dernier instantané envoyé au siège 1 par l'hôte de `groupeDeLHote`, Anna assise, sans campagne lancée : le
+ *  lobby. L'hôte quitté ensuite. */
+async function lobbyDeLHote() {
+  const { appel } = groupeDeLHote();
+  const instantanes = instantanesAuSiege1(await hebergerAnna(appel));
+  quitterLHote(appel);
+  return instantanes[instantanes.length - 1];
+}
+
+/** Les trames de l'hôte de `groupeDeLHote` qui a lancé `la-diligence`, Anna assise au siège 1, puis validé
+ *  l'ouverture et déplacé le groupe : chaque instantané envoyé au siège 1, et la scène et la case du groupe de sa vue
+ *  au départ de chacun. L'hôte quitté ensuite. */
+async function tramesDeLHote() {
+  const { appel, s } = groupeDeLHote();
   suiteDe(appel('lancer', bouton(s.vue.zones['groupe.campagnes'], 'campagne/la-diligence', 'lancer').jeu));
   const ws = await hebergerAnna(appel);
   const vues: unknown[][] = [];
@@ -177,10 +196,13 @@ describe('le pont rejoint un salon', () => {
     const { appel } = invite();
     const ws = await assis(appel);
     suiteDe(appel('nouvelles'));
+    const parInstantane: number[] = [];
     for (const [i, texte] of instantanes.entries()) {
       await recevoir(ws, texte);
       expect(sceneEtGroupe(appel), `la vue de l’invité n’est pas celle de l’hôte à l’instantané ${i}`).toEqual(vues[i]);
+      parInstantane.push(textesDuJournal(suiteDe(appel('nouvelles')).journal).length);
     }
+    expect(parInstantane, 'le journal de l’hôte n’est pas arrivé').toEqual([0, 0, 0, 1]);
     expect(ruleOverrides()[PLAFOND.id], 'témoin : les règles de l’hôte reçues').toBe(12);
     const [x, y] = vues[vues.length - 1][1] as number[];
     suiteDe(appel('jouer', { type: 'cliquerLaCase', args: [{ x, y: y + 1 }] }));
@@ -208,14 +230,26 @@ describe('le pont rejoint un salon', () => {
     expect(await intentionsParties(ws), '(c) le verbe de l’hôte est parti').toEqual(partiesEnA);
   });
 
-  it('M3 (d, e) — un invité : `lancer` en règle, un geste qui porte `siege` ne part pas', async () => {
+  it('M3 (d) — le miroir d’un lobby : `lancer` et une règle maison en `regle` avec la raison du noyau, les règles et le stockage intacts', async () => {
+    const instantane = await lobbyDeLHote();
+    const { appel, stockage } = invite();
+    const ws = await assis(appel);
+    await recevoir(ws, instantane);
+    suiteDe(appel('nouvelles'));
+    const avant = [...stockage.contenu];
+    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' }))).toEqual({ categorie: 'regle', message: `lancer : ${t('party.guest.waiting')}` });
+    expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 3] }))).toEqual({ categorie: 'regle', message: `reglages : ${t('houseRules.lockedForGuest')}` });
+    expect(ruleOverrides()[PLAFOND.id], 'les règles de l’hôte ont changé').toBe(12);
+    expect([...stockage.contenu], 'le stockage du joueur a changé').toEqual(avant);
+  });
+
+  it('M3 (e) — un invité : un geste qui porte `siege` ne part pas', async () => {
     const { instantanes } = await tramesDeLHote();
     const { appel } = invite();
     const ws = await assis(appel);
     await recevoir(ws, instantanes[instantanes.length - 1]);
     suiteDe(appel('nouvelles'));
     const envoyes = ws.sent.length;
-    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' })).categorie, 'une partie en cours ne se relance pas').toBe('validation');
     const refus = suiteDe(appel('jouer', { type: 'renvoyerLeHeros', args: ['pretire-harbull-piedvelu'], siege: 1 }));
     expect(textesDuJournal(refus.journal)).toEqual([t('coop.siegeHoteSeul')]);
     expect(refus.vue.zones['groupe.heros'].map((h) => h.id), 'l’intention du siège s’est jouée chez l’invité').toContain('heros/pretire-harbull-piedvelu');
@@ -256,14 +290,17 @@ describe('le pont rejoint un salon', () => {
     }
   });
 
-  it('M4 — une clôture venue du réseau vue par un `salon`, puis une jonction ratée : `quittee` porte les deux', async () => {
+  it('M4 — une clôture venue du réseau vue par un `salon`, puis une jonction ratée : `quittee` porte les deux, chaque ligne son id, la date une fois', async () => {
     const { appel } = invite();
     const ws = await assis(appel);
     ws.dropFromServer(4404, 'room fermée');
     expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
     appel('salon', { type: 'rejoindre', args: ['abc-23', 'Anna'] });
     await vi.advanceTimersByTimeAsync(0);
-    expect(quitteeDe(appel('nouvelles'))).toEqual([t('coop.reason', { reason: 'room fermée' }), t('coop.badCode')]);
+    const lignes = lignesDeQuittee(appel('nouvelles'));
+    expect(lignes.filter((l) => !estUneDate(l)).map((l) => l.texte)).toEqual([t('coop.reason', { reason: 'room fermée' }), t('coop.badCode')]);
+    expect(new Set(lignes.map((l) => l.id)).size, 'deux lignes de la `quittee` portent le même id').toBe(lignes.length);
+    expect(lignes.filter(estUneDate), 'la date est dite plus d’une fois').toHaveLength(1);
     expect(appel('nouvelles')).toEqual(RIEN);
   });
 });
@@ -316,6 +353,17 @@ describe('M6, M7, M8 — chez un invité', () => {
     await vi.advanceTimersByTimeAsync(15_000);
     expect(quitteeDe(appel('nouvelles'))).toEqual([t('coop.joinFailed')]);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('M6 (a) — le stockage du jeton lève à la lecture : la levée dite, `coop.joinFailed`, plus de jonction, `ouvrir` ensuite', async () => {
+    const { appel } = invite(reseau({ stockage: () => ({ getItem: () => { throw new Error('lecture impossible'); }, setItem: () => {} }) }));
+    expect(appel('salon', { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toMatchObject({ ok: true });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [{ message: 'lecture impossible', source: 'reseau' }] });
+    expect(quitteeDe(appel('nouvelles'))).toEqual([t('coop.joinFailed')]);
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(appel('ouvrir', { graine: 1 }), 'la jonction tient encore').toMatchObject({ ok: true });
   });
 
   it('M6 (b) — un instantané que `recevoir` ne sait pas appliquer : la levée dite, le suivant appliqué', async () => {

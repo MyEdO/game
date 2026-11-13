@@ -415,6 +415,17 @@ describe('salon — une ouverture à la fois, que `quitter` achève', () => {
     expect(banc.getState().net).toMatchObject({ mode: 'invite', mySeat: 2 });
   });
 
+  it('P11c — le stockage du jeton lève à la lecture : l’échec de rejoindre, la panne une fois, sans socket ni minuterie', async () => {
+    const boom = new Error('lecture');
+    const pannes: unknown[] = [];
+    const { p } = ports(banc, roomOuverte, (e) => pannes.push(e));
+    salon = creerLeSalon({ ...p, stockage: () => ({ getItem: () => { throw boom; }, setItem: () => {} }) });
+    expect(await salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna')).toBe(t('coop.joinFailed'));
+    expect(pannes).toEqual([boom]);
+    expect(FakeSocket.instances).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it.each(['', '   '])('nom vide ou fait d’espaces (%j) : héberger et rejoindre le disent, rien d’ouvert', async (nom) => {
     const urls: string[] = [];
     salon = creerLeSalon(ports(banc, async (url) => { urls.push(url); return roomOuverte(); }).p);

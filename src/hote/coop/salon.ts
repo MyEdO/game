@@ -232,12 +232,11 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     if (refus) return Promise.resolve(refus);
     const code = codeRaw.trim().toUpperCase();
     if (!FORMAT_DU_CODE.test(code)) return Promise.resolve(t('coop.badCode'));
-    const stored = ports.stockage()?.getItem(cleDuJeton(code)) ?? undefined;
     return new Promise((resolve) => {
       const o = commencer(resolve, ports.minuterie.programmer(() => echouer(get, o, t('coop.joinFailed')), DELAI_DE_CONNEXION_MS));
       let rg: RoomGuest;
       try {
-        rg = new RoomGuest(ports.relais(), code, name, ports, stored);
+        rg = new RoomGuest(ports.relais(), code, name, ports, ports.stockage()?.getItem(cleDuJeton(code)) ?? undefined);
       } catch (erreur) {
         echouer(get, o, t('coop.joinFailed'));
         ports.panne(erreur);
