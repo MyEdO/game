@@ -822,8 +822,8 @@ const ATTENDU = {
   'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:corpus': [
     // +1 le 2026-10-18 (#2586) : les sorties des rendus hôte et win32 sous un `mkdtempSync` d'os.tmpdir(), retiré
-    // par `t.after` ; l'arbre n'est jamais écrit.
-    "scripts/corpus/docs/plateforme-win32.test.mjs",
+    // en finally ; l'arbre n'est jamais écrit.
+    "scripts/corpus/docs/manual-docs-ratchet.test.mjs",
     // #3058 : la fixture forgée du mur de clôture sous un `mkdtempSync` d'os.tmpdir(), retirée en finally ; l'arbre
     // n'est jamais écrit.
     "scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs",
