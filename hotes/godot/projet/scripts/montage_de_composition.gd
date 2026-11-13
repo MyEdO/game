@@ -1479,16 +1479,25 @@ func pile_posee() -> Dictionary:
 
 ## Par liaison de `piece` (une seule pour une pièce rigide), le rang de la liaison de `skin` qui la porte, ajoutée à
 ## `skin` et à `liaisons` (par os et repère) si elle est neuve ; vide si `piece` ne se fond pas : invisible dans le
-## modèle, déjà fondue elle-même, ou hors des cas de `refondre`.
+## modèle, déjà fondue elle-même, ou hors des cas de `refondre`. Le repère d'une pièce rigide dans l'os de son
+## `BoneAttachment3D` compose les repères des nœuds qui l'y portent (chaque axe par la base du porteur, l'origine par son
+## repère entier, `_par`), jamais leurs places dans le monde : il ne dépend pas de la pose du squelette à la refonte
+## (#3935).
 func _renvois(piece: MeshInstance3D, skin: Skin, liaisons: Dictionary) -> PackedInt32Array:
 	var renvois := PackedInt32Array()
 	var attache: BoneAttachment3D = null
+	var dans_l_attache := Transform3D.IDENTITY
 	var noeud: Node = piece
 	while noeud != modele:
 		if not (noeud as Node3D).visible or (noeud != piece and (noeud as Node3D).top_level and attache == null):
 			return renvois
 		if attache == null and noeud is BoneAttachment3D:
 			attache = noeud
+		if attache == null:
+			var porteur := (noeud as Node3D).transform
+			var axes := [Transform3D(porteur.basis, Vector3.ZERO)]
+			dans_l_attache = Transform3D(_par(axes, dans_l_attache.basis.x), _par(axes, dans_l_attache.basis.y),
+					_par(axes, dans_l_attache.basis.z), _par([porteur], dans_l_attache.origin))
 		noeud = noeud.get_parent()
 	if piece.mesh == null or not _surfaces_fondables(piece):
 		return renvois
@@ -1500,11 +1509,7 @@ func _renvois(piece: MeshInstance3D, skin: Skin, liaisons: Dictionary) -> Packed
 		return renvois
 	if attache == null or not _sans_projection(piece):
 		return renvois
-	var repere_ := Node3D.new()
-	attache.add_child(repere_)
-	repere_.global_transform = piece.global_transform
-	renvois.append(_liaison(skin, liaisons, attache.bone_name, repere_.transform))
-	repere_.free()
+	renvois.append(_liaison(skin, liaisons, attache.bone_name, dans_l_attache))
 	return renvois
 
 
