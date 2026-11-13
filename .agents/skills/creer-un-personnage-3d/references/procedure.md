@@ -224,6 +224,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
   dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et la coiffure) nomme ses ids.
 - `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
   sa prise. Une pièce skinnée : `construire(D, materiaux, base)` rend la pièce jointe, ses clés transférées.
+- Une pièce skinnée publiée dont l'atelier est perdu se reprend de son GLB épinglé (#3761) : `modele.py` tient en
+  `from publie import reprendre`, et `donnees.py` ne porte que `MANIFESTE` (les champs publiés, `emplacements` compris),
+  `MATERIAUX` (valeurs des matériaux du GLB publié) et `BUDGET_TRIANGLES` (son compte de triangles). `element/publie.py`
+  garde du publié le repos, les poids, les normales, la découpe en meshes et les clés propres (`visage_inverse`), et
+  retransfère de la base courante les silhouettes et les clés `gabarit_*`. Une pièce neuve ne passe jamais par là.
 
 Le constructeur commun `element/construire.py` ouvre la base épinglée, appelle le modèle, contrôle le budget, pend le
 rigide à l'os de sa prise ou découpe la pièce par zone, exporte l'élément seul et écrit son dossier de production
