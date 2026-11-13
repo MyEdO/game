@@ -182,17 +182,19 @@ type HorsDeLaTable<E, Tb, Ch extends keyof E> = [Exclude<E[Ch], keyof Tb>] exten
 /**
  * L'entrée `E` sous la CHARGE PAR DISCRIMINANT de l'espace `S` (`chargeParDiscriminant`, `requisesParDiscriminant`,
  * `champDeCharge`) : l'union de ses cas, que `refusDeCharge` (`grammaire/collection-cle.ts`) garantit au parse.
- * Une table dont les cas ne sont pas littéraux laisse `E` tel quel.
+ * Une table aux cas non littéraux, ou sans champ de charge parmi les clés de `E`, rend `never` : ses lecteurs rougissent.
  */
-type ChargeDiscriminee<E, S> = [S] extends [{ readonly chargeParDiscriminant: infer Tb extends Readonly<Record<string, readonly string[]>> }]
-  ? string extends keyof Tb
-    ? E
-    : ChampDeChargeDe<S> extends infer Ch extends keyof E
-      ?
-          | { [Cas in keyof Tb]: BrancheDeCharge<E, Tb, S extends { readonly requisesParDiscriminant: infer Rq } ? Rq : Record<never, never>, Ch, Cas> }[keyof Tb]
-          | HorsDeLaTable<E, Tb, Ch>
-      : E
-  : E;
+type ChargeDiscriminee<E, S> = [S] extends [never]
+  ? E
+  : [S] extends [{ readonly chargeParDiscriminant: infer Tb extends Readonly<Record<string, readonly string[]>> }]
+    ? string extends keyof Tb
+      ? never
+      : ChampDeChargeDe<S> extends infer Ch extends keyof E
+        ?
+            | { [Cas in keyof Tb]: BrancheDeCharge<E, Tb, S extends { readonly requisesParDiscriminant: infer Rq } ? Rq : Record<never, never>, Ch, Cas> }[keyof Tb]
+            | HorsDeLaTable<E, Tb, Ch>
+        : never
+    : E;
 
 /** `T` sans ses signatures d'index, cas par cas. */
 type SansIndex<T> = T extends unknown ? { [K in keyof T as string extends K ? never : number extends K ? never : symbol extends K ? never : K]: T[K] } : never;
