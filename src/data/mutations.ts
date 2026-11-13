@@ -7,7 +7,7 @@
  * des mutations par id, et sont elles-mêmes indexées par leur propre `id` (physique/mentale/khorne…).
  * Plusieurs tables peuvent pointer la même mutation SANS collision (LDB : physique/mentale ; Compagnon
  * T1 : une table par dieu du Chaos rejoue les mêmes mutations à d'autres plages). Ce module = TYPES +
- * chargement + tirage ; ajouter/régler = éditer le JSON (mutation OU table),
+ * tirage, sur les datasets que lit `data/index.ts` ; ajouter/régler = éditer le JSON (mutation OU table),
  * jamais ce fichier. Effets modélisés sur la mutation : TOUT en `passive` (GameOp[]) — charMod/moveMod
  * (carac), `ap` (armure naturelle), `grantNaturalWeapon` (arme), `grantTrait`/`grantPsychTrait` (traits) ;
  * descriptif non modélisable en `note`.
@@ -16,9 +16,9 @@ import { RNG, rollDice } from '../engine/dice';
 import { findTableEntry, type DeDeTable } from '../engine/tables';
 import type { Mutation } from '../engine/corruption';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
-import { deDeTirageDe, type RangeeDe } from './rangees';
-import mutationsJson from './mutations.json';
-import mutationTablesJson from './mutationTables.json';
+import { deDeTirageDe } from './rangees';
+import type { EntreeDe } from './datasets';
+import { findMutationById, mutationTables } from './index';
 import { stripBookMarker } from './bookMarker';
 import { indexParId, memoParVersion } from './versionDataset';
 import type { PlayerText } from '../i18n/playerText';
@@ -28,18 +28,9 @@ export type MutationData = Omit<Mutation, 'roll' | 'talentsAcquis'> & { type: 'm
 
 /** Une TABLE de Corruption (`mutationTables.json`) : plages de son dé de tirage `die` → référence de
  *  mutation par id. `id` STABLE (langue-indépendant — 'physique'/'mentale'/'khorne'…) ; `label` = affichage. */
-export interface MutationTable {
-  id: string;
-  type: 'mutationTables';
-  label: string;
-  die: string;
-  entries: RangeeDe<typeof tablesDeCorruption>[];
-}
+export type MutationTable = EntreeDe<typeof tablesDeCorruption>;
 
-const MUTATIONS = mutationsJson as MutationData[];
-const TABLES = mutationTablesJson as MutationTable[];
-const mutationParId = indexParId('mutations', MUTATIONS);
-const tableParId = indexParId('mutationTables', TABLES);
+const tableParId = indexParId('mutationTables', mutationTables);
 
 /** Une LIGNE d'étape d'une table de Corruption : la fourchette de `mutationTables.json` projetée
  *  sur l'**id** STABLE de la mutation référencée, plus son `label` (AFFICHAGE seul — picker de lignes).
@@ -58,7 +49,7 @@ const lignesParTable = memoParVersion(['mutationTables', 'mutations'], () => new
 /** ids de TOUTES les tables de Corruption (LDB, EDOC par Puissance, sous-tables) — source unique des
  *  tables déclarables en étape de séquence, ACCESSEUR (#1692) : une table ajoutée au Codex y entre,
  *  une table retirée en sort, sans rechargement. */
-export const mutationTableIds = memoParVersion('mutationTables', (): readonly string[] => TABLES.map((t) => t.id));
+export const mutationTableIds = memoParVersion('mutationTables', (): readonly string[] => mutationTables.map((t) => t.id));
 
 function tableOf(table: string): MutationTable {
   const t = tableParId(table);
@@ -90,7 +81,7 @@ export function mutationTableRows(table: string): MutationTableRow[] {
   const cache = lignesParTable();
   const connu = cache.get(table);
   if (connu) return connu;
-  const rows = tableOf(table).entries.map((r) => ({ min: r.min, max: r.max, id: r.mutation, label: mutationParId(r.mutation)?.label }));
+  const rows = tableOf(table).entries.map((r) => ({ min: r.min, max: r.max, id: r.mutation, label: findMutationById(r.mutation)?.label }));
   cache.set(table, rows);
   return rows;
 }
@@ -99,14 +90,14 @@ export function mutationTableRows(table: string): MutationTableRow[] {
  *  matérialisation : `rollTableStep` rend déjà l'id de la ligne tirée (l'AUTORITÉ), l'appelant le
  *  CONSOMME au lieu de refaire un lookup sur un dé — naturel ou effectif — qui pourrait diverger. */
 export function mutationOfRow(id: string, roll: number): Mutation {
-  const m = mutationParId(id);
+  const m = findMutationById(id);
   if (!m) throw new Error(`mutations : ligne « ${id} » sans mutation valide (mutations.json)`);
   return { ...m, roll };
 }
 
 /** Le DÉ DE TIRAGE de la table `table` (`die`), lu VIVANT à l'appel (`deDeTirageDe`). */
 export function mutationTableDie(table: string): DeDeTable {
-  return deDeTirageDe<typeof tablesDeCorruption>(TABLES, table);
+  return deDeTirageDe<typeof tablesDeCorruption>(mutationTables, table);
 }
 
 function mutationOfRange(table: string, roll: number, range: { mutation: string } | undefined): Mutation {
@@ -149,6 +140,6 @@ export function rollMutation(table: string, rng: RNG, forcedRoll?: number): Muta
 /** Mutation EXPLICITE par **id** (sans tirage — ex. trait « Mutation (Cornes asymétriques) » résolu en id
  *  au spawn). null si inconnue. */
 export function mutationById(id: string): Mutation | null {
-  const m = mutationParId(id);
+  const m = findMutationById(id);
   return m ? { ...m, roll: 0 } : null;
 }

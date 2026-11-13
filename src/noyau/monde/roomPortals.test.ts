@@ -109,6 +109,14 @@ describe('roomPortals — graphe dérivé des pièces', () => {
     expect(portals.some((portal) => !portal.exterior)).toBe(false);
   });
 
+  it('l’accès d’une arête à plusieurs segments est celui du PREMIER segment du document', () => {
+    const kinds = (walls: WallSeg[]) => roomPortals(sceneWithRooms(walls)).filter((portal) => !portal.exterior).map((portal) => portal.kind);
+    const porte: WallSeg = { x: 1, y: 1, side: 'E', door: true, closed: true };
+    const mur: WallSeg = { x: 1, y: 1, side: 'E' };
+    expect(kinds([porte, mur])).toEqual(['door-closed', 'door-closed']);
+    expect(kinds([mur, porte])).toEqual([]);
+  });
+
   it('omet un faux passage entre deux surfaces séparées par une falaise', () => {
     const scene = sceneWithRooms();
     scene.layers[0].height = new Array(20).fill(0);

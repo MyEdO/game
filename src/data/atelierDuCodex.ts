@@ -8,6 +8,7 @@ import { validateDataset } from './schemas/validate';
 import { serializeDataset } from './serialize';
 import { entryKey } from './index';
 import { opsMissingRefs } from './refsDOp';
+import { ecartsDeLaRegle } from './schemas/defs/reglesOptionnelles';
 
 type Entry = Record<string, unknown>;
 
@@ -60,41 +61,10 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
   // Ops MÉCANIQUES portées par l'entrée (`passive`, `effects`, `ops`, rangées de table…) : une réf de
   // registre REQUISE non élue rend l'op inapplicable — source unique `OP_REF_FIELDS`.
   errors.push(...opsMissingRefs(entry));
-  if (categoryKey === 'reglesOptionnelles') errors.push(...ruleValueErrors(entry));
+  if (categoryKey === 'reglesOptionnelles') errors.push(...ecartsDeLaRegle(entry));
   return errors;
 }
 
-/**
- * Règle optionnelle (V9 #1318) : sa VALEUR doit être du type que son `kind` promet. `ruleValueSchema`
- * est l'union booléen|nombre|chaîne — elle laisse donc passer `"false"` sur un `flag`, et le moteur
- * (`rule(id) === true`) ne reconnaîtrait plus rien : la règle s'éteindrait SANS UN MOT. Refus
- * BRUYANT ici, en plus du contrôle typé du formulaire (`RuleValueField`) : une donnée éditée à la
- * main hors du Codex passe par cette porte au premier enregistrement.
- */
-function ruleValueErrors(entry: Entry): string[] {
-  const out: string[] = [];
-  const kind = entry.kind;
-  const options = Array.isArray(entry.options) ? (entry.options as unknown[]).filter((o) => typeof o === 'string') as string[] : [];
-  const check = (champ: string, v: unknown): void => {
-    if (v === undefined) return;
-    if (kind === 'flag' && typeof v !== 'boolean') out.push(`${champ} : un interrupteur (kind « flag ») vaut un booléen, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
-    if (kind === 'param' && typeof v !== 'number') out.push(`${champ} : un nombre (kind « param ») vaut un nombre, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
-    if (kind === 'mode') {
-      if (typeof v !== 'string') out.push(`${champ} : un choix (kind « mode ») vaut une des valeurs proposées`);
-      else if (options.length > 0 && !options.includes(v)) out.push(`${champ} : « ${v} » n'est pas une des valeurs proposées (${options.join(', ')})`);
-    }
-  };
-  check('default', entry.default);
-  const action = entry.action as { when?: unknown } | undefined;
-  if (action && typeof action === 'object') check('action.when', action.when);
-  if (kind === 'mode' && options.length < 2) out.push('options : un choix (kind « mode ») propose au moins deux valeurs');
-  if (kind === 'param' && (typeof entry.min !== 'number' || typeof entry.max !== 'number')) out.push('min/max : un nombre (kind « param ») déclare ses bornes');
-  if (kind === 'param' && typeof entry.default === 'number' && typeof entry.min === 'number' && typeof entry.max === 'number'
-      && (entry.default < entry.min || entry.default > entry.max)) {
-    out.push(`default : ${entry.default} sort des bornes [${entry.min}, ${entry.max}]`);
-  }
-  return out;
-}
 
 /** Échantillons pour `inferFields` d'une catégorie éditable (tableau d'entités, objet unique, ou
  *  valeurs d'un Record keyé). SOURCE UNIQUE des champs inférés — utilisée par `CodexEdit` ET le

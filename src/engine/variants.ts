@@ -1,7 +1,7 @@
 /**
  * Résolution de VARIANTES réglées (#563/#564 — doctrine user 2026-07-17 : « jamais 2 talents
  * différents », les règles optionnelles activent une variante de la MÊME entrée). `when.rule`
- * référence LE registre `OPTIONAL_RULES` (`src/engine/policy.ts:43`), lu par `rule(id)` — jamais un
+ * référence LE registre `OPTIONAL_RULES` (`src/engine/policy.ts`), lu par `rule(id)` — jamais un
  * booléen/flag parallèle (garde #564, `scripts/guards`).
  */
 import type { Variant } from '../data/schemas/grammaire/valeurs';

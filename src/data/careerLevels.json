@@ -1015,7 +1015,7 @@
     ],
     "trappings": [
       {
-        "text": "Longue vue"
+        "id": "longue-vue"
       },
       {
         "label": "Réseau d'informateurs",
@@ -2154,7 +2154,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "pinceau"
           },
@@ -2656,7 +2657,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "arme-simple"
           },
@@ -2740,7 +2742,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "main-gauche"
           },
@@ -3740,7 +3743,8 @@
         "id": "costume-de-cour"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "fleuret"
           },
@@ -3842,7 +3846,8 @@
         "text": "Cheval de selle avec selle et harnais ou Diligence"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "main-gauche"
           },
@@ -3990,7 +3995,8 @@
         }
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "fleuret",
             "qualityChoice": true
@@ -4682,7 +4688,13 @@
         "id": "lance"
       },
       {
-        "text": "Armure de plates"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
       },
       {
         "id": "heaume"
@@ -4789,7 +4801,8 @@
     ],
     "trappings": [
       {
-        "text": "Grand heaume à cimier"
+        "id": "heaume",
+        "spec": "grand, à cimier"
       },
       {
         "label": "Écuyer",
@@ -5000,7 +5013,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "text": "Arme à deux mains"
           },
@@ -5194,7 +5208,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "fleau"
           },
@@ -5207,7 +5222,8 @@
         "id": "arme-simple"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "filet"
           },
@@ -5217,7 +5233,8 @@
         ]
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "bouclier"
           },
@@ -5471,10 +5488,12 @@
         "id": "pansiere-ogre"
       },
       {
-        "text": "Vêtements locaux"
+        "id": "vetements",
+        "spec": "locaux"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "text": "Arme à deux mains"
           },
@@ -6364,7 +6383,13 @@
         "nature": "personne"
       },
       {
-        "text": "Armure de plates"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
       },
       {
         "label": "Sens de l'humour",
@@ -6435,7 +6460,8 @@
         "id": "coup-de-poing"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "capuchon"
           },
@@ -7093,7 +7119,8 @@
         "type": "creature"
       },
       {
-        "text": "Selle"
+        "id": "selle-et-harnais",
+        "spec": "selle"
       }
     ],
     "characteristics": [
@@ -7310,7 +7337,8 @@
         }
       },
       {
-        "text": "Assortiment de pièges"
+        "id": "piege-a-animaux",
+        "spec": "assortiment"
       },
       {
         "id": "veste-de-cuir"
@@ -7856,7 +7884,10 @@
         }
       },
       {
-        "text": "Ensemble d'ustensiles de cuisine"
+        "id": "marmite"
+      },
+      {
+        "id": "casserole"
       },
       {
         "id": "outils-professionnels",
@@ -8380,7 +8411,8 @@
         "id": "arme-simple"
       },
       {
-        "text": "Haillons"
+        "id": "vetements",
+        "spec": "haillons"
       }
     ],
     "characteristics": [
@@ -8431,7 +8463,8 @@
         "id": "arme-simple"
       },
       {
-        "text": "Haillons"
+        "id": "vetements",
+        "spec": "haillons"
       }
     ],
     "characteristics": [
@@ -8480,7 +8513,8 @@
         "id": "arme-simple"
       },
       {
-        "text": "Haillons"
+        "id": "vetements",
+        "spec": "haillons"
       },
       {
         "label": "Respect des autres Frères Loups",
@@ -9677,7 +9711,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "arbalete-de-poing"
           },
@@ -10069,7 +10104,8 @@
         "label": "Chariot (Scène)"
       },
       {
-        "text": "Garde-robe avec costumes et accessoires"
+        "id": "costume",
+        "spec": "garde-robe, avec accessoires"
       },
       {
         "label": "Troupe de saltimbanques",
@@ -10407,7 +10443,8 @@
         "spec": "de boucher"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "arme-simple",
             "spec": "Couperet"
@@ -10487,7 +10524,8 @@
     ],
     "trappings": [
       {
-        "text": "Os d'animaux sculptés (Grimoire)"
+        "id": "grimoire",
+        "spec": "os d'animaux sculptés"
       },
       {
         "id": "outils-professionnels",
@@ -10546,13 +10584,15 @@
         "nature": "personne"
       },
       {
-        "text": "Sac sanglant"
+        "id": "sac",
+        "spec": "sanglant"
       },
       {
         "text": "10 Ingrédients ésotériques"
       },
       {
-        "text": "Collection de crânes"
+        "id": "crane",
+        "spec": "collection"
       }
     ],
     "characteristics": [
@@ -12678,7 +12718,8 @@
         "id": "grand-sac"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "masque"
           },
@@ -13264,7 +13305,8 @@
     ],
     "trappings": [
       {
-        "text": "Piège à anguilles"
+        "id": "piege-a-animaux",
+        "spec": "à anguilles"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -13624,7 +13666,7 @@
         "id": "sextant"
       },
       {
-        "text": "Longue vue"
+        "id": "longue-vue"
       }
     ],
     "characteristics": [
@@ -14542,7 +14584,8 @@
     ],
     "trappings": [
       {
-        "text": "Document falsifié"
+        "id": "document-legal",
+        "spec": "falsifié"
       },
       {
         "id": "vetements",
@@ -14624,7 +14667,8 @@
         "id": "outils-de-crochetage"
       },
       {
-        "text": "Plusieurs documents falsifiés"
+        "id": "document-legal",
+        "spec": "plusieurs, falsifiés"
       }
     ],
     "characteristics": [
@@ -16458,7 +16502,8 @@
         "id": "grappin"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "masque"
           },
@@ -17202,7 +17247,10 @@
         "id": "fontes-de-selle"
       },
       {
-        "text": "Vivres pour 2 semaines"
+        "id": "ration",
+        "count": {
+          "fixed": 16
+        }
       },
       {
         "id": "tente"
@@ -17403,7 +17451,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "harpon"
           },
@@ -17518,7 +17567,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "label": "Ferme",
             "nature": "immeuble"
@@ -18117,7 +18167,8 @@
         "spec": "de pacotille"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "paquet-de-cartes"
           },
@@ -18869,7 +18920,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "bouclier"
           },
@@ -19232,14 +19284,21 @@
         "wildcard": "arme"
       },
       {
-        "text": "Armure de plates"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
       },
       {
         "id": "destrier-cheval-de-guerre-lourd",
         "type": "creature"
       },
       {
-        "id": "heaume"
+        "id": "heaume",
+        "spec": "casque"
       },
       {
         "label": "Blason personnel",
@@ -19514,14 +19573,21 @@
         "wildcard": "arme"
       },
       {
-        "text": "Armure de plates"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
       },
       {
         "id": "destrier-cheval-de-guerre-lourd",
         "type": "creature"
       },
       {
-        "id": "heaume"
+        "id": "heaume",
+        "spec": "casque"
       },
       {
         "id": "lance"
@@ -19634,7 +19700,8 @@
         "nature": "personne"
       },
       {
-        "text": "Grand heaume avec l'emblème du Soleil"
+        "id": "heaume",
+        "spec": "grand, avec l'emblème du soleil"
       },
       {
         "label": "Grande unité ou plusieurs petites unités de chevaliers",
@@ -19793,7 +19860,13 @@
     ],
     "trappings": [
       {
-        "text": "Armure de plates"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
       },
       {
         "id": "cape",
@@ -20067,7 +20140,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "bijoux",
             "spec": "anneau orné d'un emblème de panthère"
@@ -20079,7 +20153,13 @@
         ]
       },
       {
-        "text": "Armure de plates"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
       },
       {
         "id": "peau-de-grand-felin"
@@ -20093,7 +20173,7 @@
       },
       {
         "id": "heaume",
-        "spec": "avec blason bestial"
+        "spec": "grand, avec blason bestial"
       },
       {
         "id": "lance"
@@ -20423,7 +20503,16 @@
     ],
     "trappings": [
       {
-        "text": "Armure de plates complète"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
+      },
+      {
+        "id": "heaume"
       }
     ],
     "characteristics": [
@@ -21408,7 +21497,16 @@
     ],
     "trappings": [
       {
-        "text": "Armure de plates"
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
+      },
+      {
+        "id": "heaume"
       },
       {
         "id": "chapeau",
@@ -23028,7 +23126,7 @@
         "spec": "de marin"
       },
       {
-        "text": "Outils"
+        "id": "outils-professionnels"
       }
     ],
     "characteristics": [
@@ -23622,7 +23720,7 @@
         "text": "Cartes de navigation"
       },
       {
-        "text": "Longue-vue"
+        "id": "longue-vue"
       },
       {
         "id": "sextant"
@@ -24343,7 +24441,8 @@
         "spec": "grand"
       },
       {
-        "text": "Journal du capitaine"
+        "id": "journal",
+        "spec": "du capitaine"
       }
     ],
     "characteristics": [
@@ -24534,7 +24633,8 @@
     ],
     "trappings": [
       {
-        "text": "Livre sacré de Manann"
+        "id": "livre-religion",
+        "spec": "sacré de Manann"
       },
       {
         "id": "lance",
@@ -26521,7 +26621,8 @@
         "nature": "immeuble"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "atelier",
             "spec": "Ingénierie"
@@ -27003,7 +27104,8 @@
         "nature": "personne"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "sphere-armillaire",
             "spec": "de valeur"
