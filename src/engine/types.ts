@@ -12,7 +12,7 @@ import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { CibleEtendue, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, NatureDeMention, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 import type { ActionId, NightStakeId } from '../data/index';
 
@@ -1372,6 +1372,13 @@ export interface TerreurSubie {
   groupes: string[];
 }
 
+/** Une mention portée : sa nature, son libellé imprimé et son nombre. */
+export interface MentionDuPorteur {
+  nature: NatureDeMention;
+  label: string;
+  nombre: number;
+}
+
 export interface Combatant {
   id: string;
   /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
@@ -1641,6 +1648,8 @@ export interface Combatant {
    *  début de séance (`restoreFortune`, LDB 17 l.41). Persisté (party + writeback de combat). */
   resistanceUsed?: string[];
   motivation?: string;
+  /** Les mentions de ses dotations (`DotationDeMention`), posées par `doterLePorteur` ; absent si aucune. #4053 */
+  mentions?: MentionDuPorteur[];
   /** Signe astral (« Naissance sous les Étoiles », ADE II) — `id` STABLE du signe (≠ libellé —
    *  multilangue-safe) ; résolu à l'affichage par `findStarById`. */
   star?: string;

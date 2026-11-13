@@ -246,6 +246,8 @@ const NOMMES = [
   'groupe|heros|navire|membreAuHasard|target|caster',
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
+  // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
+  'personne|immeuble|titre|intangible',
 ].sort();
 
 /**
