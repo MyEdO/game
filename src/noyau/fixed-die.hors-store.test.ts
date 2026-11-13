@@ -23,6 +23,7 @@ import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 /** Les lignes du journal de combat (`journaliser` : combat ouvert → `battle.log`). */
@@ -339,7 +340,7 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [TBL]: {
       label: 'Table de la marque',
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`ligne (dé ${die})`],
     } }, appliers: { ...tablesDuJeu().appliers, markSpy: spyApplier(applied, (s) => `conséquence de ${s.id} (dé ${s.table!.result!.roll})`, (s) => ({ consequences: freeCons([`conséquence de ${s.id} (dé ${s.table!.result!.roll})`]) })) } });

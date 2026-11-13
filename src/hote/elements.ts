@@ -79,8 +79,8 @@ export type EntreeDeLAccueil = 'jouer' | 'reprendre' | 'combat' | 'atelier' | 'e
  *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, la partie à quitter, un geste sur le
  *  roster de l'hôte (`groupe.ts`), le panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui
  *  où sauvegarder (`sauvegardes.ts`), le panneau des réglages à ouvrir ou à fermer (`reglages.ts`), l'entrée de
- *  l'accueil à suivre (`accueil.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil };
+ *  l'accueil à suivre (`accueil.ts`), le salon à quitter (`salon.ts`). */
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot } | { reglages: boolean } | { accueil: EntreeDeLAccueil } | { salon: 'quitter' };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
@@ -109,6 +109,38 @@ export type Saisie =
  *  pas. */
 export interface Formulaire { type: 'formulaire'; id: string; libelle: string; verbe: string; focus: boolean; refus: string | null; champs: Saisie[] }
 
+/**
+ * @contrat Vue
+ * Un curseur : un nombre réglé en glissant ou saisi, sans bouton (#4081).
+ */
+export interface Curseur {
+  /** `curseur`. */
+  type: 'curseur';
+  /** stable dans sa zone. */
+  id: string;
+  /** la variation du thème de son libellé. */
+  ton: Ton;
+  /** ce qu'il règle. */
+  libelle: string;
+  /** sa valeur courante. */
+  valeur: number;
+  /** sa borne basse. */
+  min: number;
+  /** sa borne haute. */
+  max: number;
+  /** l'écart entre deux valeurs voisines. */
+  pas: number;
+  /**
+   * le verbe du geste joué à chaque valeur que le joueur lui donne :
+   * `{ type: verbe, args: [...arguments, valeur] }`.
+   */
+  verbe: string;
+  /** les arguments de son geste, avant la valeur. */
+  arguments: unknown[];
+  /** pourquoi il ne se règle pas, `null` s'il se règle. */
+  refus: string | null;
+}
+
 /** Un point du plan : son nom, sa position dans le cadre du plan (0..1 sur chaque axe), son ton, et les éléments
  *  qui se posent sous lui. */
 export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number; y: number; ton: Ton; elements: Element[] }
@@ -134,7 +166,7 @@ export interface Fond { type: 'fond'; id: string; fond: string }
 export interface Paysage { type: 'paysage'; id: string; paysage: IdDeCouche[] }
 
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Paysage | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Paysage | Bouton | Choix | Curseur | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */

@@ -7,7 +7,7 @@
  * — la classification des décors/créatures est une extrapolation des étalons ; celle des STRUCTURES
  * d'arête est authored et sourcée (`couvertPenalty`, `AA 10 l.23`).
  */
-import { Scene, tileAt, areteOcculteEntre, heightAt, sceneMetresPerTile, edgeOf, structureAt, structureIsDown } from './scene';
+import { Scene, tileAt, wallOnSight, heightAt, sceneMetresPerTile, edgeOf, structureAt, structureIsDown } from './scene';
 import { terrainOpaque } from './terrain';
 import { findPropById, findStructureById } from '../../data';
 import { decorsEnCase } from './decorIndex';
@@ -37,39 +37,6 @@ export function tilesBetween(a: Pt, b: Pt): Pt[] {
 }
 
 const adjacent = (p: Pt, q: Pt): boolean => chebyshev(p, q) <= 1;
-
-/** Un mur d'arête (`Scene.walls`) est-il franchi par la ligne `from`→`to` ? Bloque la vue
- *  (« pas à travers les murs »). Le test PAR ARÊTE est injectable (`edgeBlocks`) : le défaut interroge
- *  l'OPACITÉ de l'arête (`areteOcculte` sur l'index d'arêtes `noyau/monde/wallIndex`, O(1) par pas) — jamais
- *  sa franchissabilité : une Ligne de Vue n'a pas à savoir si l'on PASSE, et une herse à barreaux se
- *  regarde à travers sans s'ouvrir. La vision injecte un prédicat dont le verdict est déjà CUIT (Set
- *  d'arêtes de l'`Occ`, même verdict). Les diagonales ne croisent pas d'arête cardinale. */
-export function wallOnSight(scene: Scene, from: Pt, to: Pt, z = 0, edgeBlocks?: (ax: number, ay: number, bx: number, by: number) => boolean): boolean {
-  if (!scene.walls?.length) return false;
-  const blk = edgeBlocks ?? ((ax, ay, bx, by) => areteOcculteEntre(scene, ax, ay, bx, by, z));
-  // Supercover de `from` à `to`, extrémités incluses (ce que `tilesBetween`, strictement entre, ne
-  // donne pas), parcouru EN PLACE : ce chemin est le plus chaud du brouillard — un rayon par case
-  // vue, une case par pas — et n'a besoin d'aucun tableau ni point intermédiaire matérialisé.
-  const steps = chebyshev(to, from);
-  let ax = from.x, ay = from.y;
-  for (let i = 1; i <= steps; i++) {
-    const bx = Math.round(from.x + ((to.x - from.x) * i) / steps);
-    const by = Math.round(from.y + ((to.y - from.y) * i) / steps);
-    const px = ax, py = ay;
-    ax = bx; ay = by;
-    if (px !== bx && py !== by) {
-      // Pas DIAGONAL : le rayon franchit le coin partagé. Bloqué si les DEUX contournements
-      // orthogonaux du coin (via (bx,py) et via (px,by)) sont murés — un mur droit bloque, mais
-      // on peut « jeter un œil » au-delà de l'EXTRÉMITÉ d'un mur (un seul côté muré).
-      const blocked1 = blk(px, py, bx, py) || blk(bx, py, bx, by);
-      const blocked2 = blk(px, py, px, by) || blk(px, by, bx, by);
-      if (blocked1 && blocked2) return true;
-    } else if (blk(px, py, bx, by)) {
-      return true;
-    }
-  }
-  return false;
-}
 
 /**
  * Cases d'un nuage de fumée (Souffle (Fumée)) : disque de Chebyshev `radius` autour de `center`
@@ -192,7 +159,7 @@ export function lineOfSightCover(
   if (sameFloor && wallOnSight(scene, from, to, from.z ?? 0)) return { blocked: true, cover: 'totale' };
   // Angle mort VERTICAL (dead ground) : le parapet masque la vue trop plongeante sur ce qui est COLLÉ
   // au pied du perchoir — symétrique (la cible en contrebas ne voit pas non plus le tireur en hauteur).
-  // Seuil DESIGN (comme `STEP_MAX_M`, relief.ts — aucune règle RAW ne chiffre cette géométrie) : bloqué
+  // Seuil de géométrie de la grille, comme `STEP_MAX_M` (`relief.ts`, #151) : bloqué
   // quand l'écart de hauteur (m, `heightAt`) dépasse la distance horizontale parcourue (m) — angle de
   // dépression > 45°. Au-delà de ce seuil, la vue par-dessus le parapet redevient dégagée (tests cross-z).
   if (!sameFloor) {

@@ -1165,10 +1165,21 @@
     ],
     "trappings": [
       {
-        "text": "Bateau de transport fluvial ou Chariot",
-        "count": {
-          "fixed": 2
-        }
+        "pick": 1,
+        "of": [
+          {
+            "id": "barge-fluviale",
+            "type": "vehicle",
+            "label": "Bateau de transport fluvial"
+          },
+          {
+            "id": "chariot-leger",
+            "type": "vehicle",
+            "count": {
+              "fixed": 2
+            }
+          }
+        ]
       },
       {
         "id": "licence-de-guilde"
@@ -1292,10 +1303,24 @@
     ],
     "trappings": [
       {
-        "text": "Bateau de transport fluvial (2) ou Chariot",
-        "count": {
-          "fixed": 4
-        }
+        "pick": 1,
+        "of": [
+          {
+            "id": "barge-fluviale",
+            "type": "vehicle",
+            "count": {
+              "fixed": 2
+            },
+            "label": "Bateau de transport fluvial"
+          },
+          {
+            "id": "chariot-leger",
+            "type": "vehicle",
+            "count": {
+              "fixed": 4
+            }
+          }
+        ]
       },
       {
         "label": "Grand domaine",
@@ -2088,7 +2113,14 @@
         "label": "Grand chien féroce"
       },
       {
-        "text": "Sac d'appâts empoisonnés (10 doses de Brise-Cœur)"
+        "id": "sac",
+        "spec": "d'appâts empoisonnés"
+      },
+      {
+        "id": "brise-coeur",
+        "count": {
+          "fixed": 10
+        }
       }
     ],
     "characteristics": [
@@ -2873,10 +2905,12 @@
     ],
     "trappings": [
       {
-        "text": "Armes de qualité",
-        "count": {
-          "fixed": 2
-        }
+        "wildcard": "arme",
+        "qualityChoice": true
+      },
+      {
+        "wildcard": "arme",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -3013,7 +3047,7 @@
         "id": "encre"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "fixed": 10
         }
@@ -3349,7 +3383,8 @@
         "nature": "personne"
       },
       {
-        "text": "Piegons voyageurs"
+        "label": "Pigeons voyageurs",
+        "nature": "bete"
       },
       {
         "id": "plume-d-oie"
@@ -3547,7 +3582,25 @@
     ],
     "trappings": [
       {
-        "text": "Arme simple ou arc avec 10 flèches"
+        "pick": 1,
+        "of": [
+          {
+            "id": "arme-simple"
+          },
+          {
+            "lot": [
+              {
+                "id": "arc"
+              },
+              {
+                "id": "fleche",
+                "count": {
+                  "fixed": 10
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "cheval-de-monte",
@@ -3843,7 +3896,24 @@
         "qualityChoice": true
       },
       {
-        "text": "Cheval de selle avec selle et harnais ou Diligence"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "cheval-de-monte",
+                "type": "creature"
+              },
+              {
+                "id": "selle-et-harnais"
+              }
+            ]
+          },
+          {
+            "id": "diligence",
+            "type": "vehicle"
+          }
+        ]
       },
       {
         "pick": 1,
@@ -5016,7 +5086,10 @@
         "pick": 1,
         "of": [
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           },
           {
             "id": "hallebarde"
@@ -5214,7 +5287,10 @@
             "id": "fleau"
           },
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           }
         ]
       },
@@ -5495,7 +5571,10 @@
         "pick": 1,
         "of": [
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           },
           {
             "id": "pistolet-ogre"
@@ -5609,7 +5688,7 @@
         "spec": "éprouvée au combat"
       },
       {
-        "text": "Contrat de mercenaire"
+        "id": "contrat-de-mercenaire"
       }
     ],
     "characteristics": [
@@ -6102,7 +6181,7 @@
     ],
     "trappings": [
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -6115,7 +6194,7 @@
         "id": "carte"
       },
       {
-        "text": "Ordres de mission"
+        "id": "ordres-de-mission"
       },
       {
         "label": "Unité de Soldats",
@@ -6274,7 +6353,21 @@
         "id": "plastron-de-cuir"
       },
       {
-        "text": "Arme de lancer ou d'entraves"
+        "pick": 1,
+        "of": [
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "lancer"
+            }
+          },
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "entraves"
+            }
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -6329,7 +6422,21 @@
         "text": "Caparaçon pour blaireau (2 PA sur la tête et le torse)"
       },
       {
-        "text": "Arme (Base) ou Arme (cavalerie)"
+        "pick": 1,
+        "of": [
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "base"
+            }
+          },
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "cavalerie"
+            }
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -6606,7 +6713,27 @@
         "id": "lacet-etrangleur"
       },
       {
-        "text": "Poison"
+        "pick": 1,
+        "of": [
+          {
+            "id": "brise-coeur"
+          },
+          {
+            "id": "lotus-noir"
+          },
+          {
+            "id": "baiser-de-la-vouivre"
+          },
+          {
+            "id": "boursoufleur"
+          },
+          {
+            "id": "long-sommeil"
+          },
+          {
+            "id": "sibilance"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -7395,7 +7522,16 @@
         "qualityChoice": true
       },
       {
-        "text": "Armure de cuir avec au moins 1 Atout"
+        "id": "veste-de-cuir",
+        "qualityChoice": true
+      },
+      {
+        "id": "jambieres-en-cuir",
+        "qualityChoice": true
+      },
+      {
+        "id": "calotte-de-cuir",
+        "qualityChoice": true
       },
       {
         "id": "fleche-elfique",
@@ -7713,7 +7849,8 @@
     ],
     "trappings": [
       {
-        "text": "Parc de diligences et de chevaux"
+        "label": "Parc de diligences et de chevaux",
+        "nature": "vehicule"
       },
       {
         "id": "carte"
@@ -8901,10 +9038,27 @@
     ],
     "trappings": [
       {
-        "text": "Arme à poudre noire"
+        "wildcard": "arme",
+        "groupe": {
+          "id": "poudre-noire"
+        }
       },
       {
-        "text": "Munitions"
+        "pick": 1,
+        "of": [
+          {
+            "id": "balle-et-poudre",
+            "count": {
+              "fixed": 12
+            }
+          },
+          {
+            "id": "petites-munitions-et-poudre",
+            "count": {
+              "fixed": 12
+            }
+          }
+        ]
       },
       {
         "id": "grappin"
@@ -9983,7 +10137,16 @@
     ],
     "trappings": [
       {
-        "text": "Armes de lancer"
+        "wildcard": "arme",
+        "groupe": {
+          "id": "lancer"
+        }
+      },
+      {
+        "wildcard": "arme",
+        "groupe": {
+          "id": "lancer"
+        }
       },
       {
         "id": "costume"
@@ -10046,7 +10209,8 @@
     ],
     "trappings": [
       {
-        "text": "Animal dressé"
+        "label": "Animal dressé",
+        "nature": "bete"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -10363,7 +10527,7 @@
     ],
     "trappings": [
       {
-        "text": "Bon de commande"
+        "id": "bon-de-commande"
       },
       {
         "id": "atelier",
@@ -10791,7 +10955,7 @@
         "nature": "titre"
       },
       {
-        "text": "Diplôme"
+        "id": "diplome"
       }
     ],
     "characteristics": [
@@ -10846,7 +11010,7 @@
     ],
     "trappings": [
       {
-        "id": "mortier"
+        "id": "mortier-universitaire"
       },
       {
         "id": "robes"
@@ -11642,10 +11806,11 @@
     ],
     "trappings": [
       {
-        "text": "Tenue d'apparat"
+        "id": "costume-de-cour",
+        "spec": "tenue d'apparat"
       },
       {
-        "text": "Lettre d'engagement"
+        "id": "lettre-d-engagement"
       }
     ],
     "characteristics": [
@@ -12282,7 +12447,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       }
     ],
     "characteristics": [
@@ -12920,7 +13085,8 @@
         "id": "necessaire-de-deguisement"
       },
       {
-        "text": "Flotille de bateaux de transport fluvial"
+        "label": "Flottille de bateaux de transport fluvial",
+        "nature": "vehicule"
       }
     ],
     "characteristics": [
@@ -13421,7 +13587,18 @@
     ],
     "trappings": [
       {
-        "text": "Cabane ou Bateau de transport fluvial"
+        "pick": 1,
+        "of": [
+          {
+            "label": "Cabane",
+            "nature": "immeuble"
+          },
+          {
+            "id": "barge-fluviale",
+            "type": "vehicle",
+            "label": "Bateau de transport fluvial"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -13653,10 +13830,13 @@
     ],
     "trappings": [
       {
-        "text": "Cartes maritimes"
+        "id": "carte",
+        "spec": "maritimes"
       },
       {
-        "text": "Voilier"
+        "id": "cogue",
+        "type": "vehicle",
+        "label": "Voilier"
       },
       {
         "label": "Équipage",
@@ -13918,7 +14098,8 @@
     ],
     "trappings": [
       {
-        "text": "Flotille de bateaux de transport fluvial"
+        "label": "Flottille de bateaux de transport fluvial",
+        "nature": "vehicule"
       },
       {
         "label": "Équipage de Naufrageurs",
@@ -17032,7 +17213,8 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Chenil avec chiens de chasse"
+        "label": "Chenil avec chiens de chasse",
+        "nature": "bete"
       }
     ],
     "characteristics": [
@@ -17580,7 +17762,8 @@
         ]
       },
       {
-        "text": "Troupeau de rhinox ou d'autres Grandes bêtes"
+        "label": "Troupeau de rhinox ou d'autres grandes bêtes",
+        "nature": "bete"
       }
     ],
     "characteristics": [
@@ -19128,7 +19311,41 @@
         "spec": "flamboyants"
       },
       {
-        "text": "Paire de pistolets avec Poudre noire et Munitions ou Arc avec Carquois de 10 flèches"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "pistolet",
+                "count": {
+                  "fixed": 2
+                }
+              },
+              {
+                "id": "balle-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          },
+          {
+            "lot": [
+              {
+                "id": "arc"
+              },
+              {
+                "id": "carquois"
+              },
+              {
+                "id": "fleche",
+                "count": {
+                  "fixed": 10
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "plastron"
@@ -20717,7 +20934,30 @@
         "id": "arme-simple"
       },
       {
-        "text": "Couvre-chef"
+        "pick": 1,
+        "of": [
+          {
+            "id": "chapeau"
+          },
+          {
+            "id": "capuchon"
+          },
+          {
+            "id": "masque"
+          },
+          {
+            "id": "calotte-de-cuir"
+          },
+          {
+            "id": "coiffe-de-mailles"
+          },
+          {
+            "id": "heaume-ouvert"
+          },
+          {
+            "id": "heaume"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -20825,7 +21065,8 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettres de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -21091,7 +21332,8 @@
         "qualityChoice": true
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -21348,7 +21590,8 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -21621,7 +21864,8 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -22136,7 +22380,8 @@
         "id": "plastron"
       },
       {
-        "text": "Lot de six mèches durant 1 minute"
+        "id": "meche",
+        "spec": "lot de six mèches durant 1 minute"
       }
     ],
     "characteristics": [
@@ -22972,10 +23217,12 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
-        "text": "Affût"
+        "label": "Affût",
+        "nature": "vehicule"
       },
       {
         "id": "selle-et-harnais"
@@ -23717,7 +23964,8 @@
     ],
     "trappings": [
       {
-        "text": "Cartes de navigation"
+        "id": "carte",
+        "spec": "de navigation"
       },
       {
         "id": "longue-vue"
@@ -23984,7 +24232,12 @@
     ],
     "trappings": [
       {
-        "text": "Flottille de bateaux de transport avec un équipage de Naufrageurs"
+        "label": "Flottille de bateaux de transport",
+        "nature": "vehicule"
+      },
+      {
+        "label": "Équipage de Naufrageurs",
+        "nature": "personne"
       },
       {
         "id": "menottes"
@@ -24489,7 +24742,8 @@
     ],
     "trappings": [
       {
-        "text": "Flotte de navires"
+        "label": "Flotte de navires",
+        "nature": "vehicule"
       }
     ],
     "characteristics": [
@@ -24753,7 +25007,8 @@
     ],
     "trappings": [
       {
-        "text": "Flottille de bateaux"
+        "label": "Flottille de bateaux",
+        "nature": "vehicule"
       },
       {
         "id": "relique",
@@ -25522,7 +25777,7 @@
         "spec": "Alchimie"
       },
       {
-        "text": "Laboratoire"
+        "id": "laboratoire-alchimique"
       }
     ],
     "characteristics": [
@@ -25572,10 +25827,11 @@
     ],
     "trappings": [
       {
-        "text": "Laboratoire de bonne qualité"
+        "id": "laboratoire-alchimique",
+        "spec": "de bonne qualité"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination"
       }
     ],
     "characteristics": [
@@ -25708,7 +25964,35 @@
     ],
     "trappings": [
       {
-        "text": "Pistolet ou tromblon avec des munitions"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "pistolet"
+              },
+              {
+                "id": "balle-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          },
+          {
+            "lot": [
+              {
+                "id": "tromblon"
+              },
+              {
+                "id": "petites-munitions-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "cotte-de-mailles",
@@ -26215,7 +26499,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -26483,7 +26767,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "laboratoire-alchimique-portatif"
@@ -26773,7 +27057,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -27042,7 +27326,7 @@
         "spec": "cérémoniel"
       },
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -27317,7 +27601,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -27592,7 +27876,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -27877,7 +28161,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -28128,7 +28412,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       }
     ],
     "characteristics": [
@@ -28370,7 +28654,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"

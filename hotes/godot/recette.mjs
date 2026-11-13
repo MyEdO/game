@@ -52,9 +52,10 @@
 //   en tactique et au plateau : son regard pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`,
 //   section « Écran publié ») regarde depuis la case et la couche demandées, à l'azimut demandé, le plan de sa couche
 //   (`plan` du pont, l'œil marqué) s'écrit au journal, et la vue se capture sous son nom.
-// - `bord` (`--scenario a-bord-de-la-caraque --route <route.json>`) : les fenêtres closes, le monde posé, chaque case
-//   de la route atteinte au clic et chaque échelle franchie par son geste (« Escalader », « Descendre en escalade »),
-//   une capture par couche atteinte.
+// - `bord` (`--scenario a-bord-de-la-caraque --route <route.json>`) : les fenêtres closes, le monde posé, le regard
+//   `plateau` pris à la touche V, chaque case de la route atteinte au clic (`cliquerCase`) et chaque échelle franchie
+//   par son geste (« Escalader », « Descendre en escalade »), une capture par couche atteinte ; un clic raté écrit au
+//   journal la dernière ligne que Godot a reçue pour son journal (`SONDER_LA_PAGE`, `recetteJournal`), le refus montré.
 // - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
 //   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
@@ -106,7 +107,9 @@
 //   recrutement refusé ensuite ; la Diligence lancée avec lui, puis quittée, il reste au roster ; « Exporter » en
 //   télécharge le fichier ; « Supprimer », puis « Importer un personnage… » sur ce fichier le rend au roster ;
 //   « Supprimer » l'en retire, page rechargée comprise.
-// - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; « Oui » des dés fixés pressé, le pont dit la
+// - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; la molette, tournée sur un curseur de
+//   volume, défile le panneau sans régler ce volume, jusqu'à ce que ses quatre curseurs de volume tiennent ensemble
+//   dans la page de 1280 × 720 (#4081) ; « Oui » des dés fixés pressé, le pont dit la
 //   préférence réglée ; la page rechargée, elle revient du stockage ; « Jouer », puis « Options » de la partie : le
 //   même panneau, « Non » la remet, « Fermer » rend la partie. Le volume de la musique (#3949) réglé par le pont avant
 //   le rechargement : il revient du stockage et, dans la page (`lieu.releverLesGains`), un gain de son graphe audio le
@@ -1214,12 +1217,23 @@ function lireLesVues(fichier) {
   return vues
 }
 
+/** Le regard `regard` pris à la touche V, regard après regard (`plateau.regardSuivant`). */
+async function prendreLeRegard(regard) {
+  for (let v = await vue(); v.plateau.regard !== regard; v = await vue()) {
+    const suivant = v.plateau.regardSuivant
+    await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
+    await attendreLaVue(`v.plateau.regard === '${suivant}'`, 300000)
+  }
+}
+
 async function parcoursBord() {
   const { etapes } = JSON.parse(readFileSync(o.route, 'utf8'))
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await fermerLesFenetres()
   await attendreLeMonde()
+  await evaluate(session, SONDER_LA_PAGE)
+  await prendreLeRegard('plateau')
   const ou = async () => { const x = (await vue()).projection.exploration; return { x: x.groupe[0], y: x.groupe[1], z: x.etage ?? 0 } }
   const cleDe = (c) => `${c.x},${c.y},${c.z}`
   const fautes = []
@@ -1231,12 +1245,10 @@ async function parcoursBord() {
   }
   async function aller(c) {
     if (cleDe(await ou()) === cleDe(c)) return true
-    const pt = (await ecranPose()).cases[cleDe(c)]
-    if (!pt) return false
-    await cliquerPoint(pt[0], pt[1])
+    await cliquerCase(c)
     const ok = await arriver(c)
     const v = await vue()
-    noter(`clic ${cleDe(c)} : ${ok ? 'atteinte' : 'groupe en ' + cleDe(await ou()) + ' ; fenêtre ' + JSON.stringify(v.projection.fenetre?.genre ?? v.projection.fenetre ?? null).slice(0, 120) + ' ; journal ' + JSON.stringify((v.zones?.['journal'] ?? []).slice(-1)).slice(0, 200)}`)
+    noter(`clic ${cleDe(c)} : ${ok ? 'atteinte' : 'groupe en ' + cleDe(await ou()) + ' ; fenêtre ' + JSON.stringify(v.projection.fenetre?.genre ?? v.projection.fenetre ?? null).slice(0, 120) + ' ; journal ' + JSON.stringify(await evaluate(session, 'globalThis.recetteJournal.at(-1) ?? null'))}`)
     return ok
   }
   async function noterLaCouche(z) { if (!couches.has(z)) { couches.add(z); await capturer(`bord-couche-${z}`) } }
@@ -1285,11 +1297,7 @@ async function parcoursCadrages() {
   await fermerLesFenetres()
   await attendreLeMonde()
   for (const { nom, ...cadrage } of vues) {
-    for (let v = await vue(); v.plateau.regard !== cadrage.regard; v = await vue()) {
-      const suivant = v.plateau.regardSuivant
-      await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
-      await attendreLaVue(`v.plateau.regard === '${suivant}'`, 300000)
-    }
+    await prendreLeRegard(cadrage.regard)
     const camera = await cadrer(cadrage, nom)
     const plan = { z: cadrage.etage ?? 0, ...(camera.case && { oeil: { case: camera.case, lacet: camera.lacet } }) }
     noter(`${nom} : plan de la couche ${plan.z}\n${JSON.parse(await lire(`wfrpPont.appeler('plan', ${JSON.stringify(JSON.stringify(plan))})`)).plan}`)
@@ -1833,6 +1841,26 @@ async function parcoursReglages() {
   const non = { element: 'bouton/preference/des-fixes/false' }
   const BAS = 0.35
   await cliquerBouton('Options')
+  await attendreLeBouton(oui.element)
+  const volumes = Object.keys(await preferences()).filter((id) => id.startsWith('volume-')).map((id) => `curseur/preference/${id}`)
+  assert.equal(volumes.length, 4, 'un volume par canal de son')
+  const curseursDeVolume = async () => (await ecran()).curseurs.filter((c) => volumes.includes(c.element))
+  const avant = await preferences()
+  const curseurs = await curseursDeVolume()
+  assert.deepEqual(curseurs.map((c) => c.element).sort(), [...volumes].sort(), 'les quatre curseurs de volume dans le cadre à l’ouverture du panneau')
+  for (const c of curseurs) assert.ok(c.gauche >= 0 && c.droite <= 1280 && c.y >= 0 && c.y <= 720, `${c.element} dans la page : ${JSON.stringify(c)}`)
+  await capturer('4081-reglages-volumes')
+  const [premier] = curseurs
+  const tourner = async (sens) => {
+    await marquer()
+    await molette(session, { surface: 'canvas', x: premier.gauche, y: premier.y }, sens * CRAN_DE_MOLETTE)
+    await nouvelEcran()
+  }
+  await tourner(1)
+  const defile = (await curseursDeVolume()).find((c) => c.element === premier.element)
+  assert.ok(!defile || defile.y < premier.y, `la molette sur un curseur défile le panneau : ${JSON.stringify(defile)}`)
+  assert.deepEqual(await preferences(), avant, 'la molette sur un curseur ne règle rien')
+  await tourner(-1)
   await attendreLeBouton(oui.element)
   assert.equal((await preferences())['des-fixes'], false, 'les dés fixés à leur défaut')
   await capturer('3009-reglages-1-au-menu')
@@ -3241,6 +3269,15 @@ async function parcoursCreation() {
   const carriere = element(v, 'creation.corps', 'tirees').valeurs.find((b) => b.presse).libelle
   noter(`carrière tirée : ${carriere}`)
   await capturer('3328-creation-3-carriere-tiree')
+  if (element(v, 'creation.corps', 'variante/0')) {
+    noter(`second lancer offert : ${element(v, 'creation.corps', 'variante/0').libelle}`)
+    v = await presser('creation.corps', 'variante/0')
+    const tirage = element(v, 'creation.corps', 'tirage').resultat
+    assert.match(tirage, /^\d+ → \d+$/, 'le tirage dit le d100 et le second')
+    assert.equal(element(v, 'creation.corps', 'variante/0'), undefined, 'fait, le second lancer ne s’offre plus')
+    noter(`second lancer ${tirage} : ${element(v, 'creation.corps', 'tirees').valeurs.find((b) => b.presse).libelle}`)
+    await capturer('3908-creation-3bis-second-lancer')
+  }
   v = await presser('creation.gestes', 'suivante')
   assert.equal(pageOuverte(v), 'Caractéristiques · 3/10')
   v = await presser('creation.corps', 'tirage')
@@ -3332,13 +3369,20 @@ async function choisirDansLaListe(cle, article, sens = 1) {
   await nouvelEcran()
 }
 
-/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appelerEnOctets`
- *  enveloppé, la porte du transport de la page (`projet/scripts/transport_de_la_page.gd`), relue sur
- *  `globalThis.wfrpPont` à chaque appel ; le tampon des mesures de ressources élargi pour que chaque requête y entre. */
+/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page, et le texte de chaque ligne que
+ *  leurs suites ajoutent à son journal (`zones['journal.lignes']`, `pont/CONTRAT.md`, section « Suite »), dans
+ *  `recetteJournal` : `wfrpPont.appelerEnOctets` enveloppé, la porte du transport de la page
+ *  (`projet/scripts/transport_de_la_page.gd`), relue sur `globalThis.wfrpPont` à chaque appel ; le tampon des mesures
+ *  de ressources élargi pour que chaque requête y entre. */
 const SONDER_LA_PAGE = `(() => {
   performance.setResourceTimingBufferSize(1e6)
-  const pont = globalThis.wfrpPont, appelerEnOctets = pont.appelerEnOctets, n = (globalThis.recetteAppels = {})
-  pont.appelerEnOctets = function (methode, ...reste) { n[methode] = (n[methode] ?? 0) + 1; return appelerEnOctets.call(this, methode, ...reste) }
+  const pont = globalThis.wfrpPont, appelerEnOctets = pont.appelerEnOctets, n = (globalThis.recetteAppels = {}), journal = (globalThis.recetteJournal = [])
+  pont.appelerEnOctets = function (methode, ...reste) {
+    n[methode] = (n[methode] ?? 0) + 1
+    const r = appelerEnOctets.call(this, methode, ...reste)
+    if (typeof r === 'string' && r.includes('"journal.lignes":[{')) journal.push(...JSON.parse(r).zones['journal.lignes'].map((l) => l.texte))
+    return r
+  }
   return true
 })()`
 /** Le nombre d'appels `methode` de Godot au pont depuis `SONDER_LA_PAGE`. */

@@ -14,7 +14,7 @@ import {
   inCareerChar,
   mentorBlocks,
 } from './advancement';
-import { skillSlots, talentSlots } from './careerSlots';
+import { skillSlots, talentSlots, type EmplacementsDuNiveau } from './careerSlots';
 import { CareerLevelData, type AdvancementRef } from '../data';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
@@ -152,30 +152,18 @@ describe('Achat un par un (mutation du héros, PX déduits)', () => {
 describe('Compléter / Changer de Carrière (LDB 07 l.111-140, LDB 07 l.144)', () => {
   // Carrière factice à 2 niveaux : 9 compétences au Niveau 1, 2 talents.
   // Les fixtures utilisent les MÊMES ids ('s1'…, 't1'…) que `completedHero` : la comparaison est par id.
-  const LEVELS: CareerLevelData[] = [
+  const LEVELS: (EmplacementsDuNiveau & Pick<CareerLevelData, 'characteristics'>)[] = [
     {
-      id: 'Test-1',
-      type: 'careerLevels',
-      label: 'Niv1',
-      career: { id: 'Test' },
       level: 1,
       skills: A(['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9']),
       talents: A(['t1', 't2']),
-      trappings: [],
       characteristics: ['capacite-de-combat', 'force', 'endurance'],
-      status: 'Bronze 1',
     },
     {
-      id: 'Test-2',
-      type: 'careerLevels',
-      label: 'Niv2',
-      career: { id: 'Test' },
       level: 2,
       skills: A(['s10', 's11']),
       talents: A(['t3']),
-      trappings: [],
       characteristics: ['agilite'],
-      status: 'Bronze 2',
     },
   ];
   const completionOpts = (level: number) => ({

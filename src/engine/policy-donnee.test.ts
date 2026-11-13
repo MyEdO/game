@@ -76,22 +76,18 @@ describe('registre des règles optionnelles — LU de src/data/reglesOptionnelle
     expect(OPTIONAL_RULES.filter((r) => r.maison).length).toBeGreaterThanOrEqual(26);
   });
 
-  it('FORME : un `mode` propose ses valeurs et son défaut en fait partie', () => {
-    const modes = OPTIONAL_RULES.filter((r) => r.kind === 'mode');
+  it('FORME : le défaut d’un `mode` est l’une de ses `options`', () => {
+    const modes = OPTIONAL_RULES.filter((r): r is Extract<OptionalRule, { kind: 'mode' }> => r.kind === 'mode');
     expect(modes.length).toBeGreaterThan(0);
-    const fautives = modes
-      .filter((r) => !r.options?.length || !r.options.includes(String(r.default)))
-      .map((r) => r.id);
-    expect(fautives, 'mode(s) sans `options`, ou dont le `default` n’est pas une option').toEqual([]);
+    const fautives = modes.filter((r) => !r.options.includes(String(r.default))).map((r) => r.id);
+    expect(fautives, 'mode(s) dont le `default` n’est pas une option').toEqual([]);
   });
 
   it('FORME : un `param` borne son défaut (min ≤ défaut ≤ max), un `flag` vaut un booléen', () => {
-    const params = OPTIONAL_RULES.filter((r) => r.kind === 'param');
+    const params = OPTIONAL_RULES.filter((r): r is Extract<OptionalRule, { kind: 'param' }> => r.kind === 'param');
     expect(params.length).toBeGreaterThan(0);
-    const horsBornes = params
-      .filter((r) => typeof r.default !== 'number' || r.min == null || r.max == null || r.default < r.min || r.default > r.max)
-      .map((r) => r.id);
-    expect(horsBornes, 'param(s) sans bornes, ou dont le défaut sort de [min, max]').toEqual([]);
+    const horsBornes = params.filter((r) => typeof r.default !== 'number' || r.default < r.min || r.default > r.max).map((r) => r.id);
+    expect(horsBornes, 'param(s) dont le défaut sort de [min, max]').toEqual([]);
     expect(OPTIONAL_RULES.filter((r) => r.kind === 'flag' && typeof r.default !== 'boolean').map((r) => r.id)).toEqual([]);
   });
 });

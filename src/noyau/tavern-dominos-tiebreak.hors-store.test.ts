@@ -5,6 +5,7 @@
  *
  * La clause du jeu remplace le départage général (NADJ 16 l.105 ; #1921 c.6233078802) : à DR égal, la valeur ne départage pas.
  */
+import { nomDe } from '../engine/nom';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -25,7 +26,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** L'adversaire au profil standard, nommé comme `jouerALaTaverne` le nomme (`opponentActor.label`). */
-const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
+const NOM_HABITUE = nomDe(pnjAuProfil('humain', HABITUE)!);
 
 const get = () => banc.getState();
 

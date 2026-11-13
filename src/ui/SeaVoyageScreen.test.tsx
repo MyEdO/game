@@ -9,6 +9,7 @@ import { SeaVoyageBody } from './SeaVoyageScreen';
 import type { TravelRecapDay } from '../noyau/travelFlow';
 import type { SeaRecapChrome } from '../noyau/seaVoyageFlow';
 import { t } from '../i18n';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 
 const chrome: SeaRecapChrome = {
   weatherLabel: 'Ciel dégagé', windForce: 'vent-modere', windFrom: 'ouest', heading: 'est',
@@ -31,6 +32,13 @@ describe('SeaVoyageBody — événement de bord raconté en carte-parchemin', ()
     expect(html).toContain('Calme plat');
     expect(html).toContain('Les vents vous abandonnent pour les prochains 1d10 jours.');
     expect(html).toContain('parchment-seal'); // sceau : tirage capturé
+  });
+
+  it('le sceau dit le dé de la table des Événements de bord', () => {
+    sousLeDe('seaBoardEvents', 'd10', () => {
+      const html = renderToStaticMarkup(<SeaVoyageBody day={day([{ title: 'Calme plat', text: 'Les vents vous abandonnent.', roll: 7 }])} />);
+      expect(html).toContain('<span class="parchment-seal-label">1d10</span>');
+    });
   });
 });
 

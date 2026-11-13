@@ -226,6 +226,7 @@ export function CampaignView() {
     ? actionGate(handDef.id, {
         active: (inBattleId(battle, battle.order[battle.turn]) ?? battle.combatants[0])!,
         battle,
+        scene,
         netMode,
         gameTime,
       })

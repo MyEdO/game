@@ -2,6 +2,9 @@
  * LA ROUTE À BORD (#3772) : chaque case marchable d'un navire posé est atteignable depuis le départ, de pont en pont par
  * ses échelles. La route qui en sort (chaque case, puis le pied de chaque échelle et son geste) est celle que le parcours
  * `bord` de `hotes/godot/recette.mjs` rejoue au clic dans l'export Web : `ROUTE=<dossier>` l'écrit en `<scénario>.json`.
+ * Au regard `plateau`, où ce parcours joue, chaque case de la route est la plus haute que le monde montre à la verticale
+ * du point où l'hôte la publie (`Monde.lieu` : la station d'une case que le modèle du navire rogne, `stationsDuNavire`,
+ * son centre sinon), depuis la case d'avant (#4040).
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -11,7 +14,11 @@ import { scenario as caraque } from '../../../src/scenes/test-scenarios/a-bord-d
 import { walkReachableFrom } from '../../../src/noyau/monde/path';
 import { heightAt, isWalkable, startOf } from '../../../src/noyau/monde/scene';
 import type { Scene } from '../../../src/noyau/monde/scene';
-import { poserLesNavires } from '../../../src/noyau/planDeNavire';
+import { naviresDeLaScene, poserLesNavires, stationsDuNavire, type EmprisesDesCases } from '../../../src/noyau/planDeNavire';
+import { DOSSIER_DES_MODELES, manifestesDesModeles } from '../asset/release';
+import { masqueDuRegard } from '../../../src/noyau/monde/aretes';
+import { volumeDuMonde } from '../../../src/noyau/monde/volume/volume';
+import { trianglesMontres } from '../../../src/noyau/monde/volume/volume.testkit';
 
 type Case = { x: number; y: number; z: number };
 type Etape = { aller: Case } | { escalade: 'monter' | 'descendre'; vers: Case };
@@ -61,12 +68,58 @@ function routeABord(scene: Scene) {
   return { depart, etapes, orphelines, isolees };
 }
 
+/** Les manifestes commités des éléments `vehicule` du projet Godot, par la définition de leur véhicule (`cle`). */
+const MANIFESTES_DE_VEHICULE = new Map(manifestesDesModeles(DOSSIER_DES_MODELES).entrees
+  .map(({ brut }) => brut as { categorie?: string; cle?: { definition?: string }; cases?: EmprisesDesCases })
+  .filter((m) => m.categorie === 'vehicule' && m.cle?.definition).map((m) => [m.cle!.definition!, m]));
+
+/** Le point (en cases, la case centrée sur l'entier) où l'hôte publie chaque case de `scene` : la station de chaque case
+ *  que le modèle de son navire rogne (`stationsDuNavire`), par sa clé `x,y,z`. */
+const stationsDe = (scene: Scene): Map<string, { x: number; y: number }> => new Map(naviresDeLaScene(scene).flatMap(({ id, vehicule }) =>
+  stationsDuNavire(scene, id, MANIFESTES_DE_VEHICULE.get(vehicule.definition)?.cases ?? {}).map((s) => [cle(s), s.point] as const)));
+
+/** La case du triangle le plus haut des triangles `tris` à la verticale du point (`x`, `z`) du monde (m), et sa hauteur. */
+function plusHautA(tris: ReturnType<typeof trianglesMontres>, x: number, z: number): { case: string; y: number } | undefined {
+  let haut: { case: string; y: number } | undefined;
+  for (const t of tris) {
+    const [[x0, x1, x2], [z0, z1, z2]] = [t.xs, t.zs];
+    const aire = (x1 - x0) * (z2 - z0) - (x2 - x0) * (z1 - z0);
+    if (Math.abs(aire) < 1e-9) continue;
+    const b1 = ((x - x0) * (z2 - z0) - (x2 - x0) * (z - z0)) / aire;
+    const b2 = ((x1 - x0) * (z - z0) - (x - x0) * (z1 - z0)) / aire;
+    if (b1 < -1e-6 || b2 < -1e-6 || b1 + b2 > 1 + 1e-6) continue;
+    const y = t.ys[0] + b1 * (t.ys[1] - t.ys[0]) + b2 * (t.ys[2] - t.ys[0]);
+    if (!haut || y > haut.y) haut = { case: t.case.join(','), y };
+  }
+  return haut;
+}
+
 describe('la route à bord', () => {
   for (const [nom, s] of [['a-bord-de-la-caraque', caraque], ['a-bord-de-la-barge', barge]] as const) {
     it(`${nom} : chaque case marchable atteinte depuis le départ, aucune échelle orpheline`, () => {
       const route = routeABord(poserLesNavires(s.construire!((p: string) => p).scene));
       expect({ orphelines: route.orphelines, isolees: route.isolees }).toEqual({ orphelines: [], isolees: [] });
       if (process.env.ROUTE) writeFileSync(join(process.env.ROUTE, `${nom}.json`), JSON.stringify({ depart: route.depart, etapes: route.etapes }, null, 1));
+    });
+
+    it(`${nom} : au plateau, depuis la case d'avant, chaque case de la route est la plus haute montrée à la verticale de son point (#4040)`, () => {
+      const scene = poserLesNavires(s.construire!((p: string) => p).scene);
+      const { depart, etapes } = routeABord(scene);
+      const volume = volumeDuMonde(scene);
+      const stations = stationsDe(scene);
+      const montres = new Map<string, ReturnType<typeof trianglesMontres>>();
+      const couvertes: string[] = [];
+      let g: Case = { x: depart.x, y: depart.y, z: depart.z ?? 0 };
+      for (const e of etapes) {
+        if ('escalade' in e) { g = e.vers; continue; }
+        const c = e.aller;
+        const tris = montres.get(cle(g)) ?? montres.set(cle(g), trianglesMontres(volume, masqueDuRegard(scene, [g], 'plateau'))).get(cle(g))!;
+        const point = stations.get(cle(c)) ?? c;
+        const touche = plusHautA(tris, point.x * volume.metresParCase, point.y * volume.metresParCase);
+        if (touche?.case !== cle(c)) couvertes.push(`${cle(c)} depuis ${cle(g)} : ${touche ? `${touche.case} à ${touche.y.toFixed(2)} m` : 'rien'}`);
+        g = c;
+      }
+      expect(couvertes).toEqual([]);
     });
   }
 });

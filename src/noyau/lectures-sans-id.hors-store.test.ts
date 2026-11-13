@@ -72,7 +72,7 @@ describe('l’arme re-dérivée garde son uid (#2907)', () => {
     recomputeLoadout(c);
     const choisie = c.weapons.find((w) => w.natural)!;
     recomputeLoadout(c);
-    expect(pickAttackWeaponList(undefined, c, herosDeScenario(idsDeTest, 'tueur'), choisie.uid).uid).toBe(choisie.uid);
+    expect(pickAttackWeaponList(null, undefined, c, herosDeScenario(idsDeTest, 'tueur'), choisie.uid).uid).toBe(choisie.uid);
   });
 
   it('l’arme dérivée d’un objet porté (Crochet, LDB 73) a un uid propre, stable, retrouvé après `recomputeLoadout`', () => {
@@ -85,6 +85,6 @@ describe('l’arme re-dérivée garde son uid (#2907)', () => {
     expect(derivee.uid).not.toBe(crochet.uid);
     recomputeLoadout(c);
     expect(c.weapons.find((w) => w.derivedFromItem === crochet.uid)?.uid).toBe(derivee.uid);
-    expect(pickAttackWeaponList(undefined, c, herosDeScenario(idsDeTest, 'tueur'), derivee.uid).uid).toBe(derivee.uid);
+    expect(pickAttackWeaponList(null, undefined, c, herosDeScenario(idsDeTest, 'tueur'), derivee.uid).uid).toBe(derivee.uid);
   });
 });

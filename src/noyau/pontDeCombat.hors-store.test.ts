@@ -60,22 +60,22 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
 
   it('un ennemi au contact : pas d’Assailli', () => {
     const H = heros('H');
-    expect(etatsDeSituation(H, battleDe([H, ennemi('E1')]))).toEqual(SANS);
+    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1')]))).toEqual(SANS);
   });
 
   it('deux ennemis au contact : Assailli ×2', () => {
     const H = heros('H');
-    expect(etatsDeSituation(H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6 } })]))).toEqual({ assailli: { nombre: 2 }, cloue: false, renfort: false });
+    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6 } })]))).toEqual({ assailli: { nombre: 2 }, cloue: false, renfort: false });
   });
 
   it('ennemi hors d’action ignoré', () => {
     const H = heros('H');
-    expect(etatsDeSituation(H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6 }, ...ko })]))).toEqual(SANS);
+    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6 }, ...ko })]))).toEqual(SANS);
   });
 
   it('ennemi à un autre niveau (z, 4 m plus haut) : pas au contact', () => {
     const H = heros('H');
-    expect(etatsDeSituation(H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6, z: 1, h: 4 } })]))).toEqual(SANS);
+    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), ennemi('E2', { pos: { x: 5, y: 6, z: 1, h: 4 } })]))).toEqual(SANS);
   });
 
   it('Assailli suit le Surnombre de la résolution (LDB 14 l.110) : un camp au contact, jamais deux camps additionnés', () => {
@@ -83,12 +83,12 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
     const neutre = combattantDeTest({ id: 'N', label: 'N', kind: 'pnj', pos: { x: 5, y: 6 } });
     // Un ennemi et un PNJ au contact : aucun camp n'est à deux contre un — la résolution n'accorde aucun Surnombre.
     expect(outnumberMod(1)).toBeNull();
-    expect(etatsDeSituation(H, battleDe([H, ennemi('E1'), neutre]))).toEqual(SANS);
+    expect(etatsDeSituation(null, H, battleDe([H, ennemi('E1'), neutre]))).toEqual(SANS);
   });
 
   it('Cloué : le Test d’approche raté de ce Tour', () => {
     const H = heros('H', { pos: undefined });
-    expect(etatsDeSituation(H, battleDe([H], { fearGate: 'failed' }))).toEqual({ assailli: null, cloue: true, renfort: false });
+    expect(etatsDeSituation(null, H, battleDe([H], { fearGate: 'failed' }))).toEqual({ assailli: null, cloue: true, renfort: false });
   });
 
   it('Renfort : le servant qui n’est pas le chef de pièce ; le chef ne l’est pas', () => {
@@ -96,8 +96,8 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
     const chef = heros('chef', { pos: undefined, mannedPoste: poste });
     const aide = heros('aide', { pos: undefined, mannedPoste: poste });
     const b = battleDe([chef, aide]);
-    expect(etatsDeSituation(aide, b)).toEqual({ assailli: null, cloue: false, renfort: true });
-    expect(etatsDeSituation(chef, b)).toEqual(SANS);
+    expect(etatsDeSituation(null, aide, b)).toEqual({ assailli: null, cloue: false, renfort: true });
+    expect(etatsDeSituation(null, chef, b)).toEqual(SANS);
   });
 });
 

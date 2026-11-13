@@ -57,6 +57,7 @@ import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
 import type { Rect, Pt, EffectZoneSeed, Segment } from './sceneEdit';
+import { tableTotale } from '../lib/tableTotale';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
@@ -984,8 +985,8 @@ const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<Formula
 /** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection
  *  du narratif sous la clé du registre, sélectionnée sous elle, désignée par la portée `narratif`, listé à la zone
  *  Logique. */
-const formulairesDesRegistres = Object.fromEntries((Object.keys(FORMULAIRES_DES_REGISTRES) as RegistreCreable[])
-  .map((registre) => [registre, { acces: { document: 'narratif', collection: registre }, sel: registre, portee: 'narratif', logique: true, ...FORMULAIRES_DES_REGISTRES[registre] }])) as { readonly [R in RegistreCreable]: FormulaireDuPorteur<DonneeDuPorteur[R]> };
+const formulairesDesRegistres = tableTotale(Object.keys(FORMULAIRES_DES_REGISTRES) as RegistreCreable[],
+  (registre) => ({ acces: { document: 'narratif', collection: registre }, sel: registre, portee: 'narratif', logique: true, ...FORMULAIRES_DES_REGISTRES[registre] })) as { readonly [R in RegistreCreable]: FormulaireDuPorteur<DonneeDuPorteur[R]> };
 
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte

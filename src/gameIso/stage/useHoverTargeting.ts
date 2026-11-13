@@ -23,6 +23,8 @@ import { modalBlocksMapHover } from '../../state/mapHover';
 import { detenteurDuCiblage, mapTargetingActive } from '../../noyau/targetingHolder';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import { ciblesHorsDeVue } from '../../noyau/targetingModes';
+import { nomEnVue } from '../../noyau/visionDuGroupe';
+import { garanti } from '../../lib/garanti';
 import { marcheOuverte } from '../../noyau/marcheDuGroupe';
 
 export interface HoverAim {
@@ -34,6 +36,9 @@ export interface HoverAim {
   /** Carte de jet : nom de la cible / arme-ou-sort / compétence + valeur / palier / dégâts. */
   tip: { title: string; targetName: string; skill: string; base: number; mod: number; dmg: number | null; difficulty?: DifficultyShown } | null;
 }
+
+/** Le nom de la cible `id` sur la carte de jet, tel que le groupe la connaît (`nomEnVue`, #4017). */
+const nomDeLaCible = (s: Parameters<typeof nomEnVue>[0], id: string): string => garanti(nomEnVue(s, id), id, 'cible visée');
 
 export function useHoverTargeting(
   scene: Scene | null,
@@ -96,7 +101,7 @@ export function useHoverTargeting(
       if (!shooter?.pos) return null;
       const ht = hoverTargeting(st, shooter, occ);
       if (ht.kind !== 'ok') return null;
-      return { fromId: shooter.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
+      return { fromId: shooter.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: nomDeLaCible(st(), occ.id), skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
     }
     // Flux différés (bandeau TargetPrompt — Frappe Mortelle / 2ᵉ frappe / Surincantation +Cible) : le
     // réticule vient du MODE courant (targetingModes via hoverTargeting), AVANT les verrous acted/
@@ -109,7 +114,7 @@ export function useHoverTargeting(
       // enchaînement), et le survol en dit la valeur et la Difficulté. Les modes qui ne jettent rien
       // (cibles de Surincantation) laissent leurs zones à 0 — la carte s'adapte, elle n'invente pas.
       return ht.kind === 'ok'
-        ? { fromId: actor.id, toId: occ.id, line: ht.line, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } }
+        ? { fromId: actor.id, toId: occ.id, line: ht.line, tip: { title: ht.title, targetName: nomDeLaCible(st(), occ.id), skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } }
         : null;
     }
     if (!myTurn) return null; // le ciblage NORMAL (ci-dessous) exige Mon Tour ; la pré-emption (ci-dessus) non
@@ -118,7 +123,7 @@ export function useHoverTargeting(
     // Le verdict est celui du MODE courant (`hoverTargeting` → `refusDAttaque` en mode attaque).
     const ht = hoverTargeting(st, activeH, occ);
     if (ht.kind !== 'ok') return null;
-    return { fromId: activeH.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
+    return { fromId: activeH.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: nomDeLaCible(st(), occ.id), skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
   }, [combatCursor, hover, hoverCombatantId, mode, battle, scene, myTurn, preemptAiming, mapInert, genreDuDetenteur, pendingCast, pendingCleave, pendingDualStrike]);
 
   // Combattant SOUS le focus (tuile survolée OU portrait de frise/Tab) — INDÉPENDANT du ciblage

@@ -6,7 +6,6 @@
 import { walkComponentAt, walkComponentsFrom, walkReachableFrom } from './monde/path';
 import { champsDuPlan, isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './monde/scene';
 import { memoByRef, memoByRefDeps } from './monde/sceneMemo';
-import { versionDesDatasets } from '../data/versionDataset';
 import { sceneZoneTiles } from './monde/zones';
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
@@ -41,7 +40,7 @@ const sceneSelonAuteur = memoByRef((scene: Scene): Scene =>
  *  depuis `start`, toute porte authorée comprise (`sceneSelonAuteur`) — vide = toutes les pièces nommées sont
  *  accessibles. Une zone SANS aucune case marchable (posée sur du vide) est aussi « inatteignable ». */
 export function unreachableDescriptiveZones(scene: Scene, start: { x: number; y: number; z?: number }): readonly SceneEffectZone[] {
-  return zonesInatteignables(scene.layers, [versionDesDatasets(), ...champsDuPlan(scene), start.x, start.y, start.z ?? 0], () => zonesInatteignablesDepuis(scene, start));
+  return zonesInatteignables(scene.layers, [...champsDuPlan(scene), start.x, start.y, start.z ?? 0], () => zonesInatteignablesDepuis(scene, start));
 }
 
 /** Mémo de `unreachableDescriptiveZones` (`memoByRefDeps`), même clé et mêmes dépendances que les défauts de plan

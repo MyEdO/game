@@ -14,7 +14,6 @@ import { type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { individusNommes } from '../engine/psych/ciblage';
-import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { PERSONNAGES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
 import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
@@ -96,7 +95,7 @@ export function architectureSelectionForWarning(warning: Warning): ArchitectureW
  *  verdicts — les réfs se résolvent au catalogue VIVANT. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
 const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object, narratif?: NarratifBlock): readonly Faute[] | null =>
-  verdictsDeSchema(objet, [versionDesDatasets(), schema, narratif], () => validerFormeVivante(narratif
+  verdictsDeSchema(objet, [schema, narratif], () => validerFormeVivante(narratif
     ? schema.superRefine((_valeur, ctx) => validerReferencesDObjetsDansCampagne(narratif.objets, ctx))
     : schema, objet)?.fautes ?? null);
 

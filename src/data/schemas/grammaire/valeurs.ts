@@ -767,7 +767,7 @@ export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silve
 export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);
 
 /** La nature d'une mention (`DotationDeMention`), son libellé de rubrique. #4053 */
-export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
+export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', bete: 'Bêtes', vehicule: 'Véhicules', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
 export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
 
 /** Montant PARTIEL authoré (coût d'un choix, mise minimale, octroi) — mêmes 3 dénominations, chacune
@@ -1360,6 +1360,16 @@ export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: numbe
 /** Un document d'un fichier de tables tirées : son dé et ses rangées. */
 type TableTiree = { readonly id: string; readonly die: string; readonly entries: readonly { min?: number | null; max?: number | null }[] };
 
+/** Le refus nominatif d'un document `t` dont les rangées ne couvrent pas le dé, posé sur `chemin`. */
+function refuserLaCouverture<T extends TableTiree>(
+  fichier: string, t: T, nom: (r: T['entries'][number], t: T) => string, ctx: z.RefinementCtx, chemin: (string | number)[],
+): void {
+  const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
+  if (ecarts.length) {
+    ctx.addIssue({ code: 'custom', path: chemin, message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
+  }
+}
+
 /**
  * L'`affinerDataset` d'un fichier de tables tirées : chaque document que `tiree` retient couvre son dé
  * (`ecartsDuDeDeLaTable`), refusé nominativement sur ses `entries`, ses rangées nommées par `nom`.
@@ -1372,13 +1382,18 @@ export function couvertureDuDeParDocument<T extends TableTiree>(
   return (dataset) =>
     dataset.superRefine((v, ctx) => {
       for (const [i, t] of (v as T[]).entries()) {
-        if (!tiree(t)) continue;
-        const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
-        if (ecarts.length) {
-          ctx.addIssue({ code: 'custom', path: [i, 'entries'], message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
-        }
+        if (tiree(t)) refuserLaCouverture(fichier, t, nom, ctx, [i, 'entries']);
       }
     });
+}
+
+/** L'`affinerDataset` d'un fichier qui EST une table tirée (famille `config`) : même refus que
+ *  `couvertureDuDeParDocument`, sur ses `entries`. */
+export function couvertureDuDeDuDocument<T extends TableTiree>(
+  fichier: string,
+  nom: (r: T['entries'][number], t: T) => string,
+): (dataset: z.ZodType<unknown>) => z.ZodType<unknown> {
+  return (dataset) => dataset.superRefine((v, ctx) => refuserLaCouverture(fichier, v as T, nom, ctx, ['entries']));
 }
 
 /**
