@@ -483,7 +483,7 @@ const DIALOGUE: Dialogue = {
 const SCENE_DU_DIALOGUE: Scene = {
   ...emptyScene('s', 4, 4),
   dialogues: [DIALOGUE],
-  entities: [{ kind: 'personnage', id: 'pnj', pos: { x: 0, y: 0 } }, { kind: 'prop', id: 'table', ref: 'x', pos: { x: 1, y: 1 } }] as Scene['entities'],
+  entities: [{ kind: 'personnage', id: 'pnj', pos: { x: 0, y: 0 }, creature: { id: 'humain' } }, { kind: 'prop', id: 'table', ref: 'x', pos: { x: 1, y: 1 } }] as Scene['entities'],
 };
 
 /** Le cadre de `DIALOGUE`, dans sa scène. */
@@ -568,7 +568,7 @@ const CADRE_DE_LA_RENCONTRE: CadreDuPorteur = {
   scene: {
     ...emptyScene('s', 4, 4),
     encounters: [RENCONTRE],
-    entities: ['cavalier', 'cheval', 'archer', 'badaud'].map((id) => ({ kind: 'personnage', id, pos: { x: 0, y: 0 } })) as Scene['entities'],
+    entities: ['cavalier', 'cheval', 'archer', 'badaud'].map((id) => ({ kind: 'personnage', id, pos: { x: 0, y: 0 }, creature: { id: 'humain' } })) as Scene['entities'],
   },
 };
 
