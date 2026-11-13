@@ -2,7 +2,9 @@
 ## parent, dit à l'instant où le formulaire se joue. `lire` rend `[]` (rien de saisi) ou `[valeur]` : la valeur posée
 ## d'une saisie `fixe`, la valeur choisie d'une liste, la liste des valeurs cochées d'une rangée de cases, le nombre
 ## d'une boîte à nombre, le texte d'un champ ou d'une zone de texte multiligne (lu en JSON pour une saisie
-## `saisieJson`), et l'objet de chaque champ saisi d'une saisie `saisieObjet`.
+## `saisieJson`), et l'objet de chaque champ saisi d'une saisie `saisieObjet`. La zone de texte multiligne
+## (`composants/saisieMultiligne.tscn`) grandit avec son texte (`scroll_fit_content_height`) : elle ne défile jamais
+## elle-même, et la molette va au panneau qui la porte.
 class_name Saisie
 extends Node
 

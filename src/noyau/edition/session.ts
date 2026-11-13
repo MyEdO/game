@@ -107,12 +107,15 @@ export const groupesDuLieu = (): ValeurDuChoix[] => choixDuNoeud(elementDuNoeud(
  *  le mémo de schéma de `validateScene.ts`. */
 const validationDuProjet = memoByDeps<Warning[]>();
 
+/** Les portées des avertissements qui concernent le projet hors de toute scène : la carte du monde et le narratif. */
+const PORTEES_DU_PROJET: readonly Warning['scope'][] = ['worldMap', 'narratif'];
+
 /** Les avertissements de la validation (`validateScene`) qui concernent la scène éditée de la session `s`, ceux de la
- *  carte du monde compris. */
+ *  carte du monde et du narratif compris. */
 export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
   const { scenes, worldMap, narratif } = projetEdite(s);
   return validationDuProjet([versionDesDatasets(), ...scenes, worldMap, narratif], () => validateScene(scenes, worldMap, narratif))
-    .filter((w) => w.sceneId === idDeLaSceneEditee(s) || w.scope === 'worldMap');
+    .filter((w) => w.sceneId === idDeLaSceneEditee(s) || PORTEES_DU_PROJET.includes(w.scope));
 }
 
 /** Le porteur de formulaire du projet de la session `s` que désigne l'avertissement `w` (`porteurDeLaPortee`). */

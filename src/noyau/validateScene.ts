@@ -18,7 +18,7 @@ import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { PERSONNAGES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
 import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
-import { validerReferencesDObjetsDansCampagne } from '../data/schemas/defs-scenes/narratif';
+import { narratifSchema, validerReferencesDObjetsDansCampagne } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
@@ -60,7 +60,7 @@ const roofNonCoveringIds = (): ReadonlySet<string> =>
 export interface Warning {
   level: 'error' | 'warn';
   sceneId: string;
-  scope: 'architecture' | 'entity' | 'trigger' | 'dialogue' | 'encounter' | 'scene' | 'worldMap' | 'plan';
+  scope: 'architecture' | 'entity' | 'trigger' | 'dialogue' | 'encounter' | 'scene' | 'worldMap' | 'narratif' | 'plan';
   /** Id du fautif (pour clic → sélection dans l'éditeur). */
   refId?: string;
   architectureRef?: ArchitectureWarningRef;
@@ -119,11 +119,17 @@ const PORTEE_DU_LIEU: Readonly<Record<string, (cles: readonly string[]) => Porte
   places: () => ({ scope: 'worldMap' }),
   'places › poi': () => ({ scope: 'worldMap' }),
   routes: () => ({ scope: 'worldMap' }),
+  affaires: () => ({ scope: 'narratif' }),
+  indices: () => ({ scope: 'narratif' }),
+  presetsPnj: () => ({ scope: 'narratif' }),
+  documents: () => ({ scope: 'narratif' }),
+  etats: () => ({ scope: 'narratif' }),
+  ecartes: () => ({ scope: 'narratif' }),
 };
 
 /** L'élément qu'une faute désigne pour l'éditeur : le plus PROFOND élément à clé de la tête de son
  *  lieu que la table de portée connaît ; le reste du lieu est le champ fautif DANS cet élément. */
-function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap'): Portee & { element?: ElementDeLieu; reste: readonly SegmentDeLieu[] } {
+function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap' | 'narratif'): Portee & { element?: ElementDeLieu; reste: readonly SegmentDeLieu[] } {
   const listes: string[] = [];
   const cles: string[] = [];
   let trouve: (Portee & { element: ElementDeLieu; reste: readonly SegmentDeLieu[] }) | undefined;
@@ -147,8 +153,9 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
 }
 
 /**
- * Vérifie un PROJET (liste de scènes + carte du monde optionnelle) avant le runtime : réfs cassées
- * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
+ * Vérifie un PROJET (liste de scènes + carte du monde et narratif optionnels) avant le runtime : réfs cassées
+ * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte), fautes du schéma
+ * du narratif (portée `narratif`, sous la scène `narratif`),
  * zones hors-carte, ids dupliqués, musique inconnue du registre (`allMusicDefs`). PUR.
  */
 export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
@@ -202,6 +209,14 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         level: 'warn', sceneId, scope: 'scene', refId: sceneId,
         message: `Aucun départ du groupe (heroStart) dans « ${cible.label} », où mène ${porte} sans point d'arrivée nommé — le jeu posera le groupe sur la première case libre venue. Pose un départ, ou nomme un point d'arrivée sur la porte.`,
       });
+    }
+  }
+  // Le SCHÉMA du narratif (`narratifSchema`) : un narratif VIVANT de l'éditeur ne repasse pas par le parse, l'auteur
+  // l'apprend ici, comme pour la carte.
+  if (narratif) {
+    for (const faute of fautesDeSchema(narratifSchema, narratif) ?? []) {
+      const f = fautifDe(faute.lieu, 'narratif');
+      out.push({ level: 'error', sceneId: 'narratif', scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
     }
   }
   for (const s of project) {

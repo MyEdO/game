@@ -2050,6 +2050,21 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     expect([liste(deplace, 'ecart'), boutonDe(deplace, `logique/ecart/${seconde}`).presse]).toEqual([[seconde], true]);
   });
 
+  it('une faute du narratif se lit à la zone de validation avant l’enregistrement : « Y aller », depuis la scène, rouvre le narratif sur son porteur ; corrigée, elle s’efface', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const offre = narratif.vue.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter') as Choix;
+    const entree = offre.valeurs[0].id.slice('logique/ecart/ajouter/'.length);
+    const ecarte = presser(offre.valeurs[0]);
+    const releves = (e: Edition) => e.vue.zones['editeur.validation'].filter((el): el is Ligne => el.type === 'ligne' && /^validation\/\d+$/.test(el.id) && el.texte.includes(entree));
+    const [faute] = releves(ecarte);
+    expect(faute?.texte).toMatch(/motif vide/);
+    const scene = presser(boutonDe(ecarte, 'document/scene'));
+    const vu = presser(boutonDe(scene, `${faute.id}/aller`));
+    expect([boutonDe(vu, 'document/narratif').presse, boutonDe(vu, `logique/ecart/${entree}`).presse]).toEqual([true, true]);
+    const corrige = editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'ecart', id: entree }, ['motif'], 'Hors du chapitre'] }));
+    expect(releves(corrige)).toEqual([]);
+  });
+
   it('un état change de forme par les boutons de son inspecteur, la courante pressée ; avec une identité, l’autre forme se refuse, dite', () => {
     const { appel, presser, narratif } = surLeNarratif();
     const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));

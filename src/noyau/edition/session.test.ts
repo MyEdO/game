@@ -1616,6 +1616,19 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     expect(refusDeLaValeur(choisie, valeur('presetsPnj', 'pnj-guet', ['apparence', 'apparencesObjets', 'dague'], { id: autres[0].id })), 'un objet hors de ses armes').toBe('nonOffert');
   });
 
+  it('une faute du narratif se lit à la validation de la session avant l’enregistrement et mène à son porteur : son document ouvert, lui sélectionné', () => {
+    const [premiere] = ENTREES_DE_DOSSIER.map((e) => e.id);
+    const fautif = { ...NARRATIF, etats: [{ id: 'humeur', label: 'Humeur', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }], ecartes: [{ entree: premiere, motif: ' ' }] } as typeof NARRATIF;
+    const s = ouvrirLEdition({ scenes: [RELAIS], narratif: fautif } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+    const fautes = avertissementsDeLaSession(s).filter((w) => w.scope === 'narratif');
+    expect(fautes.map((w) => [w.level, w.refId])).toEqual([['error', 'humeur'], ['error', premiere]]);
+    const vers = (refId: string) => jouer(s, { geste: 'avertissement', rang: avertissementsDeLaSession(s).findIndex((w) => w.scope === 'narratif' && w.refId === refId) });
+    expect([vers('humeur').document, vers('humeur').sel]).toEqual(['narratif', { type: 'etats', id: 'humeur' }]);
+    expect([vers(premiere).document, vers(premiere).sel]).toEqual(['narratif', { type: 'ecart', id: premiere }]);
+    const corrige = jouer(vers(premiere), valeur('ecart', premiere, ['motif'], 'Hors du chapitre'));
+    expect(avertissementsDeLaSession(corrige).filter((w) => w.scope === 'narratif').map((w) => w.refId), 'le compteur baisse').toEqual(['humeur']);
+  });
+
   it('le narratif écrit son ouverture et sa clôture, sans sélection', () => {
     const s = ouvert();
     const neuve = valeurNeuveDe(ouvertureSchema) as Record<string, unknown>;

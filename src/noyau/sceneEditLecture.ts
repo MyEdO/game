@@ -903,9 +903,10 @@ const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<Formula
 };
 
 /** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection
- *  du narratif sous la clé du registre, sélectionnée sous elle, listé à la zone Logique. */
+ *  du narratif sous la clé du registre, sélectionnée sous elle, désignée par la portée `narratif`, listé à la zone
+ *  Logique. */
 const formulairesDesRegistres = Object.fromEntries((Object.keys(FORMULAIRES_DES_REGISTRES) as RegistreCreable[])
-  .map((registre) => [registre, { acces: { document: 'narratif', collection: registre }, sel: registre, logique: true, ...FORMULAIRES_DES_REGISTRES[registre] }])) as { readonly [R in RegistreCreable]: FormulaireDuPorteur<DonneeDuPorteur[R]> };
+  .map((registre) => [registre, { acces: { document: 'narratif', collection: registre }, sel: registre, portee: 'narratif', logique: true, ...FORMULAIRES_DES_REGISTRES[registre] }])) as { readonly [R in RegistreCreable]: FormulaireDuPorteur<DonneeDuPorteur[R]> };
 
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
@@ -928,7 +929,7 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  réglages, porteur singulier de leur document, ses axes actifs ; d'une entrée de chaque registre créable du narratif,
  *  le sien (`formulairesDesRegistres`) ; d'un écart, son motif, son entrée se changeant par le renommage ; du narratif,
  *  porteur singulier de son document, son ouverture et sa clôture. Chacun déclare la portée des avertissements qui le
- *  désignent ; ceux de la carte, la portée `worldMap`. */
+ *  désignent ; ceux de la carte, la portée `worldMap` ; ceux du narratif, la portée `narratif`. */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { acces: { document: 'scene', collection: 'effectZones' }, sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
   declencheur: { acces: { document: 'scene', collection: 'triggers' }, sel: 'trigger', schema: triggerSchema, portee: 'trigger', logique: true, champs: () => [['when'], ['flow']] },
@@ -948,8 +949,8 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   carte: { acces: { document: 'carte' }, schema: worldMapSchema, portee: 'worldMap', champs: () => [['label'], ['background'], ['params']] },
   projet: { acces: { document: 'projet' }, schema: projetSchema, champs: () => [['activeAxes']] },
   ...formulairesDesRegistres,
-  ecart: { acces: { document: 'narratif', collection: 'ecartes' }, sel: 'ecart', schema: ecartSchema, logique: true, champs: () => [['motif']] },
-  narratif: { acces: { document: 'narratif' }, schema: narratifSchema, champs: () => [['ouverture'], ['cloture']] },
+  ecart: { acces: { document: 'narratif', collection: 'ecartes' }, sel: 'ecart', schema: ecartSchema, portee: 'narratif', logique: true, champs: () => [['motif']] },
+  narratif: { acces: { document: 'narratif' }, schema: narratifSchema, portee: 'narratif', champs: () => [['ouverture'], ['cloture']] },
 };
 
 /** Le porteur de formulaire que la sélection `sel` désigne, le document `document` ouvert où la scène d'identifiant

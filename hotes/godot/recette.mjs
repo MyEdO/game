@@ -2328,8 +2328,10 @@ async function parcoursEditeur() {
   const narratifVu = (ed) => JSON.stringify([ed.zones['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.texte), inspecte(ed, 'valeur/ouverture/titre')?.champs.map((c) => c.valeur) ?? null])
   /** Le narratif (#3606 M6) : ouvert au menu Fichier, son ouverture à l'inspecteur ; « Ajouter un indice » refusé
    *  sans affaire, dit ; une affaire ajoutée, son titre écrit ; un indice, un stade ajouté, identifié, le premier retiré,
-   *  le dernier refusé, dit ; un état, sa forme changée ; un écart par la liste des entrées libres ; « Annuler » jusqu'au
-   *  narratif d'avant ; la scène rendue. */
+   *  le dernier refusé, dit ; un état, sa forme changée ; un écart par la liste des entrées libres, son motif vide relevé
+   *  par la validation, dont « Y aller », depuis la scène, rouvre le narratif sur lui ; « Annuler » jusqu'au narratif
+   *  d'avant ; la scène rendue. L'ouverture, retirée puis ajoutée, d'abord : son bouton s'amène par la molette par-dessus
+   *  le pitch de l'ouverture. */
   const etapeDuNarratif = async () => {
     const titre = (await editeur()).zones['editeur.titre'][0].texte
     await cliquerAuPanneau({ element: 'bouton/document/narratif' })
@@ -2337,6 +2339,11 @@ async function parcoursEditeur() {
     let ed = await editeur()
     const avant = narratifVu(ed)
     noter(`menu Fichier, « ${boutonDeLEditeur(ed, 'document/narratif').libelle} » : ${ed.zones['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.texte).join(', ')}`)
+    await cliquerAuPanneau({ element: 'bouton/valeur/ouverture/retirer' })
+    await waitFor(session, `!${montre('valeur/ouverture/retirer')} && ${montre('valeur/ouverture/ajouter')}`)
+    await cliquerAuPanneau({ element: 'bouton/valeur/ouverture/ajouter' })
+    await waitFor(session, montre('valeur/ouverture/retirer'))
+    noter(`« ${boutonDeLEditeur(ed, 'valeur/ouverture/retirer').libelle} », amené par la molette par-dessus le pitch de l’ouverture, puis « Ajouter » : l’ouverture neuve`)
     const affaires = listeDe(ed, 'affaires')
     const refusDeLIndice = boutonDeLEditeur(ed, 'logique/indices/ajouter').refus
     assert.equal(refusDeLIndice, affaires.length ? null : 'Créez d’abord une affaire.', `« Ajouter un indice » refusé sans affaire, et seulement sans elle (${affaires.length} affaire(s)) : ${refusDeLIndice}`)
@@ -2382,6 +2389,17 @@ async function parcoursEditeur() {
     assert.ok(ecarte === entree.id.slice('logique/ecart/ajouter/'.length) && boutonDeLEditeur(ed, `logique/ecart/${ecarte}`)?.presse && !boutonDeLEditeur(ed, entree.id), `l’entrée choisie à la liste est écartée, choisie, et ne s’offre plus : ${ecarte}`)
     noter(`« ${ed.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter')?.libelle} », « ${entree.libelle} » choisie à la liste : ${ed.zones['editeur.logique'].find((el) => el.id === 'logique/ecart').texte}`)
     await capturer('3606-m6-5-ecart')
+    const releves = ed.zones['editeur.validation'].filter((el) => el.type === 'ligne' && /^validation\/\d+$/.test(el.id))
+    const fauteDeLEcart = releves.find((l) => l.texte.includes(ecarte) && l.texte.includes('motif vide'))
+    assert.ok(fauteDeLEcart && boutonDeLEditeur(ed, `${fauteDeLEcart.id}/aller`), `l’écart au motif vide relevé par la validation avant l’enregistrement, « Y aller » offert : ${JSON.stringify(releves.map((l) => l.texte))}`)
+    await cliquerAuPanneau({ element: 'bouton/document/scene' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0]?.texte === ${JSON.stringify(titre)}`)
+    await cliquerAuPanneau({ element: `bouton/${fauteDeLEcart.id}/aller` })
+    await waitFor(session, `${listeLongue('ecart', ecarts.length + 1)} && (globalThis.wfrpEcran?.editeur?.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/liste')?.valeurs ?? []).some((b) => b.id === ${JSON.stringify(`logique/ecart/${ecarte}`)} && b.presse)`)
+    ed = await editeur()
+    assert.equal(boutonDeLEditeur(ed, 'document/narratif')?.presse, true, '« Y aller » ouvre le narratif')
+    noter(`validation : « ${fauteDeLEcart.texte} » ; menu Fichier, « Scène », puis « Y aller » : le narratif ouvert, l’écart ${ecarte} choisi`)
+    await capturer('3606-m6-6-faute')
     let annulations = 0
     for (ed = await editeur(); narratifVu(ed) !== avant; ed = await editeur()) {
       assert.ok(annulations < 20, `« Annuler » rend le narratif d’avant en moins de 20 fois : ${narratifVu(ed)}`)

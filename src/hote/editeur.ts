@@ -478,13 +478,14 @@ export interface ZonesDeLEditeur {
    */
   'editeur.inspecteur': (Choix | Ligne | Bouton | Formulaire)[];
   /**
-   * la validation de la scène éditée, celles du projet relues avec elle (`avertissementsDeLaSession`,
-   * `validateScene`) : le compte de ses erreurs et avertissements, ou ce qu'elle contrôle sans défaut ; puis chacun, au
-   * plus vingt, en ligne `validation/<rang>`, erreur ou avertissement, suivi de « Y aller » s'il désigne un fautif de
-   * la carte (`versLaFautive` : un défaut de plan, un ouvrage d'architecture, une entité ou un déclencheur), qui joue
-   * `{ geste: 'avertissement', rang }` : sa couche éditée, un défaut de plan suivi à l'outil de sélection, sa zone
-   * d'effet sélectionnée s'il en vise une, l'ouvrage sélectionné à l'outil d'architecture, l'entité ou le déclencheur
-   * sélectionné à l'outil de sélection ; puis le nombre des autres
+   * la validation de la scène éditée, celles du projet relues avec elle, la carte du monde et le narratif compris
+   * (`avertissementsDeLaSession`, `validateScene`) : le compte de ses erreurs et avertissements, ou ce qu'elle contrôle
+   * sans défaut ; puis chacun, au plus vingt, en ligne `validation/<rang>`, erreur ou avertissement, suivi de « Y aller »
+   * s'il désigne un fautif (`versLaFautive` : un défaut de plan, un ouvrage d'architecture, ou un porteur de formulaire,
+   * une entité, un déclencheur, un lieu de la carte, une entrée du narratif), qui joue `{ geste: 'avertissement', rang }`
+   * : sa couche éditée, un défaut de plan suivi à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une,
+   * l'ouvrage sélectionné à l'outil d'architecture, le porteur sélectionné à l'outil de sélection, son document ouvert ;
+   * puis le nombre des autres
    */
   'editeur.validation': (Ligne | Bouton)[];
   /**
@@ -2245,9 +2246,10 @@ const DOCUMENTS_DU_MENU = ['scene', 'carte', 'narratif'] as const;
 /** Les avertissements que la validation montre d'emblée ; au-delà, leur nombre. */
 const AVERTISSEMENTS_MONTRES = 20;
 
-/** La validation de la scène éditée de la session `s` (`avertissementsDeLaSession`) : sans défaut, ce qu'elle a
- *  contrôlé ; sinon leur décompte, puis chaque avertissement, son niveau et son message, et, s'il désigne un fautif de
- *  la carte (`versLaFautive`), le bouton qui y mène ; au-delà des premiers, le nombre des autres. */
+/** La validation de la scène éditée de la session `s`, la carte du monde et le narratif compris
+ *  (`avertissementsDeLaSession`) : sans défaut, ce qu'elle a contrôlé ; sinon leur décompte, puis chaque avertissement,
+ *  son niveau et son message, et, s'il désigne un fautif (`versLaFautive`), le bouton qui y mène ; au-delà des
+ *  premiers, le nombre des autres. */
 function validation(s: SessionDEdition): (Ligne | Bouton)[] {
   const ws = avertissementsDeLaSession(s);
   if (!ws.length) return [ligne('validation', t('ecran.editeur.validation.aucun', { controle: [t('ecran.editeur.validation.logique'), t('ecran.editeur.validation.architecture'), ...PLAN_DEFECT_FAMILIES.map((f) => f.title)].join(' ; ') }))];
