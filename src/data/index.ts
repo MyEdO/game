@@ -11,8 +11,8 @@ import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
-import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
+import { VOCABULAIRES, type IdDeColonneDuMarchand } from './schemas/grammaire/vocabulaires';
+import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDePossession } from './schemas/grammaire/reference';
@@ -24,6 +24,8 @@ import type { MerchantArchetypeDef } from './merchants.types';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { z } from 'zod';
+import type { traitCapabilitiesSchema } from './schemas/defs/traits';
+import type { GateDAction, IdDeModeDeCiblage, PorteeDIntention, RunDAction, SelecteurDAction } from './schemas/defs/actions';
 import type { ambianceSchema, sceneSchema, ReliefDefaults, SceneRoofDefaults, Terrain } from './schemas/defs-scenes/scene';
 import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
 import { slugId } from './slug';
@@ -305,11 +307,11 @@ export interface ActionDef {
     | 'coin-de-tour' | 'bandeau-de-phase' | 'interlude' | 'pastille-etat' | 'pastille-entite' | 'frise'
     | 'geste-secondaire';
   /** Un id de prédicat, ou plusieurs — composés par l'ET séquentiel d'`actionGate`. */
-  gate: string | string[];
-  candidates?: string;
-  run?: string;
-  mode?: string;
-  intent?: string;
+  gate: GateDAction | GateDAction[];
+  candidates?: SelecteurDAction;
+  run?: RunDAction;
+  mode?: IdDeModeDeCiblage;
+  intent?: PorteeDIntention;
   /** L'action ARME son `mode` dans `battle.action` (mode à bouton). */
   armed?: true;
   /** Champ de POSTURE pré-armée basculé par l'action (`BattleState.stances`, spec HUD §1a G5). */
@@ -456,18 +458,21 @@ const CATEGORIES_DES_TABLES_TIREES: readonly string[] = [
   'seaPortEvents' satisfies CleCodex,
 ];
 
+/** Le prédicat d'appartenance d'un id au pool d'une catégorie. */
+type PoolDEntrees = (id: string) => boolean;
+
 /** POOLS des tables tirées, une entrée par catégorie de leurs fichiers, lue sur la racine VIVANTE
  *  (`entreeDeCategorie`) : une édition au Codex y entre. */
-function poolsDesTablesTirees(): Record<string, (id: string) => boolean> {
-  return tableTotale(Object.keys(DATASET_DE_LA_CATEGORIE)
-    .filter((c) => FICHIERS_DES_TABLES_TIREES.includes(DATASET_DE_LA_CATEGORIE[c].fichier) || CATEGORIES_DES_TABLES_TIREES.includes(c)),
+function poolsDesTablesTirees(): Partial<Record<CleCodex, PoolDEntrees>> {
+  return tableTotale(CLES_CODEX
+    .filter((c) => (c in DATASET_DE_LA_CATEGORIE && FICHIERS_DES_TABLES_TIREES.includes(DATASET_DE_LA_CATEGORIE[c].fichier)) || CATEGORIES_DES_TABLES_TIREES.includes(c)),
   (c) => (id: string) => entreeDeCategorie(c, id) !== undefined);
 }
 
 /** POOLS d'ids par catégorie Codex, pour les familles dont le foyer DESCEND à l'entrée jouée. Une
  *  catégorie de plus = une ligne ICI (le dataset la NOMME, il ne code pas sa résolution), sauf celles
  *  des tables tirées (`FICHIERS_DES_TABLES_TIREES`, `CATEGORIES_DES_TABLES_TIREES`), qui entrent seules. */
-const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
+const STAKE_ENTRY_POOLS: Partial<Record<CleCodex, PoolDEntrees>> = {
   symptoms: (id) => symptoms.some((s) => s.id === id),
   seaShanties: (id) => !!findSeaShantyById(id),
   maladies: (id) => !!findDiseaseById(id),
@@ -499,18 +504,33 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   skills: (id) => !!byId('skill', id),
 };
 
+/** Le pool de la catégorie `categorie`, `undefined` quand elle n'en a pas. */
+function poolDeLaCategorie(categorie: string): PoolDEntrees | undefined {
+  return Object.prototype.hasOwnProperty.call(STAKE_ENTRY_POOLS, categorie) ? STAKE_ENTRY_POOLS[categorie as CleCodex] : undefined;
+}
+
+/** La catégorie d'entrée `categorie` a-t-elle un pool ? Lu par le parse d'une clé d'enjeu AUTHORÉE (`catalogStakeSchema`). */
+export const categorieDEntreeAPool = (categorie: string): boolean => poolDeLaCategorie(categorie) !== undefined;
+
+/** Le pool de la catégorie d'entrée que l'enjeu `e` déclare. LÈVE, en nommant l'enjeu et la catégorie, quand elle n'en a pas. */
+function poolDeLEnjeu(e: StakeEntry): PoolDEntrees {
+  const pool = poolDeLaCategorie(e.entryCategory!);
+  if (!pool) throw new Error(`stakes.json › ${e.id} : la catégorie d'entrée « ${e.entryCategory} » n'a aucun pool (\`STAKE_ENTRY_POOLS\`).`);
+  return pool;
+}
+
 /** CATALOGUE d'ENTRÉES d'un `kind` : où vit la fiche de l'entrée JOUÉE, quand la clé en nomme une.
  *  Déclaratif — ajouter une famille à entrées (tables régionales de Lustrie, périls…) = une ligne ICI,
  *  jamais un `if` par kind au rendu. La famille MALADIE l'énumère (les trois étapes de maladie jouent
  *  un SYMPTÔME nommé) ; les jets de modale mono la DÉRIVENT de leur donnée (`entryCategory`). */
-const stakeEntryCatalog = memoParVersion(['stakes'], (): Record<string, { category: string; has: (id: string) => boolean }> => ({
+const stakeEntryCatalog = memoParVersion(['stakes'], (): Record<string, { category: string; has: PoolDEntrees }> => ({
   'maladie-test-quotidien': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   'maladie-gangrene': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   'maladie-persistance': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   ...Object.fromEntries(
     STAKES
       .filter((e) => e.entryCategory)
-      .map((e) => [e.id, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
+      .map((e) => [e.id, { category: e.entryCategory!, has: poolDeLEnjeu(e) }]),
   ),
 }));
 
@@ -542,7 +562,8 @@ function entryCategoryOf(key: StakeKey): { category: string; has: (id: string) =
   const declared = stakeEntryCatalog()[key.kind];
   if (declared) return declared;
   const dyn = key.entryCategory;
-  return dyn && STAKE_ENTRY_POOLS[dyn] ? { category: dyn, has: STAKE_ENTRY_POOLS[dyn] } : undefined;
+  const has = dyn === undefined ? undefined : poolDeLaCategorie(dyn);
+  return dyn && has ? { category: dyn, has } : undefined;
 }
 
 /** Fiche de l'ENTRÉE jouée — `undefined` si la clé n'en nomme pas, si le `kind` n'a pas de catégorie
@@ -1367,14 +1388,13 @@ export interface GroupData {
 }
 /** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
  *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback
- *  au `match` vide) ; `columns` = ids de colonnes de stats à afficher, résolus contre le registre de
- *  renderers `MERCHANT_COL_RENDERERS` (`noyau/colonnesDuMarchand.ts`). */
+ *  au `match` vide) ; `columns` = ids de colonnes de stats à afficher (vocabulaire `colonnesDuMarchand`). */
 export interface MerchantFamilyData {
   id: string;
   type: 'merchantFamilies';
   label: string;
   match: { categorie?: TrappingTypeId; shield?: boolean; unit?: boolean };
-  columns: string[];
+  columns: IdDeColonneDuMarchand[];
 }
 export const merchantFamilies = merchantFamiliesJson as MerchantFamilyData[];
 /** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'unique'` (pièce de bestiaire singulière). */
@@ -1737,124 +1757,7 @@ export interface ManeuverDef {
  *  résolution de combat, capacités de construction/déplacement/vision : NI un modificateur (`passive`)
  *  NI un effet déclenché (`effects`), mais une règle que le moteur INTERROGE. Édité au Codex. Le
  *  seuil/type éventuel (Démoniaque 8+, Immunité (Poison)) vient de l'INDICE/arg de l'INSTANCE, pas d'ici. */
-export interface TraitCapabilities {
-  // Construction / spawn
-  bonusWoundsBE?: boolean;
-  mutationAtSpawn?: 'physique' | 'mentale';
-  /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
-   *  1d10/3 Mutations (arrondi à l'entier supérieur), alternant entre Mutations mentales et
-   *  physiques » sur la colonne du dieu). `countDie`/`countDivide` = la formule de comptage (⌈1d`countDie`
-   *  / `countDivide`⌉) ; `first` = la nature du 1er tirage (RAW liste « mentales et physiques » en premier) ;
-   *  `mentalTable`/`physTable` = ids de `mutationTables.json` (colonne du dieu). Distinct de `mutationAtSpawn`
-   *  (singulier, table générique 'physique'/'mentale') — les deux capacités coexistent sans collision. */
-  markMutations?: { countDie: number; countDivide: number; first: 'physique' | 'mentale'; mentalTable: string; physTable: string };
-  swarm?: boolean;
-  /** Attaque NATURELLE (LDB 85) : le trait EST une arme (morsure, cornes, tentacules…), pas un objet
-   *  tenu. La reconnaissance est TYPÉE, jamais découpée du libellé
-   *  (`statEntry` interdit le parsing de chaîne au runtime). `ranged` pour les attaques à distance (crachat). */
-  naturalWeapon?: { ranged?: boolean };
-  /** Lanceur de Sorts (LDB 85 l.182-183 : « La créature peut lancer des Sorts ») — autorise
-   *  l'incantation SANS Compétence avancée (statblocs du bestiaire), lu par `knowsCastingSkill`. */
-  spellcaster?: boolean;
-  /** Famille d'incantation que le Trait ouvre, l'`arg` de l'instance en spécialisation, comme le `combat.castingKind`
-   *  d'un Talent : Miracles (Divers), LDB 85 l.233. */
-  castingKind?: import('../engine/combatFeatures/types').CastingKind;
-  /** Porte le Trait Mort-vivant (LDB 85 l.239, lu par Hurlement fantomatique LDB 85 l.170 :
-   *  « créatures vivantes (ne possédant pas le trait Mort-vivant) ») — le TRAIT, PAS le Groupe
-   *  bestiaire (un folder « Morts sans repos » sans ce Trait, ex. Goule de crypte, N'EST PAS visé). */
-  undead?: boolean;
-  // Résolution de combat (seuil/type éventuel depuis l'instance)
-  wardSave?: boolean;
-  damageImmunity?: boolean;
-  /** Manifestation de Ghur (bestiaire de Middenheim) : le porteur est IMMUNISÉ aux effets des Sorts
-   *  du Domaine d'id donné (« bete » = Domaine de la Bête / Ghur). Lu PAR ID par le chemin
-   *  d'incantation (`immuneToSpellDomain` → `applyCast`) : les effets d'un Sort de ce Domaine ne
-   *  s'appliquent pas au porteur. NB : la clause RAW de vulnérabilité aux dégâts supplémentaires
-   *  anti-démon/mort-vivant (hors Bête) n'est PAS modélisée — le moteur n'a aucun concept de créature
-   *  « vulnérable comme un démon/mort-vivant » (les riders de Domaine ciblent l'appartenance LITTÉRALE
-   *  à un Groupe/Trait), donc rien d'inventé. */
-  spellDomainImmunity?: { id: string };
-  /** Contre-attaque en gagnant un Test opposé de défense (Champion LDB 85). MÊME capacité GÉNÉRIQUE que
-   *  le talent Riposte (`CombatFeature.counterOnDefenseWin`) — un seul concept pour traits ET talents. */
-  counterOnDefenseWin?: boolean;
-  counterRequiresFastParry?: boolean;
-  /** `CombatFeature.counterDeclaredPerLevel`. */
-  counterDeclaredPerLevel?: boolean;
-  unstable?: boolean;
-  painless?: boolean;
-  /** Manœuvre payable par l'Action de Mouvement, lue par `freeAttackCost`. LDB 85 l.314 */
-  freeTrample?: RefDesignee;
-  // Psychologie / IA
-  psychImmuneIfAhead?: boolean;
-  /** Psychologie portée par le trait (LDB 21), lue par `parsePsychTraits` (data-driven). L'Indice
-   *  (Peur/Terreur) vient de l'instance (`value`) ; la Cible (Animosité…) de l'instance (`arg`). */
-  psychType?: 'peur' | 'terreur' | 'animosite' | 'haine' | 'prejuge' | 'amour' | 'camaraderie' | 'phobie';
-  psychImmune?: boolean; // Immunité (Psychologie) — annule Peur/Terreur (LDB 85 l.143-144)
-  psychIndice?: number; // Indice FIXE si absent de l'instance (Phobie = 1, Effrayé = 0)
-  /** Cible FIXE (id de `groups.json`) d'un `psychType` CIBLÉ quand elle est imposée par le RAW du trait
-   *  lui-même, pas choisie à l'instanciation (Marque de Khorne « envers ceux qui sont ouvertement des
-   *  suivants de Slaanesh », MDG 07 l.250 — ≠ Animosité (au choix)). Fallback SEULEMENT si
-   *  l'instance ne porte pas d'`arg` (`parsePsychTraits`). */
-  psychCible?: string;
-  /** Ids de Groupe (`groups.json`) ACCORDÉS au porteur de ce Trait, en plus de sa dérivation
-   *  habituelle (folder/espèce/carrière…) — patron `psychCible` : la Cible d'une Animosité RÉCIPROQUE
-   *  ailleurs sur le bestiaire (« les suivants de Slaanesh éprouvent Animosité envers la créature »,
-   *  Marque de Khorne, MDG 07 l.250) a besoin d'un Groupe à VISER ; sans ce Trait, aucun `groupMatch`
-   *  ne peut cibler le porteur. Lu par `groupesDe` (SOURCE UNIQUE des Groupes effectifs d'un combattant). */
-  grantGroups?: string[];
-  /** Peut entrer en Frénésie (LDB 21 l.31 / LDB 85 l.150 Trait « Frénésie » / LDB 10 l.506 Talent
-   *  « Frénésie »), lu par `isFrenzyCapable` (une des 3 sources : Trait, Talent, Trait psy octroyé). */
-  frenzyCapable?: boolean;
-  mindless?: boolean;
-  /** Blessures calculées avec le Bonus de FORCE au lieu du Bonus de Force Mentale (Fabriqué, LDB 85
-   *  l.142 : « au lieu d'utiliser son bonus de Force Mentale, utilisez son bonus de Force »). Lu par
-   *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (immunité psychologique,
-   *  `engine/psych/registry.ts` ; profil IA « horde », `noyau/monde/ai.ts` — LDB 85 l.142), un autre trait
-   *  pourrait un jour substituer la même formule sans être Fabriqué. */
-  woundsUseForce?: boolean;
-  bestial?: boolean;
-  coldBlooded?: boolean;
-  stupid?: boolean;
-  rage?: boolean;
-  territorial?: boolean;
-  /** Monture trop ombrageuse pour agir seule (Nerveux, LDB 14 l.182) : MONTÉE, elle ne consacre pas sa
-   *  propre Action à attaquer (une monture SANS ce drapeau est « un combattant à part entière »). Lu par
-   *  l'IA de combat monté — drapeau de donnée, plus de test par-nom du trait. */
-  skittishMount?: boolean;
-  // Structure de siège (ADE II 8) — Atouts de la table « Barricades et protections typiques »
-  structResistant?: boolean;    // Résistant : imparable par une Arme à DISTANCE sans l'Atout Siège (ADE II 8 l.296)
-  structImpenetrable?: boolean; // Impénétrable : imparable par TOUTE Arme sans l'Atout Siège (ADE II 8 l.300)
-  // Déplacement / vision
-  fly?: boolean;
-  leap?: boolean;
-  stride?: boolean;
-  /** Grimpant (LDB 85 l.160-162) : « réussit automatiquement tous ses Tests d'Escalade » — le geste
-   *  d'escalade (échelle/arête `WallSeg.climb`) se résout SANS jet (pas un jet silencieux : aucun jet).
-   *  Lu par `noyau/monde/climbMove` (`planClimb`) et `noyau/monde/path` (pathing/IA, `MoveEnv.traverse`). */
-  autoClimb?: boolean;
-  /** Grimpant (LDB 85 l.160-162) : « avance à sa vitesse maximale de Mouvement sur toutes les surfaces
-   *  appropriées » — coût de Mouvement NORMAL (1 case) au lieu de la ½ vitesse du Talent Grimpeur
-   *  (`climbMovementCost`, joueur, LDB 15 l.55). Orthogonal à `autoClimb` (accueille une future capacité
-   *  qui réussirait automatiquement sans pour autant grimper à pleine vitesse). */
-  climbFullSpeed?: boolean;
-  /** Rampant (MSRC 15) : la créature ne peut PAS réaliser d'Action de Course (budget de Course nul). */
-  noRun?: boolean;
-  seesInDark?: boolean;
-  /** `LDB 11 l.176` ; `null` : `LDB 85 l.191`, portée du niveau de lumière `jour`. Lue par `darkSightTiles`. */
-  darkSightTiles?: number | null;
-  /** Salive analgésique (MSRC 15) : la morsure INDOLORE de la créature ne RÉVEILLE pas une proie
-   *  endormie (Inconscient magique) — elle s'y accroche sans être détectée. Lu par le modifier `wake-sleeper`. */
-  wakelessBite?: boolean;
-  /** Encombrement portable ×N (ADE II 2 l.708, folio 31 : « un ogre peut porter deux fois
-   *  l'Encombrement normal d'un humain : (Bonus de Force + Bonus d'Endurance) × 2 ») — porté par le
-   *  Trait racial ogre, lu par `traitEncumbranceFactor` (`combatFeatures/dispatch.ts`), composé au PLUS GRAND
-   *  facteur des Traits portés dans `maxEncumbrance` (`items.ts`) — jamais cumulatif. */
-  encumbranceFactor?: number;
-  /** Consommation de vivres/eau ×N (ADE II 2 l.708, folio 31 : « les ogres doivent manger et boire
-   *  au moins deux fois plus qu'un humain en une journée ») — porté par le Trait racial ogre, lu par
-   *  `traitConsumptionFactor` (`engine/provisions.ts`). */
-  consumptionFactor?: number;
-}
+export type TraitCapabilities = z.infer<typeof traitCapabilitiesSchema>;
 /** Trait de créature (LDB 85) : libellé canonique + desc VERBATIM (affichée à l'inspecteur). */
 export interface TraitData {
   /** Identifiant STABLE (slug du libellé) — clé d'instance/lookup, indépendant de la langue. */

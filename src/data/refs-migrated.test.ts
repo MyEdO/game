@@ -14,7 +14,7 @@ import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
   byId, findTalentById, findTrappingById, findSeaShantyById,
-  findWeaponGroupById, findGroupById, findCrewTestTypeById,
+  findWeaponGroupById, findGroupById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
@@ -612,7 +612,6 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
 // champs que le parse ne juge pas sont câblés ICI, où ils sont typés.
 describe('GameOp — toute référence de la donnée committée est jugée au parse ou résout dans son registre (#847, #1473)', () => {
   const resolvers: Record<string, (id: string) => boolean> = {
-    crewTestTypes: (id) => !!findCrewTestTypeById(id),
     seaManannFactors: (id) => MANANN_FACTORS.some((f) => f.id === id),
   };
 
@@ -735,15 +734,15 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   });
 
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
-    const fixture = (testType: string) => [{
+    const fixture = (factorId: string) => [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effet: { ops: [{ op: 'skillDRBonus', testType, bonus: 1 }] } } }] }],
+      data: [{ effects: [{ flow: { effet: { ops: [{ op: 'manann', factorId }] } } }] }],
     }];
-    expect(scanGameOpRefs({ sources: fixture('manoeuvre'), resolvers }).offenders).toEqual([]);
-    const out = scanGameOpRefs({ sources: fixture('test-fantome'), resolvers }).offenders;
+    expect(scanGameOpRefs({ sources: fixture('chat-heureux'), resolvers }).offenders).toEqual([]);
+    const out = scanGameOpRefs({ sources: fixture('facteur-fantome'), resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('crewTestTypes');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].testType');
+    expect(out[0].registry).toBe('seaManannFactors');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].factorId');
   });
 
   it('un champ NON-RÉFÉRENCE porte sa justification', () => {

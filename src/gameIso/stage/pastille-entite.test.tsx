@@ -17,7 +17,7 @@ import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
 import { ACTIONS, type ActionDef, type ActionId } from '../../data/index';
-import { ACTION_CANDIDATES, ACTION_PORTEURS, declarerPorteur } from '../../noyau/actionRegistry';
+import { ACTION_CANDIDATES } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 import type { Scene } from '../../noyau/monde/scene';
@@ -515,24 +515,24 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
 /**
  * LA SURFACE EST LE REGISTRE (garde structurelle de `state/action-atteignabilite.test.ts`, qui tourne
  * en `node` et ne peut mesurer qu'une lecture de source). Ici, au DOM : une entrée `pastille-entite`
- * FABRIQUÉE — avec son sélecteur et son porteur — reçoit sa pastille sans qu'aucune ligne de rendu ne
- * la nomme. Débrancher le rendeur (`TokenChromeOverlay` → `PastilleEntite`) vire cette sonde rouge.
+ * FABRIQUÉE — sur un sélecteur qu'aucune entrée ne nomme (`armes-a-distance`, son candidat espionné) et son
+ * porteur — reçoit sa pastille sans qu'aucune ligne de rendu ne la nomme. Débrancher le rendeur (`TokenChromeOverlay` → `PastilleEntite`) vire cette sonde rouge.
  */
 describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’action dans le rendu)', () => {
   const FABRIQUÉE: ActionDef = {
     id: 'geste-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'action/monter-en-selle', surface: 'pastille-entite',
-    gate: 'toujours', candidates: 'candidats-fabriques', coutAction: 'gratuit',
-  } as ActionDef;
+    gate: 'toujours', candidates: 'armes-a-distance', coutAction: 'gratuit',
+  };
 
+  let espion: { mockRestore: () => void } | undefined;
   beforeEach(() => {
-    ACTION_CANDIDATES['candidats-fabriques'] = ({ battle }) => battle.combatants.filter((c) => c.id === 'cible');
-    ACTION_PORTEURS['candidats-fabriques'] = declarerPorteur([], (c) => ({ porteurId: (c as Combatant).id, args: {} }));
+    espion = vi.spyOn(ACTION_CANDIDATES, 'armes-a-distance').mockImplementation(({ battle }) =>
+      battle.combatants.filter((c) => c.id === 'cible').map((c) => ({ uid: c.id })));
     ACTIONS.push(FABRIQUÉE);
   });
   afterEach(() => {
     ACTIONS.splice(ACTIONS.indexOf(FABRIQUÉE), 1);
-    delete ACTION_CANDIDATES['candidats-fabriques'];
-    delete ACTION_PORTEURS['candidats-fabriques'];
+    espion?.mockRestore();
   });
 
   it('une entrée FABRIQUÉE reçoit sa pastille, avec son libellé et son coût, sans code', () => {

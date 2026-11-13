@@ -179,7 +179,7 @@ describe('`exceptGroups` retranche ses porteurs de tout Groupe-cible, joker ou c
   const inclus = groupe('inclus-de-banc');
   const exclu = groupe('exclu-de-banc');
   /** Un Trait Dressé, porteur d'Animaux domestiques (Q7 A). */
-  const dresse = traits.find((t) => t.id.startsWith('dresse-') && t.capabilities?.grantGroups?.includes('animaux-domestiques'));
+  const dresse = traits.find((t) => t.id.startsWith('dresse-') && t.capabilities?.grantGroups?.some((g) => g === 'animaux-domestiques'));
   afterEach(() => resetData());
 
   it('un composite vise le porteur d’un Groupe inclus, sauf s’il porte aussi un Groupe exclu', () => {
