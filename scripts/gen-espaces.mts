@@ -118,6 +118,7 @@ const litteralDePas = (pas: PasResolu): string =>
 /** Catégories à dataset dont la collection n'est pas une liste d'entrées `{ id, label }`, et pourquoi :
  *  hors de la porte `entreeDeCategorie`. */
 const HORS_DE_LA_PORTE: Readonly<Record<string, string>> = {
+  dispersion: 'rangées sans `label` : une face du dé, que son décalage désigne (LDB 14 l.146-149)',
   navalProgression: 'entrées sans `label`',
   obsessions: 'rangées sans `label` : leur `id` est un Groupe (`groups.json`), qui porte le libellé',
   shipConstructionTraits: 'entrées sans `label`',

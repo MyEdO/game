@@ -61,6 +61,7 @@ import traumasRawJson from './traumas.json';
 import advancementCostsRawJson from './advancementCosts.json';
 import encumbranceTiersRawJson from './encumbranceTiers.json';
 import { MISHAP_TABLE } from '../engine/drivingMishap';
+import { TABLE_DE_DISPERSION } from '../engine/scatter';
 import { DRUNK_TABLE } from '../engine/drunkenness';
 // #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
@@ -198,6 +199,7 @@ const ARRAYS = {
   // copie) ; Surchargé par palier (tableau RACINE).
   advancementCosts: advancementCostsRawJson,
   drivingMishap: MISHAP_TABLE,
+  dispersion: TABLE_DE_DISPERSION,
   drunkenness: DRUNK_TABLE,
   encumbranceTiers: encumbranceTiersRawJson,
   // Incantations Imparfaites Mineures/Majeures (LDB 46 ; VDM 02 l.218-263) + Colère des dieux (LDB 40)

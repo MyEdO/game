@@ -205,6 +205,12 @@
         },
         {
           "files": [
+            "dispersion.json"
+          ],
+          "desc": "Diagramme de Dispersion (d10)"
+        },
+        {
+          "files": [
             "criticals.json"
           ],
           "desc": "Blessures critiques par localisation — 8 documents-tables, un par jeu × Localisation (base · variante *Aux Armes*)"

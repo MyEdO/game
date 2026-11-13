@@ -12,6 +12,8 @@ import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
 import { deDuVoyageRapide, resolveFastVoyage } from '../engine/seaVoyage';
 import { makeRNG } from '../engine/dice';
+import { deSelonLaPlage } from '../engine/dice.testkit';
+import { scatter } from '../engine/scatter';
 
 type Entree = Record<string, unknown>;
 const traits = () => datasetArray('traits') as unknown as Entree[];
@@ -136,5 +138,16 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe('Palier édité');
     expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, [{ ancetre: 'fastVoyage', champ: 'die', valeur: 'd20' }]).ok).toBe(true);
     expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
+  });
+
+  it('Dispersion : le dé édité est celui que tire le lecteur', () => {
+    const rangees = datasetArray('dispersion') as unknown as Entree[];
+    setDataset('dispersion', rangees.filter((r) => (r.max as number) <= 8) as never);
+    expect(enregistrerEntree('dispersion', rangees[0], 0, [{ ancetre: ancetreDuDe('dispersion')!, champ: 'die', valeur: 'd8' }]).ok).toBe(true);
+    const plages: number[] = [];
+    const de = deSelonLaPlage((_min, max) => { plages.push(max); return max; });
+    // Face 8 du d8 = (+1, +1) ; 2d10 = 20 m, demi-distance 20 m → 10 tuiles.
+    expect(scatter({ x: 0, y: 0 }, { x: 20, y: 20 }, de, 2)).toEqual({ x: 30, y: 30 });
+    expect(plages[0]).toBe(8);
   });
 });

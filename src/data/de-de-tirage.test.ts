@@ -22,6 +22,7 @@ import type * as miscast from './schemas/defs/miscast';
 /** Le dé IMPRIMÉ par le livre pour chaque document-table, à sa réf. */
 const LIVRE: Record<string, { die: string; ref: string }> = {
   'artillery-misfire': { die: '1d10', ref: 'AA 10 l.272' },
+  dispersion: { die: '1d10', ref: 'LDB 14 l.144' },
   'incidents-monte': { die: '1d100', ref: 'EDOC 07 l.150' },
   'problemes-vehicule': { die: '1d100', ref: 'EDOC 07 l.259' },
   'structure-criticals': { die: '1d100', ref: 'AA 10 l.118' },

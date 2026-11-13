@@ -40,6 +40,7 @@ import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOut
 import { equipeSchema } from '../../data/schemas/grammaire/valeurs';
 import { phenomenonKindSchema, phenomenonTestSchema, saturationTierSchema } from '../../data/schemas/defs/arcane-phenomena';
 import { drivingMishapOutcomeSchema } from '../../data/schemas/defs/driving-mishap';
+import { depuisSchema as depuisDeDispersionSchema } from '../../data/schemas/defs/dispersion';
 import { drunkennessOutcomeSchema } from '../../data/schemas/defs/drunkenness';
 import { progressionModeSchema } from '../../data/schemas/defs/naval-progression';
 import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
@@ -61,9 +62,11 @@ import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisf
 import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
 import drivingMishapJson from '../../data/driving-mishap.json';
+import dispersionJson from '../../data/dispersion.json';
 import drunkennessJson from '../../data/drunkenness.json';
 import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
+import type * as dispersion from '../../data/schemas/defs/dispersion';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
 import { deDesEvenementsDeBord, deDuVoyageRapide } from '../../engine/seaVoyage';
@@ -1228,6 +1231,19 @@ const CODEX_SPECS = {
       id: e.id, label: e.label, sub: bandeAuDe(deDeTirageDe<typeof accidents>(drivingMishapJson), e.min, e.max), desc: e.desc,
       meta: facts(fact(tr('codex.fiche.type'), libelleDeValeur(drivingMishapOutcomeSchema, e.outcome))),
     })),
+  },
+  dispersion: {
+    label: 'codex.fiche.dispersion', group: 'tables', sourceRef: 'LDB 14',
+    build: () => {
+      const de = deDeTirageDe<typeof dispersion>(dispersionJson);
+      return datasetArray('dispersion').map((e) => ({
+        id: e.id, label: tr('codex.fiche.dispersionResultat', { n: fourchette(e.min, e.max, facesDuDe(de)) }), sub: bandeAuDe(de, e.min, e.max),
+        meta: facts(
+          fact(tr('codex.fiche.dispersionDepuis'), libelleDeValeur(depuisDeDispersionSchema, e.depuis)),
+          fact(tr('codex.fiche.dispersionDecalage'), `(${e.dx}, ${e.dy})`),
+        ),
+      }));
+    },
   },
   drunkenness: {
     label: 'codex.fiche.ivresseTableau', group: 'tables', sourceRef: 'LDB 09',
