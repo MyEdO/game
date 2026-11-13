@@ -3129,6 +3129,8 @@ export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<
   | { kind: 'portion'; colonne: string }
   | { kind: 'variante'; die: string; carriere: string }
 ))[];
+/** Une table de variante : le second lancer d'une carrière tirée (AA 02 l.109-128). */
+export type VarianteDeCarriere = Extract<(typeof carrieresAleatoires)[number], { kind: 'variante' }>;
 /** La colonne de base `id`, lue à l'appel. */
 export const colonneDeCarrieres = (id: string) =>
   garanti(carrieresAleatoires.find((d): d is Extract<(typeof carrieresAleatoires)[number], { kind: 'colonne' }> => d.id === id && d.kind === 'colonne'), id, 'colonne du Tableau des Classes et Carrières aléatoires');
@@ -3150,13 +3152,21 @@ const admiseAuTirage = (c: CareerData | undefined, sp: SpeciesData) => c !== und
 export function substitutionsDe(tiree: string, sp: SpeciesData): string[] {
   return careers.filter((c) => c.aLaPlaceDe?.id === tiree && (c.especesALaPlaceDe?.includes(sp.id) ?? true) && admiseAuTirage(c, sp)).map((c) => c.id);
 }
-/** Les carrières que le tirage de `tiree` offre en plus à l'espèce `sp`, admises au tirage : ses substitutions
- *  (`substitutionsDe`), puis celles de sa variante quand la colonne de `sp` est un tableau du Livre de base
- *  (`tableauDuLdb` ; AA 02 l.109-128 ; VDM 03 l.17-31). */
-export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] {
-  const variante = colonneDeCarrieres(sp.refCareer).tableauDuLdb ? carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree) : undefined;
-  const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admiseAuTirage(findCareerById(id), sp));
-  return [...new Set([...substitutionsDe(tiree, sp), ...variantes])];
+/** La table de variante de la carrière `tiree` pour l'espèce `sp` : celle qui porte `tiree`, quand la colonne de `sp`
+ *  est un tableau du Livre de base (`tableauDuLdb`). AA 02 l.109-128 ; VDM 03 l.17-31 */
+export function varianteDe(tiree: string, sp: SpeciesData): VarianteDeCarriere | undefined {
+  if (!colonneDeCarrieres(sp.refCareer).tableauDuLdb) return undefined;
+  return carrieresAleatoires.find((d): d is VarianteDeCarriere => d.kind === 'variante' && d.carriere === tiree);
+}
+/** Un jet de carrière : son d100 et la carrière tirée, puis le second lancer sur sa variante (`varianteDe`) s'il a été
+ *  fait. AA 02 l.109-113 ; VDM 03 l.17-19 */
+export interface JetDeCarriere { roll: number; id: string; second?: { roll: number; id: string } }
+/** Ce que le jet `jet` offre à l'espèce `sp` : la carrière qu'il désigne, puis ses substitutions (`substitutionsDe`).
+ *  Le second lancer désigne la carrière qu'il atteint si elle est admise au tirage de `sp`, sinon la tirée.
+ *  AA 02 l.109-113 ; VDM 03 l.17-19 ; ADE I 07 l.9-23 */
+export function offreDuJet(sp: SpeciesData, jet: { id: string; second?: { id: string } }): string[] {
+  const finale = jet.second && admiseAuTirage(findCareerById(jet.second.id), sp) ? jet.second.id : jet.id;
+  return [finale, ...substitutionsDe(finale, sp)];
 }
 /** Les documents du Tableau des Races aléatoires, un par table imprimée (LDB 04 l.93-101 ; NADJ 14 l.66-75 ;
  *  ADE II 02 l.112-121), chaque rangée l'espèce nominale de sa race — app-owned éditable au Codex (`setDataset`),
@@ -3336,9 +3346,12 @@ export function speciesSingular(speciesId: string | undefined): PlayerText {
   return sp.variant ? dataLabel(`${race} (${sp.variant})`) : race;
 }
 /** Les carrières que le tirage de `sp` peut offrir sur sa table effective (`tableDeCarrieres`), avec ou sans sa
- *  portion : les rangées, et ce que leur tirage offre en plus (`carrieresOffertesAvec`). */
+ *  portion : l'offre de chaque rangée (`offreDuJet`), sans second lancer ou avec chaque rangée de sa variante (`varianteDe`). */
 export function carrieresTirables(sp: SpeciesData, avecPortion: boolean): CareerData[] {
-  const ids = new Set(tableDeCarrieres(sp.refCareer, avecPortion).entries.flatMap((r) => [r.id, ...carrieresOffertesAvec(r.id, sp)]));
+  const ids = new Set(tableDeCarrieres(sp.refCareer, avecPortion).entries.flatMap(({ id }) => [
+    ...offreDuJet(sp, { id }),
+    ...(varianteDe(id, sp)?.entries ?? []).flatMap((second) => offreDuJet(sp, { id, second })),
+  ]));
   return careers.filter((c) => ids.has(c.id));
 }
 /**

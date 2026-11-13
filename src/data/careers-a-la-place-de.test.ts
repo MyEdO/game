@@ -5,7 +5,7 @@
  * l.27 ; ADE I 07 l.9-11 ; LDB 08 l.1676, l.2292, l.2357.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { carrieresOffertesAvec, findSpeciesById, substitutionsDe } from '.';
+import { findSpeciesById, offreDuJet, substitutionsDe, varianteDe } from '.';
 import { resetRule, setRule } from '../engine/policy';
 import { schema } from './schemas/defs/careers';
 import careersJson from './careers.json';
@@ -33,9 +33,10 @@ describe('substitutions du tirage de carrière, par espèce', () => {
     expect(substitutionsDe('soldat', espece('halflings-cendreplaine')), 'un clan du Reikland (ADE I 02 l.11)').toEqual([]);
   });
 
-  it('un Tiléen qui tire Soldat peut prendre Piquier (AA 05 l.139), en plus des variantes d’AA de sa colonne ; un Reiklander, aucune substitution', () => {
+  it('un Tiléen qui tire Soldat peut prendre Piquier (AA 05 l.139), et les variantes d’AA de sa colonne au second lancer ; un Reiklander, aucune substitution', () => {
     expect(substitutionsDe('soldat', espece('humains-tileens'))).toEqual(['piquier']);
-    expect(carrieresOffertesAvec('soldat', espece('humains-tileens'))).toEqual(['piquier', 'archer', 'hallebardier', 'arquebusier', 'joueur-d-epee', 'specialiste-de-siege']);
+    expect(offreDuJet(espece('humains-tileens'), { id: 'soldat' })).toEqual(['soldat', 'piquier']);
+    expect(varianteDe('soldat', espece('humains-tileens'))?.id).toBe('variantes-soldat');
     expect(substitutionsDe('soldat', espece('humains-reiklander'))).toEqual([]);
   });
 

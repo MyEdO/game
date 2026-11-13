@@ -19,7 +19,7 @@ import {
 } from './brouillon';
 import {
   advancementLabel, careerLabelFor, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
-  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, starDie, stars,
+  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars,
   trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -163,7 +163,8 @@ function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
   const offertes = carrieresOffertes(d);
   const carriere = offertes.find((c) => c.id === d.careerId);
   const classe = carriere?.class.id;
-  const tirees = [...new Set(d.careerRolls.flatMap((r) => r.ids))];
+  const sp = draftSpecies(d);
+  const tirees = sp ? [...new Set(d.careerRolls.flatMap((r) => offreDuJet(sp, r)))] : [];
   const relance = careerXpDuProchainJet(d);
   return [
     ...(d.careerRolls.length

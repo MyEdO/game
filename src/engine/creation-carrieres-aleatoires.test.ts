@@ -2,14 +2,15 @@
  * #3578 L2a — le Tableau des Classes et Carrières aléatoires lu sur ses documents (`carrieres-aleatoires.json`,
  * LDB 05 l.214-299 ; portions MDG 09 l.9, l.21-30 ; variantes AA 02 l.109-128 ; substitutions ADE I 07 l.9-23,
  * Middenheim 09 l.57, VDM 03 l.11) :
- * le tirage suit le dé de la colonne, et rend au jet près l'ensemble de carrières du tirage d'avant les documents,
- * la carrière tirée en tête.
+ * le tirage suit le dé de la colonne et rend au jet près la carrière tirée d'avant les documents ; ce que le jet offre
+ * (`offreDuJet`) est la carrière tirée et ses substitutions, le second lancer (`rollVariante`, AA 02 l.109-113) en ajoute
+ * les rangées de sa variante.
  */
 import { describe, expect, it } from 'vitest';
-import { rollCareer } from './creation';
-import { deFixe, deMin } from './dice.testkit';
+import { rollCareer, rollVariante } from './creation';
+import { deFixe, deMax, deMin } from './dice.testkit';
 import { makeRNG } from './dice';
-import { careersForSpecies, carrieresAleatoires, findSpeciesById, species, tableDeCarrieres, type SpeciesData } from '../data';
+import { careersForSpecies, carrieresAleatoires, findSpeciesById, offreDuJet, species, tableDeCarrieres, varianteDe, type SpeciesData } from '../data';
 import { setDataset } from '../data/overrides';
 import { findTableEntry } from './tables';
 import { resetRule, setRule } from './policy';
@@ -17,7 +18,7 @@ import { resetRule, setRule } from './policy';
 /** Témoin : `careerRollPool` (`src/noyau/creation/brouillon.ts` l.284-308) puis `rollCareer`
  *  (`src/engine/creation.ts` l.82-92) de 62ec12bfc, rejoués sur ses `careers.json`/`classes.json`, d100 injecté
  *  de 1 à 100, par colonne, sans puis avec le remplacement (`+`). Bandes de jets consécutifs de même résultat :
- *  `de-à:ids`, la carrière tirée en tête. Écarts à 62ec12bfc : Gnome 30 sans Prêtre de Myrmidia (UiA 07 l.370) ;
+ *  `de-à:ids`, la carrière tirée en tête, puis ce que son offre (`offreDuJet`) atteint sans ou avec le second lancer. Écarts à 62ec12bfc : Gnome 30 sans Prêtre de Myrmidia (UiA 07 l.370) ;
  *  bandes de Middenheim, Middenland, Nordland et Gnome au livre (#3578 L2b), ensembles offerts inchangés ; seconds
  *  lancers du VDM (VDM 03 l.17-31, #3908 L1) : sur une colonne `tableauDuLdb`, Garde, Apothicaire, Sorcier et
  *  Mystique offrent en plus Bedeau, Alchimiste ordinaire, Magister Vigilant et Devin admis à la race ; substitutions
@@ -56,7 +57,7 @@ const especeDe = (colonne: string): SpeciesData => species.find((s) => s.refCare
 const trie = (ids: readonly string[]) => [...ids].sort().join(',');
 
 describe('rollCareer — documents du Tableau des Classes et Carrières aléatoires', () => {
-  it('rend, jet par jet, les carrières du tirage de 62ec12bfc : 11 colonnes × remplacement oui/non × d100 1..100', () => {
+  it('tire, jet par jet, la carrière de 62ec12bfc, et son offre atteint sans ou avec le second lancer les carrières du témoin : 11 colonnes × remplacement oui/non × d100 1..100', () => {
     for (const [cle, bandes] of Object.entries(TEMOIN)) {
       const avecPortion = cle.endsWith('+');
       const sp = especeDe(cle.replace('+', ''));
@@ -64,23 +65,50 @@ describe('rollCareer — documents du Tableau des Classes et Carrières aléatoi
         const [plage, ids] = bande.split(':');
         const [de, a] = plage.split('-').map(Number);
         for (let r = de; r <= a; r++) {
-          const tire = rollCareer(sp, avecPortion, deFixe(r)).ids;
-          expect(trie(tire), `${cle} d100=${r}`).toBe(trie(ids.split(',')));
-          expect(tire[0], `${cle} d100=${r}, carrière tirée`).toBe(ids.split(',')[0]);
+          const { id } = rollCareer(sp, avecPortion, deFixe(r));
+          expect(id, `${cle} d100=${r}, carrière tirée`).toBe(ids.split(',')[0]);
+          const seconds = (varianteDe(id, sp)?.entries ?? []).flatMap((second) => offreDuJet(sp, { id, second }));
+          expect(trie([...new Set([...offreDuJet(sp, { id }), ...seconds])]), `${cle} d100=${r}`).toBe(trie(ids.split(',')));
         }
       }
     }
     expect(Object.keys(TEMOIN)).toHaveLength(22);
   });
 
-  it('un halfling qui tire 43 reçoit Soldat, sa substitution sous sa règle optionnelle, puis les variantes admises à sa race (ADE I 07 l.9-11 ; AA 02 l.117-128)', () => {
-    const variantes = ['archer', 'hallebardier', 'arquebusier', 'specialiste-de-siege'];
-    expect(rollCareer(findSpeciesById('halflings')!, false, deFixe(43)).ids).toEqual(['soldat', ...variantes]);
+  it('un halfling qui tire 43 reçoit Soldat, et sa substitution sous sa règle optionnelle ; les variantes admises à sa race ne viennent que du second lancer (ADE I 07 l.9-11 ; AA 02 l.109-128)', () => {
+    const halfling = findSpeciesById('halflings')!;
+    const jet = rollCareer(halfling, false, deFixe(43));
+    expect(jet).toEqual({ roll: 43, id: 'soldat' });
+    expect(offreDuJet(halfling, jet)).toEqual(['soldat']);
     setRule('creation-chevaucheur-de-blaireau', true);
     try {
-      expect(rollCareer(findSpeciesById('halflings')!, false, deFixe(43)).ids).toEqual(['soldat', 'chevaucheur-de-blaireau', ...variantes]);
+      expect(offreDuJet(halfling, jet)).toEqual(['soldat', 'chevaucheur-de-blaireau']);
     } finally {
       resetRule('creation-chevaucheur-de-blaireau');
+    }
+    expect(offreDuJet(halfling, { ...jet, second: { id: 'archer' } })).toEqual(['archer']);
+    expect(offreDuJet(halfling, { ...jet, second: { id: 'joueur-d-epee' } }), 'Joueur d’épée n’est pas admis aux halflings : Soldat reste').toEqual(['soldat']);
+  });
+
+  it('Gerd : 98 sur une colonne humaine, Soldat ; son second lancer de 47 en fait un archer (AA 02 l.113)', () => {
+    const gerd = findSpeciesById('humains-middenheim')!;
+    const jet = rollCareer(gerd, false, deFixe(98));
+    expect(jet).toEqual({ roll: 98, id: 'soldat' });
+    const second = rollVariante(varianteDe(jet.id, gerd)!, deFixe(47));
+    expect(second).toEqual({ roll: 47, id: 'archer' });
+    expect(offreDuJet(gerd, { ...jet, second })[0]).toBe('archer');
+  });
+
+  it('le second lancer suit le `die` de sa variante, jamais celui de la colonne (AA 02 l.109)', () => {
+    const imprimes = [...carrieresAleatoires];
+    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'variantes-soldat' ? { ...d, die: 'd10' } : d)));
+    try {
+      const variante = varianteDe('soldat', findSpeciesById('humains-reiklander')!)!;
+      expect(rollVariante(variante, deMax)).toEqual({ roll: 10, id: 'soldat' });
+      const jets = Array.from({ length: 300 }, (_, i) => rollVariante(variante, makeRNG(i + 1)).roll);
+      expect(Math.max(...jets), 'un 1d10 ne dépasse pas 10').toBe(10);
+    } finally {
+      setDataset('carrieresAleatoires', imprimes);
     }
   });
 
@@ -106,7 +134,7 @@ describe('rollCareer — documents du Tableau des Classes et Carrières aléatoi
     try {
       const base = imprimes.find((d) => d.id === humain.refCareer)!.entries;
       const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(base, i + 1).id));
-      const tires = new Set(Array.from({ length: 300 }, (_, i) => rollCareer(humain, false, makeRNG(i + 1)).ids[0]));
+      const tires = new Set(Array.from({ length: 300 }, (_, i) => rollCareer(humain, false, makeRNG(i + 1)).id));
       expect(tires, 'un 1d10 n’atteint que les rangées de 1 à 10').toEqual(atteignables);
       expect(rollCareer(humain, false, deMin).roll).toBe(1);
     } finally {

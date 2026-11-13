@@ -8,6 +8,7 @@ import {
   withCareer,
   rollDraftSpecies,
   rollDraftCareer,
+  tirerLaVariante,
   rollDraftChars,
   rollDraftTalents,
   speciesXp,
@@ -51,7 +52,7 @@ import { dotationsDuHeros, emplacementsDeDotation } from '../../engine/trappingC
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
-import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
+import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies, offreDuJet } from '../../data';
 
 // Page blanche : `newDraft` ne pré-tire plus race/carrière — les tests posent explicitement les
 // mêmes défauts dérivés qu'avant (1ʳᵉ espèce du LDB, sa 1ʳᵉ carrière accessible).
@@ -359,14 +360,50 @@ describe('bonus de PX (LDB 04/05)', () => {
     const d1 = rollDraftCareer(draft());
     expect(careerXp(d1)).toBe(50);
     // Une carrière hors des bornes tirées (refusée sans relancer) → choix libre, 0 PX.
-    const rolledIds = new Set(d1.careerRolls.flatMap((r) => r.ids));
+    const rolledIds = new Set(d1.careerRolls.flatMap((r) => offreDuJet(draftSpecies(d1)!, r)));
     const other = ['soldat', 'artisan', 'apothicaire'].find((id) => !rolledIds.has(id))!;
     expect(careerXp(withCareer(d1, other))).toBe(0);
     const d3 = rollDraftCareer(d1);
     expect(d3.careerRolls).toHaveLength(3);
-    expect(careerXp(withCareer(d3, d3.careerRolls[2].ids[0]))).toBe(25);
+    expect(careerXp(withCareer(d3, d3.careerRolls[2].id))).toBe(25);
     const dFree = rollDraftCareer(d3); // « continuez à relancer » (LDB 05 l.212)
     expect(careerXp(dFree)).toBe(0);
+    expect(dFree.careerRolls).toHaveLength(4);
+    expect(dFree.careerId, 'la relance libre est la carrière du brouillon').toBe(dFree.careerRolls[3].id);
+    expect(rollDraftCareer(dFree).careerRolls.slice(0, 4), 'chaque relance libre reste lisible').toEqual(dFree.careerRolls);
+  });
+});
+
+describe('second lancer sur la variante de la carrière tirée (AA 02 l.109-113 ; VDM 03 l.17-19 ; LDB 05 l.208-212)', () => {
+  /** Le premier jet du brouillon d'un Middenheimer de graine `graine`. */
+  const premierJet = (graine: number) => rollDraftCareer(withSpecies(newDraft(graine), 'humains-middenheim'));
+  /** Le premier brouillon, graines 1.., dont le premier jet vérifie `voulu`. */
+  const brouillonOu = (voulu: (d: CreatorDraft) => boolean) => {
+    for (let graine = 1; graine < 5000; graine++) { const d = premierJet(graine); if (voulu(d)) return d; }
+    throw new Error('aucune graine');
+  };
+  const soldat = brouillonOu((d) => d.careerRolls[0].id === 'soldat' && tirerLaVariante(d, 0).careerId !== 'soldat');
+
+  it('une carrière de variante choisie sans second lancer ne rapporte rien ; le résultat du second lancer garde le bonus du premier jet', () => {
+    expect(careerXp(soldat)).toBe(50);
+    expect(careerXp(withCareer(soldat, 'archer'))).toBe(0);
+    const engage = tirerLaVariante(soldat, 0);
+    expect(engage.careerRolls[0].second, 'le second lancer est lisible sur son jet').toBeDefined();
+    expect(engage.careerId).toBe(engage.careerRolls[0].second!.id);
+    expect(careerXp(engage)).toBe(50);
+    expect(careerXp(withCareer(engage, 'soldat')), 'le second lancer engage : Soldat n’est plus offert').toBe(0);
+  });
+
+  it('se refuse sur un jet qui l’a déjà fait, et sur une carrière sans variante', () => {
+    const engage = tirerLaVariante(soldat, 0);
+    expect(tirerLaVariante(engage, 0)).toBe(engage);
+    const frereLoup = brouillonOu((d) => d.careerRolls[0].id === 'frere-loup');
+    expect(tirerLaVariante(frereLoup, 0)).toBe(frereLoup);
+  });
+
+  it('une substitution prise garde le bonus de son jet (Middenheim 09 l.57)', () => {
+    const frereLoup = brouillonOu((d) => d.careerRolls[0].id === 'frere-loup');
+    expect(careerXp(withCareer(frereLoup, 'flagellant'))).toBe(50);
   });
   it('caractéristiques : +50 gardées, +25 réassignées, 0 après relance ou 100 Points — et 0 sans le GESTE', () => {
     expect(charsXp(draft())).toBe(0); // pas de bonus pour un tirage jamais lancé (#393 agentivité)
