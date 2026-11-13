@@ -1,4 +1,5 @@
 import type { CadreDef } from '../types';
+import { biseau, trait } from '../biseau';
 
 const COTE = 128;
 /** La largeur du filet de laiton. */
@@ -6,22 +7,6 @@ const BANDE = 5;
 /** Le côté de la plaque d'angle, qui déborde du filet sur l'image. */
 const ANGLE = 9;
 const TRANCHE = 10;
-
-type Point = [number, number];
-
-/** Un trait de `de` à `a`. */
-const trait = (de: Point, a: Point, couleur: string, opacite = 1) =>
-  `<path d="M${de[0]} ${de[1]} L${a[0]} ${a[1]}" fill="none" stroke="var(${couleur})" stroke-width="1" opacity="${opacite}"/>`;
-
-/** Les quatre côtés d'un carré inscrit à `retrait` du bord : `haut` et `gauche` à la couleur `lumiere`, `bas` et
- *  `droite` à la couleur `ombre`. */
-const biseau = (retrait: number, lumiere: string, ombre: string, opacite = 1) => {
-  const [a, b] = [retrait + 0.5, COTE - retrait - 0.5];
-  return (
-    trait([a, b], [a, a], lumiere, opacite) + trait([a, a], [b, a], lumiere, opacite) +
-    trait([b, a], [b, b], ombre, opacite) + trait([b, b], [a, b], ombre, opacite)
-  );
-};
 
 /** La plaque d'un angle, son coin `(x, y)`, ses côtés vers `(sx, sy)` : un carré de laiton bombé, ses arêtes au biseau
  *  du filet, un rivet en son milieu. */

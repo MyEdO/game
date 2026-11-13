@@ -1,10 +1,14 @@
-[gd_resource type="Theme" load_steps=9 format=3]
+[gd_resource type="Theme" load_steps=13 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
 [ext_resource type="Script" path="res://scripts/cadre.gd" id="2_cadre"]
 [ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="3_ombre"]
 [ext_resource type="StyleBox" path="res://art/cadre_de_fenetre.tres" id="4_fenetre"]
+[ext_resource type="StyleBox" path="res://art/bouton_repos.tres" id="b_repos"]
+[ext_resource type="StyleBox" path="res://art/bouton_survol.tres" id="b_survol"]
+[ext_resource type="StyleBox" path="res://art/bouton_presse.tres" id="b_presse"]
+[ext_resource type="StyleBox" path="res://art/bouton_ferme.tres" id="b_ferme"]
 
 [sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Cadre_du_recit"]
 content_margin_left = 20.0
@@ -34,6 +38,11 @@ script = ExtResource("2_cadre")
 cadre = "laiton"
 
 [resource]
+Button/styles/normal = ExtResource("b_repos")
+Button/styles/hover = ExtResource("b_survol")
+Button/styles/pressed = ExtResource("b_presse")
+Button/styles/hover_pressed = ExtResource("b_presse")
+Button/styles/disabled = ExtResource("b_ferme")
 CarteDuVoyage/styles/panel = SubResource("Parchemin")
 Fenetre/styles/panel = ExtResource("4_fenetre")
 Parchemin/styles/panel = SubResource("Parchemin")
