@@ -17,6 +17,7 @@
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
 import { datasetDe, type EntreeDe } from '../data/datasets';
 import type * as reglesOptionnellesDef from '../data/schemas/defs/reglesOptionnelles';
+import { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
 import { bumperDataset, indexParId } from '../data/versionDataset';
 import type { IdsParEspace, ValeurDeRegle } from '../data/schemas/_ids.generated';
 import { t } from '../i18n';
@@ -109,19 +110,6 @@ export function poserLesRegles(regles: JeuDeRegles): void {
 /** Snapshot des surcharges (pour persistance). */
 export function ruleOverrides(): Record<string, RuleValue> {
   return Object.fromEntries(overrides);
-}
-
-/** `v` est-elle une valeur de la forme `kind` que déclare `regle` : `flag` booléen, `param` nombre dans ses
- *  bornes, `mode` l'une de ses `options` ? */
-export function valeurConforme(regle: Pick<OptionalRule, 'kind' | 'min' | 'max'> & { options?: readonly string[] }, v: unknown): v is RuleValue {
-  switch (regle.kind) {
-    case 'flag':
-      return typeof v === 'boolean';
-    case 'param':
-      return typeof v === 'number' && Number.isFinite(v) && (regle.min === undefined || v >= regle.min) && (regle.max === undefined || v <= regle.max);
-    case 'mode':
-      return typeof v === 'string' && (regle.options ?? []).includes(v);
-  }
 }
 
 /** Pourquoi la surcharge `v` de la règle `id` ne se pose pas — un id hors du registre, ou une valeur non conforme à

@@ -7,35 +7,56 @@ import { document } from '../grammaire/document';
 export const file = 'reglesOptionnelles.json';
 export const famille = 'entite';
 
+/** La FORME d'un réglage (règle optionnelle, préférence) que juge `ecartDeValeur` : `flag` = interrupteur, `param` =
+ *  nombre borné, `mode` = choix parmi `options`. */
+export interface FormeDeValeur {
+  readonly kind: 'flag' | 'param' | 'mode';
+  readonly min?: number;
+  readonly max?: number;
+  readonly options?: readonly string[];
+}
+
+/** Pourquoi `v` n'est pas une valeur de la forme `forme`, `undefined` si elle l'est : `flag` booléen, `param` nombre
+ *  fini dans ses bornes, `mode` l'une de ses `options`. SEUL juge de conformité d'une valeur de réglage. */
+export function ecartDeValeur(forme: FormeDeValeur, v: unknown): string | undefined {
+  const vu = typeof v === 'string' ? `la chaîne « ${v} »` : String(v);
+  switch (forme.kind) {
+    case 'flag':
+      return typeof v === 'boolean' ? undefined : `un interrupteur (kind « flag ») vaut un booléen, pas ${vu}`;
+    case 'param':
+      if (typeof v !== 'number' || !Number.isFinite(v)) return `un nombre (kind « param ») vaut un nombre, pas ${vu}`;
+      return (forme.min !== undefined && v < forme.min) || (forme.max !== undefined && v > forme.max)
+        ? `${v} sort des bornes [${forme.min ?? '−∞'}, ${forme.max ?? '+∞'}]`
+        : undefined;
+    case 'mode':
+      if (typeof v !== 'string') return 'un choix (kind « mode ») vaut une des valeurs proposées';
+      return (forme.options ?? []).includes(v) ? undefined : `« ${v} » n'est pas une des valeurs proposées (${(forme.options ?? []).join(', ')})`;
+  }
+}
+
+/** `v` est-elle une valeur de la forme `forme` (`ecartDeValeur`) ? */
+export const valeurConforme = (forme: FormeDeValeur, v: unknown): v is z.output<typeof ruleValueSchema> => ecartDeValeur(forme, v) === undefined;
+
 /**
- * Règle optionnelle (V9 #1318) : ses VALEURS (`default`, `action.when`) sont du type que son `kind` promet, celui que
- * rend `rule(id)` (`ValeurDeRegle`, `engine/policy.ts`). `ruleValueSchema` est l'union booléen|nombre|chaîne : seul ce
- * jugement refuse `"false"` sur un `flag`. Porté par le schéma au chargement (`affinerEntree`) et par l'atelier du
- * Codex avant l'enregistrement (`validateEntry`, `atelierDuCodex.ts`), en plus du contrôle typé du formulaire
- * (`RuleValueField`).
+ * Règle optionnelle (V9 #1318) : ses VALEURS (`default`, `action.when`) sont de sa forme (`ecartDeValeur`), celle que
+ * rend `rule(id)` (`ValeurDeRegle`, `engine/policy.ts`) ; un `mode` propose au moins deux valeurs, un `param` déclare
+ * ses bornes. Porté par le schéma au chargement (`affinerEntree`) et par l'atelier du Codex avant l'enregistrement
+ * (`validateEntry`, `atelierDuCodex.ts`), en plus du contrôle typé du formulaire (`RuleValueField`).
  */
 export function ecartsDeLaRegle(entry: Readonly<Record<string, unknown>>): string[] {
-  const out: string[] = [];
   const kind = entry.kind;
-  const options = Array.isArray(entry.options) ? (entry.options as unknown[]).filter((o) => typeof o === 'string') as string[] : [];
-  const check = (champ: string, v: unknown): void => {
-    if (v === undefined) return;
-    if (kind === 'flag' && typeof v !== 'boolean') out.push(`${champ} : un interrupteur (kind « flag ») vaut un booléen, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
-    if (kind === 'param' && typeof v !== 'number') out.push(`${champ} : un nombre (kind « param ») vaut un nombre, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
-    if (kind === 'mode') {
-      if (typeof v !== 'string') out.push(`${champ} : un choix (kind « mode ») vaut une des valeurs proposées`);
-      else if (options.length > 0 && !options.includes(v)) out.push(`${champ} : « ${v} » n'est pas une des valeurs proposées (${options.join(', ')})`);
-    }
-  };
-  check('default', entry.default);
+  if (kind !== 'flag' && kind !== 'param' && kind !== 'mode') return [];
+  const options = Array.isArray(entry.options) ? (entry.options as unknown[]).filter((o): o is string => typeof o === 'string') : [];
+  const min = typeof entry.min === 'number' ? entry.min : undefined;
+  const max = typeof entry.max === 'number' ? entry.max : undefined;
+  const forme: FormeDeValeur = { kind, options, min, max };
   const action = entry.action as { when?: unknown } | undefined;
-  if (action && typeof action === 'object') check('action.when', action.when);
+  const out = ([['default', entry.default], ['action.when', action?.when]] as const).flatMap(([champ, v]) => {
+    const ecart = v === undefined ? undefined : ecartDeValeur(forme, v);
+    return ecart ? [`${champ} : ${ecart}`] : [];
+  });
   if (kind === 'mode' && options.length < 2) out.push('options : un choix (kind « mode ») propose au moins deux valeurs');
-  if (kind === 'param' && (typeof entry.min !== 'number' || typeof entry.max !== 'number')) out.push('min/max : un nombre (kind « param ») déclare ses bornes');
-  if (kind === 'param' && typeof entry.default === 'number' && typeof entry.min === 'number' && typeof entry.max === 'number'
-      && (entry.default < entry.min || entry.default > entry.max)) {
-    out.push(`default : ${entry.default} sort des bornes [${entry.min}, ${entry.max}]`);
-  }
+  if (kind === 'param' && (min === undefined || max === undefined)) out.push('min/max : un nombre (kind « param ») déclare ses bornes');
   return out;
 }
 

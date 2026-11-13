@@ -11,15 +11,14 @@ import { datasetArray, resetData, setDataset } from '../data/overrides';
 import type { EntreeVivante } from '../data/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import type { Combatant } from './types';
-import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattantDeTest.testkit';
+import { blessuresDeBase, combattantDeTest, type SurchargeDeCombattant } from './combattantDeTest.testkit';
 
 afterEach(() => resetData());
 
-const mk = (o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'c', kind: 'ennemi', advantage: 0, conditions: [],
-  characteristics: profilDeTest({ 'force-mentale': 35 }), psychState: [], psychTraits: [], groups: [],
-  weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
-}) as Combatant);
+const mk = (o: SurchargeDeCombattant = {}): Combatant => combattantDeTest({
+  id: 'c', label: 'c', kind: 'ennemi', characteristics: { 'force-mentale': 35 },
+  psychState: [], psychTraits: [], groups: [], wounds: blessuresDeBase(10), ...o,
+});
 
 const composites = groups.filter((g) => g.inclut?.length);
 const ordinaire = groups.find((g) => !g.inclut && !g.matchesAll && !g.relatif && !composites.some((c) => c.inclut!.some((id) => id === g.id)))!;
