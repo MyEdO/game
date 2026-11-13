@@ -344,6 +344,8 @@ jobs:
 
   # Les migrations de donnée sont REJOUABLES : rejouées sur l'arbre courant, elles ne réécrivent
   # RIEN. Job DÉDIÉ : il écrit dans l'arbre de SON runner, jamais dans celui d'un job de gates.
+  # Il porte aussi le banc des étalons (#3935), hors du rejeu local au même titre : un étalon ne se
+  # compare que sous Linux x86-64 avec le Chromium épinglé (`EPINGLE`, hotes/godot/planches.mjs).
   migrations:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -364,3 +366,11 @@ jobs:
       - name: Rejeu en CROISSANCE (+1 entrée ne coûte rien)
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run migrations:replay:croissance
+      # Le banc des étalons : l'export Web, puis chaque planche comparée au pixel à son étalon, dans
+      # le Chromium que l'épingle nomme (la version de Playwright se lit à sa source).
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npx -y "playwright@$(node --input-type=module -e "import { EPINGLE } from './hotes/godot/planches.mjs'; console.log(EPINGLE.playwright)")" install chromium && echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> "$GITHUB_ENV" && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:etalons

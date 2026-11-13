@@ -81,7 +81,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     const jours = get().travelPlan!.recap!.days;

@@ -15,11 +15,13 @@ extends Node
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
 ## lui, une zone sans `ids` ceux qu'aucune autre zone de sa source ne nomme (`Zone.montrer_toutes`), si bien qu'aucun
-## élément ne se perd. L'écran d'attaque (`projet/ecrans/cascade/attaque.tscn`), posé en bas du plateau, montre la cible,
+## élément ne se perd. Les fenêtres de jet héritent du cadre `projet/cadres/fenetre_de_jet.tscn`, posé en bas à droite
+## de la scène, à l'écart du panneau de l'actif (`Hud/Gauche`) en haut à gauche. L'écran d'attaque
+## (`projet/ecrans/cascade/attaque.tscn`) montre la cible,
 ## l'arme et ses pastilles, le jet de l'attaquant face à celui de la défense (le nombre à atteindre et le dé en gros),
 ## l'issue, les options du coup puis les gestes en rangée ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
 ## sa réaction et son score à atteindre avant le dé face au jet de l'attaquant, révélé une fois le dé tombé. La fenêtre
-## d'incantation (`projet/ecrans/cascade/incantation.tscn`), posée en bas du plateau comme l'attaque, montre le sort et sa
+## d'incantation (`projet/ecrans/cascade/incantation.tscn`) montre le sort et sa
 ## cible, le jet du lanceur (son NI au libellé), la zone et le budget de Surincantation en pastilles, l'issue, puis
 ## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
@@ -53,7 +55,7 @@ extends Node
 ## En tête le jour, puis le moment et la météo (`scene/jour`, `scene/moment`), face à la carte du trajet
 ## (`voyage/carte`, en `carteDuVoyage` : chaque lieu, l'arrivée, le groupe sur sa route) ; à droite le récit : le
 ## titre de ce qui tient la journée, le journal de la partie, ses dernières lignes au pied et le reste au défilement, les jets qu'aucun
-## héros ne jette (`jets/`), puis ses gestes ; au pied les km faits sur ceux du trajet par son moyen (`voyage/route`)
+## héros ne jette (`jets/`), le choix de sa cadence (`voyage/cadence`), puis ses gestes ; au pied les km faits sur ceux du trajet par son moyen (`voyage/route`)
 ## et la frise (`voyage/frise`, en `frise` : le départ, chaque nuit passée en route à son km, le groupe, l'arrivée).
 ## Le jet d'un héros (en `jetDeHeros` : son dé dans un anneau à son ton, puis son test et son issue) et les gestes
 ## qui le désignent sont sur sa carte (`groupe.heros`), cerclée quand c'est à lui d'agir. La halte de nuit
