@@ -307,7 +307,7 @@ export interface BrouillonDArete {
 
 /** Un cran de l'historique de l'éditeur : le projet édité et la scène qu'il montre. #3606 */
 export interface CranDEdition {
-  projet: Omit<ProjectDoc, 'schema'>;
+  projet: ProjetDEdition;
   sceneId: string;
 }
 
@@ -330,7 +330,7 @@ export interface SessionDEdition {
   presse: SceneEntity | null;
   /** Le dépôt d'où le projet s'est ouvert : le projet tel qu'il le porte, et celui qu'un enregistrement en cours lui
    *  écrit. `null` : le projet vient du jeu, il ne s'enregistre pas. */
-  depot: { enregistre: Omit<ProjectDoc, 'schema'>; enCours: Omit<ProjectDoc, 'schema'> | null } | null;
+  depot: { enregistre: ProjetDEdition; enCours: ProjetDEdition | null } | null;
   /** Les calques de référence du projet, par scène et par couche, hors de l'historique. */
   calques: CalquesDuProjet;
   /** Le calage du calque de la couche éditée : `idle` hors du calage. */
@@ -419,7 +419,7 @@ export type GesteDEdition =
   | { geste: 'chapitre'; book: string; ch: string; texte: string | null };
 
 /** Le projet édité : le présent de l'historique. */
-export const projetEdite = (s: SessionDEdition): Omit<ProjectDoc, 'schema'> => s.historique.present.projet;
+export const projetEdite = (s: SessionDEdition): ProjetDEdition => s.historique.present.projet;
 
 /** L'id de la scène éditée du projet. */
 export const idDeLaSceneEditee = (s: SessionDEdition): string => s.historique.present.sceneId;
@@ -442,7 +442,7 @@ const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).l
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format ; `manifeste`, l'index des chapitres du
  *  `Source/` que l'hôte sert, sans aucun chapitre chargé. */
-export function ouvrirLEdition(projet: Omit<ProjectDoc, 'schema'>, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null): SessionDEdition {
+export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null): SessionDEdition {
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
@@ -756,7 +756,7 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
 /** Pourquoi la session `s` ne supprime pas sa sélection : le refus du retrait de son porteur par la table de sa sorte
  *  (`projetSansLePorteur`), dit à l'auteur ; `null` si elle la supprime. #3606 */
 export function refusDeRetrait(s: SessionDEdition): string | null {
-  const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+  const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
   const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
   return retrait && !retrait.ok ? retrait.regle : null;
 }
@@ -872,7 +872,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         const renommee = renameEntry(scene, s.sel.id, g.nom);
         return renommee === scene ? s : ecrire(s, renommee, { type: 'entry', id: g.nom.trim() });
       }
-      const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+      const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
       const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommer;
       if (!porteur || !renommer) return s;
       const renomme = renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom);
@@ -914,7 +914,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'identifier': {
       if (g.element !== undefined) {
-        const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+        const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
         const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommerElement;
         const renomme = porteur && renommer ? renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.element, g.id) : projetEdite(s);
         return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, s.sel);
@@ -949,7 +949,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return out?.ids.length ? ecrire(s, out.scene, s.sel) : s;
     }
     case 'supprimer': {
-      const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+      const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
       const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
       if (retrait) return retrait.ok ? ecrireLeProjet(s, retrait.valeur) : s;
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;
@@ -1003,7 +1003,7 @@ function calquesElagues(s: SessionDEdition): { calques?: CalquesDuProjet } {
  *  (`FORMULAIRES`), sa donnée dans le projet (`porteurDuProjet`) et les champs qu'elle offre dans son cadre
  *  (`formeDuPorteur`) ; `undefined` sans lui ou sans sa donnée. */
 function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: unknown; champs: ReturnType<typeof formeDuPorteur>['champs'] } | undefined {
-  const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+  const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
   const donnee = porteur && porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee;
   return porteur && donnee && { schema: FORMULAIRES[porteur.sorte].schema, donnee, champs: formeDuPorteur(porteur.sorte, donnee, cadreDeLaSession(s)).champs };
 }

@@ -68,7 +68,7 @@ export { gestesDExploration, type GesteDExploration } from './gestesDExploration
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
 export { capDuGroupe, casesDuGroupe, porteurParId, PARTY_MAX } from './monde/combatants';
 export { labelEmplacement, seatSlotsOf, type SeatOccupant } from './monde/seating';
-export { assoirALaPlace, ECRITURES_DES_PORTEURS, type PatchDeZone } from './sceneEdit';
+export { assoirALaPlace, ECRITURES_DES_PORTEURS, retraitOffert, type PatchDeZone } from './sceneEdit';
 export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
 export { areteDessinee, aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type AreteDessinee, type PlateauDeLaScene, type Regard } from './monde/aretes';

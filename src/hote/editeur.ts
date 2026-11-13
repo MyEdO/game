@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, porteurDeLaSel, porteurDuProjet, porteursDuProjet, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -92,8 +92,8 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * aucune valeur d'un de leurs choix ce geste même ; `porteur` est `{ sorte: 'zone' | 'declencheur' | 'entite' |
  * 'dialogue' | 'rencontre' | 'scene', id }`, la zone d'effet, le déclencheur, l'entité, le dialogue, la rencontre ou la
  * scène éditée par son identifiant, et `chemin` les clés du champ depuis lui, le rang
- * entier d'un élément de liste et la clé d'une entrée de record compris. Sa saisie d'un texte est optionnelle : laissée
- * vide, `valeur` part absente.
+ * entier d'un élément de liste et la clé d'une entrée de record compris. Sa saisie d'un texte est optionnelle là où le
+ * retrait du champ s'écrit (`retraitOffert`) : laissée vide, `valeur` part absente.
  *
  * Le geste, joué par un bouton ou par ce formulaire, n'écrit que ce que le formulaire offre (`avecLaValeur`) : sous un
  * champ que son porteur offre (`FORMULAIRES`, `cheminOffert`), le rang d'un élément d'une liste présente, une clé
@@ -104,16 +104,18 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * (`choixDuNoeud`), la valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
  * choisir pour une union (`variantesAChoisir`), la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le
  * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise ou si c'est l'entrée d'un record,
- * sinon l'objet le plus proche qui l'exige et dont l'absence est admise, entier ; une liste vidée part si la sienne
- * l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
+ * sinon, à travers les clés des objets qui le portent tant qu'aucun ne porte d'autre donnée exigée présente (un champ
+ * dont l'absence n'est pas admise, hors du discriminant que tient le choix de sa variante), le plus proche dont
+ * l'absence est admise, entier, ses champs facultatifs avec lui ; sinon le champ est requis, et le geste refusé ; une
+ * liste vidée part si la sienne l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
  *
  * L'entité s'écrit par sa porte (`editEntity`), et l'écriture qui lui fait enfreindre une règle qu'elle n'enfreignait
  * pas (`refusDeLEntite`, `src/data/schemas/defs-scenes/scene.ts` ; `TypeNonNomme`) est refusée, la règle dite ; une
  * entité déjà fautive reste éditable. Sinon le pont refuse le geste en `regle`, sa raison dite (`refusDeLaValeurDit`,
  * `src/hote/editeur.ts`) : le champ que le formulaire n'offre pas, une valeur hors de sa sorte, un JSON illisible,
- * arrivé `null`, là où le champ ne l'admet pas, ou la règle que l'entité écrite enfreint ; la session reste telle
- * quelle. Le schéma entier ne se vérifie qu'à l'enregistrement, à l'essai et dans la validation : un objet ajouté vide
- * y est une erreur jusqu'à ce qu'on le complète.
+ * arrivé `null`, là où le champ ne l'admet pas, le champ requis dont la valeur est absente, ou la règle que l'entité
+ * écrite enfreint ; la session reste telle quelle. Le schéma entier ne se vérifie qu'à l'enregistrement, à l'essai et
+ * dans la validation : un objet ajouté vide y est une erreur jusqu'à ce qu'on le complète.
  * @contrat Éditeur
  */
 /**
@@ -724,7 +726,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
       : []),
     ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
-    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent, cadreDeLaSession(s)), ent as unknown as Record<string, unknown>),
+    ...formulaireDuPorteur(s, { sorte: 'entite', id: ent.id }, ent),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -1228,15 +1230,25 @@ function elementDuGeste(cle: string, verbe: string, args: ArgumentDuGeste[], lib
   return elementsDesGestes([{ cle, verbe, libelle: libelle(rendu.rendu), arguments: args, ...rendu, attendu: false, ouvert: true, raison: null, reglage: false }])[0];
 }
 
+/** L'élément qui écrit au champ `f`, au chemin `chemin` du porteur `porteur`, la valeur de son argument `a` : le geste
+ *  `valeur` qui pose le porteur et le chemin (`elementDuGeste`). */
+const elementDeValeur = (id: string, porteur: PorteurDeValeur, chemin: Segment[], f: FieldDesc, a: ArgumentDuGeste): Bouton | Choix | Formulaire =>
+  elementDuGeste(id, 'valeur', [fixe('porteur', porteur), fixe('chemin', chemin), a], (rendu) => (rendu === 'formulaire' ? t('ecran.editeur.valeur.ecrire') : f.label));
+
 /** Les saisies de texte, qui, laissées vides, retirent leur champ. */
 const SAISIES_DE_TEXTE: readonly string[] = ['saisieTexte', 'saisieMultiligne'];
 
-/** L'élément qui écrit au champ `f`, au chemin `chemin` du porteur `porteur`, la valeur de son argument `a` : le geste
- *  `valeur` qui pose le porteur et le chemin (`elementDuGeste`), sa saisie de texte optionnelle (`SAISIES_DE_TEXTE`) :
- *  laissée vide, la valeur part absente, qui retire le champ. */
-function elementDeValeur(id: string, porteur: PorteurDeValeur, chemin: Segment[], f: FieldDesc, a: ArgumentDuGeste): Bouton | Choix | Formulaire {
-  const el = elementDuGeste(id, 'valeur', [fixe('porteur', porteur), fixe('chemin', chemin), a], (rendu) => (rendu === 'formulaire' ? t('ecran.editeur.valeur.ecrire') : f.label));
-  return el.type === 'formulaire' ? { ...el, champs: el.champs.map((c) => (SAISIES_DE_TEXTE.includes(c.type) ? { ...c, optionnel: true } : c)) } : el;
+/** Les éléments du formulaire tiré du schéma (`formulaireDe`) du porteur `porteur`, de donnée `donnee`, dans le cadre de
+ *  la session `s` (`elementsDuFormulaire`), la saisie de texte (`SAISIES_DE_TEXTE`) d'un geste `valeur` optionnelle là où
+ *  le retrait de son champ s'écrit (`retraitOffert`) : laissée vide, la valeur part absente, qui le retire. */
+function formulaireDuPorteur<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, donnee: DonneeDuPorteur[S]): (Choix | Ligne | Bouton | Formulaire)[] {
+  const cadre = cadreDeLaSession(s);
+  const retire = retraitOffert(porteur.sorte, donnee, cadre);
+  return elementsDuFormulaire(porteur, formulaireDe(porteur.sorte, donnee, cadre), donnee as unknown as Record<string, unknown>).map((e) => {
+    if (e.type !== 'formulaire' || e.verbe !== 'valeur' || !e.champs.some((c) => SAISIES_DE_TEXTE.includes(c.type))) return e;
+    const [, chemin] = e.champs;
+    return chemin.type === 'fixe' && retire(chemin.valeur as Segment[]) ? { ...e, champs: e.champs.map((c) => (SAISIES_DE_TEXTE.includes(c.type) ? { ...c, optionnel: true } : c)) } : e;
+  });
 }
 
 /** Le geste `valeur` qui écrit `v` au chemin `chemin` du porteur `porteur` (`v` absente : le champ se retire). */
@@ -1430,7 +1442,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
       ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez, cadreDeLaSession(s)), ez as unknown as Record<string, unknown>),
+      ...formulaireDuPorteur(s, { sorte: 'zone', id: ez.id }, ez),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
@@ -1573,7 +1585,7 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  de ses porteurs dans la scène éditée, chacun en liste, pressé s'il est sélectionné, qui le sélectionne ; « Ajouter »
  *  quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`). #3606 décision 7 */
 function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
-  const choisi = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+  const choisi = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
   return (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((sorte) => FORMULAIRES[sorte].logique).flatMap((sorte) => {
     const ids = porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s)).map((d) => d.id);
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
@@ -1589,14 +1601,14 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
 /** L'inspecteur du porteur de formulaire `porteur` de la session `s` qui se renomme par la table de sa sorte
  *  (`ECRITURES_DES_PORTEURS`, `renommer`), ses éléments d'id `<prefixe>/…` : le formulaire qui le nomme, de son
  *  identifiant ; ses éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer,
- *  refusé avec la raison du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 C4 */
+ *  refusé avec la raison du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 */
 function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
   const refus = ECRITURES_DES_PORTEURS[porteur.sorte].retirer ? refusDeRetrait(s) : null;
   return [
     formulaireDuNom(porteur.id, false),
     ...propres,
-    ...elementsDuFormulaire(porteur, formulaireDe(porteur.sorte, donnee, cadreDeLaSession(s)), donnee as unknown as Record<string, unknown>),
+    ...formulaireDuPorteur(s, porteur, donnee),
     bouton(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
   ];
 }
@@ -1660,7 +1672,7 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   const ent = entiteDeLaSelection(scene, s.sel);
   const entree = entreeDeLaSelection(s);
   const zone = zonesLues(scene).find((z) => sameSel(z.sel, s.sel));
-  const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+  const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
   const logique = porteur && FORMULAIRES[porteur.sorte].logique ? porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee : undefined;
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
@@ -1749,7 +1761,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
       ...METEOS.map(([m, libelle]) => bouton(`scene/meteo/${m}`, libelle, scalaire({ weather: m }), scene.weather === m)),
     ], 'liste'),
     ...musiqueDeLaScene(scene),
-    ...elementsDuFormulaire({ sorte: 'scene', id: scene.id }, formulaireDe('scene', scene, cadreDeLaSession(s)), scene as unknown as Record<string, unknown>),
+    ...formulaireDuPorteur(s, { sorte: 'scene', id: scene.id }, scene),
     ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) => {
       const matiere: Scene['reliefDefaults'][typeof part] = { id: m.id };
       return bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: matiere } }), scene.reliefDefaults[part].id === m.id);

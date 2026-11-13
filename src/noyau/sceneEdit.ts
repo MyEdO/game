@@ -1121,23 +1121,37 @@ function noeudsDuChemin(objet: unknown, donnee: Objet, chemin: readonly Segment[
   return noeuds.length ? { noeuds, point } : undefined;
 }
 
+/** L'objet `point`, de nœud `noeud`, porte-t-il une donnée exigée présente hors de sa clé `cle` : un champ déclaré de
+ *  sa forme (`formeAuPoint`) présent, dont l'absence n'est pas admise (`retirable`), ni `cle` ni un discriminant que
+ *  tient le choix d'une variante ? */
+function porteUneAutreExigee(noeud: unknown, point: unknown, cle: Segment): boolean {
+  const forme = formeAuPoint(noeud, point);
+  return (champsDeclares(forme?.noeud) ?? []).some(([k, n]) => k !== cle && !forme!.tenus.includes(k) && !retirable(n) && (point as Objet)[k] !== undefined);
+}
+
 /** Le chemin où s'écrit le retrait du champ au chemin `chemin` de la donnée `donnee` de l'objet de schéma `objet`, aux
  *  choix `choix` : le sien si son absence est admise (son nœud l'admet, ou il est l'entrée d'un record) ; sinon, de
- *  proche en proche à travers les clés des objets qui le portent, celui du plus proche dont l'absence est admise, qui
- *  se retire entier, le champ qu'il exige avec lui ; le sien sans lui. */
-function cheminDuRetrait(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ContexteDuChamp['choix']): readonly Segment[] {
+ *  proche en proche à travers les clés des objets qui le portent, tant que chacun ne porte aucune autre donnée exigée
+ *  présente (`porteUneAutreExigee`), celui du plus proche dont l'absence est admise, qui se retire entier, ses champs
+ *  facultatifs avec lui ; ou son refus : un chemin que le formulaire n'offre pas (`nonOffert`), un champ que son objet
+ *  exige (`requis`). */
+function cheminDuRetrait(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ContexteDuChamp['choix']): readonly Segment[] | 'nonOffert' | 'requis' {
   const noeuds = noeudsDuChemin(objet, donnee, chemin, choix)?.noeuds;
-  if (!noeuds) return chemin;
+  if (!noeuds) return 'nonOffert';
   const absenceAdmise = (rang: number) => retirable(noeuds[rang]) || recordDuNoeud(rang ? noeuds[rang - 1] : objet) !== undefined;
   if (absenceAdmise(noeuds.length - 1)) return chemin;
-  for (let rang = noeuds.length - 2; rang >= 0 && typeof chemin[rang + 1] === 'string'; rang--) if (absenceAdmise(rang)) return chemin.slice(0, rang + 1);
-  return chemin;
+  const points = chemin.reduce<unknown[]>((pts, pas) => [...pts, (pts[pts.length - 1] as Record<Segment, unknown>)[pas]], [donnee]);
+  for (let rang = noeuds.length - 2; rang >= 0 && typeof chemin[rang + 1] === 'string'; rang--) {
+    if (porteUneAutreExigee(noeuds[rang], points[rang + 1], chemin[rang + 1])) return 'requis';
+    if (absenceAdmise(rang)) return chemin.slice(0, rang + 1);
+  }
+  return 'requis';
 }
 
 /** Pourquoi une valeur ne s'écrit pas : le formulaire n'offre pas son chemin, elle n'est pas de la sorte du champ, elle
- *  est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas, ou son porteur écrit enfreint une règle,
- *  dite. */
-export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible' | { regle: string };
+ *  est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas, elle est absente d'un champ que son objet exige
+ *  (`cheminDuRetrait`), ou son porteur écrit enfreint une règle, dite. */
+export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible' | 'requis' | { regle: string };
 
 /** Ce qu'écrit une valeur : la donnée écrite, ou son refus. */
 export type EcritureDeValeur<T> = { ok: true; valeur: T } | { ok: false; refus: RefusDeValeur };
@@ -1187,19 +1201,34 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
   return faute === undefined ? { ok: true, valeur: apres } : { ok: false, refus: { regle: faute } };
 }
 
-/** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
- *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), le
- *  retrait d'un champ exigé porté à l'objet qui l'exige (`cheminDuRetrait`), son adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
- *  (`adressesScellees`) ; ou son refus : une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas
- *  (`ecritureOfferte`), à ce qu'une adresse de prose dérive (`estCheminDerive`), ou qui apporte un fragment que seul un
+/** Où s'écrit `valeur` au chemin `chemin` du formulaire `forme` (`formeDuPorteur`) du porteur de sorte `sorte`, de
+ *  donnée `donnee`, dans le cadre `cadre` : le chemin, ou, `valeur` absente, celui de son retrait (`cheminDuRetrait`) ;
+ *  ou son refus : celui du retrait, une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas
+ *  (`ecritureOfferte`), à ce qu'une adresse de prose dérive (`estCheminDerive`), n'est pas offerte. */
+function ouSEcrit<S extends SorteDePorteur>({ noeud, champs: offerts }: ReturnType<typeof formeDuPorteur>, sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): { ok: true; noeud: unknown; ecrit: readonly Segment[] } | { ok: false; refus: RefusDeValeur } {
+  const ecrit = valeur === undefined ? cheminDuRetrait(noeud, donnee as unknown as Objet, chemin, (ici) => choixDuChamp(sorte, donnee, ici, cadre)) : chemin;
+  if (typeof ecrit === 'string') return { ok: false, refus: ecrit };
+  const actuelle = ecrit.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
+  return ecritureOfferte(offerts, ecrit, actuelle) && !estCheminDerive(noeud, donnee, ecrit) ? { ok: true, noeud, ecrit } : { ok: false, refus: 'nonOffert' };
+}
+
+/** Le retrait de chaque champ, à son chemin, du formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le
+ *  cadre `cadre`, s'écrit-il (`ouSEcrit`), sans compter les fautes du parse qu'il porterait (`fauteNeuve`) ? */
+export function retraitOffert<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): (chemin: readonly Segment[]) => boolean {
+  const forme = formeDuPorteur(sorte, donnee, cadre);
+  return (chemin) => ouSEcrit(forme, sorte, donnee, chemin, undefined, cadre).ok;
+}
+
+/** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire, là où elle
+ *  s'écrit (`ouSEcrit`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), son
+ *  adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
+ *  (`adressesScellees`) ; ou son refus : celui de `ouSEcrit`, ou une écriture qui apporte un fragment que seul un
  *  chapitre non chargé scellerait, n'est pas offerte. */
 export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
-  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
-  const choix = (ici: readonly Segment[]) => choixDuChamp(sorte, donnee, ici, cadre);
-  const ecrit = valeur === undefined ? cheminDuRetrait(noeud, donnee as unknown as Objet, chemin, choix) : chemin;
-  const actuelle = ecrit.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
-  if (!ecritureOfferte(offerts, ecrit, actuelle) || estCheminDerive(noeud, donnee, ecrit)) return { ok: false, refus: 'nonOffert' };
-  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, ecrit, valeur, choix);
+  const ou = ouSEcrit(formeDuPorteur(sorte, donnee, cadre), sorte, donnee, chemin, valeur, cadre);
+  if (!ou.ok) return ou;
+  const { noeud, ecrit } = ou;
+  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, ecrit, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
   if (!ecrite.ok) return ecrite;
   const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, ecrit), cadre.source);
   return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as DonneeDuPorteur[S] };

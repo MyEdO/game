@@ -23,6 +23,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findCreatureById, traits } from '../../../src/data';
+import { statblockDeLaCreature } from '../../../src/data/valeursNeuves';
+import { emptyScene } from '../../../src/noyau/monde/scene';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { idsDeLaSousListe } from '../../../src/data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../../src/data/schemas/grammaire/sousListes';
@@ -1778,5 +1780,50 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     e = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
     expect(message(), 'rouverte du dépôt, le message sur ses lignes').toMatchObject({ type: 'saisieMultiligne', valeur: texte });
     expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
+  });
+});
+
+describe('le retrait d’un champ que son objet exige, par le pont (#3606)', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  const servi = lireProjetLivre(manuscrit) as { id: string; scenes: Scene[] };
+  const FLUX = { kind: 'si', condition: { kind: 'flag', expr: 'porte_ouverte' }, alors: { kind: 'effet', effet: { type: 'setFlag', flag: 'entre' } }, sinon: { kind: 'effet', effet: { type: 'setFlag', flag: 'refoule' } } };
+  const scene = {
+    ...emptyScene('retrait', 6, 6),
+    dialogues: [{ id: 'dlg-flux', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Une porte close.', choices: [{ id: 'choix1', label: 'Entrer', flow: FLUX }] }] }],
+    entities: [{ id: 'ombre', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'l-ombre-du-fleuve' }, statblock: statblockDeLaCreature(findCreatureById('l-ombre-du-fleuve')!) }],
+    effectZones: [{ id: 'z-porte', label: 'Pont-levis', area: { kind: 'rect', x: 3, y: 1, w: 1, h: 1 }, crossTest: { skill: { id: 'athletisme' }, difficulty: 'intermediaire', gate: { kind: 'flag', expr: 'pont_baisse' } } }],
+  };
+  const projet = { ...servi, scenes: [scene, ...servi.scenes] };
+
+  it('vidés, le drapeau d’un flux `si` et le nom d’un profil copié sont requis, leur saisie requise et le geste refusé, dit ; celui de la porte d’un Test de traversée la retire', () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(projet) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const cliquer = (x: number, y: number) => { jouer({ geste: 'appui', point: { case: { x, y }, f: { x, y } } }); jouer({ geste: 'relache', point: { case: { x, y }, f: { x, y } } }); };
+    const formulaire = (id: string) => e.vue.zones['editeur.inspecteur'].find((el): el is Formulaire => el.type === 'formulaire' && el.id === id)!;
+    const vider = (id: string) => {
+      const [porteur, chemin] = formulaire(id).champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+      return appel('editer', { type: 'valeur', args: [porteur, chemin] });
+    };
+    const ecrite = () => (JSON.parse(editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu)).depot!.texte) as { scenes: Scene[] }).scenes[0];
+
+    presser('logique/dialogue/dlg-flux');
+    const expr = 'valeur/nodes/0/choices/0/flow/condition/expr';
+    expect(formulaire(expr).champs[2], 'le drapeau, requis, ne se laisse pas vide').toMatchObject({ type: 'saisieTexte', optionnel: false });
+    expect(erreurDe(vider(expr))).toEqual({ categorie: 'regle', message: 'editer : le champ « nodes/0/choices/0/flow/condition/expr » est requis' });
+
+    cliquer(1, 1);
+    const nom = 'valeur/statblock/label';
+    expect(formulaire(nom).champs[2], 'le nom du profil, requis, ne se laisse pas vide').toMatchObject({ type: 'saisieTexte', optionnel: false });
+    expect(erreurDe(vider(nom))).toEqual({ categorie: 'regle', message: 'editer : le champ « statblock/label » est requis' });
+
+    cliquer(3, 1);
+    const porte = 'valeur/crossTest/gate/expr';
+    expect(formulaire(porte).champs[2], 'le drapeau de la porte se laisse vide').toMatchObject({ type: 'saisieTexte', optionnel: true });
+    e = editionDe(vider(porte));
+    const lue = ecrite();
+    expect([lue.dialogues?.find((d) => d.id === 'dlg-flux')?.nodes[0].choices[0].flow, lue.entities.find((x) => x.id === 'ombre')?.statblock?.label, lue.effectZones?.find((z) => z.id === 'z-porte')?.crossTest], 'le flux et le profil entiers, la porte retirée')
+      .toEqual([FLUX, findCreatureById('l-ombre-du-fleuve')!.label, { skill: { id: 'athletisme' }, difficulty: 'intermediaire' }]);
   });
 });

@@ -833,6 +833,7 @@ export const fr = {
   'ecran.editeur.valeur.refus.nonOffert': 'le formulaire n’offre pas le champ « {chemin} »',
   'ecran.editeur.valeur.refus.horsSorte': 'la valeur n’est pas de la sorte du champ « {chemin} »',
   'ecran.editeur.valeur.refus.illisible': 'le JSON saisi au champ « {chemin} » est illisible',
+  'ecran.editeur.valeur.refus.requis': 'le champ « {chemin} » est requis',
   'ecran.editeur.valeur.refus.regle': 'le champ « {chemin} » ainsi écrit est refusé : {regle}',
   'ecran.editeur.crenelage': 'Parapet',
   'ecran.editeur.crenelage.gomme': 'Gomme (effacer la marque)',

@@ -30,7 +30,7 @@ import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDu
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, porteurDeLaSel, segmentDeLaSelection, type CadreDuPorteur } from '../sceneEditLecture';
+import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, porteurDeLaSel, segmentDeLaSelection, type CadreDuPorteur, type SorteDePorteur } from '../sceneEditLecture';
 import { champsDeclares, champsDuRecord, choixDuNoeud, elementDuNoeud, recordDuNoeud } from '../codex/editFields';
 import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/schemas/grammaire/valeurs';
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
@@ -390,11 +390,11 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
 describe('le porteur singulier `scene` du geste `valeur` (#3606)', () => {
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
   const surLaScene = (s: SessionDEdition, chemin: (string | number)[], ...valeur: unknown[]): GesteDEdition =>
-    ({ geste: 'valeur', porteur: porteurDeLaSel(s.sel, idDeLaSceneEditee(s))!, chemin, ...(valeur.length ? { valeur: valeur[0] } : {}) });
+    ({ geste: 'valeur', porteur: porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s))!, chemin, ...(valeur.length ? { valeur: valeur[0] } : {}) });
 
   it('sans sélection, le porteur édité est la scène ouverte, sous son identifiant ; nommer, identifier et supprimer y restent ceux de la scène', () => {
     const s = ouverteSur(emptyScene('session', 4, 4));
-    expect(porteurDeLaSel(s.sel, idDeLaSceneEditee(s))).toEqual({ sorte: 'scene', id: 'session' });
+    expect(porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s))).toEqual({ sorte: 'scene', id: 'session' });
     expect(sceneEditee(jouer(s, { geste: 'nommer', nom: 'Le relais' })).label).toBe('Le relais');
     expect(idDeLaSceneEditee(jouer(s, { geste: 'identifier', id: 'relais' }))).toBe('relais');
     expect(jouer(s, { geste: 'supprimer' }), 'rien à supprimer').toBe(s);
@@ -408,6 +408,38 @@ describe('le porteur singulier `scene` du geste `valeur` (#3606)', () => {
     expect(sceneEditee(saisi).startMessage).toEqual({ texte, adapteDe });
     expect('startMessage' in sceneEditee(jouer(saisi, surLaScene(saisi, ['startMessage', 'texte']))), 'vidé : le message quitte la scène, provenance comprise').toBe(false);
     expect(jouer(saisi, surLaScene(saisi, ['desc'], 'Une salle.')), 'hors du message, la scène n’offre rien').toBe(saisi);
+  });
+});
+
+describe('le retrait d’un champ que son objet exige (#3606)', () => {
+  const retrait = (sorte: SorteDePorteur, id: string, chemin: Segment[]): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte, id }, chemin });
+  const FLUX = { kind: 'si', condition: { kind: 'flag', expr: 'porte_ouverte' }, alors: { kind: 'effet', effet: { type: 'setFlag', flag: 'entre' } }, sinon: { kind: 'effet', effet: { type: 'setFlag', flag: 'refoule' } } };
+
+  it('vidé, le drapeau de la condition d’un flux `si` est requis : le flux, qui exige encore sa suite, reste entier', () => {
+    const dialogue = { id: 'dlg1', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Une porte close.', choices: [{ id: 'choix1', label: 'Entrer', flow: FLUX }] }] };
+    const s = ouverteSur({ ...emptyScene('retrait', 6, 6), dialogues: [dialogue] } as unknown as Scene);
+    const g = retrait('dialogue', 'dlg1', ['nodes', 0, 'choices', 0, 'flow', 'condition', 'expr']);
+    expect(refusDeLaValeur(s, g)).toBe('requis');
+    expect(editer(s, g), 'la session telle quelle').toBe(s);
+  });
+
+  it('vidé, le nom d’un profil personnalisé copié du Bestiaire est requis : le profil, qui exige encore ses Caractéristiques, reste', () => {
+    const pose = [{ geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'l-ombre-du-fleuve' } }, { geste: 'appui', point: point(1, 1) }, { geste: 'relache', point: point(1, 1) }] satisfies GesteDEdition[];
+    const posee = pose.reduce<SessionDEdition>(editer, ouverteSur(emptyScene('retrait', 6, 6)));
+    const id = posee.sel?.type === 'entity' ? posee.sel.id : '';
+    const s = editer(posee, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['statblock'], valeur: statblockDeLaCreature(findCreatureById('l-ombre-du-fleuve')!) });
+    expect(sceneEditee(s).entities.find((e) => e.id === id)?.statblock, 'le profil copié').toBeDefined();
+    const g = retrait('entite', id, ['statblock', 'label']);
+    expect(refusDeLaValeur(s, g)).toBe('requis');
+    expect(editer(s, g), 'la session telle quelle').toBe(s);
+  });
+
+  it('vidé, le drapeau de la porte d’un Test de traversée retire la porte, qui ne portait rien d’autre ; le Test reste', () => {
+    const zone = { id: 'z1', label: 'Pont-levis', area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 }, crossTest: { skill: { id: 'athletisme' }, difficulty: 'intermediaire', gate: { kind: 'flag', expr: 'pont_baisse' } } };
+    const s = ouverteSur({ ...emptyScene('retrait', 6, 6), effectZones: [zone] } as unknown as Scene);
+    const g = retrait('zone', 'z1', ['crossTest', 'gate', 'expr']);
+    expect(refusDeLaValeur(s, g)).toBeNull();
+    expect(sceneEditee(editer(s, g)).effectZones?.[0].crossTest).toEqual({ skill: { id: 'athletisme' }, difficulty: 'intermediaire' });
   });
 });
 
@@ -951,7 +983,7 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     expect(jouer(pris, { geste: 'nommer', nom: 'enc-libre' })).toBe(pris);
   });
 
-  it('nommer une rencontre qu’une embuscade de route du projet lance la renomme à l’embuscade de chaque route qui vise sa scène, sur un cran ; son retrait reste refusé, la route dite (B8, D2)', () => {
+  it('nommer une rencontre qu’une embuscade de route du projet lance la renomme à l’embuscade de chaque route qui vise sa scène, sur un cran ; son retrait reste refusé, la route dite (#3606)', () => {
     const ailleurs = { id: 'route-ailleurs', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'], ambush: { scene: { id: 'autre' }, encounter: 'enc-bois' } } satisfies WorldMap['routes'][number];
     const s = choisie('enc-bois', { ...CARTE, routes: [...CARTE.routes, ailleurs] });
     const renomme = jouer(s, { geste: 'nommer', nom: ' enc-foret ' });
@@ -972,7 +1004,7 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     expect([retire.sel, ids(retire), retire.historique.passe.length]).toEqual([null, ['enc-bois', 'enc-pont'], libre.historique.passe.length + 1]);
   });
 
-  it('la cible de la victoire s’écrit parmi les membres, la monture chevauchée parmi les montures ; la liste des membres ne s’écrit pas entière (B5, B6)', () => {
+  it('la cible de la victoire s’écrit parmi les membres, la monture chevauchée parmi les montures ; la liste des membres ne s’écrit pas entière (#3606)', () => {
     const s = choisie('enc-bois');
     const valeur = (chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'rencontre', id: 'enc-bois' }, chemin, ...(v === undefined ? {} : { valeur: v }) });
     const offerts = (chemin: Segment[]) => choixDuChamp('rencontre', sceneEditee(s).encounters[0], chemin, cadreDeLaSession(s))?.map((c) => c.valeur);

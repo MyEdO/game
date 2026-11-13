@@ -453,23 +453,26 @@ interface TypesDesDocuments { scene: Scene; carte: NonNullable<ProjectDoc['world
 /** La sorte d'un document du projet édité. */
 type SorteDeDocument = keyof TypesDesDocuments;
 
-/** Ce qu'un document du projet édité déclare : sa lecture dans le projet `projet` où la scène `sceneId` est montrée
- *  (`undefined` : absent du projet), le projet où il devient `doc`, et son schéma. */
+/** Ce qu'un document du projet édité déclare : son identifiant dans le projet où la scène `sceneId` est montrée, sa
+ *  lecture dans le projet `projet` (`undefined` : absent du projet), le projet où il devient `doc`, et son schéma. */
 interface DocumentDuProjet<T> {
+  id: (sceneId: string) => string;
   lire: (projet: ProjetDEdition, sceneId: string) => T | undefined;
   ecrire: (projet: ProjetDEdition, sceneId: string, doc: T) => ProjetDEdition;
   schema: unknown;
 }
 
-/** Les documents du projet édité : la scène montrée, la carte du monde, le narratif. #3606 */
+/** Les documents du projet édité : la scène montrée, sous son identifiant, la carte du monde et le narratif, chacun seul
+ *  de sa sorte au projet, sous elle. #3606 */
 export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<TypesDesDocuments[K]> } = {
   scene: {
+    id: (sceneId) => sceneId,
     lire: (projet, sceneId) => projet.scenes.find((sc) => sc.id === sceneId),
     ecrire: (projet, sceneId, scene) => ({ ...projet, scenes: projet.scenes.map((sc) => (sc.id === sceneId ? scene : sc)) }),
     schema: sceneSchema,
   },
-  carte: { lire: (projet) => projet.worldMap, ecrire: (projet, _sceneId, worldMap) => ({ ...projet, worldMap }), schema: worldMapSchema },
-  narratif: { lire: (projet) => projet.narratif, ecrire: (projet, _sceneId, narratif) => ({ ...projet, narratif }), schema: narratifSchema },
+  carte: { id: () => 'carte', lire: (projet) => projet.worldMap, ecrire: (projet, _sceneId, worldMap) => ({ ...projet, worldMap }), schema: worldMapSchema },
+  narratif: { id: () => 'narratif', lire: (projet) => projet.narratif, ecrire: (projet, _sceneId, narratif) => ({ ...projet, narratif }), schema: narratifSchema },
 };
 
 /** La clé du type `T` dont la collection, présente ou non, a pour élément exactement `D`. */
@@ -479,15 +482,15 @@ type CollectionDe<T, D> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly
 type Egaux<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
 /** Où vit un porteur de donnée `D` : son document, et sa collection dans ce document ; sans collection, le porteur
- *  SINGULIER de son document, qui est le document, identifié par son `id`. */
+ *  SINGULIER de son document, qui est le document, identifié par lui (`DocumentDuProjet.id`). */
 export type AccesDuPorteur<D> = {
   [K in SorteDeDocument]:
     | { document: K; collection: CollectionDe<TypesDesDocuments[K], D> }
-    | (Egaux<TypesDesDocuments[K], D> extends true ? (D extends { id: string } ? { document: K; collection?: undefined } : never) : never);
+    | (Egaux<TypesDesDocuments[K], D> extends true ? { document: K; collection?: undefined } : never);
 }[SorteDeDocument];
 
 /** Ce qu'un porteur de formulaire tiré du schéma déclare : où il vit (`AccesDuPorteur`), le type de la sélection
- *  qui le désigne (`Sel`), absent du porteur singulier de la scène montrée, que désigne l'absence de sélection, le nœud
+ *  qui le désigne (`Sel`), absent du porteur singulier d'un document, que désigne l'absence de sélection, le nœud
  *  de sa donnée, les champs qu'il offre, et les choix que son contexte pose à un chemin de sa donnée (`choixDuChamp`),
  *  dans son cadre. */
 interface FormulaireDuPorteur<D> {
@@ -738,12 +741,18 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   scene: { acces: { document: 'scene' }, schema: sceneSchema, champs: () => [['startMessage']] },
 };
 
-/** Le porteur de formulaire que la sélection `sel` désigne dans la scène montrée d'identifiant `sceneId`
- *  (`FORMULAIRES`, `sel`) : sa sorte et son identifiant, celui de la sélection, ou, sans sélection, celui de la scène,
- *  dont le porteur singulier ne déclare aucune sélection ; `undefined` sans lui. */
-export function porteurDeLaSel(sel: Sel, sceneId: string): { sorte: SorteDePorteur; id: string } | undefined {
-  const sorte = (Object.keys(FORMULAIRES) as SorteDePorteur[]).find((k) => FORMULAIRES[k].sel === sel?.type);
-  return sorte && { sorte, id: sel ? (sel as Extract<Sel, { type: TypeDeSelParId }>).id : sceneId };
+/** Le porteur de formulaire que la sélection `sel` désigne, le document `document` ouvert où la scène d'identifiant
+ *  `sceneId` est montrée (`FORMULAIRES`, `sel`) : sa sorte et son identifiant, celui de la sélection ; sans sélection,
+ *  le porteur singulier de ce document (`AccesDuPorteur`), sous son identifiant (`DocumentDuProjet.id`) ; `undefined`
+ *  sans lui. */
+export function porteurDeLaSel(sel: Sel, document: SorteDeDocument, sceneId: string): { sorte: SorteDePorteur; id: string } | undefined {
+  const sortes = Object.keys(FORMULAIRES) as SorteDePorteur[];
+  if (sel) {
+    const sorte = sortes.find((k) => FORMULAIRES[k].sel === sel.type);
+    return sorte && { sorte, id: (sel as Extract<Sel, { type: TypeDeSelParId }>).id };
+  }
+  const singulier = sortes.find((k) => accesDe(k).document === document && accesDe(k).collection === undefined);
+  return singulier && { sorte: singulier, id: DOCUMENTS[document].id(sceneId) };
 }
 
 /** La sélection qui désigne le porteur de sorte `sorte` d'identifiant `id` (`FORMULAIRES`, `sel`) : aucune, du porteur
@@ -757,12 +766,13 @@ export function selDuPorteur(sorte: SorteDePorteur, id: string): Sel {
 export const accesDe = <S extends SorteDePorteur>(sorte: S): AccesDuPorteur<DonneeDuPorteur[S]> => (FORMULAIRES[sorte] as FormulaireDuPorteur<DonneeDuPorteur[S]>).acces;
 
 /** Ce que l'accès d'un porteur dit de son document `doc` : ses porteurs, le document où ils deviennent `porteurs`,
- *  l'identifiant d'un porteur, et le chemin du porteur de rang `rang` depuis le document. */
+ *  l'identifiant d'un porteur, là où la scène `sceneId` est montrée, et le chemin du porteur de rang `rang` depuis le
+ *  document. */
 interface LectureDeLAcces {
   document: DocumentDuProjet<unknown>;
   porteurs: (doc: unknown) => readonly unknown[];
   avec: (doc: unknown, porteurs: readonly unknown[]) => unknown;
-  id: (porteur: unknown) => string | undefined;
+  id: (porteur: unknown, sceneId: string) => string | undefined;
   chemin: (rang: number) => Segment[];
 }
 
@@ -771,7 +781,7 @@ const LECTURES = new WeakMap<object, LectureDeLAcces>();
 
 /** La lecture de l'accès `acces`, seule à le lire : dans sa collection, absente lue vide, chacun identifié par la clé que
  *  le schéma de son document déclare à cette collection (`listeCle`, `collectionDe`) ; sans collection, le document
- *  seul, identifié par son `id`. #3606 */
+ *  seul, identifié par lui (`DocumentDuProjet.id`). #3606 */
 function lectureDe(acces: AccesDuPorteur<unknown>): LectureDeLAcces {
   const deja = LECTURES.get(acces);
   if (deja) return deja;
@@ -779,7 +789,7 @@ function lectureDe(acces: AccesDuPorteur<unknown>): LectureDeLAcces {
   const collection = acces.collection as string | undefined;
   const marque = collection === undefined ? undefined : ouverts(pasDeDonnee([document.schema], collection)).map(collectionDe).find((m) => m !== undefined);
   const lecture: LectureDeLAcces = collection === undefined
-    ? { document, porteurs: (doc) => [doc], avec: (_doc, [seul]) => seul, id: (doc) => (doc as { id: string }).id, chemin: () => [] }
+    ? { document, porteurs: (doc) => [doc], avec: (_doc, [seul]) => seul, id: (_doc, sceneId) => document.id(sceneId), chemin: () => [] }
     : {
       document,
       porteurs: (doc) => ((doc as Record<string, unknown>)[collection] ?? []) as readonly unknown[],
@@ -804,7 +814,7 @@ export function porteursDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdi
 export function porteurDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdition, sceneId: string, id: string): { donnee: D; chemin: Segment[] } | undefined {
   const lecture = lectureDe(acces as AccesDuPorteur<unknown>);
   const porteurs = porteursDuProjet(acces, projet, sceneId);
-  const rang = porteurs.findIndex((p) => lecture.id(p) === id);
+  const rang = porteurs.findIndex((p) => lecture.id(p, sceneId) === id);
   return rang < 0 ? undefined : { donnee: porteurs[rang], chemin: lecture.chemin(rang) };
 }
 
@@ -813,8 +823,8 @@ export function porteurDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdit
 export function projetAvecLePorteur<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdition, sceneId: string, avant: D, apres: D): ProjetDEdition {
   const { document, porteurs, avec, id } = lectureDe(acces as AccesDuPorteur<unknown>);
   const doc = document.lire(projet, sceneId)!;
-  const cle = id(avant);
-  return document.ecrire(projet, sceneId, avec(doc, porteurs(doc).map((p) => (id(p) === cle ? apres : p))));
+  const cle = id(avant, sceneId);
+  return document.ecrire(projet, sceneId, avec(doc, porteurs(doc).map((p) => (id(p, sceneId) === cle ? apres : p))));
 }
 
 /** `a` est-il un préfixe du chemin `b` ? */

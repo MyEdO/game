@@ -465,14 +465,14 @@ describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
     expect(formulaireDe('dialogue', DIALOGUE, CADRE_DU_DIALOGUE).map((c) => c.key)).toEqual(['start', 'nodes', 'couvre']);
   });
 
-  it('le nœud de départ et le nœud suivant d’une réponse se choisissent parmi ses nœuds, posés `{ id }` ; le locuteur parmi les personnages de la scène (B1)', () => {
+  it('le nœud de départ et le nœud suivant d’une réponse se choisissent parmi ses nœuds, posés `{ id }` ; le locuteur parmi les personnages de la scène (#3606)', () => {
     const noeuds = [{ valeur: { id: 'a' }, libelle: 'a', refus: null }, { valeur: { id: 'b' }, libelle: 'b', refus: null }];
     expect(choixDuChamp('dialogue', DIALOGUE, ['start'], CADRE_DU_DIALOGUE)).toEqual(noeuds);
     expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 0, 'choices', 0, 'next'], CADRE_DU_DIALOGUE)).toEqual(noeuds);
     expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 1, 'speakerId'], CADRE_DU_DIALOGUE)?.map((c) => c.valeur)).toEqual([{ id: 'pnj' }]);
   });
 
-  it('au rang qui suit le dernier, le nœud neuf et le choix neuf ont un id frais, posés par leur id ; ailleurs, aucun (B3)', () => {
+  it('au rang qui suit le dernier, le nœud neuf et le choix neuf ont un id frais, posés par leur id ; ailleurs, aucun (#3606)', () => {
     const pris = { ...DIALOGUE, nodes: [...DIALOGUE.nodes, { id: 'n3', choices: [] }] };
     expect(choixDuChamp('dialogue', pris, ['nodes', 3], CADRE_DU_DIALOGUE)).toEqual([{ valeur: { id: 'n4', choices: [] }, libelle: 'n4', refus: null }]);
     expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 0, 'choices', 1], CADRE_DU_DIALOGUE)).toEqual([{ valeur: { id: 'choix-0', label: '' }, libelle: 'choix-0', refus: null }]);
@@ -481,7 +481,7 @@ describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
   });
 
   it('la sélection d’un dialogue désigne son porteur, comme celle d’un déclencheur, d’une zone, d’une entité ; une entrée, aucun ; aucune sélection, la scène ouverte', () => {
-    expect(([{ type: 'dialogue', id: 'd' }, { type: 'trigger', id: 't' }, { type: 'effectZone', id: 'z' }, { type: 'entity', id: 'e' }, { type: 'entry', id: 'p' }, null] as Sel[]).map((sel) => porteurDeLaSel(sel, 'salle'))).toEqual([
+    expect(([{ type: 'dialogue', id: 'd' }, { type: 'trigger', id: 't' }, { type: 'effectZone', id: 'z' }, { type: 'entity', id: 'e' }, { type: 'entry', id: 'p' }, null] as Sel[]).map((sel) => porteurDeLaSel(sel, 'scene', 'salle'))).toEqual([
       { sorte: 'dialogue', id: 'd' }, { sorte: 'declencheur', id: 't' }, { sorte: 'zone', id: 'z' }, { sorte: 'entite', id: 'e' }, undefined, { sorte: 'scene', id: 'salle' },
     ]);
   });
@@ -544,7 +544,7 @@ const CADRE_DE_LA_RENCONTRE: CadreDuPorteur = {
 };
 
 describe('le formulaire d’une rencontre (#3606 M4b)', () => {
-  it('offre ses circonstances, sa fin, les entrées qu’elle couvre, et de chaque membre seulement sa monture (B6)', () => {
+  it('offre ses circonstances, sa fin, les entrées qu’elle couvre, et de chaque membre seulement sa monture (#3606)', () => {
     const champs = formulaireDe('rencontre', RENCONTRE, CADRE_DE_LA_RENCONTRE);
     expect(champs.map((c) => c.key)).toEqual(['victoryCondition', 'onVictory', 'surprise', 'maneuverability', 'threat', 'terrain', 'banRanged', 'siege', 'couvre', 'members']);
     const offert = champs.find((c) => c.key === 'members')!.contexte!.offert;
@@ -552,7 +552,7 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
     expect([sousLeMembre(0), sousLeMembre(2)]).toEqual([['mount', 'ridesEntityId'], ['mount', 'ridesEntityId']]);
   });
 
-  it('la cible de la victoire se choisit parmi les membres, la monture chevauchée parmi les montures, posées `{ id }` ; le parse refuse les autres (B5)', () => {
+  it('la cible de la victoire se choisit parmi les membres, la monture chevauchée parmi les montures, posées `{ id }` ; le parse refuse les autres (#3606)', () => {
     const vise = (chemin: Segment[]) => choixDuChamp('rencontre', RENCONTRE, chemin, CADRE_DE_LA_RENCONTRE)?.map((c) => c.valeur);
     expect(vise(['victoryCondition', 'targetId'])).toEqual([{ id: 'cavalier' }, { id: 'cheval' }, { id: 'archer' }]);
     expect(vise(['members', 2, 'ridesEntityId'])).toEqual([{ id: 'cheval' }]);
@@ -564,7 +564,7 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
     expect(fautes(RENCONTRE)).toEqual([]);
   });
 
-  it('une écriture sur le chemin d’un champ offert descend une liste élément par élément : la liste des membres et un membre entiers ne sont pas offerts, sa monture l’est (B6)', () => {
+  it('une écriture sur le chemin d’un champ offert descend une liste élément par élément : la liste des membres et un membre entiers ne sont pas offerts, sa monture l’est (#3606)', () => {
     const offerts = [['members', 0, 'mount'], ['members', 0, 'ridesEntityId'], ['members', 1, 'mount'], ['members', 1, 'ridesEntityId']] as const;
     const [cavalier, cheval] = RENCONTRE.members!;
     expect(ecritureOfferte(offerts, ['members'], [cavalier, cheval])).toBe(false);
@@ -587,7 +587,7 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
   });
 
   it('la sélection d’une rencontre désigne son porteur', () => {
-    expect(porteurDeLaSel({ type: 'encounter', id: 'enc' }, 'salle')).toEqual({ sorte: 'rencontre', id: 'enc' });
+    expect(porteurDeLaSel({ type: 'encounter', id: 'enc' }, 'scene', 'salle')).toEqual({ sorte: 'rencontre', id: 'enc' });
   });
 });
 
@@ -701,10 +701,16 @@ describe('l’accès d’un porteur à son document du projet (#3606)', () => {
     expect(porteursDuProjet<Route>(ROUTES, projet(CARTE), 'salle')).toEqual(CARTE.routes);
   });
 
-  it('le porteur singulier d’un document est le document, sous son identifiant, au chemin vide', () => {
-    expect(porteurDuProjet<WorldMap>(LA_CARTE, projet(CARTE), 'salle', 'carte')).toEqual({ donnee: CARTE, chemin: [] });
+  it('le porteur singulier d’un document est le document, identifié par lui, au chemin vide ; le narratif, sans identifiant, en est un', () => {
+    expect(porteurDuProjet<WorldMap>(LA_CARTE, projet({ ...CARTE, id: 'autre' }), 'salle', 'carte')).toEqual({ donnee: { ...CARTE, id: 'autre' }, chemin: [] });
     const renommee = { ...CARTE, label: 'Le Reikland' };
     const ecrit = projetAvecLePorteur<WorldMap>(LA_CARTE, projet(CARTE), 'salle', CARTE, renommee);
     expect([ecrit.worldMap, ecrit.scenes[0]]).toEqual([renommee, SCENE]);
+    type Narratif = ProjetDEdition['narratif'];
+    const LE_NARRATIF: AccesDuPorteur<Narratif> = { document: 'narratif' };
+    expect([porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'narratif'), porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'salle')]).toEqual([{ donnee: NARRATIF_VIDE, chemin: [] }, undefined]);
+    const enrichi = { ...NARRATIF_VIDE, presetsPnj: [] };
+    expect(projetAvecLePorteur<Narratif>(LE_NARRATIF, projet(), 'salle', NARRATIF_VIDE, enrichi).narratif).toBe(enrichi);
+    expect([porteurDeLaSel(null, 'scene', 'salle'), porteurDeLaSel(null, 'narratif', 'salle')], 'sans sélection, le singulier du document ouvert ; le narratif n’en porte aucun').toEqual([{ sorte: 'scene', id: 'salle' }, undefined]);
   });
 });
