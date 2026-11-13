@@ -45,7 +45,7 @@ import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId, rencontreEngagee } from '../monde/combatants';
-import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
+import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, personnesConnues, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
 import { poserLeTraitAcquis } from '../cibleAcquise';
 import { ciblePsyLue } from '../../engine/psych/ciblage';
 import { touchActors } from '../combatOrParty';
@@ -652,26 +652,29 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
 
 /**
  * DÉSIGNE la personne d'une feuille portant un Trait psy `envers` (VDM 10 l.327, « nommer ou désigner ») :
- * le décideur (le lanceur) SURFACÉ la choisit à une étape `personneChoisie` — rend l'arrêt, le reste de
- * la pile part avec elle ; sinon elle est désignée d'office (`personneDuDecideurAuto`, #3045) et rend la
- * feuille résolue (`fluxDEnvers`), jouée en tête de pile.
+ * le décideur (le lanceur) lit les personnes que le groupe connaît (`personnesConnues`) s'il est SURFACÉ, toutes
+ * (`personnesCandidates`) sinon. Surfacé devant une liste non vide, il choisit à une étape `personneChoisie` — rend
+ * l'arrêt, le reste de la pile part avec elle ; sinon la personne est désignée d'office dans cette même liste
+ * (`personneDuDecideurAuto`, #3045, #4017), aucune si elle est vide, et la feuille résolue (`fluxDEnvers`) est jouée
+ * en tête de pile.
  */
 function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc: OpsCtx, reste: ResteDuFlow<Effect>): PasDeFlow<Effect, void> {
   const decideur = ctx.caster ?? cible;
-  const candidates = personnesCandidates(ctx.get(), cible);
-  const auto = personneDuDecideurAuto(cible, candidates);
-  if (candidates.length && surfaceOf(ctx.get, decideur.id)) {
+  const surface = surfaceOf(ctx.get, decideur.id);
+  const personnes = surface ? personnesConnues(ctx.get(), cible) : personnesCandidates(ctx.get(), cible);
+  if (surface && personnes.length) {
     const after = reste();
     pushChoice(ctx.set, (i) => ({
       id: `personneChoisie-${decideur.id}-${i}`,
       kind: 'personneChoisie', actorId: decideur.id, icon: 'mecanique/psychologie',
       label: t('step.personneChoisie', { src: nomDeSource(oc), name: nomDe(cible) }),
-      options: candidates.map((p) => ({ key: p.id, label: dataLabel(p.label) })),
-      defaultChoice: (auto ?? candidates[0]).id,
+      options: personnes.map((p) => ({ key: p.id, label: p.label })),
+      defaultChoice: (personneDuDecideurAuto(cible, personnes) ?? personnes[0]).id,
       meta: { feuilleEnvers: { kind: 'effet', effet: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc), differeLaSuite: true },
     }));
     return FIN_DU_FLOW;
   }
+  const auto = personneDuDecideurAuto(cible, personnes);
   queueLines(ctx.get, ctx.set, [ligneDeDesignation(cible, auto, oc)], cible.id);
   return fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto));
 }
@@ -943,7 +946,7 @@ export const TABLES = {
       if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, cible);
       if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
-      const personne = personnesCandidates(get(), cible).find((p) => p.id === step.chosen);
+      const personne = personnesConnues(get(), cible).find((p) => p.id === step.chosen);
       const ctx: ExecCtx = { get, set, target: cible, caster: oc.caster ?? hero, label: nomDeSource(oc), opsCtx: oc };
       queueLines(get, set, [ligneDeDesignation(cible, personne, oc)], cible.id);
       runCombatFlow(ctx, { kind: 'sequence', etapes: [fluxDEnvers(feuille.effet, personne, !!personne && sontAmis(cible, personne)), step.meta?.after ?? EMPTY_FLOW] });

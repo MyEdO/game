@@ -8,7 +8,10 @@ import { OPTIONAL_RULES } from '../engine/policy';
 import { PREFERENCES } from '../noyau/preferences';
 import { t } from '../i18n';
 import { testScenarios } from '../scenes/test-scenarios';
-import type { Combatant, Jeton, ResultatDeLAppel } from '../noyau/index';
+import { combattantEnVue, creerPartie, type Combatant, type EntreesDeLaPartie, type Intention, type Jeton, type ResultatDeLAppel } from '../noyau/index';
+import { envoyerLIntention } from './geste';
+
+const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
 /** Un résultat d'appel qui programme `jetons`, chacun à son délai, entre deux événements émis. */
 const programme = (...jetons: [Jeton, number][]): ResultatDeLAppel => ({
@@ -91,6 +94,24 @@ describe('l’ouverture d’une partie', () => {
       const id = partie.etat().party[0].id;
       partie.envoyer({ type: 'ecrireLHistorique', args: [id, { motivation: 'Foi' }] });
       expect(persistes.map((h) => [h.id, h.motivation])).toEqual([[id, 'Foi']]);
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('le refus d’un geste nomme qui tient la main par `nomEnVue` (#4017)', () => {
+  it('la main à un assaillant hors de vue : le refus le dit « Inconnu »', () => {
+    const { partie: ouverture } = ouvrirLaPartie(nouvelEntete('siege-enceinte', { graine: 7 }), () => {});
+    const garde = ouverture.etat();
+    ouverture.fermer();
+    const cache = garde.battle!.combatants.find((c) => c.kind === 'ennemi' && !combattantEnVue(garde, c));
+    expect(cache, 'un assaillant hors de vue').toBeDefined();
+    const partie = creerPartie({ ...garde, pendingCascade: null, battle: { ...garde.battle!, turn: garde.battle!.order.indexOf(cache!.id) } }, ENTREES);
+    try {
+      const e = erreurDe(() => envoyerLIntention(partie, { type: 'terminerLeTour', args: [], siege: 1 } as Intention));
+      expect(e?.categorie, e?.message).toBe('permission');
+      expect(e!.message).toContain(`la main est à ${t('vision.horsDeVue')}, siège `);
     } finally {
       partie.fermer();
     }

@@ -32,8 +32,15 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { nomDIndividu } from './monde/sceneNpc';
 import { applyZoneCrossings } from './combatPlacement';
 import { fixtureText } from '../i18n/fixtureText';
-import { personnesCandidates } from './personneChoisie';
+import { personneDuDecideurAuto, personnesCandidates } from './personneChoisie';
 import { enTeteDuPorteur, ficheDuPorteur } from './ficheDuPorteur';
+import { refusDesDeclarationsDues } from './fallMove';
+import { runCombatFlow } from './combat/triggeredTest';
+import { ciblePsy } from '../engine/psych/ciblage';
+import { actorIn } from './monde/combatants';
+import { emptyScene, type SceneEntity } from './monde/scene';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
+import type { PendingFall } from './pendings';
 
 const INCONNU = t('vision.horsDeVue');
 
@@ -309,21 +316,21 @@ describe('cf.traverseeDeZone — la traversée d’une zone par un combattant (`
   });
 });
 
-describe('personnesCandidates — la personne désignable d’un Trait psy accordé en combat (`personneChoisie`)', () => {
-  /** Le nom sous lequel la personne `id` est offerte au héros qui reçoit le Trait. */
-  function nomOffert(banc: ReturnType<typeof siege>['banc'], id: string): string | undefined {
+describe('personnesCandidates — la personne que désigne d’office un Trait psy accordé en combat (`personneChoisie`)', () => {
+  /** Le nom sous lequel la personne `id` est désignée d'office pour le héros qui reçoit le Trait (`op.personneDesignee`). */
+  function nomDesigne(banc: ReturnType<typeof siege>['banc'], id: string): string | undefined {
     const etat = banc.getState() as unknown as Jeu;
     return personnesCandidates(etat, etat.party[0]).find((p) => p.id === id)?.label;
   }
 
   it('hors de vue : « Inconnu »', () => {
     const { banc, cache } = siege();
-    expect(nomOffert(banc, cache.id)).toBe(INCONNU);
+    expect(nomDesigne(banc, cache.id)).toBe(INCONNU);
   });
 
   it('en vue : son nom', () => {
     const { banc, vu } = siege();
-    expect(nomOffert(banc, vu.id)).toBe(vu.label);
+    expect(nomDesigne(banc, vu.id)).toBe(vu.label);
   });
 });
 
@@ -342,5 +349,110 @@ describe('enTeteDuPorteur et ficheDuPorteur — l’en-tête de la fiche qu’un
     expect(vu, 'un assaillant en vue qui a une fiche').toBeDefined();
     expect(enTeteDuPorteur(etat, vu!.id)?.nom).toBe(vu!.label);
     expect(ficheDuPorteur(etat, vu!.id)?.nom).toBe(vu!.label);
+  });
+});
+
+describe('tombantsNommes — le refus d’un jet de chute nomme ses tombants par `nomDe`', () => {
+  /** La chute volontaire que `c` ouvre, sa déclaration due (la forme que pose `CORPS_DU_FRANCHISSEMENT.chute`). */
+  const chuteDe = (c: Combatant): PendingFall => ({
+    test: testDeRegle('chute', 'tenter'), to: { ...c.pos! }, metres: 3, initiateurId: c.id,
+    participants: [{ id: c.id, interactive: true, attempt: null, result: null }],
+  });
+
+  it('hors de vue : « Inconnu »', () => {
+    const { banc, cache } = siege();
+    expect(refusDesDeclarationsDues(banc.getState() as unknown as Jeu, chuteDe(cache))).toBe(t('fall.refus.declarationsDues', { tombants: `${INCONNU} (${cache.id})` }));
+  });
+
+  it('en vue : son nom', () => {
+    const { banc, vu } = siege();
+    expect(refusDesDeclarationsDues(banc.getState() as unknown as Jeu, chuteDe(vu))).toBe(t('fall.refus.declarationsDues', { tombants: `${fixtureText(vu.label)} (${vu.id})` }));
+  });
+});
+
+/** Le Préjugé de Colérique envers la personne que le décideur désigne (VDM 10 l.327). */
+const PREJUGE_ENVERS: Flow = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'grantPsychTrait', psychType: { id: 'prejuge' }, envers: 'personneChoisie' }] } };
+
+/** Les ids des personnes envers qui `id` a reçu un Trait psy. */
+const enversDe = (banc: ReturnType<typeof siege>['banc'], id: string): string[] =>
+  (actorIn(banc.getState() as unknown as Jeu, id)?.psychTraits ?? []).flatMap((p) => (p.cible ? [JSON.stringify(p.cible)] : []));
+
+describe('designerLaPersonne — en combat, le décideur surfacé désigne parmi les personnes en vue', () => {
+  /** La fenêtre du choix ouverte quand un héros, surfacé, accorde le Préjugé à l'assaillant en vue. */
+  function fenetreDuChoix() {
+    const s = siege();
+    const etat = s.banc.getState() as unknown as Jeu;
+    const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
+    runCombatFlow({ get: s.banc.getState, set: s.banc.setState, target: s.vu, caster: heros, label: 'Colérique' }, PREJUGE_ENVERS);
+    const etape = s.banc.getState().pendingCascade?.participants.find((e) => e.kind === 'personneChoisie');
+    expect(etape, 'la fenêtre du choix d’une personne').toBeDefined();
+    return { ...s, etape: etape! };
+  }
+
+  it('un assaillant hors de vue n’est pas offert ; le défaut est une personne offerte', () => {
+    const { cache, etape } = fenetreDuChoix();
+    const offertes = etape.options!.map((o) => o.key);
+    expect(offertes).not.toContain(cache.id);
+    expect(offertes).toContain(etape.defaultChoice);
+  });
+
+  it('un choix forcé de son id est refusé : le Trait reste sans effet', () => {
+    const { banc, cache, vu, etape } = fenetreDuChoix();
+    const p = banc.getState().pendingCascade!;
+    banc.setState({ pendingCascade: { ...p, participants: p.participants.map((e) => (e.id === etape.id ? { ...e, chosen: cache.id } : e)) } });
+    banc.getState().jetValider('cascade');
+    expect(enversDe(banc, vu.id)).not.toContain(JSON.stringify(ciblePsy.individu(cache.id)));
+  });
+});
+
+describe('designerLaPersonne — le décideur surfacé sans personne en vue ne désigne personne', () => {
+  it('aucune fenêtre, aucun Trait envers une personne, et le journal le dit', () => {
+    const { banc, cache } = siege();
+    const b = banc.getState().battle!;
+    const heros = b.combatants.find((c) => c.kind === 'heros')!;
+    const etat = banc.getState() as unknown as Jeu;
+    banc.setState({ battle: { ...b, combatants: b.combatants.map((c) => (c.id !== cache.id && combattantEnVue(etat, c) ? { ...c, outOfRencontre: true } : c)) } });
+    const apres = banc.getState() as unknown as Jeu;
+    expect(personneDuDecideurAuto(cache, personnesCandidates(apres, cache)), 'un allié hors de vue que la désignation d’office retiendrait').toBeDefined();
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: cache, caster: heros, label: 'Colérique' }, PREJUGE_ENVERS);
+    expect(banc.getState().pendingCascade?.participants.find((e) => e.kind === 'personneChoisie')).toBeUndefined();
+    expect(enversDe(banc, cache.id)).toEqual([]);
+    expect(banc.getState().pendingLogQueue.map((q) => q.line)).toEqual([t('op.personneAbsente', { src: t('op.nature.effet'), name: INCONNU })]);
+  });
+});
+
+describe('designerLaPersonne — la désignation d’office lit toutes les personnes (#3045)', () => {
+  it('un assaillant non surfacé peut désigner une personne hors de vue', () => {
+    const { banc, vu } = siege();
+    const etat = banc.getState() as unknown as Jeu;
+    const cas = etat.battle!.combatants
+      .filter((c) => c.kind === 'ennemi' && c.id !== vu.id)
+      .map((cible) => ({ cible, attendue: personneDuDecideurAuto(cible, personnesCandidates(etat, cible)) }))
+      .find(({ attendue }) => attendue && !combattantEnVue(etat, actorIn(etat, attendue.id)!));
+    expect(cas, 'une cible dont l’allié le plus proche est hors de vue').toBeDefined();
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: cas!.cible, caster: vu, label: 'Colérique' }, PREJUGE_ENVERS);
+    expect(enversDe(banc, cas!.cible.id)).toContain(JSON.stringify(ciblePsy.individu(cas!.attendue!.id)));
+  });
+});
+
+describe('designerLaPersonne — hors combat, le groupe et les personnages de scène connus', () => {
+  const personnage = (id: string, x: number, y: number, embusque = false): SceneEntity => ({
+    id, kind: 'personnage', creature: { id: 'humain' }, label: `Personnage ${id}`, pos: { x, y }, ...(embusque ? { combat: { hiddenUntilCombat: true } } : {}),
+  });
+
+  it('un personnage embusqué n’est pas offert', () => {
+    const [w, s, p] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat', 'pretre');
+    const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
+    const scene = emptyScene('scene-personnes', 12, 12);
+    scene.entities = [personnage('pnj-vu', 3, 2), personnage('pnj-embusque', 2, 3, true)];
+    banc.setState({ scene, partyPos: { x: 2, y: 2 }, mode: 'exploration', battle: null });
+    banc.getState().incanterLeSort(w.id, 'colerique', s.id);
+    if (!banc.getState().pendingCast!.result) banc.getState().jetLancer('incantation');
+    const pc = banc.getState().pendingCast!;
+    banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: 2, isCritical: false, isFumble: false } } });
+    banc.getState().jetValider('incantation');
+    const etape = banc.getState().pendingCascade?.participants.find((e) => e.kind === 'personneChoisie');
+    expect(etape, 'la fenêtre du choix d’une personne').toBeDefined();
+    expect(etape!.options!.map((o) => o.key)).toEqual([w.id, p.id, 'pnj-vu']);
   });
 });

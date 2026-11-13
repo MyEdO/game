@@ -7,6 +7,7 @@ import { rule } from '../engine/policy';
 import { climbMovementCost } from '../engine/movement';
 import { t } from '../i18n';
 import { actorIn } from './monde/combatants';
+import { nomDe } from '../engine/nom';
 import type { Jeu } from './etat';
 
 /**
@@ -131,7 +132,10 @@ export const rangeesDuesDeChute = (p: PendingFall): TombantParticipant[] =>
 
 /** Les tombants `rangees`, chacun nommé avec l'id que prennent les verbes de la chute : « Nom (id), … ». */
 export const tombantsNommes = (s: Jeu, rangees: readonly TombantParticipant[]): string =>
-  rangees.map((x) => `${actorIn(s, x.id)?.label ?? x.id} (${x.id})`).join(', ');
+  rangees.map((x) => {
+    const c = actorIn(s, x.id);
+    return `${c ? nomDe(c) : x.id} (${x.id})`;
+  }).join(', ');
 
 /** Le refus d'un jet de chute en phase de choix : ce qui reste à déclarer (et s'il se suspend d'abord, quand la
  *  croisée l'offre). */

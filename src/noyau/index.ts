@@ -16,6 +16,8 @@ export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
+export { nomDe } from '../engine/nom';
+export type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 export { dayIndex, formatImperial, formatJourImperial } from '../engine/clock';
 export { careers, conditionLabel, findCareerById, findSpellById, levelsForCareer, lightLevels, lightTones, matieresCouvrantes, matieresDe, props, refLabel, siegeEngines, structureAppearances, trappingRefLabel, trappingsInstanciables } from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
