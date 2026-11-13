@@ -191,7 +191,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('manche gagnée par les poursuivis (poursuivants médiocres) → Distance grimpe jusqu’à l’évasion', () => {
     banc.getState().ensemencerLeTirage(3);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 8, foes: [{ label: 'Bandit', movement: 4, skill: 1 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 8, foes: [{ label: fixtureText('Bandit'), movement: 4, skill: 1 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 6));
     expect(pursuitOf(banc.getState())).toBeNull(); // dénoué
     expect(banc.getState().journal.some((l) => l.includes('semé'))).toBe(true);
@@ -200,7 +200,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('manche gagnée par les poursuivants (proie lente) → Distance ≤ 0 : le camp poursuivi DÉCIDE (l.94)', () => {
     banc.getState().ensemencerLeTirage(4);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 2, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 2, foes: [{ label: fixtureText('Cavalier'), movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, -6));
     // La poursuite n'est PAS dénouée d'office : « Les poursuivis ont alors la possibilité, pour ce Round,
     // de sacrifier le plus lent d'entre eux […], ou ils peuvent s'arrêter et les affronter » (l.94).
@@ -218,7 +218,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('manche indécise → une nouvelle manche s’ouvre (la poursuite continue)', () => {
     banc.getState().ensemencerLeTirage(5);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: fixtureText('Bandit'), movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));
     // Distance reste dans ]0, escapeAt[ → la poursuite n’est pas dénouée, une manche rouvre.
     expect(pursuitOf(banc.getState())).not.toBeNull();
@@ -337,7 +337,7 @@ describe('Poursuite terrestre (#95)', () => {
   it('MANCHE SUIVANTE : une manche indécise rouvre UNE bande neuve, jamais la précédente rejouée', () => {
     banc.getState().ensemencerLeTirage(5);
     const party = heroes();
-    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: 'Bandit', movement: 4, skill: 40 }] }) });
+    banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 5, foes: [{ label: fixtureText('Bandit'), movement: 4, skill: 40 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 0));
     const casc = banc.getState().pendingCascade!;
     expect(casc.participants).toHaveLength(1);

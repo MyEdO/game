@@ -2,6 +2,7 @@
  * Flux de combat (tour par tour) — module à part du store.
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
+import { nomDe } from '../engine/nom';
 import type { IconId } from '../data/icons';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText } from '../i18n/playerText';
@@ -8862,7 +8863,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
       const pas = Math.max(0, (path?.length ?? 1) - 1);
       if (ran) {
-        battle.log.push(ev('deplacement', traceLineOf({ who: enemy.label, label: testTraceLabel(refLabel('skills', ran.test.skill), ran.test.difficulty), roll: ran.roll, target: ran.target, sl: ran.sl, success: ran.success }), enemy.id));
+        battle.log.push(ev('deplacement', traceLineOf({ who: nomDe(enemy), label: testTraceLabel(refLabel('skills', ran.test.skill), ran.test.difficulty), roll: ran.roll, target: ran.target, sl: ran.sl, success: ran.success }), enemy.id));
         battle.log.push(ev('deplacement', tr('cs.run', { name: enemy.label, cost: pas, short: '' }), enemy.id));
       }
       // Télégraphe de DÉPLACEMENT (parité héros) : montrer le chemin + la destination AVANT que l'ennemi

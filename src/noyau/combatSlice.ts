@@ -3,6 +3,7 @@
  * combat (`cliquerLeCombattant`, `cliquerLaCaseDuCombat`), attaque, défense et cascade, désengagement, monture, fin de tour, pause de
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
+import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
@@ -346,8 +347,8 @@ function tracerLaFuite(get: Get, set: Set, mover: Combatant, foe: Combatant, jet
   const slot = jets.touche ? fleeTouche(pd) : undefined;
   const jet = slot?.jet;
   journaliser(get, set, [
-    ...(d ? [traceLineOf({ who: foe.label, label: libelleDeTest('dans-le-dos'), roll: d.roll, target: d.target, sl: d.sl, success: d.success })] : []),
-    ...(slot && jet?.target != null ? [traceLineOf({ who: mover.label, label: testTraceLabel(libelleDuTestNomme(slot.test), slot.test.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success })] : []),
+    ...(d ? [traceLineOf({ who: nomDe(foe), label: libelleDeTest('dans-le-dos'), roll: d.roll, target: d.target, sl: d.sl, success: d.success })] : []),
+    ...(slot && jet?.target != null ? [traceLineOf({ who: nomDe(mover), label: testTraceLabel(libelleDuTestNomme(slot.test), slot.test.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success })] : []),
   ], 'information', { actorId: mover.id });
 }
 
