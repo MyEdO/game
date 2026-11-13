@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
-import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
+import { findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
+import { TAVERN_GAMES } from '../data';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { HABITUE, refusDAdversaire, refusDeJouer, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type ReglageDePartie, type TavernOpponent } from '../noyau/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../noyau/monde/sceneNpc';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
+import type { IdDeJeuDeTaverne } from '../noyau/designations';
 import { Row } from './Layout';
 import { bourseOf } from '../engine/bourse';
 import { creatureLabel, profilsStandard, refLabel, testSkillLabel } from '../data/index';
@@ -66,7 +68,7 @@ export function TavernGameModal() {
   const refusDeRejouer = useGame(refusDOuvrirLaTaverne);
 
   const heroes = party.filter((h) => !h.dead);
-  const [gameId, setGameId] = useState(TAVERN_GAMES[0]?.id ?? '');
+  const [gameId, setGameId] = useState<IdDeJeuDeTaverne>(TAVERN_GAMES[0]?.id ?? '');
   const [challengerId, setChallengerId] = useState(heroes[0]?.id ?? '');
   const [oppMode, setOppMode] = useState<TavernOpponent['kind']>(heroes.length > 1 ? 'heros' : 'profil');
   const [oppNpcId, setOppNpcId] = useState('');
@@ -203,7 +205,7 @@ export function TavernGameModal() {
           </div>
           {game && (
             <>
-              <div className="tavern-desc"><Prose md={game.desc} porteur={{ type: 'tavernGames', id: game.id, chemin: 'desc' }} /></div>
+              {game.desc && <div className="tavern-desc"><Prose md={game.desc} porteur={{ type: 'tavernGames', id: game.id, chemin: 'desc' }} /></div>}
               {/* La règle affichée est le VERBATIM de la source (AGENTS.md règle 5) : on ne la coupe
                   pas au régime rapide — c'est la note ci-dessous qui DIT ce que ce régime joue. */}
               {rapide && <p className="tavern-detail muted">{t('tavern.regimeRapideNote')}</p>}

@@ -30,7 +30,7 @@ import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, roundSL,
   specialsApplicables, difficulteDuJoueur, difficulteDeBase,
-  TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type CampDeTaverne, type TavernGame, type TavernGameResult, type TavernSpecial,
+  TAVERN_TEST_DIFFICULTY, type CampDeTaverne, type TavernGame, type TavernGameResult, type TavernSpecial,
 } from '../engine/tavernGame';
 import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
 import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
@@ -73,7 +73,7 @@ import type { Scene } from './monde/scene';
 import { jetSurfaced } from './sieges';
 import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate, pluriel } from '../i18n';
-import { dataLabel, testSkillLabel } from '../data';
+import { dataLabel, testSkillLabel, TAVERN_GAMES } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';

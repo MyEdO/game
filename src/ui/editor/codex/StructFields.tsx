@@ -19,7 +19,7 @@ import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type Ma
 import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, idDObjet, trappings } from '../../../data';
+import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, idDObjet, trappingsInstanciables } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
@@ -481,7 +481,7 @@ const isPossession = (t: TrappingRef): t is DotationDePossession => 'type' in t;
 /** L'id que rend un `RefField` à fiche unique : l'id nu, ou la référence `{ id, spec? }`. */
 const idDuChoix = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'object' && v !== null && 'id' in v && typeof v.id === 'string' ? v.id : '');
 /** L'objet d'une rangée « Réf. (catalogue) » neuve : le premier du catalogue, que l'auteur remplace au sélecteur. */
-const premierObjet = (): Id<'trapping'> | undefined => idDObjet(trappings[0]?.id);
+const premierObjet = (): Id<'trapping'> | undefined => idDObjet(trappingsInstanciables()[0]?.id);
 
 export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | undefined; onChange: (v: TrappingRef[]) => void }) {
   const list = value ?? [];

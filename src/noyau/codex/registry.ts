@@ -24,7 +24,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
   charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel, TAVERN_GAMES,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -55,7 +55,6 @@ import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, mountIncidentDie, vehicleProblemDie, encounterDie } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
-import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS, obsessionsDie } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
 import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable, type PorteurDeDe } from '../../engine/tables';
@@ -627,7 +626,7 @@ const traitItem = (t0: (typeof traits)[number]): CodexItem => {
       cap?.psychIndice != null ? fact(tr('codex.fiche.indice'), cap.psychIndice) : null,
     ),
     sections: sections(
-      chips(tr('codex.fiche.manoeuvresConferees'), (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id, r.spec))),
+      chips(tr('codex.fiche.manoeuvresConferees'), (t.grantsManeuvers ?? []).map((r) => idRefRow('maneuvers', r.id))),
       passiveSection(t.passive), effectsSection(t.effects, ETATS_DU_CODEX),
       ...reverseSections('traits', t.id), // Créatures ayant ce trait · Mutations le conférant
     ),
