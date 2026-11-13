@@ -116,7 +116,7 @@ describe('build du handshake coop : format ET registres (#1463 LD.1)', () => {
     setDataset('etats', structuredClone(ETATS_LIVRES));
     expect(buildDeLaCoop()).toBe(base);
     const mode = REGLES_LIVREES.findIndex((r) => r.kind === 'mode');
-    setDataset('reglesOptionnelles', REGLES_LIVREES.map((r, i) => (i === mode ? { ...structuredClone(r), options: [...(r.options ?? []), 'option-de-fixture'] } : structuredClone(r))));
+    setDataset('reglesOptionnelles', REGLES_LIVREES.map((r, i) => (i === mode && r.kind === 'mode' ? { ...structuredClone(r), options: [...r.options, 'option-de-fixture'] } : structuredClone(r))));
     expect(buildDeLaCoop()).not.toBe(base);
   });
 });

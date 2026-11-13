@@ -400,6 +400,14 @@ export const CHAMPS_DU_VOLUME = ['dimensions', 'metresPerTile', 'reliefDefaults'
 /** La scène vue par son volume (`CHAMPS_DU_VOLUME`). */
 export type SceneDuVolume = Pick<Scene, (typeof CHAMPS_DU_VOLUME)[number]>;
 
+/** Les champs de la scène que lisent ses audits d'auteur spatiaux — défauts de plan (`scenePlanDefects`) et pièces
+ *  inatteignables (`unreachableDescriptiveZones`) : ceux du volume (marche, relief, murs, décors, drapeaux) et les zones
+ *  d'effet. Les dépendances de leurs mémos en sont tirées (`champsDuPlan`). */
+export const CHAMPS_DU_PLAN = [...CHAMPS_DU_VOLUME, 'effectZones'] as const;
+
+/** Les valeurs des `CHAMPS_DU_PLAN` de `scene`, dans leur ordre : une écriture qui n'en touche aucun les rend identiques. */
+export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN.map((c) => scene[c]);
+
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
 /** Échelle métrique d'une case (m/case), LDB 15 l.12 : source UNIQUE, que lisent la couche Mer et le plateau d'un hôte. PUR. */
@@ -828,6 +836,14 @@ function structureOccultante(id?: string): boolean {
  *  (`wallBetween` ne lit jamais ce prédicat — on voit à travers une herse, on ne la traverse pas). */
 export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
   return !wallIsOpen(scene, seg) && !(seg.window && !seg.shuttered) && structureOccultante(seg.structure);
+}
+
+/** Arête (case, side N/E/S/O) → forme CANONIQUE de stockage (case, N|E) : le `S` de (x,y) est le `N` de (x,y+1), le `O`
+ *  de (x,y) le `E` de (x-1,y). */
+export function canonEdge(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
+  if (side === 'S') return { x, y: y + 1, side: 'N' };
+  if (side === 'O') return { x: x - 1, y, side: 'E' };
+  return { x, y, side };
 }
 
 /** Arête CANONIQUE (cellule + side N/E) séparant deux cases ADJACENTES en cardinal — null si non

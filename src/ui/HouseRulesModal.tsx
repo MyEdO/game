@@ -139,7 +139,7 @@ function HouseRuleRow({
               aria-label={regle.label} value={String(val)} disabled={!mutable}
               aria-describedby={describedBy} onChange={(e) => onChange(regle.id, e.target.value)}
             >
-              {(regle.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+              {regle.options.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           )}
           {regle.kind === 'param' && (

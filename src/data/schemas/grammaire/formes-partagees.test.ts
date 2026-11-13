@@ -412,6 +412,18 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     expect(err, 'un réglage à borne basse SEULE est accepté').not.toBeNull();
     expect(pathsRefuses('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)])).toContain(`${i}.max`);
   });
+
+  it('reglesOptionnelles.json : un `param` sans ses bornes et un `mode` sans ses `options` sont REFUSÉS (#4081)', () => {
+    const regles = reglesOptionnelles as ReadonlyArray<Record<string, unknown>>;
+    const refus = (kind: string, champs: readonly string[]): string | null => {
+      const i = regles.findIndex((r) => r.kind === kind);
+      expect(i, `aucune règle \`${kind}\` : la sonde ne mesure rien`).toBeGreaterThanOrEqual(0);
+      const ampute = Object.fromEntries(Object.entries(regles[i]).filter(([k]) => !champs.includes(k)));
+      return validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
+    };
+    expect(refus('param', ['min', 'max', 'step'])).toContain('un nombre (kind « param ») déclare ses bornes');
+    expect(refus('mode', ['options'])).toContain('un choix (kind « mode ») propose au moins deux valeurs');
+  });
 });
 
 /**

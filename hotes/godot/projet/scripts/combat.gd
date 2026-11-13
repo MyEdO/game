@@ -368,15 +368,15 @@ func _publier_l_ecran() -> void:
 	_publication.demander()
 
 
-## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, si la
-## caméra glisse (`Monde.glisse`), si la vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de l'écran où
-## le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les
-## navires posés (`Plateau.navires`).
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), les curseurs du panneau des réglages
+## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
+## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de l'écran où le monde se voit (`Monde.cadre`), ce
+## que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), cases = _plateau.points(),
-		glisse = _monde.glisse(), fondu = _monde.volume.part_du_fondu() != 1.0,
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
+		cases = _plateau.points(), glisse = _monde.glisse(), fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 
