@@ -31,6 +31,7 @@ import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 /** Le genre de la bande de prose : une clé de fixture, typée comme une étape la porte. */
 const KIND_PROSE = cleDeFixture<GenreDeCascade>('uiBandProse');
@@ -104,23 +105,23 @@ beforeEach(() => {
   resetDesFixes();
   avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [T]: {
     label: 'Table du mode',
-    die: 100,
+    die: deDeLaTableTiree({ die: 'd100' }),
     // Une ligne LABELLÉE et une ligne SANS libellé (repli sur sa fourchette) : le picker rend les deux.
     rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute' }],
     lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`],
   }, [T10]: {
     label: 'Table à d10',
-    die: 10,
+    die: deDeLaTableTiree({ die: 'd10' }),
     rows: [{ min: 1, max: 5, id: 'bas', label: 'Bas' }, { min: 6, max: 10, id: 'haut', label: 'Haut' }],
     lines: (die) => [`d10 → ${die}`],
   }, [T_HORS]: {
       label: 'Table au-delà des faces',
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       rows: [{ min: 1, max: 100, id: 'dans' }, { min: 101, max: 150, id: 'au-dela' }],
       lines: (die) => [`dé ${die}`],
     }, [T11]: {
       label: 'Table à plancher 11',
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       rows: [{ min: 11, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`plancher (dé ${die})`],
     } }, appliers: { ...tablesDuJeu().appliers, uiTableSpy: () => {}, uiTableProse: (_g, _s, step) => ({

@@ -40,7 +40,6 @@ import { rule } from './policy';
 import { offTerrainSuffocates } from './ops';
 import { itemCapability } from './capabilities';
 import { t } from '../i18n';
-import { chebyshev } from './grid';
 
 /** Une main porte-t-elle un contenant d'eau (Outre à eau, LDB 64 l.35 / Seau, LDB 67 l.59) ? Capacité par-OBJET
  *  `waterContainer`, NON gatée sur le port — on le sort du sac pour asperger, comme `isRation`
@@ -56,15 +55,10 @@ export function isWaterSprayTarget(target: Combatant): boolean {
   return offTerrainSuffocates(target);
 }
 
-/** Candidats ADJACENTS éligibles à « Asperger d'eau » (#497) dans le camp de l'aspergeur — MÊME
- *  filtre d'adjacence (`chebyshev` <= 1, `engine/grid.ts`) que `healableTargets`, cible = une
- *  Créature marine hors de l'eau (`isWaterSprayTarget`). */
+/** Candidats à « Asperger d'eau » (#497) dans `pool`, que l'appelant borne à ce que l'aspergeur atteint : une
+ *  Créature marine hors de l'eau (`isWaterSprayTarget`), jamais l'aspergeur. */
 export function waterSprayCandidates(active: Combatant, pool: Combatant[]): Combatant[] {
-  return pool.filter((t) => {
-    if (t.id === active.id || !isWaterSprayTarget(t)) return false;
-    if (!active.pos || !t.pos) return false;
-    return chebyshev(active.pos, t.pos) <= 1;
-  });
+  return pool.filter((t) => t.id !== active.id && isWaterSprayTarget(t));
 }
 
 /** Durée d'un Round de combat en secondes — LDB 13 l.13 : « c'est le MJ qui décide » ; hypothèse de

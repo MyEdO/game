@@ -465,7 +465,7 @@
   {
     "id": "social-reaction-au-statut",
     "type": "reglesOptionnelles",
-    "label": "Réaction au Statut (1d10)",
+    "label": "Réaction au Statut",
     "ref": "LDB 08 l.40/59",
     "source": {
       "book": "livre-de-base",
@@ -474,7 +474,7 @@
     "group": "Social",
     "kind": "flag",
     "default": false,
-    "hint": "Au-delà de la norme sociale : avant un Test social ciblant un PNJ, 1d10 → 1-2 « Braver le Statut » (annule les mods de Statut) ; 3-8 réactions classiques (mods normaux) ; 9-10 « Opinions extrêmes » (mods inversés)."
+    "hint": "Au-delà de la norme sociale : avant un Test social ciblant un PNJ, un tirage sur la table de Réaction au Statut (Codex) : « Braver le Statut » annule les mods de Statut, « Réactions classiques » les garde, « Opinions extrêmes » les inverse."
   },
   {
     "id": "social-mendicite-statut",

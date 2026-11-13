@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from './combatFlow';
 import { setRule } from '../engine/policy';
-import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
+import { stepInteraction, rollTableStep, tableSpec, tableStepDef } from './cascade';
 import { draineCascade } from './cascade.testkit';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
@@ -78,7 +78,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
       const def = tableStepDef(CRIT_TABLE_IDS[key])!;
       expect(def, `table « ${key} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(critTableRows('ldb', key));
-      expect(def.die).toBe(100);
+      expect(def.die).toEqual({ n: 1, sides: 100 });
     }
     // La projection Localisation → table est celle du moteur (repli Bras compris) : un seul chemin.
     for (const loc of LOCS) expect(critTableRows('ldb', critTableKeyFor(loc)).map((r) => r.id)).toEqual(critiqueTable('ldb', loc).map((r) => r.id));
@@ -96,7 +96,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(critSeverityDecl(H, 'corps', be + 2).mod).toBe(0);
     const petit = be - 1;
     const decl = critSeverityDecl(H, 'corps', petit);
-    expect(decl).toMatchObject({ tableId: CRIT_TABLE_IDS.corps, spec: { n: 1, sides: 100 }, mod: -20, clamp: true });
+    expect(decl).toMatchObject({ tableId: CRIT_TABLE_IDS.corps, mod: -20, clamp: true });
     // Dé naturel 7 sous −20 : le dé effectif est BORNÉ à 01 (jamais une levée hors plage), même ligne
     // que le lookup moteur (qui fait son propre `Math.max(1, …)`).
     const rolled = rollTableStep({ ...decl, forcedRoll: 7 }, makeRNG(1));
@@ -108,10 +108,9 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
 
   it('déclaration : le dé de l’étape est le `die` du tableau de la Localisation, lu VIVANT (LDB 18 l.53 ; #1667)', () => {
     const { H } = startFight();
-    expect(critSeverityDecl(H, 'corps', 0).spec).toEqual({ n: 1, sides: 100 });
+    expect(tableSpec(critSeverityDecl(H, 'corps', 0))).toEqual({ n: 1, sides: 100 });
     sousLeDe('criticalsCorps', '2d10', () => {
-      expect(critSeverityDecl(H, 'corps', 0).spec, 'le dé suit la donnée').toEqual({ n: 2, sides: 10 });
-      expect(tableStepDef(CRIT_TABLE_IDS.corps)!.die, 'la table tirable suit le dé écrit').toBe(20);
+      expect(tableSpec(critSeverityDecl(H, 'corps', 0)), 'le dé suit la donnée').toEqual({ n: 2, sides: 10 });
     });
   });
 
@@ -163,7 +162,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('deviation');
     expect(stepInteraction(step)).toBe('table'); // dé À POSER → les deux affordances de la modale
-    expect(step.table).toMatchObject({ tableId: CRIT_TABLE_IDS.corps, spec: { n: 1, sides: 100 } });
+    expect(step.table).toMatchObject({ tableId: CRIT_TABLE_IDS.corps });
     expect(step.table!.result).toBeUndefined();
     // Aucune mutation de la victime tant que le dé n'est pas posé (parité avec l'offre de Déviation).
     expect(H.wounds.current).toBe(avant.pb);

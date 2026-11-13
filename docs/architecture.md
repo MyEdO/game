@@ -506,6 +506,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   partyFlow.ts                équipement, avancement PX, consommables de fiche, butin
   merchantFlow.ts             marchand : réassort, panier, achat/vente/réparation, Marchandage, Évaluation
   travelFlow.ts               voyage jour par jour (temps, fatigue, péripéties d10+auteur, interruption/reprise)
+  evenementDuJour.ts          l'événement raconté du jour d'un trajet, tous milieux : `noteEvent`, seul écrivain de
+                              `TravelPlan.evenements`, et `rangerLesEvenements`, appelé par chaque sortie de jour
   billetFlow.ts               billet d'un passage payant : offre de départ (estimation = débit), billet en main, Marchandage du billet
   upkeep.ts                   entretien QUOTIDIEN (#T3 cascade : rations/faim + maladies + convalescence
                               des critiques, jours CALENDAIRES) + purge des effets a duree d'horloge

@@ -22,7 +22,7 @@ export { isWearable, objetsDeLInventaire } from '../engine/items';
 export { candidatsDuSlot, carriereActuelle, designationsDeCarriere, parcoursDe, parcoursRetouche, talentsDuParcours, type ParcoursDeCarriere } from '../engine/pnjDeCarriere';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
-export { dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, libelleDeLaValeur, sousEmplacement, valeursDeLEmplacement, type EmplacementDeDotation } from '../engine/trappingChoices';
+export { dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, libelleDeLaValeur, sousEmplacementActif, valeursDeLEmplacement, type EmplacementDeDotation } from '../engine/trappingChoices';
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';
@@ -47,7 +47,7 @@ export { aLEchelleDesPonts, CAPS_DES_PONTS, estPoseParSesPonts, naviresDeLaScene
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
-export { combatDistance } from './monde/footprint';
+export { distanceDeCombat } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
 export { effectiveTalents } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY } from './combatAuto';

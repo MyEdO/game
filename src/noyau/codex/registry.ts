@@ -17,7 +17,7 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -40,6 +40,8 @@ import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOut
 import { equipeSchema } from '../../data/schemas/grammaire/valeurs';
 import { phenomenonKindSchema, phenomenonTestSchema, saturationTierSchema } from '../../data/schemas/defs/arcane-phenomena';
 import { drivingMishapOutcomeSchema } from '../../data/schemas/defs/driving-mishap';
+import { depuisSchema as depuisDeDispersionSchema } from '../../data/schemas/defs/dispersion';
+import { issueDeReactionSchema } from '../../data/schemas/defs/reaction-au-statut';
 import { drunkennessOutcomeSchema } from '../../data/schemas/defs/drunkenness';
 import { progressionModeSchema } from '../../data/schemas/defs/naval-progression';
 import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
@@ -61,9 +63,15 @@ import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisf
 import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
 import drivingMishapJson from '../../data/driving-mishap.json';
+import dispersionJson from '../../data/dispersion.json';
+import capricieuxJson from '../../data/tableau-capricieux.json';
+import reactionAuStatutJson from '../../data/reaction-au-statut.json';
 import drunkennessJson from '../../data/drunkenness.json';
 import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
+import type * as dispersion from '../../data/schemas/defs/dispersion';
+import type * as capricieux from '../../data/schemas/defs/tableau-capricieux';
+import type * as reactionAuStatut from '../../data/schemas/defs/reaction-au-statut';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
 import { deDesEvenementsDeBord, deDuVoyageRapide } from '../../engine/seaVoyage';
@@ -1116,7 +1124,7 @@ export function optionBody(o: { label: string; desc: string }): string {
 }
 
 /** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
-function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires)[number], category: string, libelle: (id: string) => string) {
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
     sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
     sections: sections({
@@ -1233,6 +1241,37 @@ const CODEX_SPECS = {
       id: e.id, label: e.label, sub: bandeAuDe(deDeTirageDe<typeof accidents>(drivingMishapJson), e.min, e.max), desc: e.desc,
       meta: facts(fact(tr('codex.fiche.type'), libelleDeValeur(drivingMishapOutcomeSchema, e.outcome))),
     })),
+  },
+  dispersion: {
+    label: 'codex.fiche.dispersion', group: 'tables', sourceRef: 'LDB 14',
+    build: () => {
+      const de = deDeTirageDe<typeof dispersion>(dispersionJson);
+      return datasetArray('dispersion').map((e) => ({
+        id: e.id, label: tr('codex.fiche.dispersionResultat', { n: fourchette(e.min, e.max, facesDuDe(de)) }), sub: bandeAuDe(de, e.min, e.max),
+        meta: facts(
+          fact(tr('codex.fiche.dispersionDepuis'), libelleDeValeur(depuisDeDispersionSchema, e.depuis)),
+          fact(tr('codex.fiche.dispersionDecalage'), `(${e.dx}, ${e.dy})`),
+        ),
+      }));
+    },
+  },
+  tableauCapricieux: {
+    label: 'codex.fiche.capricieux', group: 'tables', sourceRef: 'MSRC 15',
+    build: () => {
+      const de = deDeTirageDe<typeof capricieux>(capricieuxJson);
+      return datasetArray('tableauCapricieux').map((e) => ({
+        id: e.id, label: tr('codex.fiche.capricieuxDR', { dr: e.dr > 0 ? `+${e.dr}` : e.dr < 0 ? `−${-e.dr}` : '0' }), sub: bandeAuDe(de, e.min, e.max),
+      }));
+    },
+  },
+  reactionAuStatut: {
+    label: 'codex.fiche.reactionAuStatut', group: 'tables', sourceRef: 'LDB 08',
+    build: () => {
+      const de = deDeTirageDe<typeof reactionAuStatut>(reactionAuStatutJson);
+      return datasetArray('reactionAuStatut').map((e) => ({
+        id: e.id, label: libelleDeValeur(issueDeReactionSchema, e.issue), sub: bandeAuDe(de, e.min, e.max),
+      }));
+    },
   },
   drunkenness: {
     label: 'codex.fiche.ivresseTableau', group: 'tables', sourceRef: 'LDB 09',
@@ -2642,6 +2681,10 @@ const CODEX_SPECS = {
   cargaisonsAleatoires: {
     label: 'codex.fiche.cargaisonsAleatoires', group: 'tables',
     build: () => cargaisonsAleatoires.map((t) => ficheDeTableDeRefs(t, 'cargoes', (id) => refLabel('cargoes', { id }))),
+  },
+  mutationNature: {
+    label: 'codex.fiche.mutationNature', group: 'tables',
+    build: () => mutationNature.map((t) => ficheDeTableDeRefs(t, 'mutationTables', (id) => refLabel('mutationTables', { id }))),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
