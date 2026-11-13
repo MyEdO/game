@@ -58,7 +58,7 @@ const PROBE_ID: Record<string, string> = {
 
 describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
   it('le stock VOYAGE sans règle est EXACTEMENT celui énuméré (ni plus — ni périmé)', () => {
-    const sans = VOYAGE_STAKES.filter((e) => !e.rule).map((e) => e.id).sort();
+    const sans: string[] = VOYAGE_STAKES.filter((e) => !e.rule).map((e) => e.id).sort();
     const attendu = [...VOYAGE_SANS_REGLE].sort();
     const neufs = sans.filter((id) => !VOYAGE_SANS_REGLE.includes(id));
     expect(neufs, 'entrée d’enjeu NEUVE sans règle — une entrée qui naît naît avec sa fiche').toEqual([]);

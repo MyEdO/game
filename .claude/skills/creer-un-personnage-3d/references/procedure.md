@@ -474,7 +474,7 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 
 | Élément | Triangles maximum | Atlas maximum |
 |---|---|---|
-| base humanoïde | 6 000 | 1024² |
+| base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
@@ -484,8 +484,10 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 | prop d'art | 1 500 | 512² |
 | personnage assemblé, base visible comprise | 16 000 | — |
 
-Ne pas créer de plafond véhicule absent du contrat. La part de base masquée se mesure lors du
-montage complet ; le budget de l'évaluateur présent ne remplace pas automatiquement ce calcul.
+Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée à 14 318 triangles.
+
+Ne pas créer de plafond véhicule absent du contrat. Le budget assemblé de l'évaluateur ne compte pas
+les meshes que la pile des couches masque (`hotes/godot/asset/evaluateur/evaluer.ts`, `masques`).
 
 **Artistique** : identité, silhouette, proportions, pose, coupe, contacts et lisibilité. Un défaut
 dominant renvoie à la construction ; un petit pli acceptable permet d'avancer. Gros trou, pièce

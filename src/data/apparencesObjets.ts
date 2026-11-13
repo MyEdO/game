@@ -47,7 +47,7 @@ export function referenceDApparenceDObjet(trappingId: string | undefined, id: st
 }
 
 /** Refus commun aux références d’auteur, avec les deux identités. */
-export function messageDApparenceDObjet(trappingId: TrappingData['id'] | undefined, id: ApparenceData['id'], resolveTrapping: TrappingResolver = findTrappingById): string | undefined {
+export function messageDApparenceDObjet(trappingId: string | undefined, id: string, resolveTrapping: TrappingResolver = findTrappingById): string | undefined {
   if (apparencesAdmissiblesDObjet({ trappingId }, resolveTrapping).some((a) => a.id === id)) return;
   return `L’objet « ${trappingId ?? 'custom sans trappingId'} » n’admet pas l’apparence « ${id} ».`;
 }
