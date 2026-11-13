@@ -16,14 +16,16 @@ import { buildings, props } from '../../data/index';
 import { resetData, setDataset } from '../../data/overrides';
 import { IDS_PAR_ESPACE } from '../../data/schemas/_ids.generated';
 import { schema } from '../../data/schemas/defs/buildings';
-import type { BuildingDef } from '../../data/buildings.types';
+import type buildingsJson from '../../data/buildings.json';
 import { buildingsMeta, buildingFeatures } from './buildings';
 
-const charger = (): BuildingDef[] =>
+/** Le fichier tel qu'il se lit sur disque, AVANT le parse : la forme d'entrée du schéma. */
+type FichierDesBatiments = typeof buildingsJson;
+const charger = (): FichierDesBatiments =>
   JSON.parse(readFileSync(fileURLToPath(new URL('../../data/buildings.json', import.meta.url)), 'utf8'));
 
 /** Parse une copie du dataset après y avoir injecté une faute ; rend les messages de refus. */
-function refus(saboter: (dataset: BuildingDef[]) => void): string[] {
+function refus(saboter: (dataset: FichierDesBatiments) => void): string[] {
   const dataset = charger();
   saboter(dataset);
   const r = schema.safeParse(dataset);

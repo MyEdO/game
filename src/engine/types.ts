@@ -4,6 +4,8 @@ import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
+import type { EntreeDe } from '../data/datasets';
+import type * as structuresDef from '../data/schemas/defs/structures';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
 import type { Money } from './money';
@@ -255,56 +257,7 @@ export interface VehicleData {
  * via la langue UNIQUE `GameOp`/`woundsFromHit` (cf. `engine/structures.ts`). RAW dit lui-même que
  * Structure / Véhicule / Navire suivent le MÊME modèle Endurance/Blessures + table de Critiques (AA 10 l.13/116).
  */
-export interface StructureData {
-  /** id STABLE (slug) — clé d'instance/lookup. */
-  id: string;
-  type: 'structures';
-  label: string;
-  /** Catégorie physique (ADE II 8) : `porte` est seule visable par un Bélier (`ram`) ; `mur` couvre
-   *  murs/tours. Découplée des Atouts (une porte peut être Résistante OU Impénétrable). */
-  kind: 'porte' | 'mur';
-  /** Nature d'AUTHORING (posable sur une arête d'architecture), DÉCOUPLÉE de `kind` (mécanique RAW,
-   *  Bélier ne visant QUE les portes, cf. `structures-aa.test.ts`). `undefined` = découle de `kind`.
-   *  Redéfinit le choix quand il DIVERGE du `kind` mécanique verrouillé par le RAW — ex. Herse
-   *  (`kind:'mur'` mais se pose comme une FERMETURE de passage, #830). */
-  edgeKind?: 'porte' | 'mur';
-  /** `true` = véhicule (charrette, chariot, barge…) : partage la mécanique de PV « objet destructible »
-   *  (AA 10) mais N'EST PAS posable sur une arête — exclu de tout sélecteur de matériau de mur/porte (#830). */
-  vehicle?: boolean;
-  /** RENDU (pas règle) : `true` = fortification de siège (rempart de PIERRE crénelé + ferré, brèche =
-   *  gravats). `false`/absent = cloison ORDINAIRE (mur de maison texturé, sans créneaux). Découplé de
-   *  `kind` : une `porte` fortifiée = corps de garde à herse ; un `mur` fortifié = courtine. Route le
-   *  rendu du `WallSeg` porteur (`structureSeg`) — TOUJOURS destructible/brèchable. */
-  fortified?: boolean;
-  /** Profil à PV (calqué sur `VehicleData.hull.char`) — `BE` = Bonus d'Endurance (l'Endurance dérivée vaut
-   *  `BE × 10`, posée par `structureCombatant`) ; `B` = Blessures (PV de la structure). ADE II donne le BE
-   *  verbatim ; AA (« Tableau des Structures Courantes », AA 10 l.26-92) donne l'Endurance BRUTE — `BE`
-   *  se dérive alors par troncature à la dizaine (convention Bonus = dizaines de la Caractéristique). */
-  char: { BE: number; B: number };
-  /** Atouts de structure (Résistant / Impénétrable) — réfs NUES de Trait par id STABLE (JAMAIS le
-   *  libellé), forme de `ref('trait')` (`src/data/schemas/defs/structures.ts`). */
-  traits: { id: string }[];
-  /** ENC de la Structure transportée (AA 10 l.28-52) — `undefined` = N/A (Structure fixe, ne se transporte pas). */
-  enc?: number;
-  /** Limite d'Encombrement supportée par la Structure elle-même (AA 10 l.28-52) — `undefined` = N/A. */
-  encLimit?: number;
-  /** Pénalité de Couvert par défaut pour un assaillant qui tire sur une cible réfugiée sur/derrière la
-   *  Structure (AA 10 l.23, colonne l.28-51) — `undefined` = N/A (aucun couvert : Herse l.42 et Solide
-   *  porte en bois l.50 ; les 5 entrées ADE II, dont la table n'a pas cette colonne, ADE II 8 l.282-288). */
-  couvertPenalty?: CouvertDifficulty;
-  /** Laisse-t-elle VOIR à travers ? `undefined` = occultante ; seul `false` est écrivable, et il porte
-   *  son `maison` (LDB 14 l.86, LDB 85 l.329). Lu par le seul `areteOcculte` (`noyau/monde/scene.ts`). */
-  occulte?: false;
-  /** Catégorie de Taille de la Structure — entre dans le compte de son Bonus d'Endurance (`AA 10 l.98`).
-   *  Aucune table de source ne l'imprime : c'est une valeur MAISON par entrée, éditable au Codex, dont la
-   *  raison vit dans `maison`. */
-  taille: import('./size').SizeCategory;
-  /** Provenance RAW au FOLIO imprimé (ADE II 89 ; AA 119-120) — même forme que `SourceRef`. */
-  source: { book: string; page: number };
-  /** Raison MAISON — exigée par le schéma pour `taille` (toujours) et pour `occulte: false`. */
-  maison?: string;
-  desc?: string;
-}
+export type StructureData = EntreeDe<typeof structuresDef>;
 
 export interface SkillInstance {
   /** id STABLE de la Compétence (langue-indépendant) ; l'affichage résout en libellé via `skillInstanceLabel`. */

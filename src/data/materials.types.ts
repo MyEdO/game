@@ -7,8 +7,8 @@
  *
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/materials.ts` : toutes les clés de charge
  * optionnelles, la disjonction portée par un refine ⟺, patron `defs/oups.ts`). La VUE TS, elle, est
- * l'union DISCRIMINÉE ci-dessous : le handle de la fabrique scelle ses nœuds (`z.infer` vaut
- * `unknown`), aucun type n'est dérivé du schéma. Les types nommés que les catalogues de rendu
+ * l'union DISCRIMINÉE ci-dessous, plus étroite que la sortie du schéma (`DatasetDe`, `src/data/datasets.ts`),
+ * qui ne voit pas le refine. Les types nommés que les catalogues de rendu
  * consomment sont les membres de cette union, servis par `Extract` sur `domain`.
  *
  * Il porte aussi, pour que `src/data` n'importe rien du rendu ni du noyau (#2884) : `DetailRecipe` et
