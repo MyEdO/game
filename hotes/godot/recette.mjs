@@ -140,11 +140,18 @@
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
 //   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
 //   d'avant.
-//   « Couche 1 » édite l'étage, sans calque. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
+//   « Couche 1 » édite l'étage, sans calque. Au menu Fichier, « Carte du monde » (#3606 M5) montre son plan à côté du
+//   panneau : l'outil Lieu, un clic au large y pose un lieu, « Ajouter un lieu » un second ; l'outil Sélection, le premier
+//   glissé au large, « Annuler » une fois le rend à sa place ; l'outil Chemin, le premier tiré jusqu'au second les relie ;
+//   l'outil Sélection, un clic sur la route la choisit, « Depuis » le second l'oriente, son refus s'écrit au formulaire ;
+//   un clic sur le premier, son libellé s'écrit au formulaire et se lit au plan ; « Plan du lieu », l'outil Épingler, un
+//   clic y pose un point d'intérêt, « Retirer le point d'intérêt » l'ôte, « Annuler » le rend ; le plan refermé, un clic
+//   au large vide la sélection, un axe actif coché ; « Annuler » jusqu'au plan d'avant, puis « Scène » rend la scène. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
 //   tourne son nord, « Annuler » le rend au haut du plan ; au formulaire tiré du schéma de la scène (#3606), « Ajouter :
 //   message de départ » l'ajoute vide, son texte tapé au clavier sur deux lignes, « Écrire » le pose, « Annuler » deux
-//   fois le retire. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
-//   rend la précédente. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
+//   fois le retire. « Nouvelle scène » l'ajoute au projet ; « Annuler » rend le projet à ses scènes d'avant, la scène
+//   d'avant montrée, « Rétablir » la rend ; « Retirer la scène » rend la précédente, dont « +15° » tourne le nord ; une
+//   autre scène choisie à la liste, « Annuler » rend la précédente, son nord au haut du plan. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
 //   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
 //   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
 //   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné à l’est,
@@ -153,7 +160,9 @@
 //   Avant « Tester la scène », à la zone Logique (#3606 M3b2), « Ajouter un dialogue » le crée, pressé, à l'inspecteur :
 //   un nœud ajouté, choisi comme départ, marqué « ▶ », identifié « accueil » à son formulaire ; « Supprimer » le retire.
 //   Puis (#3606 M4c) « Ajouter une rencontre » la crée, pressée, à l'inspecteur : ses membres comptés, son objectif de
-//   victoire changé en « Survivre N Rounds » ; « Supprimer » la retire.
+//   victoire changé en « Survivre N Rounds » ; « Supprimer » la retire. Une rencontre ajoutée de même, visée par
+//   l'embuscade de la première route de la carte, se renomme à la zone Logique, et « Supprimer » se refuse, la route
+//   dite ; « Annuler » jusqu'à la scène sans rencontre.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -240,7 +249,8 @@
  * posé marqué (`plan`), et la capture sous son nom ; les vues de la caraque sont
  * `hotes/godot/cadrages/a-bord-de-la-caraque.json`.
  * L'éditeur (`--parcours editeur`) sert une copie
- * neuve des projets manuscrits du dépôt, clique « Éditeur », puis ses boutons et les cases de la carte, lit son état
+ * neuve des projets manuscrits du dépôt, clique « Éditeur », puis ses boutons, les cases de la carte et les points du
+ * cadre du plan de la carte du monde (`wfrpEcran.editeur.plan`), lit son état
  * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il amène chaque bouton et chaque champ
  * du panneau par la molette, aux crans que dit son point au défilement publié (`wfrpEcran.panneau`) ; il intercepte le choix de fichier de
  * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-fichier]` d'une planche qu'il écrit.
@@ -2015,6 +2025,223 @@ async function parcoursEditeur() {
       await sleep(400)
     }
   }
+  /** Tape `texte` dans la saisie d'élément `element` (`amenerAuPanneau`), à la place du sien. */
+  const taper = async (element, texte) => {
+    const c = await amenerAuPanneau({ element }, 'saisies')
+    await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
+    await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
+    for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
+    for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+    await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
+  }
+  const inspecte = (e, id) => e.zones['editeur.inspecteur'].find((el) => el.id === id)
+  /** L'inspecteur publié montre-t-il l'élément d'id `id` ? */
+  const montre = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === '${id}')`
+  /** La valeur du champ `id` de l'inspecteur dont la valeur jouée satisfait `voulue`, choisie en liste ou au clic,
+   *  jusqu'à l'état `attendu`. */
+  const choisirAuChamp = async (id, voulue, attendu) => {
+    const champ = inspecte(await editeur(), id)
+    const valeur = champ.valeurs.find((b) => voulue(b.jeu.args[2]))
+    if (champ.type === 'liste') await choisirALaListe(id, valeur.id, 'editeur.inspecteur', attendu)
+    else await cliquerAuPanneau({ element: `bouton/${valeur.id}` })
+    await waitFor(session, attendu, { timeoutMs: 30000 })
+  }
+  /** Le plan de la zone `editeur.carte` de l'éditeur publié `ed`. */
+  const planDeLaCarte = (ed) => ed.zones['editeur.carte'][0]
+  /** Le point du plan choisi (`alerte`) de l'éditeur publié `ed`. */
+  const pointChoisi = (ed) => planDeLaCarte(ed).points.find((pt) => pt.ton === 'alerte')
+  /** Le point de l'écran du point (`u`, `v`) du cadre du plan, au cadre publié de l'éditeur `ed` (`editeur.plan`). */
+  const auPlan = (ed, [u, v]) => [ed.plan.x + u * ed.plan.largeur, ed.plan.y + v * ed.plan.hauteur]
+  /** L'expression de la page vraie quand le point `id` du plan publié est au point (`u`, `v`) du cadre, au centième près. */
+  const pointEn = (id, [u, v]) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.points ?? []).some((pt) => pt.id === ${JSON.stringify(id)} && Math.abs(pt.x - ${u}) < 0.01 && Math.abs(pt.y - ${v}) < 0.01)`
+  /** Le point du cadre du plan de `ed`, parmi une grille du cadre, le plus loin à l'écran de chaque point et de chaque
+   *  trait du plan. */
+  const auLarge = (ed) => {
+    const plan = planDeLaCarte(ed)
+    const places = Object.fromEntries(plan.points.map((pt) => [pt.id, auPlan(ed, [pt.x, pt.y])]))
+    const auTrait = ([ax, ay], [bx, by], [cx, cy]) => {
+      const l2 = (bx - ax) ** 2 + (by - ay) ** 2
+      const t = l2 ? Math.max(0, Math.min(1, ((cx - ax) * (bx - ax) + (cy - ay) * (by - ay)) / l2)) : 0
+      return Math.hypot(ax + t * (bx - ax) - cx, ay + t * (by - ay) - cy)
+    }
+    const ecart = (c) => Math.min(...Object.values(places).map(([x, y]) => Math.hypot(x - c[0], y - c[1])), ...plan.traits.map((tr) => auTrait(places[tr.de], places[tr.vers], c)))
+    const grille = Array.from({ length: 17 * 17 }, (_, i) => [0.1 + 0.05 * (i % 17), 0.1 + 0.05 * Math.floor(i / 17)])
+    return grille.reduce((loin, c) => (ecart(auPlan(ed, c)) > ecart(auPlan(ed, loin)) ? c : loin))
+  }
+  /** Le pointeur tenu sur le plan de `ed` du point `de` du cadre au point `a`, par deux points entre eux, puis relâché. */
+  const glisserSurLePlan = async (ed, de, a, qui) => {
+    const [x0, y0] = auPlan(ed, de)
+    const [x1, y1] = auPlan(ed, a)
+    await geste(session, { surface: 'canvas', x: x0, y: y0 }, { qui }, async ({ x, y }, emettre) => {
+      await emettre('souris', { type: 'mouseMoved', x, y })
+      await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+      await sleep(200)
+      for (const t of [1 / 3, 2 / 3, 1]) {
+        await emettre('souris', { type: 'mouseMoved', x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0), button: 'left', buttons: 1 })
+        await sleep(300)
+      }
+      await emettre('souris', { type: 'mouseReleased', x: x1, y: y1, button: 'left', clickCount: 1 })
+    })
+  }
+  /** Le plan de la carte sans ses tons : ses lieux, chacun à sa place et nommé, et ses routes. */
+  const formeDuPlan = (ed) => JSON.stringify([planDeLaCarte(ed).id, planDeLaCarte(ed).points.map((pt) => [pt.id, pt.nom, pt.x, pt.y]), planDeLaCarte(ed).traits.map((tr) => [tr.id, tr.de, tr.vers])])
+  /** Le retrait d'un axe actif offert à l'inspecteur de l'éditeur publié `ed`, s'il y en a un. */
+  const axeARetirer = (ed) => ed.zones['editeur.inspecteur'].find((el) => el.type === 'bouton' && /^valeur\/activeAxes\/.+\/retirer$/.test(el.id))
+  /** La saisie de texte publiée au panneau dont l'élément contient `morceau`. */
+  const saisieDu = async (morceau) => (await ecran()).panneau.saisies.find((x) => x.element?.includes(morceau))
+  /** Le menu Fichier ouvre la carte du monde : son plan publié, son cadre à l'écran. */
+  const ouvrirLaCarte = async () => {
+    await cliquerAuPanneau({ element: 'bouton/document/carte' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.id === 'carte/plan' && !!wfrpEcran.editeur.plan`)
+    return editeur()
+  }
+  /** Le menu Fichier rend la scène éditée, la carte refermée. */
+  const revenirALaScene = async () => {
+    await cliquerAuPanneau({ element: 'bouton/document/scene' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'].length === 0 && wfrpEcran.editeur.plan === null`)
+  }
+  /** La carte du monde (#3606 M5) : ouverte au menu Fichier, un lieu posé au pointeur, un second par « Ajouter un lieu »,
+   *  le premier glissé puis ramené d'une annulation, les deux reliés au pointeur, la route choisie et orientée, un champ
+   *  du lieu et un de la route écrits, un point d'intérêt épinglé au plan du lieu puis retiré, un axe actif coché ;
+   *  « Annuler » jusqu'au plan d'avant, puis la scène rendue. */
+  const etapeDeLaCarte = async () => {
+    const titre = (await editeur()).zones['editeur.titre'][0].texte
+    let ed = await ouvrirLaCarte()
+    const avant = formeDuPlan(ed)
+    const { points, traits } = planDeLaCarte(ed)
+    noter(`menu Fichier, « ${boutonDeLEditeur(ed, 'document/carte').libelle} » : ${planDeLaCarte(ed).id}, ${points.length} lieux, ${traits.length} routes, cadre ${Math.round(ed.plan.largeur)} × ${Math.round(ed.plan.hauteur)} px à (${Math.round(ed.plan.x)}, ${Math.round(ed.plan.y)})`)
+    await cliquerAuPanneau({ element: 'bouton/outil/lieu' })
+    const ici = auLarge(ed)
+    await cliquerPoint(...auPlan(ed, ici))
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.points.length === ${points.length + 1}`)
+    ed = await editeur()
+    const premier = pointChoisi(ed)
+    assert.ok(premier && !points.some((pt) => pt.id === premier.id) && Math.abs(premier.x - ici[0]) < 0.01 && Math.abs(premier.y - ici[1]) < 0.01, `l’outil Lieu pose un lieu, choisi, au point cliqué (${ici}) : ${JSON.stringify(premier)}`)
+    await cliquerAuPanneau({ element: 'bouton/logique/lieu/ajouter' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.points.length === ${points.length + 2}`)
+    ed = await editeur()
+    const second = pointChoisi(ed)
+    assert.ok(second && second.id !== premier.id, `« Ajouter un lieu » pose un second lieu, choisi : ${JSON.stringify(second)}`)
+    noter(`outil Lieu, un clic au point (${ici.map((c) => c.toFixed(2))}) du plan : ${premier.nom} ; « Ajouter un lieu » : ${second.nom} à (${second.x.toFixed(2)}, ${second.y.toFixed(2)})`)
+    await cliquerAuPanneau({ element: 'bouton/outil/select' })
+    const vers = auLarge(ed)
+    await glisserSurLePlan(ed, [premier.x, premier.y], vers, `le lieu ${premier.id} glissé`)
+    await waitFor(session, pointEn(premier.id, vers))
+    await cliquerAuPanneau({ element: 'bouton/annuler' })
+    await waitFor(session, pointEn(premier.id, [premier.x, premier.y]))
+    noter(`outil Sélection, ${premier.nom} glissé de (${premier.x.toFixed(2)}, ${premier.y.toFixed(2)}) à (${vers.map((c) => c.toFixed(2))}) ; « Annuler » une fois : rendu à sa place`)
+    await cliquerAuPanneau({ element: 'bouton/outil/chemin' })
+    ed = await editeur()
+    await glisserSurLePlan(ed, [premier.x, premier.y], [second.x, second.y], 'la route tirée')
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.traits ?? []).length === ${traits.length + 1}`)
+    ed = await editeur()
+    const route = planDeLaCarte(ed).traits.find((tr) => [tr.de, tr.vers].sort().join() === [premier.id, second.id].sort().join())
+    assert.ok(route, `outil Chemin, la route tirée relie les deux lieux : ${JSON.stringify(planDeLaCarte(ed).traits)}`)
+    await cliquerAuPanneau({ element: 'bouton/outil/select' })
+    await cliquerPoint(...auPlan(ed, [(premier.x + second.x) / 2, (premier.y + second.y) / 2]))
+    await waitFor(session, `${montre('route/sens')} && globalThis.wfrpEcran.editeur.zones['editeur.carte'][0].traits.find((tr) => tr.id === '${route.id}')?.ton === 'reussite'`)
+    await cliquerAuPanneau({ element: `bouton/route/sens/${second.id}` })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'route/sens')?.valeurs.find((b) => b.presse)?.id === 'route/sens/${second.id}'`)
+    await cliquerAuPanneau({ element: 'bouton/valeur/refus/ajouter' })
+    await waitFor(session, montre('valeur/refus/texte'))
+    const refus = await saisieDu('/valeur/refus/texte/')
+    assert.ok(refus, 'le texte du refus de la route, à son formulaire')
+    await taper(refus.element, 'Pont rompu')
+    await cliquerAuPanneau({ element: 'formulaire/valeur/refus/texte' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/refus/texte')?.champs.some((c) => c.valeur === 'Pont rompu')`)
+    ed = await editeur()
+    noter(`outil Chemin, ${premier.nom} tiré jusqu’à ${second.nom} : la route ${route.id} ; outil Sélection, un clic sur elle, « ${inspecte(ed, 'route/sens').valeurs.find((b) => b.presse).libelle} », son refus écrit au formulaire : « Pont rompu »`)
+    await cliquerPoint(...auPlan(ed, [premier.x, premier.y]))
+    await waitFor(session, montre('lieu/plan'))
+    await taper('saisieTexte/valeur/label/valeur', 'Bourg')
+    await cliquerAuPanneau({ element: 'formulaire/valeur/label' })
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.points ?? []).some((pt) => pt.id === '${premier.id}' && pt.nom === 'Bourg')`)
+    noter(`un clic sur ${premier.nom}, son libellé écrit au formulaire : « Bourg », au plan`)
+    await cliquerAuPanneau({ element: 'bouton/lieu/plan' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.id === 'lieu/plan'`)
+    ed = await editeur()
+    const poiAvant = planDeLaCarte(ed).points.length
+    await cliquerAuPanneau({ element: 'bouton/outil/epingler' })
+    const epingle = auLarge(ed)
+    await cliquerPoint(...auPlan(ed, epingle))
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.points.length === ${poiAvant + 1}`)
+    ed = await editeur()
+    const poi = pointChoisi(ed)
+    assert.ok(poi && Math.abs(poi.x - epingle[0]) < 0.01 && Math.abs(poi.y - epingle[1]) < 0.01, `l’outil Épingler pose un point d’intérêt, choisi, au point cliqué (${epingle}) : ${JSON.stringify(poi)}`)
+    await cliquerAuPanneau({ element: 'bouton/lieu/poi/retirer' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.points.length === ${poiAvant}`)
+    noter(`« Plan du lieu » : ${poiAvant} point(s) d’intérêt ; outil Épingler, un clic au point (${epingle.map((c) => c.toFixed(2))}) : ${poi.nom} ; « Retirer le point d’intérêt » : ${poiAvant} point(s)`)
+    await cliquerAuPanneau({ element: 'bouton/annuler' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.points.length === ${poiAvant + 1}`)
+    ed = await editeur()
+    noter(`« Annuler » au plan du lieu : le plan ${planDeLaCarte(ed).id}, ${planDeLaCarte(ed).points.length} point(s), choisi : ${pointChoisi(ed)?.id ?? 'aucun'} ; l’inspecteur : ${ed.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.includes('/', id.indexOf('/') + 1)).slice(0, 8).join(', ')} ; outils : ${ed.zones['editeur.outils'][0]?.valeurs.map((b) => b.id).join(', ')}`)
+    await capturer('3606-m5-2-annuler-au-plan-du-lieu')
+    if (boutonDeLEditeur(ed, 'lieu/plan')?.presse !== true) await choisirALaListe('logique/lieu/liste', `logique/lieu/${premier.id}`, 'editeur.logique', montre('lieu/plan'))
+    await cliquerAuPanneau({ element: 'bouton/lieu/plan' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.id === 'carte/plan'`)
+    ed = await editeur()
+    await cliquerPoint(...auPlan(ed, auLarge(ed)))
+    await waitFor(session, montre('valeur/activeAxes/ajouter'))
+    ed = await editeur()
+    const axes = inspecte(ed, 'valeur/activeAxes/ajouter')
+    const [axe] = axes.valeurs.filter((b) => b.refus === null)
+    if (axes.type === 'liste') await choisirALaListe(axes.id, axe.id, 'editeur.inspecteur', `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((el) => /^valeur\\/activeAxes\\/.+\\/retirer$/.test(el.id))`)
+    else await cliquerAuPanneau({ element: `bouton/${axe.id}` })
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((el) => /^valeur\\/activeAxes\\/.+\\/retirer$/.test(el.id))`)
+    noter(`un clic au large sur la carte, sans sélection : « ${axes.libelle} » « ${axe.libelle} » coché`)
+    let annulations = 0
+    for (ed = await editeur(); formeDuPlan(ed) !== avant || axeARetirer(ed); ed = await editeur()) {
+      assert.ok(annulations < 20, `« Annuler » rend la carte d’avant en moins de 20 fois : ${formeDuPlan(ed)}`)
+      await cliquerAuPanneau({ element: 'bouton/annuler' })
+      annulations++
+    }
+    noter(`« Annuler » ${annulations} fois : la carte rendue, ${planDeLaCarte(ed).points.length} lieux, ${planDeLaCarte(ed).traits.length} routes, sans axe actif`)
+    await capturer('3606-m5-1-carte')
+    await revenirALaScene()
+    assert.equal((await editeur()).zones['editeur.titre'][0].texte, titre, 'le menu Fichier rend la scène éditée')
+    noter(`menu Fichier, « ${boutonDeLEditeur(await editeur(), 'document/scene').libelle} » : ${titre}`)
+  }
+  /** Une rencontre que lance l'embuscade d'une route (#3606 M4c) : ajoutée à la scène éditée, visée par l'embuscade de
+   *  la première route de la carte, renommée à la zone Logique ; « Supprimer » refusé, la route dite ; « Annuler »
+   *  jusqu'à la scène sans rencontre. */
+  const etapeDeLEmbuscade = async () => {
+    await cliquerAuPanneau({ element: 'bouton/logique/rencontre/ajouter' })
+    await waitFor(session, montre('rencontre/membres'))
+    let ed = await editeur()
+    const visee = inspecte(ed, 'nommer').champs[0].valeur
+    const sceneVisee = ed.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.find((b) => b.presse).id.slice('scenes/'.length)
+    ed = await ouvrirLaCarte()
+    const routeVisee = ed.zones['editeur.logique'].find((el) => el.id === 'logique/route/liste').valeurs[0]
+    await choisirALaListe('logique/route/liste', routeVisee.id, 'editeur.logique', montre('route/sens'))
+    await cliquerAuPanneau({ element: 'bouton/valeur/ambush/ajouter' })
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((el) => el.id.startsWith('valeur/ambush/'))`)
+    const routeId = routeVisee.id.slice('logique/route/'.length)
+    /** L'expression de la page vraie quand la valeur pressée du champ `id` de l'inspecteur joue `valeur`. */
+    const presseeA = (id, valeur) => `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${id}')?.valeurs.find((b) => b.presse)?.jeu.args[2] === ${JSON.stringify(valeur)}`
+    await choisirAuChamp('valeur/ambush/scene/id', (v) => v === sceneVisee, presseeA('valeur/ambush/scene/id', sceneVisee))
+    await choisirAuChamp('valeur/ambush/encounter', (v) => v === visee, presseeA('valeur/ambush/encounter', visee))
+    noter(`« Ajouter une rencontre » : « ${visee} » ; menu Fichier, « Carte du monde », la route ${routeId} choisie à la zone Logique, « Ajouter : embuscade » : sa scène ${sceneVisee}, sa rencontre « ${visee} »`)
+    await revenirALaScene()
+    /** L'expression de la page vraie quand la zone Logique liste la rencontre `id`. */
+    const rencontreALaListe = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre/liste')?.valeurs ?? []).some((b) => b.id === 'logique/rencontre/${id}')`
+    await choisirALaListe('logique/rencontre/liste', `logique/rencontre/${visee}`, 'editeur.logique', montre('rencontre/membres'))
+    await taper('saisieTexte/nommer/nom', 'embuscade')
+    await cliquerAuPanneau({ element: 'formulaire/nommer' })
+    await waitFor(session, `${rencontreALaListe('embuscade')} && !${rencontreALaListe(visee)}`)
+    ed = await editeur()
+    const refus = boutonDeLEditeur(ed, 'rencontre/supprimer')?.refus
+    assert.ok(refus?.includes(routeId), `« Supprimer » refusé tant que l’embuscade de ${routeId} lance la rencontre, la route dite : ${refus}`)
+    noter(`menu Fichier, « Scène », « ${visee} » choisie à la zone Logique, renommée « embuscade » : ${ed.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte} ; « Supprimer » refusé : ${refus}`)
+    let annulations = 0
+    while (String(await lire(`${rencontreALaListe('embuscade')} || ${rencontreALaListe(visee)}`)) === 'true') {
+      assert.ok(annulations < 10, '« Annuler » retire la rencontre en moins de 10 fois')
+      await cliquerAuPanneau({ element: 'bouton/annuler' })
+      annulations++
+    }
+    if (boutonDeLEditeur(await editeur(), 'document/carte')?.presse) await revenirALaScene()
+    ed = await editeur()
+    noter(`« Annuler » ${annulations} fois : ${ed.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte}, ${ed.zones['editeur.titre'][0].texte} éditée`)
+  }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
   assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
@@ -2168,15 +2395,6 @@ async function parcoursEditeur() {
   const decor = e.surcouche.reperes.find((r) => r.choisi)
   assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
   noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
-  /** Tape `texte` dans la saisie d'élément `element` (`amenerAuPanneau`), à la place du sien. */
-  const taper = async (element, texte) => {
-    const c = await amenerAuPanneau({ element }, 'saisies')
-    await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
-    await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
-    for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
-    for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
-    await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
-  }
   assert.equal((await amenerAuPanneau({ element: 'saisieTexte/nommer/nom' }, 'saisies')).texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
   await taper('saisieTexte/nommer/nom', 'Comptoir')
   await cliquerAuPanneau({ element: 'formulaire/nommer' })
@@ -2191,7 +2409,6 @@ async function parcoursEditeur() {
   e = await editeur()
   noter(`« Copier », un clic sur la case ${dx + 2}, ${dy}, « Coller » : ${e.surcouche.reperes.filter((r) => r.nom === 'Comptoir').map((r) => `${r.x}, ${r.y}`).join(' et ')}`)
   await capturer('3508-l3-2-decor-colle')
-  const inspecte = (e, id) => e.zones['editeur.inspecteur'].find((el) => el.id === id)
   await cliquerAuPanneau({ element: 'bouton/lumiere' })
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'lumiere/rayon')`)
   await cliquerAuPanneau({ element: 'bouton/lumiere/plus' })
@@ -2259,8 +2476,6 @@ async function parcoursEditeur() {
   const fiche = 'griffon-zoo-imperial'
   await choisirALaListe('fiches', `personnage/${fiche}`)
   await cliquerPoint(...cases[`${zx},${zy}`])
-  /** L'inspecteur publié montre-t-il l'élément d'id `id` ? */
-  const montre = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === '${id}')`
   await waitFor(session, montre('valeur/combat/ajouter'))
   await cliquerAuPanneau('Combat')
   await cliquerAuPanneau({ element: 'bouton/valeur/combat/ajouter' })
@@ -2570,15 +2785,6 @@ async function parcoursEditeur() {
   const adresse = `${pasDOps}/descRef`
   await choisirALaListe(`${pasDOps}/type`, inspecte(e, `${pasDOps}/type`).valeurs.find((b) => b.jeu.args[2]?.type === 'journal').id, 'editeur.inspecteur', montre(`${adresse}/ajouter`))
   const ligneDeLAdresse = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/etat')?.texte ?? ''`
-  /** La valeur du champ `id` de l'inspecteur dont la valeur jouée satisfait `voulue`, choisie en liste ou au clic,
-   *  jusqu'à l'état `attendu`. */
-  const choisirAuChamp = async (id, voulue, attendu) => {
-    const champ = inspecte(await editeur(), id)
-    const valeur = champ.valeurs.find((b) => voulue(b.jeu.args[2]))
-    if (champ.type === 'liste') await choisirALaListe(id, valeur.id, 'editeur.inspecteur', attendu)
-    else await cliquerAuPanneau({ element: `bouton/${valeur.id}` })
-    await waitFor(session, attendu, { timeoutMs: 30000 })
-  }
   await choisirAuChamp(`${adresse}/ajouter`, (v) => v.book === 'livre-de-base', montre(`${adresse}/ch`))
   await choisirAuChamp(`${adresse}/ch`, (v) => v === '64', `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/ch')?.valeurs.find((b) => b.presse)?.jeu.args[2] === '64'`)
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/ajouter')?.valeurs ?? []).some((b) => b.jeu.args[2]?.at(-1)?.kind === 'cellule')`, { timeoutMs: 30000 })
@@ -2628,8 +2834,10 @@ async function parcoursEditeur() {
   assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')
   assert.equal(e.calque_pose, false, 'la couche 1 n’a pas de calque')
   await capturer('3508-l1-3-couche-1')
+  await etapeDeLaCarte()
   const scenes = (z) => z['editeur.scenes'].find((el) => el.id === 'scenes').valeurs
   const avantLAjout = scenes(e.zones)
+  const titreAvantLAjout = e.zones['editeur.titre'][0].texte
   await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
   e = await editeur()
@@ -2637,11 +2845,27 @@ async function parcoursEditeur() {
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la scène neuve s’édite sur sa couche 0')
   noter(`« Nouvelle scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée, ${Object.keys((await ecran()).cases).length} cases`)
   await capturer('3508-l6-3-scene-neuve')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length === ${avantLAjout.length}`)
+  assert.equal((await editeur()).zones['editeur.titre'][0].texte, titreAvantLAjout, '« Annuler » montre la scène d’avant l’ajout')
+  noter(`« Annuler » : ${avantLAjout.length} scènes, ${titreAvantLAjout} éditée`)
+  await cliquerAuPanneau({ element: 'bouton/retablir' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length === ${avantLAjout.length + 1} && wfrpEcran.editeur.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
+  noter(`« Rétablir » : ${avantLAjout.length + 1} scènes, Nouvelle scène éditée`)
   await cliquerAuPanneau({ element: 'bouton/scenes/retirer' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length === ${avantLAjout.length}`)
   e = await editeur()
   assert.equal(e.zones['editeur.titre'][0].texte, avantLAjout.at(-1).libelle, 'retirée, sa précédente s’édite')
   noter(`« Retirer la scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée`)
+  const ecrite = e.zones['editeur.titre'][0].texte
+  const nordDe = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte`
+  await cliquerAuPanneau({ element: 'bouton/scene/nord/plus' })
+  await waitFor(session, `${nordDe} === 'Nord : 15° dans le sens horaire'`)
+  const ailleurs = avantLAjout.find((b) => b.libelle !== ecrite)
+  await choisirALaListe('scenes', ailleurs.id, 'editeur.scenes', `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ailleurs.libelle)}`)
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === ${JSON.stringify(ecrite)} && ${nordDe} === 'Nord : vers le haut du plan'`)
+  noter(`« +15° » sur ${ecrite}, ${ailleurs.libelle} choisie à la liste des scènes, « Annuler » : ${ecrite} éditée, le nord rendu au haut du plan`)
   await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
   const sceneNeuve = (await ecran()).cases
@@ -2793,6 +3017,7 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/rencontre/supprimer' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'] ?? []).some((el) => (el.valeurs ?? []).some((b) => b.id === 'logique/rencontre/${rencontre}'))`)
   noter(`« Supprimer » : ${(await editeur()).zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte}`)
+  await etapeDeLEmbuscade()
   await cliquerAuPanneau({ element: 'bouton/tester' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await vue()

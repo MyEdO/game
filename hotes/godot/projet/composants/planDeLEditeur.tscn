@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://composants/plan.tscn" id="1_plan"]
+[ext_resource type="Theme" path="res://art/carte_du_lieu.tres" id="t_carte_du_lieu"]
+
+[node name="Plan" instance=ExtResource("1_plan")]
+theme = ExtResource("t_carte_du_lieu")
+pointeur = &"edition"
