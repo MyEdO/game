@@ -61,7 +61,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
 
   it('le gate PORTE SA RAISON : sans arme à distance, et une fois le Mouvement entamé', () => {
     const { H } = setup();
-    const ctx = () => ({ active: banc.getState().battle!.combatants.find((c) => c.id === H.id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
+    const ctx = () => ({ scene: banc.getState().scene, active: banc.getState().battle!.combatants.find((c) => c.id === H.id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
     expect(actionGate('posture-tir', ctx()).ok, 'arc en main, Mouvement intact → offerte').toBe(true);
 
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1 } });
@@ -167,9 +167,9 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
     const { H, E } = setup();
     const b = () => banc.getState().battle!;
     const par = (id: string) => b().combatants.find((c) => c.id === id)!;
-    expect(STANCE_BLOCK.tirImmobile(b(), par(H.id)), 'héros : armable').toBeNull();
-    expect(STANCE_BLOCK.tirImmobile(b(), par(E.id))).toBe('seul un héros décide de tenir sa position');
-    expect(STANCE_BLOCK.dansLeTas(b(), par(E.id))).toBe('seul un héros renonce à choisir sa cible');
+    expect(STANCE_BLOCK.tirImmobile(banc.getState().scene, b(), par(H.id)), 'héros : armable').toBeNull();
+    expect(STANCE_BLOCK.tirImmobile(banc.getState().scene, b(), par(E.id))).toBe('seul un héros décide de tenir sa position');
+    expect(STANCE_BLOCK.dansLeTas(banc.getState().scene, b(), par(E.id))).toBe('seul un héros renonce à choisir sa cible');
   });
 
   it('GAIN : le tireur piloté ne brûle PAS son Mouvement, même `tirImmobile` posé sur le pending', () => {
@@ -214,7 +214,7 @@ describe('G5 — posture « Dans le tas » (`dansLeTas`)', () => {
 
   it('gate : offerte face à un GROUPE serré, refusée (avec sa raison) sans groupe', () => {
     const nu = setup(false);
-    const ctx = (id: string) => ({ active: banc.getState().battle!.combatants.find((c) => c.id === id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
+    const ctx = (id: string) => ({ scene: banc.getState().scene, active: banc.getState().battle!.combatants.find((c) => c.id === id)!, battle: banc.getState().battle!, gameTime: banc.getState().gameTime });
     const refus = actionGate('posture-tas', ctx(nu.H.id));
     expect(refus.ok).toBe(false);
     expect(refus.reason).toBe('aucun groupe serré en vue');

@@ -78,7 +78,7 @@ export const MAX_ADV_PER_SKILL = 10;
 export const CAREER_SKILLS_ADVANCED = 8;
 
 /** Étapes aléatoires de la création, chacune son flux (`fluxDeCreation`). */
-export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details' | 'possessions';
+export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'carriere:variante' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details' | 'possessions';
 
 /** Le flux figé d'une étape de création, dérivé de la graine racine `seed` (`fluxDerive`). */
 export function fluxDeCreation(seed: number, etape: EtapeDeFlux, ...suite: readonly (string | number)[]): RNG {

@@ -26,9 +26,9 @@ describe('mount — combat monté (LDB 14 l.175-187)', () => {
   it('canMount : cavalier à pied adjacent à une monture libre (et pas sinon)', () => {
     const horse = mk('h', 5, 5, 'grande'); // 2×2 (5..6 × 5..6)
     const knight = mk('k', 7, 6); // colle au bord est
-    expect(canMount(battle([horse, knight]), knight, horse)).toBe(true);
+    expect(canMount(flatScene(12, 12), knight, horse)).toBe(true);
     const far = mk('f', 10, 10);
-    expect(canMount(battle([horse, far]), far, horse)).toBe(false); // trop loin
+    expect(canMount(flatScene(12, 12), far, horse)).toBe(false); // trop loin
   });
 
   it('mountUp : appaire + le cavalier partage la position de la monture', () => {
@@ -41,7 +41,7 @@ describe('mount — combat monté (LDB 14 l.175-187)', () => {
     const b = battle([horse, knight]);
     expect(mountOf(b, knight)).toBe(horse);
     expect(riderOf(b, horse)).toBe(knight);
-    expect(canMount(b, knight, horse)).toBe(false); // déjà monté
+    expect(canMount(flatScene(12, 12), knight, horse)).toBe(false); // déjà monté
   });
 
   it('dismount : défait l’appairage + cavalier à pied sur une case libre HORS empreinte', () => {

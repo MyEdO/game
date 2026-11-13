@@ -150,7 +150,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
       const pirate = byId(battle, id);
       const path = boardOnto(battle, scene, tueur, pirate); // TRAVERSÉE : chemin réel jusqu'au contact
       expect(path, `abordage injouable : aucun chemin vers ${id}`).not.toBeNull();
-      expect(distanceDeContact(tueur, pirate)).toBeLessThanOrEqual(1); // ENGAGÉ
+      expect(distanceDeContact(banc.getState().scene, tueur, pirate)).toBeLessThanOrEqual(1); // ENGAGÉ
       const blows = meleeDown(tueur, pirate); // VAINCU au corps à corps
       expect(isOutOfAction(pirate), `le pirate ${id} n'est pas tombé en ${blows} coups`).toBe(true);
     }

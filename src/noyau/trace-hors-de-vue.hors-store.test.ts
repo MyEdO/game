@@ -123,7 +123,8 @@ describe('actorName — l’issue d’un jet nomme son acteur par `nomEnVue`', (
     const s = siege();
     const c = s[qui];
     const arme = [s.cache, s.vu].flatMap((x) => x.weapons)[0]; // l'assaillant en vue peut n'en porter aucune
-    const pr = { ...jetDeRecharge(c, arme, (s.banc.getState() as unknown as Jeu).battle!.combatants), reload: 3, roll: 40, sl: 1, success: true };
+    const jeu = s.banc.getState() as unknown as Jeu;
+    const pr = { ...jetDeRecharge(jeu.scene, c, arme, jeu.battle!.combatants), reload: 3, roll: 40, sl: 1, success: true };
     appliquerLaRecharge(s.banc.getState, s.banc.setState, pr, arme);
     const log = (s.banc.getState() as unknown as Jeu).battle!.log;
     return { ligne: log[log.length - 1].text, nom: c.label };
