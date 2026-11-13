@@ -6,7 +6,17 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, installerLAmelioration, portCareenVessel, portRepairVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import {
+  applyVesselCritical,
+  buildSeaPlan,
+  continueSeaDayAfterCascade,
+  finalizePortArrivalTo,
+  installerLAmelioration,
+  portCareenVessel,
+  portRepairVessel,
+  runSeaDay,
+  vesselManann,
+} from './seaVoyageFlow';
 import { rollPortRepair } from '../engine/shipBuild';
 import { REPARATION } from '../engine/seaNavigation';
 import { findVehicleById } from '../data';
@@ -28,6 +38,7 @@ import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { shipboardSouls } from './shipCrew';
+import { PORT_A_CHANTIER } from '../data/navalPorts.testkit';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import { applyOps, nomDeSource, type GameOp } from '../engine/ops';
@@ -1372,8 +1383,9 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     expect(get().vessel!.constructeurDEscale).toBeUndefined();
   });
 
-  it('Constructeur de navires itinérant : chaque Amélioration qu’il pose tire ses 1d10 jours, même le Blindage (l.255)', () => {
+  it('Constructeur de navires itinérant : chaque Amélioration qu’il pose tire ses 1d10 jours, même le Blindage, au port à chantier naval spécialisé (l.255 ; MDG 12 l.230)', () => {
     escale('constructeur-de-navires-itinerant');
+    set({ worldMap: { ...deuxPorts, places: deuxPorts.places.map((p, i) => (i === 1 ? { ...p, port: { ...p.port!, ref: PORT_A_CHANTIER } } : p)) } });
     creditBourse(get, set, get().party[0].id, { gold: 100000, silver: 0, brass: 0 });
     const poser = (traitId: string, d100: number) => {
       imposerLesD100(d100);

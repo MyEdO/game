@@ -11,8 +11,12 @@ on:
 # `push` de `main`. Le `push` d'une branche de travail attache ses checks à la tête de sa PR
 # (troubleshooting-required-status-checks.md:55-58), sans déclencheur `pull_request`.
 #
-# Un run par ref. Sur une branche de travail, un push qui en suit un autre ANNULE le run en vol :
-# seule la tête compte. Une entrée de file a sa propre ref (`gh-readonly-queue/main/pr-<N>-<sha>`).
+# Un run par ref sur une branche de travail : un push qui en suit un autre ANNULE le run en vol, seule
+# la tête compte. Un run par PR en file : une entrée que GitHub reconstruit après un rouge devant elle
+# change de ref (`gh-readonly-queue/main/pr-<N>-<sha>`) et garde son message de commit (`Merge pull
+# request #<N> from …`, `PARAMETRES_DU_DEPOT`, scripts/ops/ruleset-main.mjs) ; le run de l'ancienne ref,
+# que GitHub laisse courir, est ANNULÉ et rend ses runners (#3412 : la course 43446957195 en a tenu 10
+# jusqu'à 12 min après la reconstruction de son entrée). `toJSON` tient le message sur une ligne.
 #
 # DEUX COURSES (#3412, arbitrage du 2026-11-05 au ticket) : la course de FILE (`merge_group`) joue TOUTES
 # les gates, celle de BRANCHE (`push`) n'en joue qu'un sous-ensemble — le job `branche` : `typecheck`,
@@ -26,7 +30,7 @@ on:
 # hors du périmètre dérivé se découvre en file, qui éjecte la PR (`causeDEjection`,
 # scripts/ops/etapesDuTrain.mjs).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ toJSON(github.event.merge_group.head_commit.message || github.ref) }}
   cancel-in-progress: true
 
 # UN JOB VÉRIFIANT = UN GROUPE de gates qui tourne en PARALLÈLE des autres (#2178) ; le rejeu local
@@ -96,6 +100,11 @@ jobs:
 
   # Les LECTEURS de docs/ et docs/raw/, et `build` (`gen && vite build`, qui n'écrit ni docs/ ni
   # docs/raw/).
+  # `comptes:plage` (#2705, scripts/guards/comptes-plage.mts) : la porte des volets SOUS LA PORTE sur la plage
+  # `merge-base origin/main..HEAD` — aucun compte ne monte, aucun site n'y naît, aucun plancher ne cède, à détecteur
+  # constant ; puis l'inventaire de la dette que la donnée révèle (#3021), hors de la porte, au résumé du job ; sautée
+  # sur un push documentaire, qui ne touche aucune donnée. Elle se joue ici pour répartir la durée de la course de
+  # file entre les jobs (#3412).
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -131,12 +140,17 @@ jobs:
         run: npm run raw:check-source-puces
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-renvois
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run comptes:plage
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
   # `test:docs` hors du chemin critique de `docs` (#2178), sur l'arbre du COMMIT, sans `docs:build` :
   # un test qui lit une cible PURE la rend (`renduDe`, `rendreCible` de scripts/docs/build-all.mjs).
+  # `noyau:chargement`, `test:corpus-isole`, `test:ops` et `test:runner` n'écrivent pas dans l'arbre : ils se jouent
+  # ici pour répartir la durée de la course de file entre les jobs (#3412), et le rejeu local les porte dans la lane
+  # `docs` (`LANE_LOCALE_DE_JOB`).
   docs-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -150,11 +164,22 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:docs
+      # `noyau:chargement` (#3058, scripts/guards/chargement-en-premier.mjs) : chaque module du noyau, du moteur, de la
+      # donnée, des feuilles, des hôtes (hotes/ compris) et des scénarios chargé EN PREMIER dans un graphe neuf de
+      # Vite.
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run noyau:chargement
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:corpus-isole
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:ops
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:runner
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # Lectures du graphe TypeScript et du noyau : suites hors store, chargement des modules, typecheck, pont, lint.
+  # Lectures du graphe TypeScript et du noyau : suites hors store, typecheck, pont, lint.
   types:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -174,11 +199,6 @@ jobs:
         uses: ./.github/actions/caches-3d
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:noyau
-      # `noyau:chargement` (#3058, scripts/guards/chargement-en-premier.mjs) : chaque module du noyau, du moteur, de la
-      # donnée, des feuilles, des hôtes (hotes/ compris) et des scénarios chargé EN PREMIER dans un graphe neuf de
-      # Vite.
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run noyau:chargement
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run deps:unused
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
@@ -246,10 +266,6 @@ jobs:
   # `livraison:plage` (#2328, scripts/guards/livraison-plage.mjs) : la porte de PUBLICATION des
   # résolutions de fusion de `merge-base origin/main..HEAD` ; elle lit les soldes de `.claude/` dans
   # l'histoire, elle n'est jamais sautée.
-  # `comptes:plage` (#2705, scripts/guards/comptes-plage.mts) : la porte des volets SOUS LA PORTE sur la
-  # même plage — aucun compte ne monte, aucun site n'y naît, aucun plancher ne cède, à détecteur constant ;
-  # puis l'inventaire de la dette que la donnée révèle (#3021), hors de la porte, au résumé du job ;
-  # sautée sur un push documentaire, qui ne touche aucune donnée.
   types-hooks:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -265,14 +281,12 @@ jobs:
         run: npm run test:hooks
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run livraison:plage
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run comptes:plage
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # Les suites `node --test` des scripts hors `test:hooks`, hors du chemin critique de `types` et de
-  # `types-hooks` (#3412) : ces jobs et `godot` se partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
+  # `test:corpus`, hors du chemin critique de `types` et de `types-hooks` (#3412) : ces jobs et `godot` se
+  # partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
   # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
   # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   corpus:
@@ -289,13 +303,7 @@ jobs:
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:corpus
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:corpus-isole
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run mods:check
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:ops
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:runner
       # `godot:recette` (#3945) : les jeux `combat` et `editeur` des recettes natives de l'hôte Godot
       # (`lot-de-recettes.mjs --natif`), sans export ni navigateur, dans ce job pour rester hors du chemin critique de
       # la CI (`types`) ; `canari.yml` joue le lot natif entier. Les caches de la chaîne 3D la précèdent : elle dépose
@@ -344,8 +352,6 @@ jobs:
 
   # Les migrations de donnée sont REJOUABLES : rejouées sur l'arbre courant, elles ne réécrivent
   # RIEN. Job DÉDIÉ : il écrit dans l'arbre de SON runner, jamais dans celui d'un job de gates.
-  # Il porte aussi le banc des étalons (#3935), hors du rejeu local au même titre : un étalon ne se
-  # compare que sous Linux x86-64 avec le Chromium épinglé (`EPINGLE`, hotes/godot/planches.mjs).
   migrations:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -366,11 +372,3 @@ jobs:
       - name: Rejeu en CROISSANCE (+1 entrée ne coûte rien)
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run migrations:replay:croissance
-      # Le banc des étalons : l'export Web, puis chaque planche comparée au pixel à son étalon, dans
-      # le Chromium que l'épingle nomme (la version de Playwright se lit à sa source).
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        uses: ./.github/actions/caches-3d
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npx -y "playwright@$(node --input-type=module -e "import { EPINGLE } from './hotes/godot/planches.mjs'; console.log(EPINGLE.playwright)")" install chromium && echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> "$GITHUB_ENV" && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run godot:etalons

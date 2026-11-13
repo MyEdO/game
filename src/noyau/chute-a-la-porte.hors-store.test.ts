@@ -3,7 +3,20 @@ import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, revealPurpose, OPS_DIFFEREES, porterOpsCtx, ctxRepris } from './combatEffects';
+import {
+  applyLeafOps,
+  applyEffectsLoot,
+  ouvrirChute,
+  runFlow,
+  checkTriggers,
+  confierLaSuite,
+  jouerFlowEntier,
+  pushCombatStep,
+  revealPurpose,
+  OPS_DIFFEREES,
+  porterOpsCtx,
+  ctxRepris,
+} from './combatEffects';
 import { runPureFlowLines } from './combat/flowEval';
 import { openSequence } from './rollSeam';
 import { buildAuthorPerilSteps } from './authorPerils';

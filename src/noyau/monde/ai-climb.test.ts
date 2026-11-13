@@ -40,11 +40,8 @@ describe("IA — Grimpant exploite les cases atteignables par-delà la falaise",
   const enemy = mk('e', 'ennemi', { x: 2, y: 4, h: 0 }, { traits: [{ id: 'grimpant' }] });
   const hero = mk('h', 'heros', { x: 2, y: 0, h: 4 });
 
-  it('SANS traverse (capability non branchée à l’entrée IA) : reste coincé au pied de la falaise', () => {
-    const action = chooseEnemyAction(input(enemy, [hero], { movement: 4 }));
-    expect(action.kind).toBe('deplacement');
-    if (action.kind !== 'deplacement') throw new Error('attendu move');
-    expect(action.to.y).toBeGreaterThanOrEqual(2); // n'a jamais franchi l'arête
+  it('SANS traverse (capability non branchée à l’entrée IA) : aucune route vers le plateau, aucune approche', () => {
+    expect(chooseEnemyAction(input(enemy, [hero], { movement: 4 })).kind).toBe('fin');
   });
 
   it('AVEC traverse (Grimpant) : franchit la falaise et se rapproche sur le plateau', () => {

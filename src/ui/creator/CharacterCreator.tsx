@@ -61,7 +61,17 @@ import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cl
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { formatDice } from '../../engine/dice';
-import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import {
+  brancheChoisie,
+  dotationsDuHeros,
+  emplacementsDeDotation,
+  estEmplacementDeDotation,
+  estEmplacementRacine,
+  idChoisi,
+  sousEmplacement,
+  type ChoixDeDotation,
+  type EmplacementDeDotation,
+} from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -671,7 +681,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
   // Encrier de tirage CARRIÈRE (#393 P2, même patron que Race #393 P3) : rangée unique recherche +
   // encrier, le résultat vit dans l'encrier rendu (plus de mur de boutons de borne). LDB 05 l.208-212 :
   // 1ᵉʳ jet gardé = +50 PX ; pas convaincu → deux jets de plus (3 bornes au choix) = +25 PX ; au-delà,
-  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`, INCHANGÉE).
+  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`).
   const rolledLast = d.careerRolls[d.careerRolls.length - 1];
   const kept = careerXp(d) > 0;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftCareer(d)));

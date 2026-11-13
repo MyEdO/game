@@ -5,7 +5,24 @@ import { join } from 'node:path'
 import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs'
 import { lireWorkflow } from '../../guards/lib/formeDeWorkflow.mjs'
 import { jouerWorkflow, scriptsDeWorkflowDuDepot } from '../../guards/lib/jouer-workflow.mjs'
-import { RACINE, jouer, ARGS_TABLE, FICHES_PJ, jetsDe, analyseCouvrante, repondreALaTable, jouerTable, mjSansFin, mjAuxSorts, analyseSignal, argsDossier, ARGS_DOSSIER, repondreAuDossier, jouerDossier, sauf } from '../../test/lib/bancWorkflows.mjs'
+import {
+  RACINE,
+  jouer,
+  ARGS_TABLE,
+  FICHES_PJ,
+  jetsDe,
+  analyseCouvrante,
+  repondreALaTable,
+  jouerTable,
+  mjSansFin,
+  mjAuxSorts,
+  analyseSignal,
+  argsDossier,
+  ARGS_DOSSIER,
+  repondreAuDossier,
+  jouerDossier,
+  sauf,
+} from '../../test/lib/bancWorkflows.mjs'
 
 const FUITE = { echange: 2, secret: 'sec1', constat: 'la narration nomme le secret, aucun indice trouvé n’y mène' };
 

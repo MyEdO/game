@@ -142,7 +142,15 @@ import { setSpritePicker } from './spritePicker';
 import { stage3dFramingFor, stageScreen, viewBoxScreen, type Stage3dFraming } from './stage3dCamera';
 import { poserLampesDuCiel, stageLightScalars, type LampesDuCiel } from './stageLights';
 import { viewPolicy } from './viewPolicy';
-import { applyFlicker, applyPointLights, createPointLightPool, hasFlicker, pointLightWrites, POINT_LIGHT_BUDGET, type PointLightSlots } from './stagePointLights';
+import {
+  applyFlicker,
+  applyPointLights,
+  createPointLightPool,
+  hasFlicker,
+  pointLightWrites,
+  POINT_LIGHT_BUDGET,
+  type PointLightSlots,
+} from './stagePointLights';
 import type { LightSource } from '../../noyau/monde/vision';
 import { AMBIANCE } from '../catalog/ambiance';
 import { sceneBrume, scenePrecip } from '../../noyau/monde/meteo';
@@ -680,11 +688,12 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   if (!elsRetenu.current || !memesBillboardEls(elsRetenu.current, els)) elsRetenu.current = els;
   const elsStables = elsRetenu.current;
   // VERSION DES CATALOGUES (`useVersionDesDatasets`) : les sujets la hachent (`DrawSnapshot`), et une
-  // édition au Codex (`CodexEdit`, modale au-dessus du jeu monté) doit relancer ce rendu pour la voir.
-  const versionCatalogues = useVersionDesDatasets();
+  // édition au Codex (`CodexEdit`, modale au-dessus du jeu monté) doit relancer ce rendu pour la voir ;
+  // `decorRetenu` (`memoByRefDeps`) est daté par elle.
+  useVersionDesDatasets();
   // La TEINTE de visibilité n'entre PAS dans cette rétention (#1396) : elle se prend à la case du sujet,
   // par la passe de POSE, à la cadence de la frame (`stage/boardPose.poseBoards`).
-  const subjects = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables, versionCatalogues], () => collectBillboards(scene, mpt, elsStables));
+  const subjects = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables], () => collectBillboards(scene, mpt, elsStables));
   // ── MARQUES DE CASES : les éléments du builder, rangés par SLOT de montage. La CAPACITÉ des
   // pools ne suit que les paliers (`slotCapacity`) — un anneau de cible qui apparaît ne redimensionne
   // rien, il s'écrit dans le pool déjà là.

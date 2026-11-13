@@ -29,7 +29,20 @@ import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import type { Combatant, Difficulty, EffectSource } from '../../engine/types';
 import { dataLabel, derivedStake, testSkillLabel } from '../../data';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
-import { type EffectOp, type FlowTest, type ConditionCtx, type ArretDeFlow, type PasDeFlow, type ResteDuFlow, executerFlow, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, EMPTY_FLOW } from '../../engine/flowCore';
+import {
+  type EffectOp,
+  type FlowTest,
+  type ConditionCtx,
+  type ArretDeFlow,
+  type PasDeFlow,
+  type ResteDuFlow,
+  executerFlow,
+  flowHasImpureOp,
+  flowHasOpADe,
+  flowHasTest,
+  poserEnjeu,
+  EMPTY_FLOW,
+} from '../../engine/flowCore';
 import { resoudreFlowTest } from '../../engine/decisionDuTest';
 import { combatConditionCtx, runPureFlowLines } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
@@ -278,7 +291,7 @@ export function frozenOpposedBatchStep(
     ...(ft.menace ? { menace: ft.menace } : {}),
     meta: {
       onSuccess: branches.onSuccess, onFail: branches.onFail, after, casterId: attacker.id,
-      opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp), ...(declaree ? { difficulty: declaree } : {}), ...(opp.bonusSL ? { bonusSL: opp.bonusSL } : {}), ...(opp.defenderMustWin ? { defenderMustWin: true } : {}) },
+      opposed: { aT, attackerId: attacker.id, attackerName: nomDe(attacker), ...opposedAttackerFreeze(opp), ...(declaree ? { difficulty: declaree } : {}), ...(opp.bonusSL ? { bonusSL: opp.bonusSL } : {}), ...(opp.defenderMustWin ? { defenderMustWin: true } : {}) },
     },
   }, participants);
 }
@@ -528,7 +541,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
         id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'testDeclenche', icon: 'navigation/des', rollLabel: skillLabel,
         actor: c, ligne: { test: decision.sujet }, label, difficulty,
         stake: ft.stake,
-        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta, differeLaSuite: true },
+        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: nomDe(attacker), ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta, differeLaSuite: true },
         ...(ft.menace ? { menace: ft.menace } : {}),
       })
       : simpleTriggeredTestStep(c, ft, cc, { onSuccess: node.reussite, onFail: node.echec }, after, extraMeta);

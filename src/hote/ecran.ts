@@ -20,7 +20,26 @@ import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
 import type { RosterMontre } from './roster';
-import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Icone, type Jet, type Ligne, type PanneauDeLHote, type Paysage, type Plan, type Puce, type Saisie, type Ton } from './elements';
+import {
+  elementsDesGestes,
+  ligne,
+  resume,
+  type Bouton,
+  type Choix,
+  type Element,
+  type Entite,
+  type FicheOuverte,
+  type Formulaire,
+  type Icone,
+  type Jet,
+  type Ligne,
+  type PanneauDeLHote,
+  type Paysage,
+  type Plan,
+  type Puce,
+  type Saisie,
+  type Ton,
+} from './elements';
 
 /**
  * @contrat Vue

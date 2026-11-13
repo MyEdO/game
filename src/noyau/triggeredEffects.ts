@@ -16,7 +16,17 @@ import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHasFreeAttack, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps } from '../engine/flowCore';
+import {
+  ARG_TEMPLATE,
+  INDICE_TEMPLATE,
+  type EffectTrigger,
+  flowHasTest,
+  flowHasFreeAttack,
+  spellEffectOps,
+  EMPTY_FLOW,
+  reecrireFlow,
+  reecrireLesOps,
+} from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
@@ -28,12 +38,21 @@ import { surfaceOf } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { isEngagedWith, isEngaged } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat } from './monde/footprint';
 import { chebyshev } from '../engine/grid';
 import { tileSeenByFoe } from './monde/lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { sceneMetresPerTile } from './monde/scene';
-import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
+import {
+  findTraitById,
+  findQualityById,
+  findTalentById,
+  findConditionById,
+  findPsychologyById,
+  findSymptomById,
+  findMutationById,
+  testSkillLabel,
+} from '../data';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';
@@ -221,7 +240,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
         c.id !== actor.id && c.kind !== actor.kind && !isOutOfAction(c)
         && isEngagedWith(c, actor.id) && !held.includes(c.id)
         && (on.sizeAtMost !== 'soi' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
-      eligible.sort((a, b) => combatDistance(actor, a) - combatDistance(actor, b)); // les plus proches d'abord
+      eligible.sort((a, b) => distanceDeCombat(actor, a) - distanceDeCombat(actor, b)); // les plus proches d'abord
       return eligible.slice(0, capacity);
     }
     // GÉOMÉTRIE : tous les combattants à portée d'un centre (arc d'Azyr, Trait/Talent d'aire)
@@ -233,7 +252,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
     // de GameOps à TOUTES les cibles du rayon — MÊME collecte que munitions/zoneBlast/manœuvres.
     return combatantsWithinRadius(center.pos, radius, battle.combatants,
       (c) => c.id !== center.id && c.id !== actor.id && !isOutOfAction(c),
-      (_ctr, c) => combatDistance(center, c));
+      (_ctr, c) => distanceDeCombat(center, c));
   }
   return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
 }

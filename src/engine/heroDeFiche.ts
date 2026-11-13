@@ -27,8 +27,9 @@ export interface FicheDeHeros {
   charAdvances: Partial<Record<CharKey, number>>;
   skills: readonly (RefDesignee & { advances: number })[];
   talents: readonly (RefDesignee & { times: number })[];
-  /** Possessions, chacune à sa quantité imprimée : un objet du catalogue, ou la ligne de la fiche hors catalogue. */
-  trappings: readonly ((RefDesignee | { text: string }) & { qte: number })[];
+  /** Possessions, chacune à sa quantité imprimée : un objet du catalogue avec ses Atouts attachés, ou la ligne de la
+   *  fiche hors catalogue. */
+  trappings: readonly (((RefDesignee & Pick<DotationResolue['ref'], 'qualities'>) | { text: string }) & { qte: number })[];
   /** Tous les sorts de la fiche, Bénédictions comprises. */
   spells: readonly string[];
   fate: number;

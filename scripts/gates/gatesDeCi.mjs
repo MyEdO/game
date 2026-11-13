@@ -60,9 +60,7 @@ export const JOBS_HORS_REJEU_LOCAL = {
   migrations:
     'rejeu EN PLACE des migrations : le jouer sur un arbre de travail réécrit src/data et src/scenes ' +
     'et rend un verdict faux (#1613) — localement, il se joue sur un EXPORT de la tête, ' +
-    '`npm run migrations:replay:head` ; et le banc des étalons (#3935), qui ne compare un étalon que sous ' +
-    'Linux x86-64 avec le Chromium épinglé (`EPINGLE`, hotes/godot/planches.mjs) : hors de cette machine, ' +
-    '`npm run godot:etalons` refuse',
+    '`npm run migrations:replay:head`',
 }
 
 /**
@@ -86,14 +84,15 @@ export const LANE_LOCALE_DE_JOB = {
   corpus: {
     lane: 'types',
     raison:
-      '`test:corpus`, `test:corpus-isole`, `mods:check`, `test:ops`, `test:runner` et `godot:recette` (#3945) ont leur ' +
-      'job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+      '`test:corpus`, `mods:check` et `godot:recette` (#3945) ont leur job pour raccourcir le chemin critique de la CI ' +
+      '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
   },
   'docs-tests': {
     lane: 'docs',
     raison:
-      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178) ; le rejeu local tient ' +
-      '`PLAFOND_LANES` lanes, et `docs` le porte',
+      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178), et il porte `noyau:chargement`, ' +
+      '`test:corpus-isole`, `test:ops` et `test:runner` pour répartir la durée de la course de file entre les jobs ' +
+      '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `docs` les porte',
   },
 }
 

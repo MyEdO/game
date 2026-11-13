@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { recordDIds, refs } from '../grammaire/ref';
+import { sourceRefSchema } from '../grammaire/valeurs';
 
 export const file = 'naval-ports.json';
 export const famille = 'entite';
@@ -26,6 +27,8 @@ const doc = document(
     cosmopolite: z.boolean().optional(),
     /** Colonne Dirigeant, verbatim. */
     dirigeant: z.string().optional(),
+    /** Valeur d'ADAPTATION : présent, le port a un chantier où le Blindage se pose ; cite son passage. MDG 12 l.230 */
+    chantierNavalSpecialise: sourceRefSchema.optional(),
   },
   {
     region: { label: 'Région', hint: 'Regroupement RAW de la colonne Lieu de l’Index (ex. Nordland, Tilée)' },
@@ -48,6 +51,10 @@ const doc = document(
       hint: 'Grand port cosmopolite (Marienburg, Lothern) : marchands plus généreux, seuil de Négociateur abaissé',
     },
     dirigeant: { label: 'Dirigeant', hint: 'Colonne Dirigeant de l’Index, verbatim' },
+    chantierNavalSpecialise: {
+      label: 'Chantier naval spécialisé',
+      hint: 'Présent : le port a un chantier où le Blindage se pose, cité à son passage (MDG 12 l.230)',
+    },
   },
   {
     codex: { keys: ['navalPorts'] },

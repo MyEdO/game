@@ -33,11 +33,22 @@ import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { ouvrirLeRepos } from './restFlow';
 import { arriverAuLieu } from './lieuFlow';
-import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
+import { lieuDuGroupe, placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
-import { toRecapLines, type RecapEvent } from './recapLine';
+import { toRecapLines } from './recapLine';
+import { noteEvent, rangerLesEvenements } from './evenementDuJour';
 import type { BatchParticipant } from './pendings';
-import { crewTestContributors, equipageImplique, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
+import {
+  crewTestContributors,
+  equipageImplique,
+  shipMoraleScore,
+  applyShipMoraleDelta,
+  shipSaboteurDR,
+  applyVesselCrewLoss,
+  resolveShoreLeaveDesertion,
+  shipboardSouls,
+  shipUndercrew,
+} from './shipCrew';
 import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
 
 /** Id du protocole de reprise MARITIME (effets appliqués SUR-LE-CHAMP, `reprendreLeVoyage` rejoue). */
@@ -51,12 +62,39 @@ import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './monde/encounterAuthoring';
 import { registerScene } from './monde/registreDesScenes';
 import { vehicleCombatant } from '../engine/vehicle';
-import { type StakeRef, type VoyageStakeId, voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
+import {
+  type StakeRef,
+  type VoyageStakeId,
+  voyageStakeRef,
+  conditionLabel,
+  findVehicleById,
+  findCrewRoleById,
+  findCrewTestTypeById,
+  findNavalTrait,
+  NAVAL_TRAITS,
+  diseaseLabel,
+  refLabel,
+  libelleOuAbsence,
+  testSkillLabel,
+  findNavalPortById,
+} from '../data';
 import { profilNavalDe } from '../engine/coque';
-import { installAmount, installCost, prixDeLaReparation, rollPortRepair, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
+import {
+  installAmount,
+  installCost,
+  prixDeLaReparation,
+  rollPortRepair,
+  rollSteamBreakdown,
+  steamBreakdownTriggered,
+  shipSizeOfLength,
+  propulsionDuNavire,
+  STEAM_SKILL,
+  type PropulsionDuNavire,
+  type SteamBreakdownEntry,
+} from '../engine/shipBuild';
 import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -93,7 +131,21 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { ajouterAuRoster, crewRoleValue, crewTestModParts, facteurDuVivreSeul, facteursDeVivreSeul, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import {
+  ajouterAuRoster,
+  crewRoleValue,
+  crewTestModParts,
+  facteurDuVivreSeul,
+  facteursDeVivreSeul,
+  moraleBand,
+  weeklyCrewWageBrass,
+  crewTalentDR,
+  UNDERCREW_DR,
+  capToSuccesMinime,
+  crewTestSuccess,
+  rudeEpreuveMoraleDelta,
+  SUCCES_MINIME_CAP,
+} from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest, rationsDeCale } from '../engine/provisions';
 import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
@@ -104,13 +156,37 @@ import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './comb
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
-import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
+import {
+  DIFFICULTE_PAR_DEFAUT,
+  DIFFICULTY_LABELS,
+  DIFFICULTY_MODIFIERS,
+  type Combatant,
+  type Difficulty,
+  type NavalTraitRef,
+  type ContexteDeTest,
+} from '../engine/types';
 import type { PendingSteamSave, PendingCascade, CascadeStep } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
-import { openWorldTest, composeRollLabel, openSequence, freeCons, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
+import {
+  openWorldTest,
+  composeRollLabel,
+  openSequence,
+  freeCons,
+  rollStep,
+  monoStep,
+  tableStep,
+  bandStep,
+  buildBand,
+  choiceStep,
+  openChoice,
+  pousseSi,
+  type RollRequest,
+  type Consequence,
+  type FreeConsLine,
+} from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, jouerLaJournee, pushStep, type TableStepDef } from './cascade';
@@ -173,9 +249,6 @@ export interface SeaVoyageState {
   waterContaminated?: { diseaseId: string };
   /** Lignes du jour (recap de la halte de nuit). */
   lines: string[];
-  /** Événements de bord RACONTÉS aujourd'hui (#371 LOT 4) — rendus en `ParchmentCard`, distincts des
-   *  lignes de routine (`lines`) : un événement PORTE UN RÉCIT (titre + texte d'auteur/de table). */
-  events?: RecapEvent[];
   /** PROCÈS-VERBAL structuré du jour (couche `voyageCadence`) : une ligne de JET par Test d'équipage de
    *  ROUTINE auto-résolu en route COMMANDÉE — « aucun jet silencieux » (rendu par `MultiRollList`). */
   entries?: NightEntry[];
@@ -271,18 +344,6 @@ function tell(get: Get, set: Set, lines: string[]): void {
   log(get, set, lines);
   const plan = get().travelPlan;
   if (plan?.sea) set({ travelPlan: { ...plan, sea: { ...plan.sea, lines: [...plan.sea.lines, ...lines] } } });
-}
-
-/** POSE un ÉVÉNEMENT RACONTÉ (#371 LOT 4) au recap du jour EN CARTE (`sea.events`, distinct de
- *  `sea.lines`) : le titre + texte verbatim de l'événement se rendent en `ParchmentCard`
- *  (`SeaVoyageBody`), pas en ligne de routine. REND la ligne qui le nomme au lieu de l'écrire : depuis
- *  un applier de cascade, cette ligne est la CONSÉQUENCE de l'étape (`commitStep` la journalise ET la
- *  garde dans `outcome`, donc dans la pile à l'écran) ; hors cascade, l'appelant la passe à `ecrireAuJournal`.
- *  Même partage des voix que `noteSeaLine` ci-dessous — un applier n'écrit jamais au journal en direct. */
-function noteEvent(get: Get, set: Set, event: RecapEvent): string {
-  const plan = get().travelPlan;
-  if (plan?.sea) set({ travelPlan: { ...plan, sea: { ...plan.sea, events: [...(plan.sea.events ?? []), event] } } });
-  return `${event.title} — ${event.text}`;
 }
 
 /** Écrit SEULEMENT au recap du jour (`sea.lines`) — le JOURNAL des appliers de cascade migrés (#295
@@ -1286,7 +1347,7 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
   return tableStep({
     id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'voyage/vague',
     label: t('step.seaBoardEvent'),
-    table: { tableId: SEA_BOARD_EVENT_TABLE, spec: deDesEvenementsDeBord(), ...(mood.score ? { mod: mood.score } : {}) },
+    table: { tableId: SEA_BOARD_EVENT_TABLE, ...(mood.score ? { mod: mood.score } : {}) },
     stake: voyageStakeRef(SEA_BOARD_EVENT_KIND),
   });
 }
@@ -1299,7 +1360,7 @@ export const SEA_BOARD_EVENT_TABLE = 'evenements-de-bord';
 // plage réécrite à la main ; FAMILLE (`famillesTirables`) mémoïsée sur `seaBoardEvents`.
 const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<string, TableStepDef>([[SEA_BOARD_EVENT_TABLE, {
   label: t('step.seaBoardEvent'),
-  die: facesDuDe(deDesEvenementsDeBord()),
+  die: deDesEvenementsDeBord(),
   rows: evenementsDeBord().map((e) => ({ id: e.id, min: e.min, max: e.max })),
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(evenementsDeBord(), die).label })],
 }]]));
@@ -1679,7 +1740,6 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   const sea = get().travelPlan!.sea!;
   const daysAtSea = sea.daysAtSea + 1;
   const todayLines = sea.lines;
-  const todayEvents = sea.events ?? [];
 
   const miles = sea.milesToday;
   const kmDone = Math.min(plan.km, plan.kmDone + miles);
@@ -1698,7 +1758,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   // Météo du LENDEMAIN, sous les météos imposées au navire.
   const { weather, windFrom } = meteoDuJour(get, hull, sea.weather.vent, rng);
   patchSea(get, set, {
-    daysAtSea, lines: [], entries: [], events: [],
+    daysAtSea, lines: [], entries: [],
     weather, windFrom,
     milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, paceToday: undefined, manieursToday: undefined,
     hullAtDayStart: hull.wounds.current,
@@ -1707,7 +1767,8 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
 
   const worldMap = get().worldMap as WorldMap;
   const to = placeById(worldMap, plan.toPlaceId);
-  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(todayLines), entries: dayEntries, events: todayEvents, sea: chrome };
+  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(todayLines), entries: dayEntries, sea: chrome };
+  rangerLesEvenements(get, set, recapDay);
 
   if (plan.km - kmDone < 1e-9 && to) {
     // ARRIVÉE : la distance de la traversée est NOTÉE sur le navire (vente à un port producteur :
@@ -1898,7 +1959,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   const value = testValue(eng, { characteristic: 'initiative' }); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
   set({
     pendingSteamSave: {
-      actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
+      actorId: eng.id, skillValue: value, difficulty: 'intermediaire',
       ...cibleMesuree(rollLine({ actor: eng, test: { characteristic: 'initiative' }, difficulty: 'intermediaire', valeur: value })),
       scaldOps: [{ op: 'wounds', amount: dmg, ignoreTB: false, ignoreAP: true }], // « qui ignorent l'Armure » (le BE reste déduit)
       roll: null, success: false, sl: 0,
@@ -2325,10 +2386,11 @@ export function portCareenVessel(get: Get, set: Set): string[] {
 
 /** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364) : coût et poids par bande de Taille
  *  (`installCost`), durée en jours (`duree`, tirée à la pose), et refus (`null` : la pose passe) contre la bourse
- *  `bourse` du groupe. SOURCE UNIQUE de `installerLAmelioration` et de l'écran du port. PUR. MDG 15 l.255 */
+ *  `bourse` du groupe et le port `portRef` (`MapPlace.port.ref`, `naval-ports.json`). SOURCE UNIQUE de
+ *  `installerLAmelioration` et de l'écran du port. PUR. MDG 15 l.255 ; MDG 12 l.230 */
 export type DevisDAmelioration = { traitId: string; label: string; enc: number | null } & ({ refus: null; gold: number; duree: Formula } | { refus: string; gold: number | null; duree: Formula | null });
 
-export function devisDAmelioration(vessel: CampaignVessel | null, traitId: string, units: number, bourse: Money, refusHote: string | null): DevisDAmelioration {
+export function devisDAmelioration(vessel: CampaignVessel | null, traitId: string, units: number, bourse: Money, refusHote: string | null, portRef: string | undefined): DevisDAmelioration {
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   const entry = findNavalTrait(traitId);
   const label = entry?.label ?? traitId;
@@ -2338,6 +2400,7 @@ export function devisDAmelioration(vessel: CampaignVessel | null, traitId: strin
   const { gold, enc } = installCost(entry.install, v.ship.lengthM, units);
   const duree: Formula = vessel.constructeurDEscale?.duree ?? (entry.install.jours && installAmount(entry.install.jours, v.ship.lengthM)) ?? REPARATION.joursDePose;
   if (gold == null) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeEmbedded', { label }) };
+  if (entry.install.chantierSpecialise && !(portRef && findNavalPortById(portRef)?.chantierNavalSpecialise)) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeNeedsShipyard', { label }) };
   if (refusHote) return { traitId, label, gold, enc, duree, refus: refusHote };
   if (!canAfford(bourse, toMoney({ gold }))) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeTooExpensive', { label, gold }) };
   return { traitId, label, gold, enc, duree, refus: null };
@@ -2345,11 +2408,11 @@ export function devisDAmelioration(vessel: CampaignVessel | null, traitId: strin
 
 /** Améliorations proposées au chantier : celles à pose chiffrée que le navire ne porte pas encore, chacune
  *  avec son devis (une unité). */
-export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, refusHote: string | null): DevisDAmelioration[] {
+export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, refusHote: string | null, portRef: string | undefined): DevisDAmelioration[] {
   const owned = new Set((vessel.upgrades ?? []).map((u) => u.id));
   return NAVAL_TRAITS
     .filter((tr) => tr.kind === 'amelioration' && tr.install && !owned.has(tr.id))
-    .map((tr) => devisDAmelioration(vessel, tr.id, 1, bourse, refusHote))
+    .map((tr) => devisDAmelioration(vessel, tr.id, 1, bourse, refusHote, portRef))
     .filter((d) => d.gold != null);
 }
 
@@ -2358,7 +2421,7 @@ export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, r
  *  multiples, etc. MDG 12 l.230 ; MDG 12 l.293 ; MDG 15 l.255 */
 export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): string[] {
   const vessel = get().vessel;
-  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
+  const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), lieuDuGroupe(get())?.port?.ref);
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return []; }
   const navire = garanti(vessel, 'vessel', 'navire du devis d’Amélioration');
   const { gold, enc, label } = devis;

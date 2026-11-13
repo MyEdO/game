@@ -5,6 +5,7 @@
  * survol n'affiche que le faisable) — le refus se dit au clic. INTERACTION → overlay du stage, hors builders.
  */
 import type { BattleState } from '../../noyau/etat';
+import type { Scene } from '../../noyau/monde/scene';
 import type { PendingAttack, PendingDefense, PendingHeal, PendingCast } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
 import { attackWeaponOf, victimeDuCoup } from '../../noyau/combatFlow';
@@ -16,7 +17,8 @@ import { difficultyShownText } from '../../noyau/difficultyText';
 import { t as message } from '../../i18n';
 import type { HoverAim } from './useHoverTargeting';
 
-export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pendingDefense, pendingHeal, pendingCast }: {
+export function AimOverlay({ scene, battle, hoverAim, anchor, dims, pendingAttack, pendingDefense, pendingHeal, pendingCast }: {
+  scene: Scene | null;
   battle: BattleState;
   hoverAim: HoverAim | null;
   anchor: (c: Combatant) => { cx: number; cy: number };
@@ -31,7 +33,7 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
     const a = byId(pendingAttack.attackerId), cible = byId(pendingAttack.targetId);
     const t = cible && byId(victimeDuCoup(battle, cible, pendingAttack).id);
     if (!a || !cible || !t) return null;
-    const ranged = attackWeaponOf(battle, a, cible, pendingAttack).type === 'distance'; // l'arme du coup (#1026)
+    const ranged = attackWeaponOf(scene, battle, a, cible, pendingAttack).type === 'distance'; // l'arme du coup (#1026)
     return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'heros' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingDefense) {

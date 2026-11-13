@@ -1,11 +1,12 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from './policy';
-import { statusCharmMod, statusCharmLabel, decalerLeStatut } from './social';
+import { statusCharmMod, statusCharmLabel, decalerLeStatut, tirerLaReactionAuStatut } from './social';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 import type { Status } from './money';
 import { createHero } from './character';
 import { applyOps } from './ops';
-import { desDuTest } from './dice.testkit';
+import { desDuTest, deSelonLaPlage, desEnSuite } from './dice.testkit';
 import { conditionCtx, evalCondition } from './flowCore';
 
 const S = (tier: Status['tier'], standing: number): Status => ({ tier, standing });
@@ -67,26 +68,40 @@ describe('statusCharmMod — mendicité (option social-mendicite-statut, l.92)',
   });
 });
 
-describe('statusCharmMod — réaction au Statut (option social-reaction-au-statut, l.54/90)', () => {
-  it('1-2 « Braver le Statut » → 0', () => {
-    setRule('social-reaction-au-statut', true);
-    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reactionRoll: 1 })).toBe(0);
-    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reactionRoll: 2 })).toBe(0);
+/** LDB 08 l.40-46 : « lancez 1d10 et consultez le tableau suivant : » | 1-2 Braver le Statut | 3-8
+ *  Réactions classiques | 9-10 Opinions extrêmes |. */
+describe('tirerLaReactionAuStatut — la table de Réaction au Statut (LDB 08 l.40-46)', () => {
+  it.each([
+    [1, 'braver-le-statut'], [2, 'braver-le-statut'],
+    [3, 'reactions-classiques'], [8, 'reactions-classiques'],
+    [9, 'opinions-extremes'], [10, 'opinions-extremes'],
+  ] as const)('face %i → %s', (face, issue) => {
+    expect(tirerLaReactionAuStatut(desEnSuite([face]))).toBe(issue);
   });
-  it('3-8 « réactions classiques » → mod inchangé', () => {
-    setRule('social-reaction-au-statut', true);
-    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reactionRoll: 5 })).toBe(10);
-    expect(statusCharmMod(S('bronze', 1), S('or', 1), { reactionRoll: 5 })).toBe(-10);
+
+  it('le tirage se fait au dé que porte la table', () => {
+    sousLeDe('reactionAuStatut', 'd4', () => {
+      const plages: [number, number][] = [];
+      tirerLaReactionAuStatut(deSelonLaPlage((min, max) => { plages.push([min, max]); return max; }));
+      expect(plages).toEqual([[1, 4]]);
+    });
   });
-  it('9-10 « Opinions extrêmes » → mod inversé (Or>Bronze +10 → −10 ; Bronze<Or −10 → +10)', () => {
-    setRule('social-reaction-au-statut', true);
-    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reactionRoll: 9 })).toBe(-10);
-    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reactionRoll: 10 })).toBe(-10);
-    expect(statusCharmMod(S('bronze', 1), S('or', 1), { reactionRoll: 10 })).toBe(10);
+});
+
+describe('statusCharmMod — issue de la Réaction au Statut (option social-reaction-au-statut)', () => {
+  it('« Braver le Statut » → 0', () => {
+    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reaction: 'braver-le-statut' })).toBe(0);
+  });
+  it('« Réactions classiques » → mod inchangé', () => {
+    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reaction: 'reactions-classiques' })).toBe(10);
+    expect(statusCharmMod(S('bronze', 1), S('or', 1), { reaction: 'reactions-classiques' })).toBe(-10);
+  });
+  it('« Opinions extrêmes » → mod inversé (Or>Bronze +10 → −10 ; Bronze<Or −10 → +10)', () => {
+    expect(statusCharmMod(S('or', 1), S('bronze', 1), { reaction: 'opinions-extremes' })).toBe(-10);
+    expect(statusCharmMod(S('bronze', 1), S('or', 1), { reaction: 'opinions-extremes' })).toBe(10);
   });
   it('enveloppe aussi un mod de 0 (rien à inverser)', () => {
-    setRule('social-reaction-au-statut', true);
-    expect(statusCharmMod(S('argent', 3), S('argent', 1), { reactionRoll: 9 })).toBe(-0);
+    expect(statusCharmMod(S('argent', 3), S('argent', 1), { reaction: 'opinions-extremes' })).toBe(-0);
   });
 });
 

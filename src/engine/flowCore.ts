@@ -28,7 +28,17 @@ import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
-import { estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, estOpDuNavire, opDemandeUnDe, valeurNonLiee, type Formula, type GameOp, type PairedSense } from './ops';
+import {
+  estOpDAttaquesSubies,
+  estOpDeLaBourseDuGroupe,
+  estOpDuMarche,
+  estOpDuNavire,
+  opDemandeUnDe,
+  valeurNonLiee,
+  type Formula,
+  type GameOp,
+  type PairedSense,
+} from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -507,9 +517,9 @@ export interface FlowTest {
   vsStatus?: string;
   /** Le Test social est une mendicité (option « Mendicité et Statut », LDB 08 l.63). */
   begging?: boolean;
-  /** L'interlocuteur est une créature CAPRICIEUSE (Trait Capricieux, MSRC 15) : un d10 tiré UNE fois
-   *  module le Test de Sociabilité de −2 à +2 DR (soit ±10 par DR sur la valeur, comme la réaction de
-   *  Statut LDB 08). Authoré sur le Test d'un dialogue mené avec la créature. */
+  /** L'interlocuteur est une créature CAPRICIEUSE (Trait Capricieux, MSRC 15 l.149-159) : un tirage UNE
+   *  fois sur sa table (`tirerLeCapricieux`) décale le DR du Test de Sociabilité. Authoré sur le Test
+   *  d'un dialogue mené avec la créature. */
   vsCapricieux?: boolean;
   /** Difficulté réduite si l'allégeur possède la compétence/le talent requis (`resoudreFlowTest`). */
   easierIf?: { hasSkill?: { id: string; spec?: string }; hasTalent?: string; steps?: number };

@@ -11,13 +11,13 @@ const tgt = (): Combatant =>
 
 describe('firedWeapon : honore weaponUid', () => {
   it('sans weaponUid : auto-choix (1ʳᵉ mêlée au contact)', () => {
-    expect(firedWeapon(atk(), tgt()).label).toBe('Épée');
+    expect(firedWeapon(null, atk(), tgt()).label).toBe('Épée');
   });
   it('weaponUid valide : renvoie l’arme choisie (main secondaire)', () => {
-    expect(firedWeapon(atk(), tgt(), 'o').label).toBe('Dague');
+    expect(firedWeapon(null, atk(), tgt(), 'o').label).toBe('Dague');
   });
   it('weaponUid inconnu : repli auto', () => {
-    expect(firedWeapon(atk(), tgt(), 'zzz').label).toBe('Épée');
+    expect(firedWeapon(null, atk(), tgt(), 'zzz').label).toBe('Épée');
   });
 });
 
@@ -35,7 +35,7 @@ describe('firedWeapon : sous-effectif d’une pièce SERVIE (poste, MDG 12) — 
 
   it('effectif COMPLET (3/3) → arme nette : Arme d’équipe retirée, aucun Défaut, recharge normale', () => {
     const c = chef(['chef', 's1', 's2']);
-    const w = firedWeapon(c, far(), 'cannon', [c, sailor('s1'), sailor('s2')]);
+    const w = firedWeapon(null, c, far(), 'cannon', [c, sailor('s1'), sailor('s2')]);
     expect(hasQ(w, 'arme-d-equipe')).toBe(false);
     expect(hasQ(w, 'imprecise')).toBe(false);
     expect(w.reload).toBe(3);
@@ -43,13 +43,13 @@ describe('firedWeapon : sous-effectif d’une pièce SERVIE (poste, MDG 12) — 
 
   it('sous-effectif (chef seul, 2 servants à terre) → recharge ×2 + Imprécise', () => {
     const c = chef(['chef', 's1', 's2']);
-    const w = firedWeapon(c, far(), 'cannon', [c, sailor('s1', false), sailor('s2', false)]); // présent 1, Indice 3, déficit 2
+    const w = firedWeapon(null, c, far(), 'cannon', [c, sailor('s1', false), sailor('s2', false)]); // présent 1, Indice 3, déficit 2
     expect(w.reload).toBe(6);
     expect(hasQ(w, 'imprecise')).toBe(true);
   });
 
   it('sans liste de combattants (sites qui ne lisent que `.type`) → arme inchangée', () => {
-    const w = firedWeapon(chef(['chef', 's1', 's2']), far(), 'cannon');
+    const w = firedWeapon(null, chef(['chef', 's1', 's2']), far(), 'cannon');
     expect(hasQ(w, 'arme-d-equipe')).toBe(true);
   });
 });

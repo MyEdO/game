@@ -10,7 +10,17 @@ import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 import { ciblesPures, ciblesSurDisque, estCiblePure, executer, generateurDe, SOURCES_LUES } from '../build-all.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
-import { avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, nouvelleVue, preparerPreuves, preuveValide, vueApresGenerateur } from './fraicheur-docs.mjs'
+import {
+  avantGenerateur,
+  certifierGenerateur,
+  chargerPreuve,
+  copierDocsFrais,
+  enregistrerPreuve,
+  nouvelleVue,
+  preparerPreuves,
+  preuveValide,
+  vueApresGenerateur,
+} from './fraicheur-docs.mjs'
 
 const doc = (nom) => ['docs', `${nom}.md`].join('/')
 const code = ['src', 'banc.generated.ts'].join('/')

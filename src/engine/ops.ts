@@ -18,7 +18,19 @@ import type { FabriqueDId } from './fabriqueDId';
 import { RNG, roll, type DiceSpec, type EffetSigne, type Tirage, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
+import {
+  addCondition,
+  addTimedCondition,
+  addClockCondition,
+  removeCondition,
+  loseWounds,
+  hasCondition,
+  releaseConditionLocks,
+  aUnVerrouLevePar,
+  syncDerivedConditions,
+  removeActiveEffects,
+  pionsRetirables,
+} from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY } from './clock';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
@@ -42,15 +54,47 @@ import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { deDeTirageDe } from '../data/rangees';
-import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+// cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+import {
+  peutEtreEmpoigne,
+  setGrapple,
+} from './grapple';
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
-import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, estPlaieAmputation, plaieDAmputation, avecSequelles, type SequelleNeuve } from './trauma';
+import {
+  cureCriticalWounds,
+  receiveMedicalAid,
+  traumaPassiveMods,
+  permanentAmputations,
+  consolidateAmputations,
+  estPlaieAmputation,
+  plaieDAmputation,
+  avecSequelles,
+  type SequelleNeuve,
+} from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, laisserTomber, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
+import {
+  contexteDeNaissanceDObjet,
+  damageLeatherArmour,
+  endommagerLEquipementPorte,
+  itemFromGive,
+  giveTrappingLabel,
+  recomputeLoadout,
+  weaponItem,
+  activeLoadout,
+  damageString,
+  autoStowNewItem,
+  lacherLArme,
+  laisserTomber,
+  armeNaturelleAccordee,
+  estUneVraieArme,
+  objetDeSlot,
+  isWeaponActive,
+  uidDArme,
+} from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
@@ -942,7 +986,8 @@ export type GameOp =
    *  1d`sides` UNE fois, applique les `ops` de CHAQUE palier dont `atLeast` est atteint (cumulatif).
    *  Les ops de palier voient `{rolled}` = la valeur du dé. UN seul jet partagé (≠ jets indépendants). */
   | { op: 'rollThreshold'; sides: number; thresholds: { atLeast: number; ops: GameOp[] }[] }
-  /** Tirage sur TABLE (`die` = dé de tirage, `deDeTirageSchema`) : lookup par fourchette `[min,max]` (`findTableEntry`, source
+  /** Tirage sur TABLE (`die` = dé de tirage des `entries` inline, `deDeTirageSchema` ; sous `tableId`, le dé est
+   *  celui de la table, jamais l'op — #1667) : lookup par fourchette `[min,max]` (`findTableEntry`, source
    *  unique), les `ops` de la rangée touchée sont appliquées avec le MÊME ctx. DEUX formes exclusives de
    *  la table : `entries` INLINE (authorées sur l'op) OU `tableId` = référence à `tables.json`
    *  (`findEffectTableById`, fail-fast) — jamais les deux (membres stricts d'`OP_DEFS.rollTable`). `mod` = modificateur
@@ -955,7 +1000,7 @@ export type GameOp =
    *  la durée et refaire un jet sur le Tableau » — déclinable ; la durée se prolonge sur TOUS les pas
    *  alloués quel que soit le choix). Généralise tout « lancez 1dN [+ modif], consultez le tableau ». */
   | { op: 'rollTable'; die: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
-  | { op: 'rollTable'; die?: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
+  | { op: 'rollTable'; die?: never; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
   /** Tirage d'une MUTATION sur une table de Corruption (`mutationTables.json`, par id `table`) —
    *  réutilise `rollMutation()` + `attachMutation()` (`corruption.ts`/`mutations.ts`). DURÉE identique à
    *  `grantTrait` (EDOC 13 l.276-277 « appliquez […] pour toute la durée du Sort ») : durée du contexte

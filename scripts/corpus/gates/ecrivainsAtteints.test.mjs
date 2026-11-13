@@ -76,6 +76,8 @@ const ATTENDU = {
     'scripts/guards/lib/lint-parite.test.mjs',
     'scripts/guards/lib/lint.testkit.mjs',
     'scripts/guards/lib/lintStage.mjs',
+    // #3821 : fixtures sous un `mkdtempSync` d'os.tmpdir(), `oxlint --fix` y joue, `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/nomsParLigneLint.test.mjs',
     // +1 le 2026-10-19 (#2724) : `fichiersLus` copie les fichiers mesurés sous un `mkdtempSync` d'os.tmpdir(), retiré
     // par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/lib/bancLister.mjs',
@@ -144,6 +146,11 @@ const ATTENDU = {
     // la fusion 3-voies du pilote) ; le banc des formats pose ses
     // fixtures sous un `mkdtempSync` de `os.tmpdir()`, retirées par `rmSync`. L'arbre du dépôt n'est
     // jamais écrit.
+    // +2 le 2026-11-13 (#4178) : le pilote de fusion des imports écrit %A, le fichier que git lui tend ; son banc
+    // pose %O, %A et %B sous un `mkdtempSync` de os.tmpdir(), retiré par `rmSync` en finally. L'arbre du dépôt
+    // n'est jamais écrit.
+    'scripts/git-hooks/merge-imports.mjs',
+    'scripts/git-hooks/merge-imports.test.mjs',
     'scripts/git-hooks/merge-stocks.mjs',
     'scripts/git-hooks/merge-stocks.test.mjs',
     // +1 −2 le 2026-10-07 (#2071), net −1 : les bancs de la porte du commit quittent `scripts/hooks/`

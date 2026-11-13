@@ -5,7 +5,16 @@
  * dépose une fois dans le projet (`construire.mjs`, `res://art/dessins.json`) : une vue ne nomme un dessin que par
  * son id, `projet/scripts/dessin.gd` le trace ; un style du thème nomme son cadre, `projet/scripts/cadre.gd` le trace.
  */
-import { CADRE_DES_CADRES, CADRE_DES_FONDS, CADRE_DES_ICONES, CADRE_DES_PAYSAGES, CADRES, COUCHES_DE_PAYSAGE, FONDS, ICON_DEFS } from '../../../src/noyau/index';
+import {
+  CADRE_DES_CADRES,
+  CADRE_DES_FONDS,
+  CADRE_DES_ICONES,
+  CADRE_DES_PAYSAGES,
+  CADRES,
+  COUCHES_DE_PAYSAGE,
+  FONDS,
+  ICON_DEFS,
+} from '../../../src/noyau/index';
 
 const dessinsDe = (registre: Record<string, { id: string; svg: string }>) => Object.fromEntries(Object.values(registre).map((d) => [d.id, d.svg]));
 

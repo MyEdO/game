@@ -5,8 +5,8 @@
 // `<export>/planches/<nom>.json`, les réponses que partagent les planches de son scénario sous
 // `<export>/planches/communes/<scenario>.json` (`deposerLesPlanches`). Sous `etalons/` sont commités `<nom>.png`,
 // l'étalon de la planche, et `valides.json`, par nom de planche la date et l'empreinte SHA-256 de l'étalon que l'utilisateur a validé. Un étalon ne vaut que pour le
-// Chromium épinglé (`EPINGLE`) sous Linux x86-64 (`refusDuNavigateur`) : la porte de file le compare
-// (job `migrations` de `.github/workflows/ci.yml`), qui installe ce Chromium à la version de Playwright lue ici.
+// Chromium épinglé (`EPINGLE`) sous Linux x86-64 (`refusDuNavigateur`) : le canari le compare
+// (mesure `godot-etalons` de `.github/workflows/canari.yml`), qui installe ce Chromium à la version de Playwright lue ici.
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'

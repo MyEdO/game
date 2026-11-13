@@ -1,5 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { rotTile, unrotTile, effDims, tileCenter, screenToTile, stageSize, depth, footprintDepth, projectOccluder, capsuleCenter, Z_STEP, BASE_SCALE, CELL, LEVEL_H, screenToTileAtZ, screenToTileF, diamondPath, diamondCorners, billboardScale, type Dims } from './iso';
+import {
+  rotTile,
+  unrotTile,
+  effDims,
+  tileCenter,
+  screenToTile,
+  stageSize,
+  depth,
+  footprintDepth,
+  projectOccluder,
+  capsuleCenter,
+  Z_STEP,
+  BASE_SCALE,
+  CELL,
+  LEVEL_H,
+  screenToTileAtZ,
+  screenToTileF,
+  diamondPath,
+  diamondCorners,
+  billboardScale,
+  type Dims,
+} from './iso';
 
 describe('screenToTileF — picking FRACTIONNAIRE (arêtes éditeur)', () => {
   for (const rot of [0, 1, 2, 3] as const) {

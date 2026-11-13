@@ -1,6 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { shipHasNavalTrait, navalTraitLevel, navalTraitsDe, hullNavalTraits, vesselNavalTraits, navalPassiveOps, navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestMod, navalNavTestDR, hullArmourBonus, belierRam, navalDeckCover, couvertDuPoste } from './navalTraits';
+import {
+  shipHasNavalTrait,
+  navalTraitLevel,
+  navalTraitsDe,
+  hullNavalTraits,
+  vesselNavalTraits,
+  navalPassiveOps,
+  navalMoveMod,
+  navalMoveMult,
+  navalSkillTestDR,
+  navalTestTypeDR,
+  navalNavTestMod,
+  navalNavTestDR,
+  hullArmourBonus,
+  belierRam,
+  navalDeckCover,
+  couvertDuPoste,
+} from './navalTraits';
 import { resolveCollision } from './collision';
 import { installCost } from './shipBuild';
 import navalTraitsData from '../data/naval-traits.json';

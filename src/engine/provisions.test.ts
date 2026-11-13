@@ -3,7 +3,21 @@ import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from './items';
 import { Characteristics, Combatant, ItemInstance, type UpkeepDeferTest } from './types';
 import { makeRNG, RNG } from './dice';
-import { dailyFoodUpkeep, applyFaimTest, isStarving, hungerCharPenalties, rationCount, isRation, dailyWaterUpkeep, applySoifTest, isThirsty, isDeprived, thirstCharPenalties, provisioningManifest, type VivresDeCale } from './provisions';
+import {
+  dailyFoodUpkeep,
+  applyFaimTest,
+  isStarving,
+  hungerCharPenalties,
+  rationCount,
+  isRation,
+  dailyWaterUpkeep,
+  applySoifTest,
+  isThirsty,
+  isDeprived,
+  thirstCharPenalties,
+  provisioningManifest,
+  type VivresDeCale,
+} from './provisions';
 import { effectiveChar } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { RULE_REF } from './ruleRefs';
@@ -33,6 +47,10 @@ function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; tr
 const fixed = (roll: number): RNG => deSelonLaPlage((_min, max) => (max === 100 ? roll : max));
 
 describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () => {
+  it('la ration du catalogue porte le libellé du livre (LDB 66 l.20)', () => {
+    expect(ration('r').label).toBe('Vivres, 1 jour');
+  });
+
   it('consomme 1 ration/jour ; nourri = pas de faim', () => {
     const c = hero({ rations: 2 });
     const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));

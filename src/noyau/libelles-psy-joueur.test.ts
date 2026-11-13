@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { describeEncounterPsych } from './flowOutcomes';
 import { psychologies, psychologyLabel } from '../data';
 import type { PsychType } from '../engine/psychology';
+import { fixtureText } from '../i18n/fixtureText';
 
 const cible = psychologies.find((p) => p.cibles && !p.label.includes(p.id));
 
@@ -17,7 +18,7 @@ describe('issue d’un Trait ciblé à la rencontre : le libellé, jamais l’id
 
   it.each([true, false])('réussite %s', (success) => {
     const texte = describeEncounterPsych({
-      heroId: 'h', kind: cible!.id as PsychType, sourceId: 's', sourceName: 'S', indice: 0, result: { success },
+      heroId: 'h', kind: cible!.id as PsychType, sourceId: 's', sourceName: fixtureText('S'), indice: 0, result: { success },
     }, 'H');
     expect(texte).toContain(psychologyLabel(cible!.id));
     expect(texte).not.toContain(cible!.id);

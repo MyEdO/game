@@ -12,20 +12,49 @@ import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuD
 import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
-import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
+import {
+  metaPourFichier,
+  chargeDiscriminee,
+  brouillonNeuf,
+  noeudDuChamp,
+  noeudObjet,
+  noeudDeLEntree,
+  RangeeSansNoeud,
+  rapportDeFautes,
+} from '../../../data/schemas/validate';
 import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import type {
+  ActivityContext,
+  OutcomeBand,
+  BattleOutcome,
+  BattleOutcomeTarget,
+  BattleOutcomeScale,
+  BattleCond,
+  ActivityResolver,
+  ResolverOwner,
+} from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
+import { BORNES_DE_LA_SUBSTITUTION } from '../../../data/schemas/defs/careers';
 import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  RefField,
+  SaisieSuggeree,
+  reposerLId,
+  cfgDeLaFeuille,
+  cfgDeLaListe,
+  cfgDuNoeudASpec,
+  cfgDuNoeudType,
+  refFieldCfg,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
@@ -57,7 +86,27 @@ import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
 import type { ArmeDerivee } from '../../../data';
-import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
+import {
+  SymptomsField,
+  SymptomTickField,
+  DiseaseDailyTestField,
+  type DiseaseDailyTest,
+  ShipCrewHitField,
+  type ShipCrewHitValue,
+  TalentTestField,
+  CombatField,
+  AdvancementRefField,
+  TrappingRefField,
+  CharKeysField,
+  DomainEffectsField,
+  TraitListField,
+  OptionalsListField,
+  HarvestField,
+  SpecsField,
+  RuleValueField,
+  RuleActionField,
+  type RuleShape,
+} from './StructFields';
 import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
@@ -231,6 +280,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'creatures') add('skills', 'talents');
   if (categoryKey === 'pregens') add('trappings', 'talents'); // MÊMES refs que la créature : `TalentRef[]` et dotations (id catalogue ou texte)
   if (categoryKey === 'careerLevels') add('characteristics');
+  if (categoryKey === 'careers') add(...BORNES_DE_LA_SUBSTITUTION); // présentés avec `aLaPlaceDe` seulement (refine de `defs/careers.ts`)
   if (categoryKey === 'domains') add('castBonus', 'missile', 'casterOps');
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
   if (categoryKey === 'domains') add('windModifiers');
@@ -500,6 +550,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // IDENTITÉ de l'entrée éditée : racine des `chemin` de ses champs.
   const porteurEntree = identiteDEntree(categoryKey, id, isNew);
   const chemin = (champ: string): string => `${porteurEntree}/${champ}`;
+  const champInfere = (f: FieldDesc) => {
+    const cfg = refFieldCfg(categoryKey, f.key);
+    return cfg
+      ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
+      : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
+  };
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
@@ -746,12 +802,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
             <GameOpEditor noeud={noeudDe(fieldKey)} ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
           </div>
         ))}
-        {fields.map((f) => {
-          const cfg = refFieldCfg(categoryKey, f.key);
-          return cfg
-            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
-            : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
-        })}
+        {fields.map(champInfere)}
+        {categoryKey === 'careers' && entry.aLaPlaceDe !== undefined && allFields.filter((f) => (BORNES_DE_LA_SUBSTITUTION as readonly string[]).includes(f.key)).map(champInfere)}
       </div>
       </SuiviDesSaisies>
     </div>

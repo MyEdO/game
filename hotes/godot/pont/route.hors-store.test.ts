@@ -8,6 +8,8 @@ import { afterEach, describe, it, expect } from 'vitest';
 import { departDeLaCarte, drainer, gestesDessines, table } from './pont.testkit';
 import type { Bouton, Element, Entite, Jet, Ligne, Paysage, Plan } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
+import { encounterTable } from '../../../src/engine/travelTables';
+import { noteEvent } from '../../../src/noyau/evenementDuJour';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
@@ -68,7 +70,7 @@ describe('la journée de route par le pont', () => {
     expect(lignes.map((l) => l.texte), 'la météo du jour, tirée sans arrêt').toContain('Météo : Temps sec.');
   });
 
-  it('les jets lancés et validés, le bilan de l’Étape puis la Rencontre qu’il fait tirer vont au journal, et la nuit s’ouvre (EDOC 8 l.161, l.182-233)', () => {
+  it('les jets lancés et validés, le bilan de l’Étape puis la Rencontre qu’il fait tirer (son nom et son texte verbatim) vont au journal, et la nuit s’ouvre (EDOC 8 l.161, l.182-233)', () => {
     const r = enRoute();
     let s = r.suite;
     for (let pas = 0; s.vue.disposition === 'voyage'; pas++) {
@@ -79,6 +81,8 @@ describe('la journée de route par le pont', () => {
     const textes = r.lignes.map((l) => l.texte);
     const carte = textes.indexOf('Cartographie : 2/4 DR.');
     expect(carte, 'le bilan de l’Étape, au journal').toBeGreaterThanOrEqual(0);
-    expect(textes.slice(carte + 1).some((x) => /^Voilà qui est utile ! : /.test(x)), 'puis l’entrée tirée de la Rencontre, sans redire sa catégorie').toBe(true);
+    const utile = encounterTable('positives').find((e) => e.id === 'utile')!;
+    const ligne = noteEvent(() => ({ travelPlan: null }) as never, () => {}, { title: utile.label, text: utile.desc });
+    expect(textes.slice(carte + 1), 'puis la Rencontre tirée, par la ligne de l’événement du jour : son nom et son texte verbatim, sans redire sa catégorie').toContain(ligne);
   });
 });

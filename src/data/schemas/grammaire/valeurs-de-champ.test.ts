@@ -19,6 +19,7 @@ import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
+import { itemCapabilitiesSchema } from '../defs/trappings';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
@@ -162,6 +163,10 @@ const NOMMES = [
   'tresFacile|facile|accessible|intermediaire|complexe|difficile|tresDifficile|presqueImpossible|impossible',
   'intermediaire|complexe|difficile|tresDifficile',
   'lame1m|escrime|lourde2m|hampe|lance_cav|fleau|parade|poings|arc|arbalete|arme_feu|fronde|jet|entraves|explosif|cornes',
+  // `depuisSchema` (`dispersion.ts`) : l'origine du décalage d'une rangée de Dispersion, LDB 14 l.142-151.
+  'lanceur|cible',
+  // `issueDeReactionSchema` (`reaction-au-statut.ts`) : l'issue d'une rangée de Réaction au Statut, LDB 08 l.43-45.
+  'braver-le-statut|reactions-classiques|opinions-extremes',
   // `teneurSchema` (#1825 lot E) : ce que contiennent les chapitres d'un livre non couverts par une
   // fiche de l'Atlas — absente = livre de règles (`defs/books.ts`).
   'scenario|mixte',
@@ -246,8 +251,10 @@ const NOMMES = [
   'groupe|heros|navire|membreAuHasard|target|caster',
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
+  // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
+  Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
-  'personne|immeuble|titre|intangible',
+  'personne|bete|vehicule|immeuble|titre|intangible',
 ].sort();
 
 /**

@@ -65,7 +65,16 @@ import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
 import { cleDeSite, ecartDuVolet, phraseDeNaissance, remedeDeNaissance } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
-import { estSeparateur, graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
+import {
+  estSeparateur,
+  graphieDeChapitre,
+  graphieDuFichier,
+  largeurDeChapitre,
+  ligne1DePlage,
+  numeroDuFichier,
+  plageDeLigne1,
+  titreDuFichier,
+} from '../../src/data/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
 import { decoupeDe, livreDuDossier, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES, sansFolioDe } from './_lib.mjs'
 import { exempter, exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'

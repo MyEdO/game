@@ -98,7 +98,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     enemies.slice(1).forEach((e) => (e.dead = true));
     activate(H, E);
     setGrapple(live(H.id), live(E.id));
-    const opts = availableAttacks(live(H.id), banc.getState().battle!);
+    const opts = availableAttacks(banc.getState().scene, live(H.id), banc.getState().battle!);
     expect(opts.some((o) => o.id === 'grapple' && o.targeting === 'grapple')).toBe(true);
   });
 

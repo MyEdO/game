@@ -38,7 +38,8 @@ var _empreinte := ""
 var _base_demandee: Variant = null
 ## Le chargement retenu : un chargement qu'un autre remplace jette son GLB.
 var _chargement: RefCounted = null
-## Les chargements de son corps en vol : sa base, chacun de ses éléments (`est_vetu`).
+## Les chargements de son corps en vol : sa base, chacun de ses éléments (`est_vetu`). Une reprise dont le chargement
+## n'y est plus libère ce qu'elle a reçu et rend la main.
 var _en_vol := {}
 ## La hauteur, dans son repère, du plus haut point d'accroche de sa base au repos, sans gabarit.
 var _hauteur_de_tete := 0.0
@@ -49,6 +50,12 @@ func _ready() -> void:
 	_etiquette.position.y = MiseEnPage.HAUTEUR_DU_NOM
 	_destination = position
 	_etats.suivi.connect(_montage.poser_le_clip)
+
+
+## Sorti de l'arbre, il n'y revient pas (`Plateau._retirer_hors_de`, `SceneTree.change_scene_to_file`, #4195) : ses
+## chargements en vol sont abandonnés (`_en_vol`).
+func _exit_tree() -> void:
+	_en_vol.clear()
 
 
 ## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case ; `corps` : son corps (`null` : aucun) ;
@@ -179,8 +186,7 @@ func vetir(corps: Variant) -> void:
 	_chargement = chargement
 	_en_vol[chargement] = true
 	var scene := await _montage.scene_du_modele(corps.base, _montage.erreurs)
-	_en_vol.erase(chargement)
-	if chargement != _chargement:
+	if not _en_vol.erase(chargement) or chargement != _chargement:
 		if scene != null:
 			scene.free()
 		return
@@ -240,7 +246,8 @@ func _monter(id: String, element: String, embleme: String) -> void:
 	var jeton := RefCounted.new()
 	_en_vol[jeton] = true
 	var monte := await _montage.monter(id, element, _montage.erreurs)
-	_en_vol.erase(jeton)
+	if not _en_vol.erase(jeton):
+		return
 	if monte:
 		_montage.choisir_l_embleme(id, embleme)
 	_etats.suivre()

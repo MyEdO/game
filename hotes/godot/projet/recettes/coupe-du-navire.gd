@@ -167,10 +167,10 @@ func _coupe(montage: MontageDeVehicule, sol: float) -> void:
 
 
 ## La mer du rectangle des ponts, deux triangles par case de 2 m à la hauteur 0, chacun dans le sens trigonométrique vu
-## d'en haut comme le volume les oriente (`CONTRAT.md`, section « Monde »), et une case de pont touchée, sur le
-## monde ; bordée par la coque : de l'eau à bâbord et à tribord de la coque au maître-bau, aucune en son milieu ni dans
-## son contour, l'aire du rectangle hors de la coque, chaque morceau dans le sens de son triangle (retourné pour Godot
-## comme tout le volume), et la forme du pointeur sans elle.
+## d'en haut comme le volume les oriente (`CONTRAT.md`, section « Monde »), et une case de pont touchée, sur le monde
+## plat de deux couches de ses cases ; bordée par la coque : de l'eau à bâbord et à tribord de la coque au maître-bau,
+## aucune en son milieu ni dans son contour, l'aire du rectangle hors de la coque, chaque morceau dans le sens de son
+## triangle (retourné pour Godot comme tout le volume), et la forme du pointeur sans elle.
 func _mer(montage: MontageDeVehicule) -> void:
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
@@ -195,7 +195,13 @@ func _mer(montage: MontageDeVehicule) -> void:
 		couleurs.append_array([0.2, 0.35, 0.55, 1.0])
 	var mer_et_pont := {cle = "sol/0/0/0", empreinte = "mer", rangee = 0, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = mer, matiere = "terrain--eau", flottaison = "caraque"}, {debut = mer, fin = mer + 3, matiere = "terrain--planches", navire = "caraque"}]}
-	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[0.0]]}], morceaux = [mer_et_pont]},
+	var rangees := []
+	for rangee in int(2.0 * DEMI_LONGUEUR / METRES_PAR_CASE):
+		var plate := []
+		plate.resize(int(2.0 * DEMI_LARGEUR / METRES_PAR_CASE))
+		plate.fill(0.0)
+		rangees.append(plate)
+	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = rangees}, {z = 1, rangees = rangees}], morceaux = [mer_et_pont]},
 		toits = [], couronnes = []}, {volume = [mer_et_pont], toits = [], couronnes = []})
 	var formes := monde.get_node("VolumeDeScene/Volume/Corps").get_children()
 	var touches: int = -1 if formes.size() != 1 else (formes[0] as CollisionShape3D).shape.get_faces().size()

@@ -42,7 +42,16 @@ import type { CascadeStep, PendingCascade } from './pendings';
 import type {
   SequenceAbandon, SequenceBoard, SequenceRoundActors,
 } from './sequenceContract';
-import type { SequenceTableRow, SequencePotRow, SequencePotTurn, SequencePotOutcome, SequenceVolleyRow, SequenceVolleyRules, SequenceThrowTurn, SequenceThrowOutcome } from '../engine/sequenceVocab';
+import type {
+  SequenceTableRow,
+  SequencePotRow,
+  SequencePotTurn,
+  SequencePotOutcome,
+  SequenceVolleyRow,
+  SequenceVolleyRules,
+  SequenceThrowTurn,
+  SequenceThrowOutcome,
+} from '../engine/sequenceVocab';
 import { actorIn } from './monde/combatants';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
