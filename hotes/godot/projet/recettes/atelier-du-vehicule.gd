@@ -21,9 +21,10 @@ extends SceneTree
 ## États se posent sur la cible et se retirent (#3834), chaque météo enfoncée pose ses averses et ses nappes et fait jouer
 ## son son sur un bus, relâche la précédente, et relâchée les retire (#4081) ; le trébuchet choisi, sans place ni Amélioration à
 ## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : sa pierre vole et son clip de tir joue par
-## l'arbre d'états du jeu (`EtatsDuCorps`, #4081), le lecteur brut arrêté ; bien que l'atelier boucle ce clip à son
-## lecteur, l'arbre revient au repos, puis se débranche et rend au lecteur brut son clip de repos ; un clip choisi à la
-## liste pendant une attaque débranche l'arbre.
+## l'arbre d'états du jeu (`EtatsDuCorps`, #4081), gagné par un fondu depuis le repos (`FonduDeLArbre`), le lecteur
+## brut arrêté ; bien que l'atelier boucle ce clip à son lecteur, l'arbre revient au repos par un fondu depuis le tir,
+## puis se débranche et rend au lecteur brut son clip de repos ; un clip choisi à la liste pendant une attaque
+## débranche l'arbre.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
@@ -158,21 +159,29 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	_choisir(atelier, "modele/vehicule", "trebuchet-ade2")
 	await _etape(atelier, pont, cles, 7, "trébuchet choisi")
 	_verifier(actions.visible and "animation" in pont.ecran.atelier.onglets, "le trébuchet posé attaque, l'onglet Animation doit offrir « Attaquer »")
-	attaquer.pressed.emit()
-	await _images(2)
 	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
 	var etats := atelier.get_node("Etats") as EtatsDuCorps
 	var lecteur := montage.lecteur
+	var horloge := etats.callback_mode_process
+	etats.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	attaquer.pressed.emit()
+	await _images(2)
 	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
 	_verifier(lecteur.get_animation(montage.clips.tir).loop_mode == Animation.LOOP_LINEAR, "l'atelier ne boucle pas le clip de tir du trébuchet à son lecteur")
+	var vers_le_tir := await FonduDeLArbre.fondre(self, etats, "tir")
+	_verifier(FonduDeLArbre.tenu(vers_le_tir, "repos"), "« Attaquer » vers le tir : états quittés %s, attendu repos puis rien" % [vers_le_tir])
 	_verifier(etats.active and etats.lecture().get_current_node() == "tir" and lecteur.assigned_animation == montage.clips.tir and not lecteur.is_playing(),
 			"« Attaquer » : arbre actif %s à l'état %s, clip marqué %s, lecteur brut en lecture %s ; attendu l'arbre actif au tir, le lecteur brut arrêté" % [etats.active, etats.lecture().get_current_node(), lecteur.assigned_animation, lecteur.is_playing()])
-	var depart := Time.get_ticks_msec()
-	while etats.active and Time.get_ticks_msec() - depart < ECLATS_ETEINTS_S * 1000.0:
-		await process_frame
+	var vers_le_repos := await FonduDeLArbre.fondre(self, etats, "repos")
+	_verifier(FonduDeLArbre.tenu(vers_le_repos, "tir"), "« Attaquer » vers le repos : états quittés %s, attendu tir puis rien" % [vers_le_repos])
+	for i in FonduDeLArbre.IMAGES_D_ATTENTE:
+		if not etats.active:
+			break
+		await FonduDeLArbre.pas(self, etats)
 	_verifier(not etats.active and etats.anim_player.is_empty() and lecteur.is_playing() and lecteur.current_animation == montage.clips.repos,
 			"après « Attaquer » : arbre actif %s à l'état %s, lecteur brut en lecture %s sur %s ; attendu l'arbre débranché, le lecteur brut au repos %s" % [etats.active, etats.lecture().get_current_node(), lecteur.is_playing(), lecteur.current_animation, montage.clips.repos])
-	print("[atelier-du-vehicule] « Attaquer » : retour au repos et lecteur brut rendu en %d ms" % (Time.get_ticks_msec() - depart))
+	print("[atelier-du-vehicule] « Attaquer » : fondu repos → tir %s, tir → repos %s, puis le lecteur brut au repos" % [vers_le_tir, vers_le_repos])
+	etats.callback_mode_process = horloge
 	attaquer.pressed.emit()
 	await _images(2)
 	_verifier(etats.active, "la seconde attaque ne branche pas l'arbre")

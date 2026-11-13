@@ -17,6 +17,8 @@ const ACCUEIL := "res://scenes/Accueil.tscn"
 const COMBAT := "res://scenes/Combat.tscn"
 ## L'attente la plus longue d'un état : le lancement du processus du noyau compris.
 const ATTENTE_S := 120.0
+## Les mouvements de la souris d'un glissement, du centre au bout droit d'une piste.
+const PAS_DU_GLISSEMENT := 6
 var _fautes: Array[String] = []
 ## Chaque panne et chaque refus signalés par le pont.
 var _signales: Array[String] = []
@@ -51,9 +53,10 @@ func _recetter() -> void:
 
 
 ## « Options » pressé à l'accueil, le panneau des réglages montre les préférences : la musique à son volume par défaut,
-## un clic au centre de la piste de son curseur la règle à mi-volume, un clic à son bout droit la remet au plein volume,
-## puis 0.35 saisi à sa boîte à nombre et validé, puis le plein volume de même, le pont disant chaque fois la
-## préférence réglée et le bus de la musique prenant ce volume (#4081) ; « Oui » des dés fixés pressé, le pont dit la
+## un clic au centre de la piste de son curseur la règle à mi-volume, la glissière tirée de là à son bout droit ne règle
+## rien tant que le bouton est tenu et la remet au plein volume une fois relâchée (`_glisser_la_musique`), puis 0.35
+## saisi à sa boîte à nombre et validé, puis le plein volume de même, le pont disant chaque fois la préférence réglée
+## et le bus de la musique prenant ce volume (#4081) ; « Oui » des dés fixés pressé, le pont dit la
 ## préférence réglée ; « Non » la remet, et « Fermer » rend l'accueil.
 func _regler_a_l_accueil() -> bool:
 	if not await _attendre(func() -> bool: return _au_menu(), "l'accueil avant les réglages"):
@@ -68,8 +71,7 @@ func _regler_a_l_accueil() -> bool:
 	_presser_au_point(Vector2((piste.gauche + piste.droite) / 2.0, piste.y))
 	if not await _attendre(func() -> bool: return _musique_a(0.5), "la musique et son bus à 0.5 après un clic au centre de la piste"):
 		return false
-	_presser_au_point(Vector2(piste.droite - 1.0, piste.y))
-	if not await _attendre(func() -> bool: return _musique_a(1.0), "la musique et son bus à 1 après un clic au bout droit de la piste"):
+	if not await _glisser_la_musique(piste):
 		return false
 	if not await _saisir_la_musique(0.35) or not await _saisir_la_musique(1.0):
 		return false
@@ -82,7 +84,7 @@ func _regler_a_l_accueil() -> bool:
 	_cliquer(_publie("bouton/fermer"))
 	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _au_menu(), "l'accueil après « Fermer »"):
 		return false
-	print("[campagne] réglages : le volume de la musique réglé au curseur, au clic sur sa piste puis à sa boîte à nombre, le bus de la musique à sa suite ; les dés fixés réglés puis remis")
+	print("[campagne] réglages : le volume de la musique réglé au curseur, au clic sur sa piste, en glissant puis à sa boîte à nombre, le bus de la musique à sa suite ; les dés fixés réglés puis remis")
 	return true
 
 
@@ -99,10 +101,38 @@ func _curseur_de_la_musique() -> Variant:
 	return null
 
 
+## Le composant qui porte le curseur du volume de la musique.
+func _composant_de_la_musique() -> Node:
+	return current_scene.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == "curseur/preference/volume-musique").front()
+
+
+## La glissière du volume de la musique tirée du centre de sa piste publiée `piste` à son bout droit, bouton gauche
+## tenu : tant qu'il l'est, la glissière suit jusqu'au maximum et la musique reste à mi-volume ; relâché, si le pont dit
+## la préférence au plein volume et si le bus de la musique le prend.
+func _glisser_la_musique(piste: Dictionary) -> bool:
+	var glissiere := _composant_de_la_musique().get_node("Glissiere") as HSlider
+	var centre := Vector2((piste.gauche + piste.droite) / 2.0, piste.y)
+	var bout := Vector2(piste.droite - 1.0, piste.y)
+	_bouton_au_point(centre, true)
+	for pas in PAS_DU_GLISSEMENT:
+		var mouvement := InputEventMouseMotion.new()
+		mouvement.button_mask = MOUSE_BUTTON_MASK_LEFT
+		mouvement.position = centre.lerp(bout, float(pas + 1) / PAS_DU_GLISSEMENT)
+		mouvement.global_position = mouvement.position
+		mouvement.relative = (bout - centre) / PAS_DU_GLISSEMENT
+		root.push_input(mouvement, true)
+		await process_frame
+	var tenue := is_equal_approx(glissiere.value, 1.0) and _musique_a(0.5)
+	if not tenue:
+		_fautes.append("bouton tenu au bout droit de la piste : glissière à %s, préférence à %s ; attendu la glissière à 1 et la musique encore à 0.5" % [glissiere.value, _pont.appeler("preferences").preferences["volume-musique"]])
+	_bouton_au_point(bout, false)
+	return tenue and await _attendre(func() -> bool: return _musique_a(1.0), "la musique et son bus à 1 après le glissement relâché au bout droit de la piste")
+
+
 ## `volume` écrit dans la boîte à nombre du curseur du volume de la musique et validé, comme l'Entrée le valide : si
 ## le pont dit la préférence à `volume` et si le bus de la musique le prend.
 func _saisir_la_musique(volume: float) -> bool:
-	var boite := current_scene.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == "curseur/preference/volume-musique").front().get_node("Nombre") as SpinBox
+	var boite := _composant_de_la_musique().get_node("Nombre") as SpinBox
 	boite.get_line_edit().text = str(volume)
 	boite.apply()
 	return await _attendre(func() -> bool: return _musique_a(volume), "la musique et son bus à %s saisis à la boîte à nombre" % volume)
@@ -327,12 +357,17 @@ func _cliquer(bouton: Dictionary) -> void:
 ## Un clic gauche au point `point` de l'écran, appui puis relâché, comme un joueur.
 func _presser_au_point(point: Vector2) -> void:
 	for appuye in [true, false]:
-		var clic := InputEventMouseButton.new()
-		clic.button_index = MOUSE_BUTTON_LEFT
-		clic.pressed = appuye
-		clic.position = point
-		clic.global_position = clic.position
-		root.push_input(clic, true)
+		_bouton_au_point(point, appuye)
+
+
+## Le bouton gauche de la souris appuyé (`appuye`) ou relâché au point `point` de l'écran.
+func _bouton_au_point(point: Vector2, appuye: bool) -> void:
+	var clic := InputEventMouseButton.new()
+	clic.button_index = MOUSE_BUTTON_LEFT
+	clic.pressed = appuye
+	clic.position = point
+	clic.global_position = clic.position
+	root.push_input(clic, true)
 
 
 ## Si `tenu` se tient avant `ATTENTE_S` et avant toute panne ou tout refus signalé.
