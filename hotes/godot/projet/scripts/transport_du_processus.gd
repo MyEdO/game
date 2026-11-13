@@ -7,7 +7,8 @@ extends PontDuNoyau.Transport
 ## `hotes/godot/vivant.mjs` sous l'éditeur ; dans un exécutable (#3951), `noyau/node` sur `noyau/vivant.mjs`, à côté de
 ## l'exécutable.
 ## Il lui passe `--stockage=<fichier>`, le fichier où vivent les sauvegardes : le paramètre `--stockage=<fichier>` du
-## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`).
+## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`), sauf sous une recette,
+## un script en boucle principale, qui sans ce paramètre ne lui passe aucun fichier (`fichier_du_stockage`).
 ## Une ligne se termine par `\n`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
 ## Sa sortie standard porte d'abord la ligne d'annonce `{"url":"http://127.0.0.1:<port>/"}`,
 ## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une réponse par requête.
@@ -19,8 +20,13 @@ extends PontDuNoyau.Transport
 ## sa réponse est la chaîne que `wfrpPont.resoudreLaPile` rend (`PileResolue`, en JSON).
 ## Godot l'attend image après image, sans bloquer.
 ## Les réponses sortent dans l'ordre des requêtes, pile comprise.
-## Godot n'écrit aucune requête tant qu'un appel attend :
+## Seul un appel reçoit des octets, et Godot l'attend sans écrire d'autre requête :
 ## les octets d'une réponse sont la fin de la sortie jusqu'à la requête suivante.
+## Ce que Godot publie pour qui pilote le lieu (`publier`) part en requête `["publier", json]`, `json` le tableau
+## `[nom, valeur]`, sans attendre sa réponse, la ligne `null` ; publié avant l'ouverture, il est retenu, sa dernière
+## valeur par nom écrite à l'ouverture : publier n'ouvre pas le lieu.
+## Hors d'une page, rien n'appelle Godot depuis le lieu : un rappel exposé (`exposer`) reste à `exposes`, où l'appelle
+## qui pilote le lieu dans le processus de Godot (`projet/recettes/pilote.gd`).
 ## Sa sortie d'erreur passe à celle de Godot.
 ## Sa mort, octets attendus compris, est une panne, qui dit son code de sortie.
 ## Le processus meurt quand le pont quitte l'arbre.
@@ -87,6 +93,10 @@ var _sortie: Tuyau = null
 var _erreurs: Tuyau = null
 var _url := ""
 var _mort := false
+## Les rappels exposés (`exposer`), par nom.
+var exposes := {}
+## Ce qui est publié avant l'ouverture (`publier`), la dernière valeur de chaque nom.
+var _a_publier := {}
 ## Les réponses attendues, dans l'ordre des requêtes écrites : chacune un tableau vide que sa réponse remplit.
 var _attendues: Array[Array] = []
 ## Le nombre d'octets qu'annonce la réponse en cours (`ANNONCE_DES_OCTETS`), `-1` hors d'une telle réponse.
@@ -108,11 +118,10 @@ func ouvrir() -> bool:
 	if _pid != 0:
 		return await _ouvert
 	var lancement := _lancement()
-	var stockage := parametre("stockage")
-	var options := PackedStringArray([
-		lancement[1],
-		"--stockage=" + (stockage if stockage != "" else ProjectSettings.globalize_path("user://stockage.json")),
-	])
+	var options := PackedStringArray([lancement[1]])
+	var stockage := fichier_du_stockage(parametre("stockage"), get_tree().get_script() != null)
+	if stockage != "":
+		options.append("--stockage=" + stockage)
 	var lance := OS.execute_with_pipe(lancement[0], options, true)
 	if lance.is_empty():
 		_mort = true
@@ -131,10 +140,23 @@ func ouvrir() -> bool:
 		var lue: Variant = JSON.parse_string(annonce)
 		if lue is Dictionary and lue.get("url") is String:
 			_url = lue.url
+			for nom: String in _a_publier:
+				publier(nom, _a_publier[nom])
+			_a_publier.clear()
 		else:
 			_mourir("annonce illisible du processus du pont : %s" % str(annonce).left(200))
 	_ouvert.emit(_url != "")
 	return _url != ""
+
+
+## Le fichier de stockage passé au processus : `demande` si elle est donnée ; sinon aucun, la chaîne vide, quand un
+## script tient la boucle principale (`boucle_scriptee`, une recette) ; sinon `stockage.json` sous `user://`.
+static func fichier_du_stockage(demande: String, boucle_scriptee: bool) -> String:
+	if demande != "":
+		return demande
+	if boucle_scriptee:
+		return ""
+	return ProjectSettings.globalize_path("user://stockage.json")
 
 
 func est_ouvert() -> bool:
@@ -159,12 +181,16 @@ func resoudre_la_pile(demande: String) -> Variant:
 	return null if reponse.is_empty() else reponse[0]
 
 
-func publier(_nom: String, _valeur: Variant) -> void:
-	pass
+func publier(nom: String, valeur: Variant) -> void:
+	if not est_ouvert():
+		_a_publier[nom] = valeur
+		return
+	_demander("publier", JSON.stringify([nom, valeur]))
+	_recevoir()
 
 
-func exposer(_nom: String, _rappel: Callable) -> void:
-	pass
+func exposer(nom: String, rappel: Callable) -> void:
+	exposes[nom] = rappel
 
 
 func adresse(relative: String) -> String:

@@ -10,7 +10,7 @@ import {
   charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
-  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomCount, speciesTalentRandomDrawn, speciesXp, starXp, stepIds,
+  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomCount, speciesTalentRandomDrawn, speciesXp, starXp, stepIds, tirerLaVariante,
   valeurDuCompteur, bornesDuCompteur, validateStep, withAssignment, withCareer, withCareerSkillSpec, withCareerTalent, withCharMode,
   withCoastalSwap, withCompteur, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
   withRandomTalentSpec, withSexe, withSpecies, withSpeciesSkillDefaults, withSpeciesSkillSpec, withSpeciesSkillTier, withSpeciesTalentChoice,
@@ -19,27 +19,17 @@ import {
 } from './brouillon';
 import {
   advancementLabel, careerLabelFor, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
-  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, starDie, stars,
+  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, tableDeCarrieres, talentsAleatoiresDie, varianteDe,
   trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
-import { speciesAllowed, XP_CAREER_FIRST, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
+import { randomSpeciesTable, speciesAllowed, XP_CAREER_FIRST, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
 import { refKey, talentMaxReached } from '../../engine/careerSlots';
 import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
 import { formatDice, hashSeed } from '../../engine/dice';
-import {
-  brancheChoisie,
-  dotationsDuHeros,
-  emplacementsDeDotation,
-  estEmplacementRacine,
-  idChoisi,
-  libelleDeLaValeur,
-  sousEmplacement,
-  valeursDeLEmplacement,
-  type EmplacementDeDotation,
-} from '../../engine/trappingChoices';
+import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementRacine, idChoisi, libelleDeLaValeur, sousEmplacementActif, valeursDeLEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import type { AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { idsDeLaSousListe, type RefASpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -51,6 +41,7 @@ const GESTES_DU_BROUILLON = {
   tirerLEspece: (d: CreatorDraft) => rollDraftSpecies(d),
   espece: (d: CreatorDraft, id: string) => withSpecies(d, id),
   tirerLaCarriere: (d: CreatorDraft) => rollDraftCareer(d),
+  tirerLaVariante: (d: CreatorDraft, jet: number) => tirerLaVariante(d, jet),
   carriere: (d: CreatorDraft, id: string) => withCareer(d, id),
   restrictions: (d: CreatorDraft, ignorees: boolean) => withIgnoreRestrictions(d, ignorees),
   cotiers: (d: CreatorDraft, cotiers: boolean) => withCoastalSwap(d, cotiers),
@@ -151,15 +142,16 @@ export function famillesDEspeces(): { race: SpeciesData['refChar']; famille: str
 
 const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFor({ career: id, appearance: { sex: d.apparence.sex } });
 
-/** 1) La race (LDB 04 l.87-101) : le d100, puis la famille et sa lignée. */
+/** 1) La race (LDB 04 l.87-101) : le tirage, puis la famille et sa lignée. */
 function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   const sp = draftSpecies(d);
   const familles = famillesDEspeces();
   const famille = sp && familles.find((f) => f.race === sp.refChar);
+  const die = formatDice(randomSpeciesTable().die);
   return [
     d.speciesRoll
-      ? jet('tirage', t('crea.vue.tirageEspece'), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => species.find((s) => s.id === id)!.label)))
-      : gesteDe('tirage', t('crea.vue.tirerEspece', { px: XP_SPECIES_ACCEPTED }), geste('tirerLEspece')),
+      ? jet('tirage', t('crea.vue.tirageEspece', { die }), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => species.find((s) => s.id === id)!.label)))
+      : gesteDe('tirage', t('crea.vue.tirerEspece', { die, px: XP_SPECIES_ACCEPTED }), geste('tirerLEspece')),
     choix('famille', t('crea.vue.race'), familles.map((f) => option(f.famille, geste('espece', sp && f === famille ? sp.id : f.especes[0].id), f === famille))),
     ...(famille && famille.especes.length > 1 ? [choix('lignee', t('crea.vue.lignee'), famille.especes.map((s) => option(s.variant ?? s.label, geste('espece', s.id), s === sp)))] : []),
     ...(sp ? [valeur('espece', sp.label, null, sp.desc ?? null)] : []),
@@ -167,22 +159,28 @@ function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** 2) La carrière (LDB 05 l.204-212) : le d100 et ses relances, les carrières tirées, la classe puis la carrière,
- *  les restrictions de race et les Côtiers (MDG 09 l.9). */
+/** 2) La carrière (LDB 05 l.204-212) : le tirage et ses relances, le second lancer offert à chaque jet dont la carrière
+ *  a une variante (AA 02 l.109-111 ; VDM 03 l.17-19), les carrières tirées, la classe puis la carrière, les
+ *  restrictions de race et les Côtiers (MDG 09 l.9). */
 function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
   const offertes = carrieresOffertes(d);
   const carriere = offertes.find((c) => c.id === d.careerId);
   const classe = carriere?.class.id;
-  const tirees = [...new Set(d.careerRolls.flatMap((r) => r.ids))];
+  const sp = draftSpecies(d);
+  const tirees = sp ? [...new Set(d.careerRolls.flatMap((r) => offreDuJet(sp, r)))] : [];
   const relance = careerXpDuProchainJet(d);
+  const die = sp ? formatDice(tableDeCarrieres(sp.refCareer, d.coastalSwap).die) : null;
   return [
-    ...(d.careerRolls.length
+    ...(!die ? [] : d.careerRolls.length
       ? [
-          jet('tirage', t('crea.vue.tirageCarriere'), d.careerRolls.map((r) => r.roll).join(t('crea.vue.separateur'))),
+          jet('tirage', t('crea.vue.tirageCarriere', { die }), d.careerRolls.map((r) => (r.second ? t('crea.vue.jetEtSecondLancer', { jet: r.roll, second: r.second.roll }) : String(r.roll))).join(t('crea.vue.separateur'))),
           gesteDe('relance', relance ? t('crea.vue.deuxJetsDePlus', { px: relance }) : t('crea.vue.relancerCarriere'), geste('tirerLaCarriere')),
+          ...d.careerRolls.flatMap((r, i) => (sp && !r.second && varianteDe(r.id, sp)
+            ? [gesteDe(`variante/${i}`, t('crea.vue.secondLancer', { carriere: libelleDeCarriere(d, r.id) }), geste('tirerLaVariante', i))]
+            : [])),
           choix('tirees', t('crea.vue.tirees'), tirees.map((id) => option(libelleDeCarriere(d, id), geste('carriere', id), id === d.careerId))),
         ]
-      : [gesteDe('tirage', t('crea.vue.tirerCarriere', { px: XP_CAREER_FIRST }), geste('tirerLaCarriere'))]),
+      : [gesteDe('tirage', t('crea.vue.tirerCarriere', { die, px: XP_CAREER_FIRST }), geste('tirerLaCarriere'))]),
     choix('classe', t('crea.vue.classe'), classes.flatMap((cl) => {
       const premiere = offertes.find((c) => c.class.id === cl.id);
       return premiere ? [option(libelleDeClasse(cl.id), geste('carriere', cl.id === classe ? d.careerId : premiere.id), cl.id === classe)] : [];
@@ -233,7 +231,7 @@ function pageDesCaracteristiques(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** 3bis) Le signe astral (ADE II 3) : le d100, puis le signe. */
+/** 3bis) Le signe astral (ADE II 3) : le tirage, puis le signe. */
 function pageDuSigne(d: CreatorDraft): RubriqueDeCreation[] {
   const signe = findStarById(d.star);
   return [
@@ -290,7 +288,7 @@ function pageDesCompetencesDeCarriere(d: CreatorDraft): RubriqueDeCreation[] {
 const descDuTalent = (id: string): string | null => findTalentById(id)?.desc ?? null;
 const memeRef = (a: RefDesignee | undefined, b: RefDesignee): boolean => !!a && refKey(a.id, a.spec) === refKey(b.id, b.spec);
 
-/** 4c) Les Talents (LDB 05 l.484, l.535 ; LDB 10 l.714) : ceux de race (acquis, « A ou B », tirés au d100, leur
+/** 4c) Les Talents (LDB 05 l.484, l.535 ; LDB 10 l.714) : ceux de race (acquis, « A ou B », tirés, leur
  *  relance et leur utilisation), le Talent de carrière, les sorts de Magie mineure qu'un Talent inclut. */
 function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
   const n = speciesTalentRandomCount(d);
@@ -302,7 +300,7 @@ function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
       const retenue = d.speciesTalentChoices[e.adresse];
       return choix(`option/${e.adresse}`, advancementLabel('talents', e.ref), e.options.map((o) => option(advancementLabel('talents', o), geste('talentDEspece', e.adresse, o), !!retenue && cleDOption(retenue) === cleDOption(o))));
     }),
-    ...(n && !d.talentsRolled ? [gesteDe('tirage', t('crea.vue.tirerTalents', { n }), geste('tirerLesTalents'))] : []),
+    ...(n && !d.talentsRolled ? [gesteDe('tirage', t('crea.vue.tirerTalents', { n, die: formatDice(talentsAleatoiresDie()) }), geste('tirerLesTalents'))] : []),
     ...speciesTalentRandomDrawn(d).flatMap((x) => {
       const nom = refLabel('talents', { id: x.ref.id });
       return [
@@ -326,20 +324,24 @@ function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, l'emplacement que porte la branche choisie
- *  dessous ; une arme au choix ; un Atout de Fabrication (LDB 60 l.9-32), `DEFAULT_FABRICATION_ATOUT` à défaut. */
+/** Un emplacement de dotation en choix (LDB 05 l.542-583) : une branche, une arme au choix, un Atout de Fabrication
+ *  (LDB 60 l.9-32, `DEFAULT_FABRICATION_ATOUT` à défaut), puis l'emplacement qui le suit (`sousEmplacementActif`). */
 function dotation(d: CreatorDraft, e: EmplacementDeDotation): RubriqueDeCreation[] {
   const choisis = d.trappingChoices ?? {};
+  const sous = sousEmplacementActif(e, choisis);
+  return [rubriqueDeDotation(e, choisis), ...(sous ? dotation(d, sous) : [])];
+}
+
+function rubriqueDeDotation(e: EmplacementDeDotation, choisis: ChoixDeDotation): RubriqueDeCreation {
   switch (e.sorte) {
     case 'branches': {
       const j = brancheChoisie(e, choisis);
-      const sous = j === undefined ? undefined : sousEmplacement(e, j);
-      return [choix(e.adresse, t('crea.vue.auChoix'), valeursDeLEmplacement(e).map((k) => option(libelleDeLaValeur(e, k), geste('dotation', e.adresse, k), k === j))), ...(sous ? dotation(d, sous) : [])];
+      return choix(e.adresse, t('crea.vue.auChoix'), valeursDeLEmplacement(e).map((k) => option(libelleDeLaValeur(e, k), geste('dotation', e.adresse, k), k === j)));
     }
-    case 'joker': return [choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)))];
+    case 'joker': return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)));
     case 'atout': {
       const atout = idChoisi(e, choisis) ?? DEFAULT_FABRICATION_ATOUT;
-      return [choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), id === atout)))];
+      return choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), id === atout)));
     }
   }
 }

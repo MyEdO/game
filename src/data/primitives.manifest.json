@@ -265,7 +265,7 @@
     "type": "primitives.manifest",
     "label": "DeDeTable/deDeLaTableTiree/deDeTirageDe/facesDuDe/bandeAuDe",
     "fichier": "src/engine/tables.ts",
-    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées) ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas",
+    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées) ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas ; une étape de cascade à table le lit sur `TableStepDef.die` (`src/noyau/cascade.ts`, `tableSpec`), son seul porteur : une `CascadeTableDecl` n'en porte aucun",
     "perimetre": "tout tirage, toute faces et toute bande d'une table qui porte son dé en donnée (moteur, flux, Codex, atelier)",
     "verrou": "tsc (src/engine/tables.test.ts, `@ts-expect-error`) ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
@@ -1792,11 +1792,29 @@
   {
     "id": "threeWay",
     "type": "primitives.manifest",
-    "label": "threeWay",
+    "label": "threeWay/threeWayDiff3",
     "fichier": "scripts/git-hooks/three-way.mjs",
-    "concept": "fusion à trois voies d'un texte par `git merge-file`",
-    "perimetre": "pilote de fusion des stocks de sites",
-    "verrou": "merge-stocks.test.mjs"
+    "concept": "fusion à trois voies d'un texte par `git merge-file`, au style ordinaire ou `diff3`",
+    "perimetre": "pilotes de fusion (stocks de sites, imports)",
+    "verrou": "merge-stocks.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "segmentsDeFusion",
+    "type": "primitives.manifest",
+    "label": "segmentsDeFusion/tailleDeMarqueur",
+    "fichier": "scripts/guards/lib/blocsDeFusion.mjs",
+    "concept": "sortie de `git merge-file --diff3` lue en segments (lignes fusionnées, blocs en conflit avec leur base) ; taille de marqueur qu'aucune ligne des textes n'imite",
+    "perimetre": "tout outil qui lit les blocs en conflit d'une fusion",
+    "verrou": "synchroniser.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "declarationsDImport",
+    "type": "primitives.manifest",
+    "label": "declarationsDImport/unNomParLigne",
+    "fichier": "scripts/guards/lib/declarationsDImport.mjs",
+    "concept": "déclarations `import` et `export … from` de premier niveau d'un module, lues par l'arbre syntaxique : clé, liaisons, réimpression à un nom par ligne",
+    "perimetre": "tout outil qui lit ou réécrit les imports d'un module",
+    "verrou": "merge-imports.test.mjs"
   },
   {
     "id": "litteralJs",
@@ -2155,7 +2173,7 @@
     "label": "enFileBornee",
     "fichier": "scripts/guards/lib/fileBornee.mjs",
     "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture, de la première cause que la file reçoit (l’abandon de l’appelant, sa raison, ou le rejet d’une tâche, à la reprise de son await) ; la file n’arrête rien elle-même : chaque tâche remet son signal à ce qu’elle lance",
-    "perimetre": "tout appelant qui mène des tâches de front (rendus de plateforme-win32.test.mjs, sonde hote-powershell.mjs)",
+    "perimetre": "tout appelant qui mène des tâches de front (rendus de manual-docs-ratchet.test.mjs, sonde hote-powershell.mjs)",
     "verrou": "scripts/guards/lib/fileBornee.test.mjs"
   },
   {

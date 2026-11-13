@@ -41,6 +41,7 @@ import type {
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
+import { BORNES_DE_LA_SUBSTITUTION } from '../../../data/schemas/defs/careers';
 import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
 import {
@@ -279,6 +280,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'creatures') add('skills', 'talents');
   if (categoryKey === 'pregens') add('trappings', 'talents'); // MÊMES refs que la créature : `TalentRef[]` et dotations (id catalogue ou texte)
   if (categoryKey === 'careerLevels') add('characteristics');
+  if (categoryKey === 'careers') add(...BORNES_DE_LA_SUBSTITUTION); // présentés avec `aLaPlaceDe` seulement (refine de `defs/careers.ts`)
   if (categoryKey === 'domains') add('castBonus', 'missile', 'casterOps');
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
   if (categoryKey === 'domains') add('windModifiers');
@@ -548,6 +550,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // IDENTITÉ de l'entrée éditée : racine des `chemin` de ses champs.
   const porteurEntree = identiteDEntree(categoryKey, id, isNew);
   const chemin = (champ: string): string => `${porteurEntree}/${champ}`;
+  const champInfere = (f: FieldDesc) => {
+    const cfg = refFieldCfg(categoryKey, f.key);
+    return cfg
+      ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
+      : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
+  };
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
@@ -794,12 +802,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
             <GameOpEditor noeud={noeudDe(fieldKey)} ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
           </div>
         ))}
-        {fields.map((f) => {
-          const cfg = refFieldCfg(categoryKey, f.key);
-          return cfg
-            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
-            : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
-        })}
+        {fields.map(champInfere)}
+        {categoryKey === 'careers' && entry.aLaPlaceDe !== undefined && allFields.filter((f) => (BORNES_DE_LA_SUBSTITUTION as readonly string[]).includes(f.key)).map(champInfere)}
       </div>
       </SuiviDesSaisies>
     </div>

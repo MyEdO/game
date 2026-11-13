@@ -19,21 +19,7 @@ import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type M
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import {
-  cataloguesDeComposition,
-  emplacementDePiece,
-  emplacementsDeRangement,
-  gardeRobe,
-  findTeinteById,
-  libelleDeCleDElement,
-  maniementDeLaForme,
-  pieceRacine,
-  type EmblemeDef,
-  type EmblemeResolu,
-  type FireArc,
-  type Maniement,
-  type PosteDuVehicule,
-} from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type LigneDeGardeRobe, type EmblemeResolu, type FireArc, type Maniement, type PosteDuVehicule } from '../../../src/noyau/index';
 
 /**
  * @contrat Atelier 3D
@@ -250,7 +236,7 @@ export interface CoucheDeLAtelier {
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
-type EmblemeDeLAtelier = Pick<EmblemeDef, 'id' | 'label' | 'svg'>;
+type EmblemeDeLAtelier = Pick<LigneDeGardeRobe<'embleme'>, 'id' | 'label' | 'svg'>;
 
 /** La `cle` du manifeste d'élément `manifeste`. */
 export const cleDe = (manifeste: unknown): Readonly<Record<string, string | undefined>> => (manifeste as ManifesteDElement).cle;

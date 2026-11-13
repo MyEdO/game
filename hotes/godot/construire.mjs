@@ -37,14 +37,16 @@
 // déclarant `const RECETTE_RENDUE := true` (`rendre`) ; la CI le joue (`npm run godot:rendus`). L'import de ce module
 // ne lance rien et ne charge aucun asset.
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
 import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { gzipSync, inflateRawSync } from 'node:zlib'
 import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
+import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { chargerAssets } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
@@ -371,23 +373,54 @@ function scriptsDe(dossier, sous = dossier) {
 /** Les erreurs que Godot écrit parmi `lignes`. */
 const erreursDe = (lignes) => lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.trim()))
 
-/** `commande` (l'éditeur, un exécutable du projet, ou l'écran virtuel qui les porte) lancée sur `args` : les lignes de
- *  sa sortie, sans séquences de terminal, dans l'ordre où elle les écrit (sa sortie et sa sortie d'erreur vont au même
- *  fichier), et son échec, s'il y en a un : sa cause (le signal qui l'a tuée, ou son code de sortie) et la fin de sa
- *  sortie (`FIN_DE_SORTIE` lignes). */
+/** Un journal neuf pour un lancement de `commande` sur `args`, qui y écrit sa sortie et sa sortie d'erreur (`fd`, le
+ *  même fichier pour les deux). `bilan(r)`, `r` disant comment il finit (`{ error?, signal, status }`), rend les lignes
+ *  du journal, sans séquences de terminal, dans l'ordre où il les écrit, et son échec, s'il y en a un : sa cause (le
+ *  signal qui l'a tué, ou son code de sortie) et la fin de sa sortie (`FIN_DE_SORTIE` lignes). `clore()` l'efface. */
 const FIN_DE_SORTIE = 40
-function lancer(commande, args) {
+function journaliser(commande, args) {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-sortie-'))
   const journal = join(dossier, 'sortie.log')
   const fd = openSync(journal, 'a')
-  try {
-    const r = spawnSync(commande, args, { stdio: ['ignore', fd, fd], timeout: 600_000 })
+  const clore = () => {
+    closeSync(fd)
+    rmSync(dossier, { recursive: true, force: true })
+  }
+  const bilan = (r) => {
     const lignes = stripVTControlCharacters(readFileSync(journal, 'utf8')).split('\n')
     const cause = r.error ? r.error.message : r.signal ? `tué par ${r.signal}` : r.status !== 0 ? `code de sortie ${r.status}` : null
     return { lignes, echec: cause ? [`${basename(commande)} ${args.join(' ')} : ${cause}\n${lignes.slice(-FIN_DE_SORTIE).join('\n')}`] : [] }
+  }
+  return { fd, bilan, clore }
+}
+
+/** L'échéance d'un lancement attendu, ou mené de front avec d'autres. */
+const ECHEANCE_MS = 600_000
+
+/** `commande` (l'éditeur, un exécutable du projet, ou l'écran virtuel qui les porte) lancée sur `args`, attendue : les
+ *  lignes de sa sortie et son échec (`journaliser`). */
+function lancer(commande, args) {
+  const { fd, bilan, clore } = journaliser(commande, args)
+  try {
+    return bilan(spawnSync(commande, args, { stdio: ['ignore', fd, fd], timeout: ECHEANCE_MS }))
   } finally {
-    closeSync(fd)
-    rmSync(dossier, { recursive: true, force: true })
+    clore()
+  }
+}
+
+/** `commande` lancée sur `args` sans tenir le fil, `env` ajouté à son environnement : `lance(tuer)` appelé une fois
+ *  lancée, `tuer()` la tuant, puis, à sa sortie, les lignes de sa sortie et son échec (`journaliser`). */
+async function lancerSansTenirLeFil(commande, args, env, lance) {
+  const { fd, bilan, clore } = journaliser(commande, args)
+  try {
+    const enfant = spawn(commande, args, { stdio: ['ignore', fd, fd], env: { ...process.env, ...env } })
+    enfant.once('spawn', () => lance(() => enfant.kill()))
+    const [status, signal] = await once(enfant, 'exit')
+    return bilan({ status, signal })
+  } catch (error) {
+    return bilan({ error })
+  } finally {
+    clore()
   }
 }
 
@@ -397,6 +430,42 @@ function godot(binaire, projet, args) {
   return { lignes, erreurs: [...erreursDe(lignes), ...echec] }
 }
 
+/** La variable d'environnement d'où Godot tire le dossier des données de l'utilisateur (`user://`) sous Linux
+ *  (`OS_Unix::get_data_path`). Un lancement mené de front y reçoit SON dossier ; là où elle manque, les lancements
+ *  partagent `user://` et se jouent à la suite (`menerDeFront`). */
+const DONNEES_DE_L_UTILISATEUR = process.platform === 'linux' ? 'XDG_DATA_HOME' : null
+
+/** Chaque lancement de `lancements` (`{ commande, args(donnees), juger({ lignes, echec }) }`) mené de front
+ *  (`enFileBornee`), un par cœur, là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), à la suite
+ *  ailleurs : chacun reçoit un dossier `donnees` neuf sous le projet `copie`, s'arrête à `ECHEANCE_MS`, et `juger` rend
+ *  ses erreurs à sa sortie. Rend les erreurs de tous. */
+async function menerDeFront(copie, lancements) {
+  const erreurs = await enFileBornee(lancements.map(({ commande, args, juger }) => async (signal) => {
+    const donnees = mkdtempSync(join(copie, 'donnees-'))
+    const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
+    return juger(await lancerSansTenirLeFil(
+      commande, args(donnees), DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
+      (tuer) => arret.addEventListener('abort', tuer, { once: true }),
+    ))
+  }), { deFront: DONNEES_DE_L_UTILISATEUR ? availableParallelism() : 1 })
+  return erreurs.flat()
+}
+
+/** Chaque recette de `recettes` jouée par l'éditeur `binaire` sans écran sur le projet importé `copie`, menées de
+ *  front (`menerDeFront`) ; chacune reçoit `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et
+ *  `--stockage=<fichier à elle>`, pour qu'aucune ne touche aux sauvegardes de l'utilisateur ni à celles d'une autre.
+ *  Sa sortie s'imprime à sa fin, d'un bloc ; rend les erreurs de toutes. */
+function jouerLesRecettes(binaire, copie, recettes) {
+  return menerDeFront(copie, recettes.map((recette) => ({
+    commande: binaire,
+    args: (donnees) => ['--headless', '--path', copie, '--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(donnees, 'stockage.json')}`],
+    juger: ({ lignes, echec }) => {
+      console.log(`[godot] recette autonome : ${recette}\n${lignes.join('\n')}`)
+      return [...erreursDe(lignes), ...echec]
+    },
+  })))
+}
+
 /** Le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json` du projet `projet`, que lit `projet/scripts/dessin.gd`. */
 function deposerLesDessins(projet, figerLesDessins) {
   writeFileSync(join(projet, 'art', 'dessins.json'), JSON.stringify(figerLesDessins()))
@@ -404,13 +473,13 @@ function deposerLesDessins(projet, figerLesDessins) {
 
 /** Joue `faire(copie)` sur une copie du projet, le catalogue des dessins déposé (`deposerLesDessins`), importée par
  *  `binaire`, sous le dossier temporaire ; rend ses erreurs. */
-function surUneCopie(binaire, figerLesDessins, faire) {
+async function surUneCopie(binaire, figerLesDessins, faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
     cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
     deposerLesDessins(copie, figerLesDessins)
     const { erreurs } = godot(binaire, copie, ['--import'])
-    return erreurs.length ? erreurs : faire(copie)
+    return erreurs.length ? erreurs : await faire(copie)
   } finally {
     rmSync(copie, { recursive: true, force: true })
   }
@@ -422,11 +491,9 @@ function surUneCopie(binaire, figerLesDessins, faire) {
  *  repos (`figerLeRepos`) sous `recettes/vues/repos.json`, les échantillons de l'atelier figés (`figerLeDecor`) sous
  *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
  *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
- *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes ; chaque recette reçoit
- *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier de la copie>`,
- *  pour qu'aucune ne touche aux sauvegardes de l'utilisateur. */
+ *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes (`jouerLesRecettes`). */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
-  return surUneCopie(binaire, figerLesDessins, (copie) => {
+  return surUneCopie(binaire, figerLesDessins, async (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
     writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
     const modeles = listage(DOSSIER_DES_MODELES)
@@ -438,17 +505,16 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
     writeFileSync(join(copie, 'recettes', 'vues', 'degagement.json'), JSON.stringify(figerLeDegagement(modeles)))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
-    const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]).erreurs)
+    const erreurs = await menerDeFront(copie, scripts.map((script) => ({
+      commande: binaire,
+      args: () => ['--headless', '--path', copie, '--check-only', '--script', script],
+      juger: ({ lignes, echec }) => [...erreursDe(lignes), ...echec],
+    })))
     if (erreurs.length) return erreurs
     console.log(`[godot] ${VERSION_IMPRIMEE} : projet importé, ${scripts.length} scripts contrôlés (${scripts.join(', ')})`)
     const recettes = scripts.filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
-    for (const recette of recettes) {
-      console.log(`[godot] recette autonome : ${recette}`)
-      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(copie, 'stockage.json')}`])
-      console.log(resultat.lignes.join('\n'))
-      erreurs.push(...resultat.erreurs)
-    }
+    erreurs.push(...await jouerLesRecettes(binaire, copie, recettes))
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) autonome(s) exécutée(s)`)
     return erreurs
   })
@@ -462,31 +528,62 @@ const RENDUS = ['forward_plus', 'gl_compatibility']
 const ECRAN_VIRTUEL = process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', '-screen 0 1280x720x24'] : []
 
 /** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
- *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui). Une recette rendue dit son
- *  rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient pas, et que Godot remplace, est une erreur.
- *  Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne de clôture (`erreurs=<n>`) ; ce que le
- *  moteur écrit ensuite en se fermant n'en est pas. */
+ *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
+ *  (`menerDeFront`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
+ *  pas, et que Godot remplace, est une erreur. Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne
+ *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
 function rendre(binaire, { figerLesDessins }) {
-  return surUneCopie(binaire, figerLesDessins, (copie) => {
+  return surUneCopie(binaire, figerLesDessins, async (copie) => {
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_RENDUE := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]
     const [commande, ...prefixe] = [...ECRAN_VIRTUEL, binaire]
-    const erreurs = []
-    for (const recette of recettes) {
-      for (const rendu of RENDUS) {
-        console.log(`[godot] recette rendue sous ${rendu} : ${recette}`)
-        const { lignes, echec } = lancer(commande, [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette])
-        console.log(lignes.join('\n'))
+    const erreurs = await menerDeFront(copie, recettes.flatMap((recette) => RENDUS.map((rendu) => ({
+      commande,
+      args: () => [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette],
+      juger: ({ lignes, echec }) => {
+        console.log(`[godot] recette rendue sous ${rendu} : ${recette}\n${lignes.join('\n')}`)
         const cloture = lignes.findLastIndex((l) => /\] erreurs=\d+$/.test(l.trim()))
-        erreurs.push(...erreursDe(lignes.slice(0, cloture + 1)), ...echec)
-        if (cloture < 0) erreurs.push(`${recette} sous ${rendu} : aucune ligne de clôture (erreurs=<n>)`)
-        if (!lignes.some((l) => l.includes(` rendu=${rendu}`))) erreurs.push(`${recette} : le rendu ${rendu} demandé n'est pas celui qui a rendu`)
-      }
-    }
+        return [
+          ...erreursDe(lignes.slice(0, cloture + 1)),
+          ...echec,
+          ...(cloture < 0 ? [`${recette} sous ${rendu} : aucune ligne de clôture (erreurs=<n>)`] : []),
+          ...(lignes.some((l) => l.includes(` rendu=${rendu}`)) ? [] : [`${recette} : le rendu ${rendu} demandé n'est pas celui qui a rendu`]),
+        ]
+      },
+    }))))
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) rendue(s) sous ${RENDUS.join(' et ')}`)
     return erreurs
   })
+}
+
+/** Le pilote d'une recette native (`projet/recettes/pilote.gd`), et la ligne qu'il écrit avant de quitter. */
+const PILOTE = 'res://recettes/pilote.gd'
+const FIN_DU_PILOTE = '[pilote] fin'
+
+/** Le jeu piloté par une recette (#3945) : le projet importé sur une copie par l'éditeur épinglé (`surUneCopie`), puis
+ *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, sans tenir le
+ *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ECRAN_VIRTUEL` sans lui).
+ *  `lance(tuer)` est appelé une fois le jeu lancé, `tuer()` le tuant ; à sa sortie, il est relancé sur la même copie
+ *  tant que `encore()` le demande. Rend les lignes de chaque sortie jusqu'à `FIN_DU_PILOTE` (ce que le moteur écrit
+ *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. */
+export async function piloter({ args, env, rendu, lance, encore }) {
+  const a = await deposerLesAssets()
+  const binaire = await editeur()
+  const lignes = []
+  const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
+    const [commande, ...prefixe] = rendu ? [...ECRAN_VIRTUEL, binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
+    const erreurs = []
+    do {
+      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], env, lance)
+      const fin = joue.lignes.findLastIndex((l) => l.trim() === FIN_DU_PILOTE)
+      const jouees = fin < 0 ? joue.lignes : joue.lignes.slice(0, fin)
+      lignes.push(...jouees)
+      erreurs.push(...erreursDe(jouees), ...joue.echec)
+    } while (encore())
+    return erreurs
+  })
+  return { lignes, erreurs }
 }
 
 /** La fabrique des modèles du projet (`projet/outils/fabrique_de_modeles.gd`), et la commande que `fabriquer` lui écrit. */
@@ -608,7 +705,7 @@ async function bureau(sortie) {
   cpSync(process.execPath, join(noyau, plateforme.node))
   const embarques = [...avisDesPaquets([...bundle.modules, ...processus.modules]), avisDeNode(process.execPath, plateforme.licenceDeNode, process.version)]
   const a = await deposerLesAssets()
-  const exporte = verdict(exporter(await editeur(), { preset: plateforme.preset, fichier: plateforme.executable, modele: await modeleDExport(plateforme.modele) }, sortie, a, embarques))
+  const exporte = verdict(await exporter(await editeur(), { preset: plateforme.preset, fichier: plateforme.executable, modele: await modeleDExport(plateforme.modele) }, sortie, a, embarques))
   if (exporte) return exporte
   const joue = verdict(jouerLExecutable(join(sortie, plateforme.executable)))
   if (joue) return joue
@@ -625,9 +722,9 @@ async function principal() {
   if (options.mode === 'pont') return (await pont(options.sortie)).statut
   if (options.mode === 'sonde') {
     const a = await deposerLesAssets()
-    return verdict(sonder(await editeur(), a))
+    return verdict(await sonder(await editeur(), a))
   }
-  if (options.mode === 'rendus') return verdict(rendre(await editeur(), await deposerLesAssets()))
+  if (options.mode === 'rendus') return verdict(await rendre(await editeur(), await deposerLesAssets()))
   if (options.mode === 'ouvrir') {
     deposerLesDessins(PROJET, (await deposerLesAssets()).figerLesDessins)
     return ouvrir(await editeur())
@@ -638,7 +735,7 @@ async function principal() {
   if (bundle.statut) return bundle.statut
   const a = await deposerLesAssets()
   const modele = await modeleDExport(modeleDuPreset(readFileSync(join(PROJET, PRESETS), 'utf8')))
-  const sortie = verdict(exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a, avisDesPaquets(bundle.modules)))
+  const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a, avisDesPaquets(bundle.modules)))
   if (sortie) return sortie
   deposerLesPlanches(options.sortie)
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)

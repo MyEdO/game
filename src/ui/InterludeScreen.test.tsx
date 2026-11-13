@@ -19,6 +19,7 @@ import { interludeCatalog } from '../noyau/interludeFlow';
 import { refusDeRevenus, refusDOuvertureDActivite } from '../noyau/verdictsDInterlude';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
 import { ciblePsy } from '../engine/psych/ciblage';
 import {
@@ -98,6 +99,14 @@ describe('InterludeScreen — refonte LOT 6', () => {
     expect(html).toContain('Événement'); // hint de phase
     expect(html).toContain('Passer aux Activités');
     expect(html).not.toContain('Clore'); // pas de clôture sur la phase d'intro
+  });
+
+  it('le sceau de la chronique dit le dé de la table des Événements', () => {
+    const seam = buildSeam();
+    sousLeDe('interludeEvents', 'd10', () => {
+      const html = renderToStaticMarkup(<InterludeScreen seam={seam} />);
+      expect(html).toContain('<span class="parchment-seal-label">1d10</span>');
+    });
   });
 
   it('phase « tirage » (#942 L7) : le héros dont le dé n’est pas posé ATTEND — ni plantage, ni dé menteur, ni Activités ouvertes', () => {

@@ -75,7 +75,7 @@ const PROVENANCE = [
   ['combat.voisins, carte', 'les combattants en vue (combattantEnVue)'],
   ['combat.actif.mouvement', 'mouvementDuTour (le restant et le total que la jauge de la console montre)'],
   ['combat.actif.action', 'battle.acted'],
-  ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
+  ['combat.voisins, carte : distance', 'distanceDeCombat (empreinte et relief, comme le ciblage)'],
   ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
   ['fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
   ['fenetre.fermes', 'fermeturesDeLaFenetre : chaque verbe de la fenêtre que son flux de jet ferme maintenant, avec sa raison (libelleDeLaFermeture)'],

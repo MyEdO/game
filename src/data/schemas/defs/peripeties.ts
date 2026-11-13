@@ -3,7 +3,7 @@
  * l.210-221 — le fichier mélange 2 chapitres réels du LDB post-ré-extraction Marker, cette table
  * appartient au conseil MJ « Voyage », pas aux sorts du Chaos, #309 phase 3), document mono-table :
  * une rangée par face de son dé `die`. Son `tirageQuotidien` (`sousTirage`) est le dé lancé chaque jour de voyage,
- * dont la face `perilDie` de la route fait survenir une Péripétie. Vue TS : `Peripetie` (`src/data/peripeties.ts`).
+ * dont la face `perilDie` de la route fait survenir une Péripétie.
  */
 import { z } from 'zod';
 import { document, sousTirage } from '../grammaire/document';

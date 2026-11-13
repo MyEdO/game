@@ -91,7 +91,7 @@ export const MAX_ADV_PER_SKILL = 10;
 export const CAREER_SKILLS_ADVANCED = 8;
 
 /** Étapes aléatoires de la création, chacune son flux (`fluxDeCreation`). */
-export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details' | 'possessions';
+export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'carriere:variante' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details' | 'possessions';
 
 /** Le flux figé d'une étape de création, dérivé de la graine racine `seed` (`fluxDerive`). */
 export function fluxDeCreation(seed: number, etape: EtapeDeFlux, ...suite: readonly (string | number)[]): RNG {
@@ -321,9 +321,9 @@ export interface CreateHeroOptions extends ChoixDeCreation {
 /** Base de la colonne Humain du Tableau des Attributs. LDB 05 l.351-369 */
 export const BASE_HUMAINE = 20;
 
-/** Base d'espèce d'une Caractéristique : sa colonne du Tableau des Attributs, la colonne Humain à défaut. LDB 05 l.351-369 */
+/** Base d'espèce d'une Caractéristique : sa colonne du Tableau des Attributs. LDB 05 l.351-369 */
 export function baseDEspece(sp: Pick<SpeciesData, 'baseChar'>, k: CharKey): number {
-  return sp.baseChar[k] ?? BASE_HUMAINE;
+  return sp.baseChar[k];
 }
 
 export function rollCharacteristics(sp: SpeciesData, rng: RNG): Characteristics {

@@ -28,9 +28,10 @@ import {
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import {
-  ETAPES, consommerLaPlage, ligneDeLEtat, mesurerPrincipal, resoudreBaseVide, synchroniserPrincipal, tailleDeMarqueur, texteDeSession,
+  ETAPES, consommerLaPlage, ligneDeLEtat, mesurerPrincipal, resoudreBaseVide, synchroniserPrincipal, texteDeSession,
   verrouDuConsommateur,
 } from './synchroniser.mjs'
+import { tailleDeMarqueur } from '../guards/lib/blocsDeFusion.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { attendreLibre, naissanceDuTenant, sousEcheanceAsync } from '../test/verrou.mjs'
@@ -531,6 +532,15 @@ describe('synchroniserPrincipal — matrice', () => {
       assert.deepEqual(vu, { etat: 'conflit', chemins: [{ chemin: 'u.txt', raison: 'attribut merge=union' }], versions: deposes(m, U) })
       assert.equal(head(m.principal), m.B)
     }
+  })
+
+  test('attribut merge=imports : la fusion en texte vaut', async () => {
+    const m = monde({ '.gitattributes': '*.ts merge=imports\n', 'm.ts': 'a\nb\nc\nd\ne\n' })
+    const U = committer(m.amont, { 'm.ts': 'a\nb\nc\nd\namont\n' })
+    ecrireTravail(m.principal, 'm.ts', 'local\nb\nc\nd\ne\n')
+    assert.equal((await sync(m.principal)).etat, 'avance')
+    assert.equal(head(m.principal), U)
+    assert.equal(travail(m.principal, 'm.ts'), 'local\nb\nc\nd\namont\n')
   })
 
   test('8 ignoré en collision : collision-ignore ; incertain read-tree -m -u sur un ignoré (2.51) : ÉCRASE', async () => {

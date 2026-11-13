@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 /**
  * Le panneau « Confort de jeu » et les contrôles audio (#3949) : chaque volume de canal de la table rend son curseur,
- * à ses bornes et à son pas, qui écrit par `setPreference` ; `AudioControls` ne porte que la sourdine.
+ * à ses bornes et à son pas, qui écrit par `setPreference` ; `AudioControls` ne porte que la préférence `son-coupe`,
+ * réglée par la même couture (#4081).
  */
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { act } from 'react';
@@ -13,6 +14,7 @@ import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 const volumeDesEffets = preferenceDef('volume-effets')!;
+const sonCoupe = preferenceDef('son-coupe')!;
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -21,6 +23,7 @@ beforeEach(() => {
 afterEach(() => {
   demonterRacines();
   volumeDesEffets.set(volumeDesEffets.default);
+  sonCoupe.set(sonCoupe.default);
   vi.unstubAllGlobals();
 });
 
@@ -51,9 +54,20 @@ describe('PreferencesPanel — la forme `param`', () => {
   });
 });
 
-describe('AudioControls — la sourdine seule', () => {
-  it('un seul contrôle : le bouton de sourdine', () => {
+describe('AudioControls — la préférence `son-coupe` seule', () => {
+  it('un seul contrôle : le bouton qui coupe le son', () => {
     const { container } = monterRacine(<AudioControls />);
     expect([...container.querySelectorAll('button, input, select')].map((e) => e.getAttribute('aria-label'))).toEqual(['Couper le son']);
+  });
+
+  it('le bouton écrit la préférence dans la table et la persiste, puis la rétablit', () => {
+    const { container } = monterRacine(<AudioControls />);
+    const bouton = container.querySelector('button')!;
+    act(() => bouton.click());
+    expect(sonCoupe.get()).toBe(true);
+    expect(JSON.parse(localStorage.getItem('wfrp4.prefs')!)).toMatchObject({ 'son-coupe': true });
+    expect(bouton.getAttribute('aria-label')).toBe('Réactiver le son');
+    act(() => bouton.click());
+    expect(sonCoupe.get()).toBe(false);
   });
 });

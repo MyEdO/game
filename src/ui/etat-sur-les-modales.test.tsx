@@ -71,7 +71,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const A = sonne(combattantDeModale('A'));
     const att = cible(A, FM, 'accessible');
     expect(att, 'Sonné ×3 : −30').toBe(clampTarget(cibleDuTest(effectiveChar(A, 'force-mentale') - 30, 'accessible')).target);
-    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'ennemi')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
+    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'ennemi')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
     nommeLEtat('avant', att);
     act(() => { g().jetLancer('protection'); });
@@ -107,7 +107,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const test = testDeRegle('calme-d-approche', 'se-rapprocher');
     const att = cible(H, test, test.difficulty);
     useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'ennemi')], log: [] },
-      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
+      pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
     nommeLEtat('avant', att);
     act(() => { g().jetLancer('approche'); });

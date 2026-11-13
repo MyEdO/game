@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { readFileSync } from 'node:fs';
@@ -16,7 +17,7 @@ import { tileCenter, type Dims } from '../../geometry/iso';
 import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
-import { ACTIONS, type ActionDef, type ActionId } from '../../data/index';
+import { ACTIONS, type ActionDef } from '../../data/index';
 import { ACTION_CANDIDATES } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -520,7 +521,7 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
  */
 describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’action dans le rendu)', () => {
   const FABRIQUÉE: ActionDef = {
-    id: 'geste-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'action/monter-en-selle', surface: 'pastille-entite',
+    id: idDeFixture('action', 'geste-fabrique'), label: 'Geste fabriqué', icon: 'action/monter-en-selle', surface: 'pastille-entite',
     gate: 'toujours', candidates: 'armes-a-distance', coutAction: 'gratuit',
   };
 

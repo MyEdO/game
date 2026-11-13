@@ -1,13 +1,12 @@
 /**
  * Les clics du champ chez l'INVITÉ coop : `commitCursor` (curseur), `jouerLeClicDeCase` (clic-sol) et
  * `jouerLeClicDuCombattant` (frappe d'une structure, frise) lisent `cliquerLaCase` dans
- * l'état AU MOMENT du clic, donc le substitut que pose `interceptGuestActions` (`state/netFlow.ts`) : le geste
+ * l'état AU MOMENT du clic, donc le substitut que pose `transmettreLesIntentions` (`noyau/reseau.ts`) : le geste
  * part en intention vers l'hôte, il ne se joue jamais en local.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { interceptGuestActions, restoreGuestActions } from './netFlow';
 import { initialNet } from '../noyau/etat';
 import { jouerLeClicDeCase, jouerLeClicDuCombattant } from '../noyau/combatOrParty';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
@@ -35,7 +34,7 @@ function invite() {
     net: { ...initialNet(), mode: 'invite', mySeat: 0, ownership: { h1: 0 } },
     cliquerLaCase: local,
   });
-  interceptGuestActions();
+  useGame.getState().transmettreLesIntentions(() => {});
   const clic = vi.fn(get().cliquerLaCase);
   useGame.setState({ cliquerLaCase: clic });
   return { local, clic };
@@ -43,7 +42,7 @@ function invite() {
 
 beforeEach(() => { useGame.setState({ battle: null, party: [], combatCursor: null, net: initialNet() }); });
 afterEach(() => {
-  restoreGuestActions();
+  useGame.getState().restaurerLesIntentions();
   useGame.setState({ battle: null, party: [], combatCursor: null, net: initialNet() });
 });
 

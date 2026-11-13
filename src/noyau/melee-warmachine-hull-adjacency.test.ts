@@ -101,7 +101,7 @@ describe('pickAttackWeaponList — auto-choix EXCLUT toujours l\'arme du poste s
     const gate = door({ x: 5, y: 0 });
     const ram = hull({ x: 4, y: 0 }, ramPoste); // adjacente à la porte
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste, weapons: [sword, { ...ramWeapon }] } as never); // loin, arme perso + pièce servie
-    const w = pickAttackWeaponList([chef, ram, gate], chef, gate);
+    const w = pickAttackWeaponList(scene(), [chef, ram, gate], chef, gate);
     expect(w.uid).not.toBe(ramWeapon.uid);
     expect(w.uid).toBe(sword.uid); // repli sur l'arme personnelle
   });
@@ -110,7 +110,7 @@ describe('pickAttackWeaponList — auto-choix EXCLUT toujours l\'arme du poste s
     const gate = door({ x: 5, y: 0 });
     const ram = hull({ x: 4, y: 0 }, ramPoste);
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste, weapons: [sword, { ...ramWeapon }] } as never);
-    const w = firedWeapon(chef, gate, ramWeapon.uid, [chef, ram, gate]);
+    const w = firedWeapon(scene(), chef, gate, ramWeapon.uid, [chef, ram, gate]);
     expect(w.uid).toBe(ramWeapon.uid);
   });
 
@@ -118,11 +118,11 @@ describe('pickAttackWeaponList — auto-choix EXCLUT toujours l\'arme du poste s
     const target = combatant({ id: 'foe', pos: { x: 1, y: 0 } } as never); // au contact (mêlée personnelle possible)
     const cannonPoste2: ShipPoste = { item: cannonWeapon as never, crewIds: ['gunner'] };
     const gunner = combatant({ id: 'gunner', pos: { x: 0, y: 0 }, mannedPoste: cannonPoste2, weapons: [dagger, { ...cannonWeapon, type: 'distance' as const }] } as never);
-    const w = pickAttackWeaponList([gunner, target], gunner, target);
+    const w = pickAttackWeaponList(scene(), [gunner, target], gunner, target);
     expect(w.uid).not.toBe(cannonWeapon.uid);
     expect(w.uid).toBe(dagger.uid);
     // Option DÉDIÉE « Servir le canon » (weaponUid explicite) : inchangée.
-    const w2 = pickAttackWeaponList([gunner, target], gunner, target, cannonWeapon.uid);
+    const w2 = pickAttackWeaponList(scene(), [gunner, target], gunner, target, cannonWeapon.uid);
     expect(w2.uid).toBe(cannonWeapon.uid);
   });
 });

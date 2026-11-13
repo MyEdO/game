@@ -1,4 +1,4 @@
-import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
+import { libelleDeValeur, metaDesChamps, nommerChamps, nommerNoeud } from './meta';
 /**
  * RÉFÉRENCES de la grammaire de document (#1466 L1a) — les formes ACTUELLES de désignation d'une
  * entité par son id (réf simple, réf de Qualité, dotation, emplacement d'avancement, Trait posé).
@@ -280,9 +280,9 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
  *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
  *  texte narratif hors catalogue (+ quantité), dotation de POSSESSION (`dotationDePossessionSchema`,
  *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), somme d'argent (`sommeSchema`), mention par nature
- *  (`dotationDeMentionSchema`), « 1 parmi » (`pick`, `{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
- *  ou joker (`wildcard`). Composé par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`,
- *  sans texte ni mention. Sa `spec` est la PRÉCISION d'un objet, nommée comme telle : `trappings.json` ne
+ *  (`dotationDeMentionSchema`), « 1 parmi » (`pick`, `{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`,
+ *  dont une option peut aussi être un lot `{ lot }`), ou joker d'arme (`wildcard`, + `groupe`, + `qualityChoice`). Composé
+ *  par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`, sans texte, mention, joker ni lot. Sa `spec` est la PRÉCISION d'un objet, nommée comme telle : `trappings.json` ne
  *  déclare aucun catalogue de Spécialisations. */
 type CountSpecInfer = z.infer<typeof countSpecSchema>;
 type QualityRefInfer = z.infer<typeof qualityRefSchema>;
@@ -291,15 +291,18 @@ type QualityRefInfer = z.infer<typeof qualityRefSchema>;
 export const sommeSchema = nommerChamps(z.strictObject({ monnaie: monnaieSchema, count: countSpecSchema }), { monnaie: { label: 'monnaie' }, count: { label: 'nombre de pièces' } });
 export type Somme = z.infer<typeof sommeSchema>;
 
-/** Dotation d'un objet du catalogue : sa `spec` est la précision de la dotation, pas une Spécialisation. */
-export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({
+/** Objet du catalogue doté tel quel, sans emplacement : sa `spec` est la précision de la dotation, pas une
+ *  Spécialisation. Membre d'un lot (`lotDeDotationSchema`). */
+export const objetDeCatalogueSchema = nommerChamps(z.strictObject({
   id: idDe('trapping'),
   spec: z.string().optional(),
   count: countSpecSchema.optional(),
   qualities: z.array(qualityRefSchema).optional(),
-  qualityChoice: z.literal(true).optional(),
   valeur: sommeSchema.optional(),
-}), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' }, valeur: { label: 'valeur' } });
+}), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, valeur: { label: 'valeur' } });
+
+/** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atout au choix » (`qualityChoice`). LDB 60 */
+export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({ ...objetDeCatalogueSchema.shape, qualityChoice: z.literal(true).optional() }), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } });
 
 /** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */
 export const dotationDeMentionSchema = nommerChamps(z.strictObject({
@@ -320,24 +323,40 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
+type ObjetDeCatalogue = { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; valeur?: Somme };
 type FormeSansTexte =
-  | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true; valeur?: Somme }
+  | (ObjetDeCatalogue & { qualityChoice?: true })
   | DotationDePossession
-  | Somme
-  | { wildcard: 'arme' };
+  | Somme;
+type JokerDeDotation = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: true };
+type LotDeDotation = { lot: (ObjetDeCatalogue | DotationDePossession)[] };
 type DotationSansTexte = FormeSansTexte | Parmi<1, FormeSansTexte>;
 type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
-type FormeDeDotation = FormeSansTexte | DotationDeTexte | DotationDeMention;
+type FormeDeDotation = FormeSansTexte | JokerDeDotation | DotationDeTexte | DotationDeMention;
 
-const jokerDeDotationSchema = nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } });
+/** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, l'emplacement de son
+ *  Atout au choix. LDB 62 ; LDB 60 */
+const jokerDeDotationSchema = nommerChamps(z.strictObject({
+  wildcard: z.literal('arme'),
+  groupe: ref('weaponGroup', undefined, 'weapon').optional(),
+  qualityChoice: z.literal(true).optional(),
+}), { wildcard: { label: "choix libre" }, groupe: { label: "Groupe d’armes" }, qualityChoice: { label: 'qualité au choix' } });
 
-/** Les branches typées d'une dotation, plus les formes `autres`, et le « 1 parmi » de ces seules formes (`parmi`). */
-function formesDeDotation<A = never>(...autres: z.ZodType<A>[]): z.ZodType<FormeSansTexte | A | Parmi<1, FormeSansTexte | A>> {
-  const formes: z.ZodType<FormeSansTexte | A>[] = [dotationDeCatalogueSchema, ...autres, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema];
-  return z.union([parmi(formes, z.literal(1)), ...formes], { error: messageDeFormes });
+/** Plusieurs objets ou possessions dotés ENSEMBLE, option d'un « 1 parmi » : ni emplacement, ni somme, ni mention, ni texte. */
+const lotDeDotationSchema = nommerChamps(z.strictObject({
+  lot: z.array(z.union([objetDeCatalogueSchema, dotationDePossessionSchema], { error: messageDeFormes })).min(2),
+}), { lot: { label: 'lot' } });
+
+/** Les `formes` d'une dotation, et le « 1 parmi » de ces formes et des options `enPlusDansOf` (`parmi`). */
+function formesDeDotation<F, O = never>(formes: readonly z.ZodType<F>[], enPlusDansOf: readonly z.ZodType<O>[] = []): z.ZodType<F | Parmi<1, F | O>> {
+  return z.union([parmi<F | O, 1>([...formes, ...enPlusDansOf], z.literal(1)), ...formes], { error: messageDeFormes });
 }
 
-/** Dotation sans texte ni mention : `classes.json`. LDB 05 l.552 ; #4053 */
-export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation<never>();
-export const trappingRefSchema: z.ZodType<FormeDeDotation | Parmi<1, FormeDeDotation>> = formesDeDotation<DotationDeTexte | DotationDeMention>(dotationDeTexteSchema, dotationDeMentionSchema);
+/** Dotation sans texte, mention, joker ni lot : `classes.json`. LDB 05 l.552 ; #4053 */
+export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation<FormeSansTexte>([dotationDeCatalogueSchema, dotationDePossessionSchema, sommeSchema]);
+/** Dotation de `careerLevels.json` et `creatures.json`. */
+export const trappingRefSchema: z.ZodType<FormeDeDotation | Parmi<1, FormeDeDotation | LotDeDotation>> = formesDeDotation<FormeDeDotation, LotDeDotation>(
+  [dotationDeCatalogueSchema, dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema],
+  [lotDeDotationSchema],
+);
 

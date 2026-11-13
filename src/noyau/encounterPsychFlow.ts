@@ -62,7 +62,7 @@ export interface PendingEncounterPsych {
   heroId: string;
   kind: PsychType;
   sourceId: string;
-  sourceName: string;
+  sourceName: PlayerText;
   indice: number;
   cible?: CiblePsy;
   result: { success: boolean; brise?: number; sl?: number } | null;
@@ -162,7 +162,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
       label: cl
         ? libelleDePsy(trig.kind, trig.cible, nomDIndividu(s))
-        : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(libelleDeSource(src), '?')),
+        : stepDetail(stepPsych(trig.kind, trig.indice), libelleDeSource(src) || dataLabel(undefined, '?')),
     });
   }
   const steps = psychBands(dues);
@@ -180,7 +180,7 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
   const s = get();
   if (s.battle || s.pendingCascade) return;
   const sourceId = `scripted:${label}`;
-  const decl: PsychBandDecl = { kind, sourceId, sourceName: label, indice };
+  const decl: PsychBandDecl = { kind, sourceId, sourceName: dataLabel(label), indice };
   const dues: PsychDue[] = [];
   for (const hero of heroes) {
     if (hero.dead || isPsychImmune(hero)) continue;

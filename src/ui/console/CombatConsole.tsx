@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import { useGame } from '../../state/store';
 import type { BattleState, ShootingStanceKey } from '../../noyau/etat';
+import type { Scene } from '../../noyau/monde/scene';
 import { mouvementDuTour } from '../../noyau/mount';
 import type { Combatant, Weapon } from '../../engine/types';
 import { hasMeaningfulOption } from '../../noyau/turnEconomy';
@@ -416,8 +417,8 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
 
 /** CHROME des États de situation (`etatsDeSituation`) : ils entrent dans le même rack d'alvéoles que les États
  *  portés (spec §1c-bis, chrome d'état de l'arche §1c). */
-function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
-  const { assailli, cloue, renfort } = etatsDeSituation(active, battle);
+function actorStateChips(scene: Scene | null, active: Combatant, battle: BattleState): EffectChip[] {
+  const { assailli, cloue, renfort } = etatsDeSituation(scene, active, battle);
   const out: EffectChip[] = [];
   if (assailli) out.push({ key: 'a-assailli', icon: 'action/attaquer', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'etat', severity: 58, indice: assailli.nombre });
   if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'drapeau/peur', label: 'Cloué', kind: 'etat', severity: 64 });
@@ -441,6 +442,7 @@ function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
  */
 export function CombatConsole() {
   const battle = useGame((s) => s.battle);
+  const scene = useGame((s) => s.scene);
   const net = useGame((s) => s.net);
   // MDG 09 l.40.
   const gameTime = useGame((s) => s.gameTime);
@@ -603,7 +605,7 @@ export function CombatConsole() {
 
   // ── LA CONSOLE CONSOMME LE REGISTRE DES ACTIONS ────────────────────────────────────────────────
   // Contexte d'offre commun à toutes les cases (prédicats `ACTION_GATES`, spec HUD « Zone 12 »).
-  const gateCtx: ActionCtx = { active, battle, netMode: net.mode, gameTime };
+  const gateCtx: ActionCtx = { active, battle, scene, netMode: net.mode, gameTime };
   /** CANDIDATS portés par une alvéole : les valeurs d'identité de ses ARGS (`spellId`, `weaponUid`,
    *  `stateId`…). Aucun nom d'argument n'est cité ici — la case dit CE qu'elle paramètre, le registre
    *  dit qui le couvre. */
@@ -755,7 +757,7 @@ export function CombatConsole() {
   // G5 — postures de tir ARMÉES : elles ne s'allument que tant qu'elles ont un effet (le MÊME prédicat
   // que le gate de la case et que le versement dans le `PendingAttack`) — une posture périmée ne se
   // peint pas. La case, elle, reste TOUJOURS dessinée : elle se grise et dit pourquoi.
-  const posture = (key: ShootingStanceKey) => !!battle.stances?.[active.id]?.[key] && !STANCE_BLOCK[key](battle, active);
+  const posture = (key: ShootingStanceKey) => !!battle.stances?.[active.id]?.[key] && !STANCE_BLOCK[key](scene, battle, active);
   const consumables = (active.items ?? []).filter(isConsumable);
   // Consommables GROUPÉS par MODÈLE — plusieurs potions identiques = une case à compteur ×N. La clé de
   // regroupement est l'id STABLE de catalogue (`trappingId`, `items.ts:240`), jamais le libellé
@@ -877,7 +879,7 @@ export function CombatConsole() {
   const dispelProg = dispelCible ? { total: active.dispel!.total, ni: dispelCible.ni } : null;
   // L'habillage des attaques de trait ; le registre dit laquelle est offerte, et par quelle entrée
   // (`attaques-de-trait`, `attaques-de-zone`).
-  const attacks = availableAttacks(active, battle);
+  const attacks = availableAttacks(scene, active, battle);
   const spells = (active.spells ?? []).map((id) => findSpellById(id)).filter((s): s is NonNullable<typeof s> => !!s);
   const selfManeuvers = ACTION_CANDIDATES['manoeuvres-sur-soi'](gateCtx) as ManeuverDef[];
   // Les REMÈDES dont l'État est porté — lecture du registre (`remedesPertinents`).
@@ -1114,7 +1116,7 @@ export function CombatConsole() {
           active={active}
           move={{ value: moveLeft, max: moveMax }}
           action={{ value: actAvail, max: actMax }}
-          etats={actorStateChips(active, battle)}
+          etats={actorStateChips(scene, active, battle)}
         />
       ) : (
       <>
@@ -1234,7 +1236,7 @@ export function CombatConsole() {
           active={active}
           move={{ value: moveLeft, max: moveMax, spend: previewDelta.move, geste: cellFor('annulation-deplacement', 'mouvement') }}
           action={{ value: actAvail, max: actMax, spend: previewDelta.action }}
-          etats={actorStateChips(active, battle)}
+          etats={actorStateChips(scene, active, battle)}
           retraitDEtat={retraitDEtat}
         />
 

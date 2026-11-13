@@ -26,6 +26,7 @@ import { statutDeDonnee, type Status } from '../../engine/money';
 import {
   rollSpecies,
   rollCareer,
+  rollVariante,
   validatePointBuy,
   POINT_BUY_MIN,
   POINT_BUY_MAX,
@@ -63,24 +64,7 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import {
-  findSpeciesById,
-  findTalentById,
-  specPoolOf,
-  careersForSpecies,
-  carrieresTirables,
-  portionDeLaColonne,
-  levelsForCareer,
-  advancementLabel,
-  refLabel,
-  findStarById,
-  celestialHouses,
-  SpeciesData,
-  CareerLevelData,
-  trappingRefLabel,
-  type AdvancementRef,
-  type CareerData,
-} from '../../data';
+import { findSpeciesById, findCareerById, findTalentById, specPoolOf, careersForSpecies, carrieresTirables, offreDuJet, varianteDe, portionDeLaColonne, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef, type CareerData, type JetDeCarriere } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
@@ -116,11 +100,9 @@ export interface CreatorDraft
    *  AVANT de lancer les dés). Le d100 est figé par le seed : basculer re-lit le MÊME jet sur l'autre
    *  table (zéro savescum) — les jets sont donc réinitialisés au changement. */
   coastalSwap: boolean;
-  /** Jets de carrière figés (1 puis 3) ; au-delà : relances libres (0 PX, RAW l.212). Chaque jet
-   *  désigne une BORNE → `ids` = toutes les carrières de cette borne (choix libre, PX conservé). */
-  careerRolls: { roll: number; ids: string[] }[];
-  /** Nombre de relances LIBRES effectuées (annule tout bonus). */
-  careerFreeRolls: number;
+  /** Jets de carrière figés, dans l'ordre : le premier, les deux de plus, puis les relances libres. Chacun porte son
+   *  second lancer s'il a été fait ; son offre se lit par `offreDuJet`. LDB 05 l.208-212 ; AA 02 l.109-113 */
+  careerRolls: JetDeCarriere[];
   // 3) Caractéristiques
   charMode: CharMode;
   /** Les dix 2d10 TIRÉS (geste « Tirer aux dés » requis, #393 agentivité) : avant le geste, aucune
@@ -181,7 +163,6 @@ export function newDraft(seed: number): CreatorDraft {
     ignoreRestrictions: false,
     coastalSwap: false,
     careerRolls: [],
-    careerFreeRolls: 0,
     charMode: 'tire',
     charsRolled: false,
     charRerolls: 0,
@@ -291,7 +272,6 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
     talentsRolled: false,
     pettySpells: [],
     careerRolls: [],
-    careerFreeRolls: 0,
   };
 }
 
@@ -320,7 +300,7 @@ export function carrieresOffertes(d: CreatorDraft): CareerData[] {
 export function withCoastalSwap(d: CreatorDraft, coastalSwap: boolean): CreatorDraft {
   if (coastalSwap === d.coastalSwap) return d;
   if (d.careerRolls.length > 0) return d;
-  return { ...d, coastalSwap, careerRolls: [], careerFreeRolls: 0 };
+  return { ...d, coastalSwap, careerRolls: [] };
 }
 
 /** Lève ou rétablit le filtre des carrières par espèce (`carrieresOffertes`). */
@@ -328,36 +308,56 @@ export function withIgnoreRestrictions(d: CreatorDraft, ignoreRestrictions: bool
   return ignoreRestrictions === d.ignoreRestrictions ? d : { ...d, ignoreRestrictions };
 }
 
+/** Nombre de jets de carrière à bonus : le premier, puis les deux de plus. LDB 05 l.210-211 */
+const JETS_DE_CARRIERE_A_BONUS = 3;
 export function rollDraftCareer(d: CreatorDraft): CreatorDraft {
   const sp = draftSpecies(d);
   if (!sp) return d; // pas de tirage de carrière sans race (l'UI empêche d'y arriver)
   const n = d.careerRolls.length;
   if (n === 0) {
     const r = rollCareer(sp, d.coastalSwap, fluxDeCreation(d.seed, 'carriere'));
-    // Chaque jet rend la carrière tirée puis celles qu'il offre en plus (`ids`) ; défaut = la tirée, le joueur peut en choisir une autre.
-    return withCareer({ ...d, careerRolls: [r] }, r.ids[0]);
+    return withCareer({ ...d, careerRolls: [r] }, r.id);
   }
   if (n === 1) {
-    // « Faites deux lancers de plus, ce qui porte votre total à 3 choix » (LDB 05 l.211).
+    // LDB 05 l.211
     const rng = fluxDeCreation(d.seed, 'carriere:deux-de-plus');
     const r2 = rollCareer(sp, d.coastalSwap, rng);
     const r3 = rollCareer(sp, d.coastalSwap, rng);
     return { ...d, careerRolls: [...d.careerRolls, r2, r3] };
   }
-  // « continuez à relancer jusqu'à obtenir quelque chose qui vous plaît » (l.212) — 0 PX.
-  const r = rollCareer(sp, d.coastalSwap, fluxDeCreation(d.seed, 'carriere:relance', d.careerFreeRolls));
-  return withCareer({ ...d, careerFreeRolls: d.careerFreeRolls + 1 }, r.ids[0]);
+  // LDB 05 l.212
+  const r = rollCareer(sp, d.coastalSwap, fluxDeCreation(d.seed, 'carriere:relance', n - JETS_DE_CARRIERE_A_BONUS));
+  return withCareer({ ...d, careerRolls: [...d.careerRolls, r] }, r.id);
+}
+/** Le second lancer du jet de carrière `i`, au dé de la variante de sa carrière tirée (`varianteDe`) : il engage, sa
+ *  carrière devient celle du brouillon. Refusé si ce jet l'a déjà fait, ou si sa carrière n'a pas de variante pour
+ *  l'espèce. AA 02 l.109-113 ; VDM 03 l.17-19 */
+export function tirerLaVariante(d: CreatorDraft, i: number): CreatorDraft {
+  const sp = draftSpecies(d);
+  const jet = d.careerRolls[i];
+  const variante = sp && jet && !jet.second ? varianteDe(jet.id, sp) : undefined;
+  if (!sp || !variante) return d;
+  const tire = { ...jet, second: rollVariante(variante, fluxDeCreation(d.seed, 'carriere:variante', i)) };
+  return withCareer({ ...d, careerRolls: d.careerRolls.map((r, k) => (k === i ? tire : r)) }, offreDuJet(sp, tire)[0]);
 }
 export function careerXp(d: CreatorDraft): number {
-  if (d.careerFreeRolls > 0) return 0;
-  // +50 si la carrière choisie est dans la borne du 1ᵉʳ jet ; +25 si elle est dans l'une des 3 bornes.
-  if (d.careerRolls.length === 1 && d.careerRolls[0].ids.includes(d.careerId)) return XP_CAREER_FIRST;
-  if (d.careerRolls.length === 3 && d.careerRolls.some((r) => r.ids.includes(d.careerId))) return XP_CAREER_TOP3;
+  const sp = draftSpecies(d);
+  const n = d.careerRolls.length;
+  if (!sp || n > JETS_DE_CARRIERE_A_BONUS) return 0;
+  // AA 05 l.137
+  const borne = findCareerById(d.careerId)?.talentALaPlaceDe;
+  const borneTenue = !borne || d.careerTalent?.id !== borne.id || poolDuJoker('talent', borne).includes(d.careerTalent.spec ?? '');
+  const offert = d.careerRolls.some((r) => {
+    const offre = offreDuJet(sp, r);
+    return offre[0] === d.careerId || (borneTenue && offre.includes(d.careerId));
+  });
+  if (n === 1 && offert) return XP_CAREER_FIRST;
+  if (n === JETS_DE_CARRIERE_A_BONUS && offert) return XP_CAREER_TOP3;
   return 0;
 }
 /** PX qu'offre le prochain jet de carrière (LDB 05 l.210-212) : le 1ᵉʳ, les deux de plus, puis la relance libre. */
 export function careerXpDuProchainJet(d: CreatorDraft): number {
-  if (d.careerFreeRolls > 0 || d.careerRolls.length >= 3) return 0;
+  if (d.careerRolls.length >= JETS_DE_CARRIERE_A_BONUS) return 0;
   return d.careerRolls.length === 0 ? XP_CAREER_FIRST : XP_CAREER_TOP3;
 }
 export function withCareer(d: CreatorDraft, id: string): CreatorDraft {

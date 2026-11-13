@@ -22,7 +22,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findCreatureById, traits } from '../../../src/data';
+import { fabricationAtouts, findCreatureById, traits } from '../../../src/data';
+import { dotationsDuPnj, emplacementsDeDotation } from '../../../src/engine/trappingChoices';
+import { adresseDeCreation } from '../../../src/engine/adresseDeCreation';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
@@ -71,6 +73,7 @@ function valeursDeLInspecteur(e: Edition, id: string): Bouton[] {
 
 /** La première campagne du jeu : chaque scène a au moins deux cases de côté. */
 const CAMPAGNE = allBuiltinCampaigns[0].id;
+const COMMITES = await modelesCommites();
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
 describe('l’éditeur de carte par le pont', () => {
@@ -667,6 +670,23 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const tirees = (e: Edition) => valeursDeLInspecteur(e, 'valeur/combat/randomChars').find((b) => (b.jeu as { args: unknown[] }).args[2] === true)!;
     expect(tirees(presser(tirees(presser(boutonDe(hallebardier, 'valeur/combat/ajouter'))))).presse, 'ses Caractéristiques tirées au formulaire de son rôle au combat').toBe(true);
     expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
+  });
+
+  it('un personnage de carrière : l’Atout au choix d’une arme au choix paraît comme un choix de plus, à son adresse', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    const duelliste = presser(boutonDe(presser(boutonDe(pnj, 'carriere/ajouter/duelliste')), 'carriere/duelliste/niveau/4'));
+    const atout = emplacementsDeDotation(dotationsDuPnj('duelliste', 4)).find((e) => e.sorte === 'atout' && e.chemin.length === 2)!;
+    const joker = `carriere/dotation/${adresseDeCreation.dotation(atout.chemin.slice(0, 1))}`;
+    const id = `carriere/dotation/${atout.adresse}`;
+    expect(valeursDeLInspecteur(duelliste, joker).length, 'le choix de l’arme').toBeGreaterThan(1);
+    expect(valeursDeLInspecteur(duelliste, id).map((b) => b.id)).toEqual([`${id}/tiree`, ...fabricationAtouts().map((q) => `${id}/${q}`)]);
+    const solide = presser(boutonDe(duelliste, `${id}/solide`));
+    expect([boutonDe(solide, `${id}/solide`).presse, boutonDe(solide, `${id}/tiree`).presse]).toEqual([true, false]);
   });
 
   it('un personnage du Bestiaire : son profil porté, son rôle au combat au formulaire tiré du schéma, ses options au contexte de sa fiche, ses onglets sans id commun (#3606 M1a)', () => {
@@ -1269,7 +1289,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
 describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
   it('l’outil navire pose la caraque à son cap ; la réponse sert son corps, le monde le sol de ses ponts sans le peindre, et ses ponts sont des couches', () => {
     const { appel } = table();
-    servirLesModeles(appel, modelesCommites());
+    servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
     expect(ouverte.navires).toEqual({});
@@ -1292,7 +1312,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
 
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
     const { appel } = table();
-    servirLesModeles(appel, modelesCommites());
+    servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));

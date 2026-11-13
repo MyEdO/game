@@ -449,7 +449,7 @@ export function objetsDeLInventaire(
 ): ItemInstance[] {
   return Object.entries(inventaire).map(([id, porte]) => ({
     ...itemFromGive({ trappingId: id, apparence: apparences[id] }, () => uid(id), undefined, resolveTrapping, contexte),
-    equipped: porte,
+    equipped: porte === true,
   }));
 }
 

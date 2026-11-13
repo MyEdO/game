@@ -1132,6 +1132,25 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
   });
 });
 
+describe('marcheur du scan : le champ porteur d’un objet (`parcourir`)', () => {
+  it('fixture : les options d’un choix `{pick, of}` comptent sous le champ du choix ; un `of` sans `pick` reste son propre champ', () => {
+    const mesure = scannerFixtureDeReferences('structures-feuilles-de-choix-', {
+      'trappings.json': [{ id: 'dague', label: 'Dague' }, { id: 'corde', label: 'Corde' }],
+      'talents.json': [{ id: 'haine', label: 'Haine' }],
+      'niveaux.json': [{
+        id: 'n1',
+        label: 'N1',
+        trappings: [{ id: 'dague' }, { pick: 1, of: [{ id: 'dague' }, { id: 'corde' }] }],
+        talents: [{ id: 'haine' }, { pick: 1, of: [{ id: 'haine' }] }],
+        bonus: { tirage: 2, of: [{ id: 'dague' }, { id: 'corde' }] },
+      }],
+    }, []);
+    const occurrences = (champ: string) => mesure.occurrencesDeReference.filter((o) => o.dataset === 'niveaux.json' && o.champ === champ).length;
+    expect({ trappings: occurrences('trappings'), talents: occurrences('talents'), of: occurrences('of') }).toEqual({ trappings: 3, talents: 2, of: 2 });
+    expect(mesure.ambigues.filter((a) => a.dataset === 'niveaux.json'), 'une option de choix comptée sous un couple qui mêle les référents du porteur et d’autres').toEqual([]);
+  });
+});
+
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
   it('une façade et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));

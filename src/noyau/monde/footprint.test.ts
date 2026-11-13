@@ -1,15 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import {
-  sizeFootprint,
-  footprintN,
-  footprintTiles,
-  occupiesTile,
-  footprintChebyshev,
-  footprintsOverlap,
-  combatDistance,
-  decorFootGeometry,
-  propFootTiles,
-} from './footprint';
+import { sizeFootprint, footprintN, footprintTiles, occupiesTile, footprintChebyshev, footprintsOverlap, distanceDeCombat, decorFootGeometry, propFootTiles } from './footprint';
 import { datasetObject, setObjectDataset } from '../../data/overrides';
 import { findPropById } from '../../data';
 import { entityBlockedAt } from './sceneRules';
@@ -96,11 +86,11 @@ describe('footprint — empreinte N×N par Taille (donnée `sizes.json::footprin
     expect(footprintsOverlap({ x: 5, y: 5 }, 2, { x: 7, y: 7 }, 1)).toBe(false);
   });
 
-  it('combatDistance : coïncide avec chebyshev pour le 1×1, mais un grand est au contact par son bord', () => {
-    expect(combatDistance(C(0, 0), C(3, 0))).toBe(3); // deux 1×1 → identique à chebyshev
-    expect(combatDistance(C(5, 5, 'grande'), C(7, 6))).toBe(1); // 2×2 adjacent au bord est
-    expect(combatDistance(C(5, 5, 'grande'), C(8, 6))).toBe(2); // une tuile de marge
-    expect(combatDistance(C(0, 0), {} as Combatant)).toBe(Infinity); // cible non posée
+  it('distanceDeCombat : coïncide avec chebyshev pour le 1×1, mais un grand est au contact par son bord', () => {
+    expect(distanceDeCombat(C(0, 0), C(3, 0))).toBe(3); // deux 1×1 → identique à chebyshev
+    expect(distanceDeCombat(C(5, 5, 'grande'), C(7, 6))).toBe(1); // 2×2 adjacent au bord est
+    expect(distanceDeCombat(C(5, 5, 'grande'), C(8, 6))).toBe(2); // une tuile de marge
+    expect(distanceDeCombat(C(0, 0), {} as Combatant)).toBe(Infinity); // cible non posée
   });
 });
 

@@ -601,14 +601,16 @@ describe('BORD DE LA CARTE — le dehors s’amorce PAR le bord, et un plan qui 
     expect(scenePlanDefects(scene).filter((d) => d.family === 'porte-orpheline')).toEqual([]);
   });
 
-  describe('le POINT D’ENTRÉE se mémoïse par identité de Scène — l’éditeur revalide à chaque frappe', () => {
-    it('deux appels sur la MÊME réf rendent le MÊME tableau ; une réf neuve le recalcule, à l’identique', () => {
+  describe('le POINT D’ENTRÉE se retient sur les champs que lisent les audits (`CHAMPS_DU_PLAN`) — l’éditeur revalide à chaque frappe (#4043)', () => {
+    it('la MÊME réf, et une réf neuve aux mêmes champs lus, rendent le MÊME tableau ; un champ lu changé le recalcule, à l’identique', () => {
       const scene = scenePorteOrpheline();
       const premier = scenePlanDefects(scene);
       expect(scenePlanDefects(scene)).toBe(premier);
-      const copie: Scene = { ...scene };
-      const recalcule = scenePlanDefects(copie);
-      expect(recalcule).not.toBe(premier);
+      const renommee: Scene = { ...scene, label: 'Fixture renommée' };
+      expect(scenePlanDefects(renommee), 'un libellé changé : aucun audit refait').toBe(premier);
+      const dimensionsRecopiees: Scene = { ...scene, dimensions: { ...scene.dimensions } };
+      const recalcule = scenePlanDefects(dimensionsRecopiees);
+      expect(recalcule, 'les dimensions changées de référence : audits refaits').not.toBe(premier);
       expect(recalcule).toEqual(premier);
     });
 

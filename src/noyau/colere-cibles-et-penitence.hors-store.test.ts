@@ -130,7 +130,7 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     return { H, E };
   }
   const gate = (H: Combatant, id: string, spellId?: string) =>
-    actionGate(id, { active: H, battle: banc.getState().battle!, gameTime: MAINTENANT, ...(spellId ? { args: { spellId } } : {}) });
+    actionGate(id, { scene: banc.getState().scene, active: H, battle: banc.getState().battle!, gameTime: MAINTENANT, ...(spellId ? { args: { spellId } } : {}) });
 
   it('toute Action autre qu\'une Prière est refusée avec sa raison ; la Prière passe ; le Mouvement reste libre', () => {
     const { H, E } = penitent(5); // 1d10 = 5 → 5 + 2 Rounds

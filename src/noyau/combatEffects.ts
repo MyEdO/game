@@ -9,19 +9,7 @@ import { armChapterRecapIfDue } from './chapitreRecap';
 import { ouvrirLaFinDeSeance } from './partyFlow';
 import { tableTotale } from '../lib/tableTotale';
 import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
-import type {
-  LootGear,
-  CascadeStep,
-  CascadeStepMeta,
-  CascadeTableDone,
-  Cloture,
-  OpsCtxPorte,
-  PendingCascade,
-  PendingTest,
-  ScheduledEffect,
-  Suite,
-  RevealEntry,
-} from './pendings';
+import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
@@ -38,20 +26,8 @@ import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
 import { dialoguesDeLaScene } from './monde/scene';
-import {
-  bestForTests,
-  partyBest,
-  partyAssisted,
-  peutTenter,
-  possesses,
-  soutienDetail,
-  isSocialTest,
-  socialPsychMod,
-  socialPsychLabel,
-  socialPsychLines,
-  testValue,
-} from '../engine/skills';
-import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
+import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
+import { statusCharmMod, statusCharmLabel, actorStatus, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
 import { restoreFortune } from '../engine/fortune';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
@@ -62,19 +38,7 @@ import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, 
 import type { IdDeLigneDeButin } from './designations';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
-import {
-  creatureSemee,
-  navireSeme,
-  findCreatureById,
-  findVehicleById,
-  refLabel,
-  WATER_EXPOSURE,
-  diseaseLabel,
-  nightStakeRef,
-  combatStakeRef,
-  flowStakeRef,
-  testSkillLabel,
-} from '../data';
+import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { moraleBase } from '../engine/crewMorale';
 import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
@@ -104,27 +68,12 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import {
-  type FlowTest,
-  type ConditionCtx,
-  type EffectOp,
-  type CibleDeRole,
-  type CibleDeVolontaires,
-  type Condition,
-  flowEffects,
-  evalCondition,
-  executerFlow,
-  leafOpsCtx,
-  lierLesTirages,
-  EMPTY_FLOW,
-  type ArretDeFlow,
-  type ResteDuFlow,
-} from '../engine/flowCore';
+import { type FlowTest, type ConditionCtx, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, executerFlow, leafOpsCtx, lierLesTirages, EMPTY_FLOW, type ArretDeFlow, type ResteDuFlow } from '../engine/flowCore';
 import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
 import { type CascadeApplier, pushStep, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
 import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
@@ -973,15 +922,16 @@ export function openSkillTest(
   const isSocial = isSocialTest(spec);
   const tgtStatus = isSocial && spec.vsStatus ? statutDeDonnee(spec.vsStatus) : undefined;
   const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
-  // 1d10 « réaction au Statut » (option, LDB 08 l.40/59) tiré UNE fois par Test (RNG seedé) — appliqué à
+  // Réaction au Statut (option, LDB 08 l.38-46) tirée UNE fois par Test (RNG seedé) — appliquée à
   // tous les candidats de façon cohérente (la réaction de l'interlocuteur ne dépend pas du héros choisi).
-  const reactionRoll = tgtStatus && rule('social-reaction-au-statut') ? battleRng().int(1, 10) : undefined;
-  const statusMod = tgtStatus ? (c: Combatant) => statusCharmMod(actorStatus(c), tgtStatus, { begging: spec.begging, reactionRoll }) : undefined;
-  // Capricieux (MSRC 15 l.149-159) : la créature-interlocuteur tire un d10 (UNE fois, seedé,
+  const reaction = tgtStatus && rule('social-reaction-au-statut') ? tirerLaReactionAuStatut(battleRng()) : undefined;
+  const statusMod = tgtStatus ? (c: Combatant) => statusCharmMod(actorStatus(c), tgtStatus, { begging: spec.begging, reaction }) : undefined;
+  // Capricieux (MSRC 15 l.149-159) : la créature-interlocuteur tire sur la table (UNE fois, seedé,
   // INDÉPENDANT du héros choisi — c'est SA réaction) ; la table rend un delta de DR appliqué au Test
   // RÉSOLU (`FLOWS.test.resolve`), donc hors de `skillValue`/`target`. Constant pour tous les candidats.
-  const capriciousRoll = isSocial && spec.vsCapricieux ? battleRng().int(1, 10) : undefined;
-  const capDR = capriciousRoll != null ? capriciousDR(capriciousRoll) : 0;
+  const capricieux = isSocial && spec.vsCapricieux ? tirerLeCapricieux(battleRng()) : undefined;
+  const capriciousRoll = capricieux?.roll;
+  const capDR = capricieux?.dr ?? 0;
   const socialMod = psychMod || statusMod
     ? (c: Combatant) => (psychMod ? psychMod(c) : 0) + (statusMod ? statusMod(c) : 0)
     : undefined;
@@ -997,8 +947,8 @@ export function openSkillTest(
   // par Trait psy « contenu » (LDB 21), chacune liée à SA fiche par le producteur (`socialPsychLines`),
   // puis la ligne de Statut (LDB 08). Σ de ces lignes === `socialMod(c)` — la garde d'exactitude du
   // monteur le vérifie à chaque passage.
-  // Sous la règle optionnelle `social-reaction-au-statut`, la VALEUR de la ligne de Statut porte le
-  // d10 de réaction (annulé 1-2, inversé 9-10) alors que son LIBELLÉ décrit la base RAW : les deux
+  // Sous la règle optionnelle `social-reaction-au-statut`, la VALEUR de la ligne de Statut porte la
+  // réaction tirée (`tirerLaReactionAuStatut`) alors que son LIBELLÉ décrit la base RAW : les deux
   // divergent alors — le libellé est celui que la modale affiche déjà en sous-titre (`psychDetail`).
   const socialLines = (c: Combatant): ModLine[] => {
     const lines: ModLine[] = psychMod ? socialPsychLines(c, spec.vsGroups!) : [];
@@ -1048,8 +998,8 @@ export function openSkillTest(
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
     // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
-    // via `combatDistance`, active quand `actor.pos` est posé (combat en cours).
-    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && combatDistance(actor, c) <= 1 : undefined);
+    // via `distanceDeContact`, active quand `actor.pos` est posé (combat en cours).
+    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && distanceDeContact(get().scene, actor, c) <= 1 : undefined);
     const sout = soutD?.bonus ?? 0;
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
@@ -1094,7 +1044,7 @@ export function openSkillTest(
   const label = spec.label || skill || 'Test';
   set({
     pendingTest: {
-      actorId: def.id, actorName: def.label, label, skill, skillValue: def.value, difficulty,
+      actorId: def.id, label, skill, skillValue: def.value, difficulty,
       sujet: { skill: spec.skill && structuredClone(spec.skill), characteristic: spec.characteristic }, // #2097 ; réf structurée pour talentTestSLBonus (LDB 10)
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
@@ -2322,7 +2272,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const battle = env.get().battle;
       const pool = battle?.combatants.filter((c) => c.kind === 'heros') ?? env.get().party;
       const leader = partyBest(pool, e)?.actor;
-      const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && combatDistance(leader, c) <= 1 : undefined;
+      const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && distanceDeContact(env.get().scene, leader, c) <= 1 : undefined;
       const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
       if (!best) return;
       const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), groupe: env.get().party });

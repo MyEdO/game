@@ -24,6 +24,7 @@
  * Réservé aux tables qui activent l'option `jeux-de-taverne`.
  */
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import type { FlowTest } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
@@ -270,7 +271,7 @@ export interface TavernPayload {
   gameId: string;
   challengerId: string;
   opponentValue: number;
-  opponentName: string;
+  opponentName: PlayerText;
   opponentId?: string;
   stakeBrass: number;
   /** Scores de la manche close (lus par le dénouement d'une partie à manche unique). */
@@ -470,7 +471,7 @@ export function jouerALaTaverne(get: Get, set: Set, heroId: string, opts: Reglag
   const { game, challenger, opponentActor, allie, stakeBrass } = p;
   const opp = opts.opponent;
   const opponentValue = tavernGameValue(opponentActor, game);
-  const opponentName = opponentActor.label;
+  const opponentName = nomDe(opponentActor);
   // L'habitué n'a aucun banc (`tavernActor`) : ses lectures passent par `opponentValue`.
   const opponentId = opp.kind === 'profil' ? undefined : opponentActor.id;
 
@@ -1227,7 +1228,7 @@ const tablesDePot = memoParVersion('tavernGames', () => {
     if (!regles) continue;
     tables.set(potTableId(jeu.id), {
       label: jeu.label,
-      die: deDeLaTableTiree(regles).sides,
+      die: deDeLaTableTiree(regles),
       rows: regles.rows.map((r) => ({ min: r.min, max: r.max, id: r.potEffectId, label: r.label })),
       // L'ENCART de résultat (ce que le joueur lit juste après « Lancer ») dit l'ISSUE du lancer, pas
       // la fourchette où il tombe : la cible est celle du TOUR, lue à la RÉSOLUTION via le contexte du
@@ -1246,9 +1247,9 @@ const tablesDePot = memoParVersion('tavernGames', () => {
   return tables;
 });
 
-/** La DÉCLARATION de tirage d'un tour : les dés de la donnée, jamais un dé écrit ici. */
+/** La DÉCLARATION de tirage d'un tour : sa table, qui porte le dé de la donnée (#1667). */
 function potDecl(game: TavernGame): CascadeTableDecl {
-  return { tableId: potTableId(game.id), spec: deDeLaTableTiree(game.pot!) };
+  return { tableId: potTableId(game.id) };
 }
 
 /** Ce qui RESTE à un joueur : sa bourse, corrigée des mouvements déjà engagés dans la partie (les

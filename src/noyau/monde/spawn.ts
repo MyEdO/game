@@ -44,9 +44,9 @@ import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
 import { requiredTerrains } from '../../engine/ops';
-import { type Scene, type SceneEntity, heightAt, tileAt } from './scene';
+import { type Scene, type SceneEntity, heightAt, plafondDe, tileAt } from './scene';
 import type { InventaireDAuteur } from '../../data/schemas/defs-scenes/scene';
-import { footprintTiles, propFootTiles, sizeFootprint } from './footprint';
+import { footprintN, footprintTiles, propFootTiles, sizeFootprint } from './footprint';
 import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
@@ -78,17 +78,24 @@ import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 import { estPoseParSesPonts } from '../planDeNavire';
 
-/**
- * Pose la position d'un combattant en RAFRAÎCHISSANT sa hauteur métrique (`pos.h`) depuis le relief de
- * la scène — SOURCE UNIQUE de la cohérence position↔hauteur. À appeler au SPAWN et à CHAQUE déplacement
- * (combat, poussée/traction, course, téléport, chute, avance navale) : sans ce rafraîchissement, la
- * distance de combat verticale et le −10 « en contrebas » resteraient faux après le mouvement.
- * `z` omis quand nul et `h` omis quand la surface est à 0 m → byte-identique au plan sur une scène plate.
- */
-export function placeCombatant(c: { id: string; pos?: { x: number; y: number; z?: number; h?: number }; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+/** La position d'un corps d'empreinte `n` posé en `p` : `h` = sol de sa case d'ancrage (`heightAt`), `plafond` = le
+ *  plus haut des plafonds de ses cases (`plafondDe`). `z` omis quand nul, `h` à 0 m, `plafond` à ciel ouvert et sans
+ *  scène. PUR. */
+export function positionPosee(scene: Scene | null | undefined, n: number, p: { x: number; y: number; z?: number }): NonNullable<Combatant['pos']> {
   const z = p.z ?? 0;
   const h = scene ? heightAt(scene, p.x, p.y, z) : 0;
-  c.pos = { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
+  const plafond = scene ? Math.max(...footprintTiles(p, n).map((t) => plafondDe(scene, { ...t, z }))) : Infinity;
+  return { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}), ...(Number.isFinite(plafond) ? { plafond } : {}) };
+}
+
+/**
+ * Pose la position d'un combattant (`positionPosee`) et re-dérive ses drapeaux positionnels — SOURCE UNIQUE de la
+ * cohérence position↔scène. À appeler au SPAWN et à CHAQUE déplacement (combat, poussée/traction, course, téléport,
+ * chute, avance navale).
+ */
+export function placeCombatant(c: { id: string; pos?: Combatant['pos']; size?: Combatant['size']; footprint?: number; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+  const z = p.z ?? 0;
+  c.pos = positionPosee(scene, footprintN(c), p);
   // Drapeau POSITIONNEL « hors de son terrain » (op passive `offTerrainMod` — Créature marine MDG 16 l.17 /
   // Aquatique MSRC 15 l.139) : re-dérivé à CHAQUE placement (chokepoint UNIQUE du positionnement). Un porteur
   // dont la case n'est pas de son terrain d'élection (`eau`) subit mSet/testDR ; sans passif, no-op.

@@ -36,6 +36,7 @@ import {
   fusionDiff3, fusionnesEnCours, lancerHook, poserDansIndex, poserRef, rafraichirIndex, rebaseEntame, refusDeGit,
   reussi, shaDe, shasDuTravail, transactionDeRefs,
 } from '../guards/lib/gitPorte.mjs'
+import { segmentsDeFusion, tailleDeMarqueur } from '../guards/lib/blocsDeFusion.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
@@ -98,11 +99,10 @@ const CONFLITS = 'synchro-conflits'
 /** Les états d'opération git qu'un avancement ne traverse pas (`wt-status.c`, `wt_status_get_state`). */
 const OPERATIONS = Object.freeze(['CHERRY_PICK_HEAD', 'REVERT_HEAD', 'BISECT_LOG'])
 
-/** Les valeurs de l'attribut `merge` sous lesquelles git fusionne en texte (`git help gitattributes`, « merge »). */
-const FUSION_TEXTE = new Set(['unspecified', 'set'])
-
-/** Les lignes d'un texte, fin de ligne comprise. PURE. @param {string} texte */
-const lignesDe = (texte) => texte.match(/[^\n]*\n|[^\n]+$/g) ?? []
+/** Les valeurs de l'attribut `merge` sous lesquelles la fusion en texte vaut : celles où git fusionne en texte
+ *  (`git help gitattributes`, « merge ») et `imports`, dont le pilote rend la fusion en texte quand elle est propre
+ *  (`scripts/git-hooks/merge-imports.mjs`, `.gitattributes`). */
+const FUSION_TEXTE = new Set(['unspecified', 'set', 'imports'])
 
 /** La ligne sans sa fin. PURE. @param {string} ligne */
 const nue = (ligne) => ligne.replace(/\r?\n$/, '')
@@ -115,51 +115,23 @@ function estSousSuite(petite, grande) {
 }
 
 /**
- * La taille des marqueurs de conflit (`--marker-size`, `git help merge-file`) qu'aucune ligne de `textes`
- * n'imite : 1 + la plus longue suite de `<`, `=`, `>` ou `|` en tête de ligne, 7 au moins. PURE.
- * @param {...(string | Buffer)} textes
- */
-export function tailleDeMarqueur(...textes) {
-  let plusLongue = 0
-  for (const texte of textes) {
-    for (const [suite] of String(texte).matchAll(/^(?:<+|=+|>+|\|+)/gm)) plusLongue = Math.max(plusLongue, suite.length)
-  }
-  return Math.max(7, plusLongue + 1)
-}
-
-/** Le marqueur de conflit (`<`, `|`, `=` ou `>` répété `taille` fois) qui ouvre `ligne`, `null` sinon. PURE. */
-const marqueurDe = (ligne, taille) => new RegExp(`^(<{${taille}}|\\|{${taille}}|={${taille}}|>{${taille}})(?: |\\r?\\n|$)`).exec(ligne)?.[1][0] ?? null
-
-/**
  * La sortie `merge-file -p --diff3` dont chaque bloc en conflit à base VIDE, où un côté est une
  * sous-suite ordonnée de l'autre, est résolu par le PLUS LONG (verdict, D3) ; `null` dès qu'un bloc
  * ne l'est pas ; `taille` = celle des marqueurs (`tailleDeMarqueur`). PURE.
  * @param {string} texte @param {number} taille @returns {string | null}
  */
 export function resoudreBaseVide(texte, taille) {
+  const segments = segmentsDeFusion(texte, taille)
+  if (!segments) return null
   const sortie = []
-  /** @type {{ local: string[], base: string[], amont: string[] } | null} */
-  let bloc = null
-  let cote = 'local'
-  for (const ligne of lignesDe(texte)) {
-    const marqueur = marqueurDe(ligne, taille)
-    if (!bloc) {
-      if (marqueur === '<') [bloc, cote] = [{ local: [], base: [], amont: [] }, 'local']
-      else sortie.push(ligne)
-      continue
-    }
-    if (marqueur === '|' && cote === 'local') cote = 'base'
-    else if (marqueur === '=' && cote !== 'amont') cote = 'amont'
-    else if (marqueur === '>' && cote === 'amont') {
-      const { local, base, amont } = bloc
-      if (base.length) return null
-      if (estSousSuite(local, amont)) sortie.push(...amont)
-      else if (estSousSuite(amont, local)) sortie.push(...local)
-      else return null
-      bloc = null
-    } else bloc[/** @type {'local' | 'base' | 'amont'} */ (cote)].push(ligne)
+  for (const segment of segments) {
+    if ('lignes' in segment) sortie.push(...segment.lignes)
+    else if (segment.base.length) return null
+    else if (estSousSuite(segment.ours, segment.theirs)) sortie.push(...segment.theirs)
+    else if (estSousSuite(segment.theirs, segment.ours)) sortie.push(...segment.ours)
+    else return null
   }
-  return bloc ? null : sortie.join('')
+  return sortie.join('')
 }
 
 /** L'empreinte d'un fichier, `null` s'il est absent. @param {string} chemin */

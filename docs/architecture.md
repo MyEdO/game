@@ -55,6 +55,19 @@ ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un
 de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, utilisée par le pilote. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
 mesure>`.
 
+**Fusion des imports** (`.gitattributes`, `merge=imports` sur `.ts`, `.tsx`, `.mts`, `.mjs`, pilote
+`scripts/git-hooks/merge-imports.mjs` déclaré par `npm run postinstall`, #4178) : la fusion 3-voies
+ordinaire d'abord, rendue telle quelle quand elle est propre. En conflit, chaque suite de lignes faite
+seulement de déclarations `import` / `export` de premier niveau entières (`declarationsDImport`,
+`scripts/guards/lib/declarationsDImport.mjs`, sur l'arbre syntaxique de `dialecte.mjs`) est fusionnée par
+ensemble : chaque liaison, sous le nom qu'elle lie, prend la valeur du côté qui l'a changée depuis
+l'ancêtre. Une liaison changée des deux côtés, un nom que le module lie déjà ailleurs, deux imports d'effet
+ajoutés chacun d'un côté, un commentaire dans la région, une version qui ne se parse pas laissent le
+conflit ordinaire, comme tout conflit hors des imports. La sortie de `merge-file --diff3`
+se lit par `segmentsDeFusion` (`scripts/guards/lib/blocsDeFusion.mjs`), partagé avec
+`scripts/ops/synchroniser.mjs`. GitHub n'exécute aucun pilote : le gain est à la fusion locale et dans le
+train.
+
 ## Frontière orchestrateur · machinerie · data-driven
 
 Un Trigger doit fonctionner pour TOUT kind d'entité (maladie, talent, trait, sort, état, mutation)
@@ -441,8 +454,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             machinerie (`machinerieDuNoyau.ts`, #3370) : les écritures que le noyau, l'éditeur ou
                             un test appellent et qu'aucun hôte ne joue, hors de `Intention` et de `VERBES`.
                             `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
-                            n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre` rend `{ issue,
-                            evenements, journal }`. `lancementDeScenario.ts` (#2898) : le lancement d'un
+                            n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre`/`relever`/`recevoir`
+                            rend `{ issue, evenements, journal }` (`recevoir` y joint `neuve` et `autreScene`),
+                            et `abonner` suit chaque écriture. `lancementDeScenario.ts` (#2898) : le lancement d'un
                             scénario de test et sa séquence unique, jouée par la partie et par
                             `state/scenarioFlow.ts`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
                             réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
@@ -506,6 +520,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   partyFlow.ts                équipement, avancement PX, consommables de fiche, butin
   merchantFlow.ts             marchand : réassort, panier, achat/vente/réparation, Marchandage, Évaluation
   travelFlow.ts               voyage jour par jour (temps, fatigue, péripéties d10+auteur, interruption/reprise)
+  evenementDuJour.ts          l'événement raconté du jour d'un trajet, tous milieux : `noteEvent`, seul écrivain de
+                              `TravelPlan.evenements`, et `rangerLesEvenements`, appelé par chaque sortie de jour
   billetFlow.ts               billet d'un passage payant : offre de départ (estimation = débit), billet en main, Marchandage du billet
   upkeep.ts                   entretien QUOTIDIEN (#T3 cascade : rations/faim + maladies + convalescence
                               des critiques, jours CALENDAIRES) + purge des effets a duree d'horloge
@@ -626,8 +642,8 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             par entrée, causes d'un stockage indisponible) ; la poignée porte le cache, les tombes en
                             attente et les refus au geste), `coop/` (la coop sur le `Transport` que l'hôte fournit :
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
-                            hôte-autoritaires, dont le paquet de campagne : envoyé au join, rattrapé à la diffusion
-                            qui suit son chargement, ses scènes enregistrées chez l'invité ; `transport.ts`, le port
+                            hôte-autoritaires, l'instantané pour seul état diffusé, scènes de la campagne comprises
+                            (`campaignDoc`, `appliquerLInstantane`) ; `transport.ts`, le port
                             `Transport`, et sa paire en mémoire de test `transport.testkit.ts`),
                             `stockageWeb.ts` (accès protégé au `localStorage` et au `sessionStorage`, `stockageWeb`,
                             pour l'hôte web comme pour la page de l'hôte Godot ; un dictionnaire persisté s'y relit par
@@ -677,8 +693,14 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             l'export Web et, à côté, chaque modèle en scène que l'éditeur fabrique de son GLB
                             (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), et
                             sous `licences/` l'avis de licence de chaque œuvre tierce embarquée (`avis.mjs`, #4063), que
-                            `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
-                            nommées d'une scène (`--parcours cadrages`, `cadrages/`). `--bureau --sortie <dossier>`
+                            `recette.mjs --web` joue au navigateur : un tour complet, l'atelier, ou les vues
+                            nommées d'une scène (`--parcours cadrages`, `cadrages/`). `recette.mjs --natif` (#3945) joue
+                            les mêmes parcours sans export ni navigateur : le jeu lancé sur une copie importée du projet,
+                            sans rendu ou, pour un parcours qui lit l'image, en rendu réel sur un écran virtuel
+                            (`--rendu`), piloté par `projet/recettes/pilote.gd`, son pont et son serveur dans le
+                            processus de la recette (`pilotage/`) ; `npm run godot:recette`, étape de la CI, en joue
+                            `combat` et `editeur`, le canari le lot natif entier (`lot-de-recettes.mjs --natif`).
+                            `--bureau --sortie <dossier>`
                             (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
                             embarqué (`noyau/` : Node, le bundle, le point d'entrée), ses modèles en scène et ses avis
                             de licence, Node compris, puis lui
@@ -862,9 +884,10 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/noyau/intentionsDeSiege.ts  Allowlist coop : la classe de chaque action du noyau (invité, hôte,
-                            local, interne), `GUEST_INTENTS` que `netFlow.ts` enrobe chez l'invité, et
-                            `appliquerLIntentionDUnSiege`, seul point d'entrée d'une intention chez l'hôte.
-src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte, interne).
+                            local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusDuVerbeDHote`
+                            que `Partie.envoyer` lit chez l'invité, et `appliquerLIntentionDUnSiege`, seul point
+                            d'entrée d'une intention chez l'hôte.
+src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte).
 src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
                             paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
                             plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
@@ -877,10 +900,13 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
 src/net/                    compress.ts : la compression de l'hôte web (CompressionStream), port `Compression` du relay
 src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, session.ts, relay.ts (RelayClient
                             heartbeat/backoff, RoomHost = un Transport virtuel par siège, RoomGuest), salon.ts
-                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web
+                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web.
+                            L'attribution des sièges (héros, emplacement, rôle MJ) n'y vit pas : trois verbes
+                            `hôte` du noyau (`src/noyau/reseau.ts`, `affecter…`) sur les fonctions pures
+                            de `src/noyau/sieges.ts`
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
-                            relance le handshake, puis reçoit campagne et snapshot autoritaire frais.
+                            relance le handshake, puis reçoit un snapshot autoritaire frais.
 server/                     Worker Cloudflare du relay coop (Durable Object « Room », hibernation WS,
                             TTL 30 min) — npm run relay:dev / relay:deploy
 art-ref/                    Illustrations extraites des PDFs + mapping.json (GITIGNORÉ — droits Cubicle 7)

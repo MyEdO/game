@@ -6,43 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import {
-  activeCombatant,
-  offreArmee,
-  mouvementDuTour,
-  fenetreDuJeu,
-  combatDistance,
-  etatDeLaBarre,
-  offresDeLActif,
-  validTargets,
-  endTurnArmed,
-  porteeDuCombattant,
-  vehiculeDuCombattant,
-  gestesDExploration,
-  jetsEnVue,
-  capDuGroupe,
-  stepInteraction,
-  porteesDuTour,
-  tileFromKey,
-  estPoseParSesPonts,
-  fermeturesDeLaFenetre,
-  libelleDeLaFermeture,
-  combattantEnVue,
-  entiteConnue,
-  nomEnVue,
-  porteurEnVue,
-  type Combatant,
-  type EtatDeLaBarre,
-  type GesteDExploration,
-  type GesteDuJeu,
-  type GesteDuNoyau,
-  type Jeu,
-  type JetEnVue,
-  type Offre,
-  type PorteeDeComposition,
-  type Pt,
-  type VehiculeDuCombattant,
-} from '../noyau/index';
+import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, distanceDeCombat, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, vehiculeDuCombattant, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, estPoseParSesPonts, fermeturesDeLaFenetre, libelleDeLaFermeture, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt, type VehiculeDuCombattant } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -53,7 +17,7 @@ export interface CombattantProjete {
   avantage: number;
   /** Sa case et sa couche (`Combatant.pos`, `z` absent : 0) ; `null` sans position. */
   pos: [x: number, y: number, z: number] | null;
-  /** Distance de l'actif en vue, en cases (`combatDistance`) ; `null` sans position ou sans actif en vue. */
+  /** Distance de l'actif en vue, en cases (`distanceDeCombat`) ; `null` sans position ou sans actif en vue. */
   distance: number | null;
   /** Engagé avec l'actif en vue (`engagedWith`). */
   engage: boolean;
@@ -190,7 +154,7 @@ export const proprietaireDeLaFenetre = (etat: Jeu, id: string | undefined | null
 export const horsCombat = (c: Combatant): boolean => !!c.dead || !!c.outOfRencontre;
 
 function combattant(c: Combatant, actif: Combatant | undefined, facing: Jeu['facing']): CombattantProjete {
-  const d = actif ? combatDistance(actif, c) : Infinity;
+  const d = actif ? distanceDeCombat(actif, c) : Infinity;
   return {
     id: c.id,
     nom: c.label,
@@ -237,7 +201,7 @@ const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
 
 /** Les offres de l'actif d'une barre ouverte (`offresDeLActif`, l'énumération que lit la console). */
 export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, { forme: 'ouverte' }>): Offre[] =>
-  offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, state: etat });
+  offresDeLActif({ active: barre.active, battle: barre.battle, scene: etat.scene, netMode: etat.net.mode, gameTime: etat.gameTime, state: etat });
 
 /** Les offres, une par action, dans l'ordre du registre : ses candidats ouverts comptés ; fermée quand aucun ne
  *  l'ouvre, avec la raison de son premier candidat (loi du refus visible, `offresDeLActif`). */

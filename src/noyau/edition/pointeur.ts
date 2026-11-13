@@ -5,33 +5,11 @@
  * si elle ouvre un cran d'annulation, la sélection désignée, la case tracée d'une volée) et le geste en cours, que
  * l'hôte repasse au pas suivant.
  */
-import { sceneMetresPerTile, type Scene, type CellSide } from '../monde/scene';
+import { canonEdge, sceneMetresPerTile, type Scene, type CellSide } from '../monde/scene';
 import { ancreDuDecor } from '../monde/footprint';
-import {
-  appliquerOutil,
-  addFacadeSection,
-  moveSel,
-  poserLeDecorAuPoint,
-  rectFrom,
-  resizeSel,
-  validerRectangle,
-  type GesteDOutil,
-  type Pt,
-  type Rect,
-} from '../sceneEdit';
+import { appliquerOutil, addFacadeSection, moveSel, poserLeDecorAuPoint, rectFrom, resizeSel, validerRectangle, type GesteDOutil, type Pt, type Rect } from '../sceneEdit';
 import { caseDe } from '../../data/props.types';
-import {
-  canonEdge,
-  dansLaCarte,
-  empriseDuPinceau,
-  hitAt,
-  nearestEdge,
-  pickArchitectureEdge,
-  pickWallEdge,
-  type Layers,
-  type Sel,
-  type Tool,
-} from '../sceneEditLecture';
+import { dansLaCarte, empriseDuPinceau, hitAt, nearestEdge, pickArchitectureEdge, pickWallEdge, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { provenanceDesNavires } from '../planDeNavire';
 
 /** Ce que l'éditeur tient autour du geste : l'outil, la couche, le pinceau, la rencontre que l'outil de rencontre

@@ -494,7 +494,8 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       for (const neutre of [relatif(rel, 'docs/zz.json'), 'node:fs']) cas.push([`${rel} → ${neutre}`, voisin(rel, cas.length), `import x from '${neutre}';\nexport const a = x;\n`, 'passe']);
     }
     for (const [z, { outillage = {} }] of Object.entries(COUCHES)) {
-      for (const [script, modules] of Object.entries(outillage)) {
+      for (const [cle, modules] of Object.entries(outillage)) {
+        const script = cle.endsWith('/') ? `${cle}zz-outil.mjs` : cle;
         const [autre] = sondes(z).filter((rel) => rel !== script);
         for (const m of modules) {
           cas.push([`${script} → ${m} (déclaré)`, script, `import * as x from '${relatif(script, m)}';\nexport const a = x;\n`, 'passe']);

@@ -57,6 +57,7 @@ import { freeCons, openPartyTest } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
@@ -984,7 +985,7 @@ function openAppraise(
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
-    actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
+    actorId: best.actor.id, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', APPRAISE_SKILL[mode].skill),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
@@ -1089,20 +1090,21 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     const item = pa.itemUid ? get().party.flatMap((h) => h.items ?? []).find((i) => i.uid === pa.itemUid) : undefined;
     const isMagic = line ? line.magic : !!item && (item.identified === false || !!item.magicKnown);
     const rules = line ? (line.effect.qualities?.length ?? (line.effect.identified === false ? 1 : 0)) : 1;
+    const actor = garanti(nomEnVue(get(), pa.actorId), pa.actorId, 'détecteur de la Détection');
     if (!pa.success) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionVaine', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionVaine', { actor, item: pa.itemName }));
       return;
     }
     if (!isMagic) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionSansAura', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionSansAura', { actor, item: pa.itemName }));
       return;
     }
     // Succès : aura sentie ; chaque DR apprend une règle → tout révélé quand DR couvre les règles.
     const allKnown = pa.sl >= Math.max(1, rules);
     patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
-    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor: pa.actorName, item: pa.itemName, dr: pa.sl }));
+    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor, item: pa.itemName, dr: pa.sl }));
     return;
   }
   if (!pa.success) {

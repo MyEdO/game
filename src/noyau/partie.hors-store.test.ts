@@ -3,21 +3,16 @@
  * jusqu'à la clôture du combat, puis une intention de siège sans verdict. Les dés viennent des entrées
  * (graine, dés fixés). Le duel est celui de `combatDeTest.testkit.ts`, dans la scène de fixture.
  */
-import { describe, it, expect } from 'vitest';
-import {
-  creerPartie,
-  etatInitialDuJeu,
-  previewAttack,
-  type EntreesDeLaPartie,
-  type EtatDeJeu,
-  type Intention,
-  type Jeton,
-  type Partie,
-  type ResultatDeLAppel,
-} from './index';
+import { describe, it, expect, vi } from 'vitest';
+import { creerPartie, etatInitialDuJeu, instantaneDeLaCoop, previewAttack, type EntreesDeLaPartie, type EtatDeJeu, type Intention, type Jeton, type Partie, type ResultatDeLAppel } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { BRUNA, etatAttable, rangsAssis } from './taverneAttablee.testkit';
 import { testScene } from '../scenes/test-fixture';
+import { CLASSE_DES_ACTIONS_DU_NOYAU } from './intentionsDeSiege';
+import { portesDuMobile } from './marcheDuGroupe';
+import { emptyScene } from './monde/scene';
+import { t } from '../i18n';
+import { bus, EVT } from './bus';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -36,6 +31,9 @@ function duel(garder: (etat: EtatDeJeu, duel: ReturnType<typeof auContact>) => E
 }
 
 const combattant = (partie: Partie, id: string) => partie.etat().battle!.combatants.find((c) => c.id === id)!;
+
+/** L'état d'un invité du siège 1 d'une session. */
+const chezLInvite = (etat: EtatDeJeu): EtatDeJeu => ({ ...etat, net: { ...etat.net, mode: 'invite', mySeat: 1, roomCode: 'ABCDEF' } });
 
 describe('creerPartie — une attaque jouée par la seule surface du noyau', () => {
   it('déclaration, jet, défense, critique, mise hors de combat, puis `jetValider@cascade` jusqu’à la clôture', () => {
@@ -95,6 +93,116 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       expect(partie.etat().localIntent, 'le clic du siège a dissous l’intention du propriétaire').toEqual({ actionId: 'course' });
       expect(partie.etat().pendingRun ?? partie.etat().pendingCascade, 'le siège a couru sur la case du propriétaire').toBeFalsy();
       expect(combattant(partie, H.id).pos).toEqual({ x: 10, y: 10 });
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('creerPartie — l’intention sans siège joue l’action de l’état (#3009)', () => {
+  it('chez un invité, un verbe de l’allowlist part à l’hôte par l’enrobage, rien ne se joue chez lui', () => {
+    const partie = creerPartie(chezLInvite(etatAttable()), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      partie.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id] });
+      expect(envoi.mock.calls).toEqual([['renvoyerLeHeros', [BRUNA.id]]]);
+      expect(partie.etat().party.map((h) => h.id), 'l’invité a renvoyé le héros dans sa copie').toContain(BRUNA.id);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('chez un invité, l’intention armée (verbe `local`) se pose chez lui sans partir, puis le clic du champ part avec son `intentionId`', () => {
+    const { H, partie: ouverte } = duel();
+    const garde = ouverte.etat();
+    ouverte.fermer();
+    const partie = creerPartie(chezLInvite({ ...garde, net: { ...garde.net, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } }), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      partie.envoyer({ type: 'armerLIntention', args: ['course'] });
+      expect(partie.etat().localIntent, 'l’intention armée se pose chez l’invité').toEqual({ actionId: 'course' });
+      expect(envoi, 'un verbe `local` ne part pas').not.toHaveBeenCalled();
+      const loin = { x: H.pos!.x - 6, y: H.pos!.y };
+      partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }] });
+      expect(envoi.mock.calls).toEqual([['cliquerLaCase', [loin, undefined, { confirm: true, intentionId: 'course' }]]]);
+      expect(combattant(partie, H.id).pos, 'le clic ne s’est pas joué chez l’invité').toEqual(H.pos);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  /** Les verbes de classe `hôte`, lus à la table. */
+  const VERBES_D_HOTE = Object.entries(CLASSE_DES_ACTIONS_DU_NOYAU).flatMap(([verbe, classe]) => (classe === 'hôte' ? [verbe as keyof typeof CLASSE_DES_ACTIONS_DU_NOYAU] : []));
+  /** L'intention d'un verbe envoyée sans argument : la garde passe avant toute lecture des arguments. */
+  const sansArgument = (verbe: string): Intention => ({ type: verbe, args: [] }) as unknown as Intention;
+  /** L'état sans fonction ni journal, ni son compte : ce qu'un geste refusé ne doit pas changer. */
+  const horsJournal = (partie: Partie): string => JSON.stringify({ ...partie.etat(), journal: undefined, lignesAuJournal: undefined });
+
+  it('chez un invité, hors combat, chaque verbe `hôte` se refuse au journal sans rien jouer ni envoyer', () => {
+    expect(VERBES_D_HOTE.length, 'la table ne compte aucun verbe `hôte`').toBeGreaterThan(0);
+    const partie = creerPartie(chezLInvite(etatAttable()), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      for (const verbe of VERBES_D_HOTE) {
+        const avant = horsJournal(partie);
+        const appel = partie.envoyer(sansArgument(verbe));
+        expect(appel.issue, verbe).toBe('appliquee');
+        expect(appel.journal, `${verbe} : le refus n’est pas la seule ligne de l’appel`).toEqual([expect.objectContaining({ de: 'journal', texte: t('coop.hoteSeul') })]);
+        expect(horsJournal(partie), `${verbe} s’est joué dans la copie de l’invité`).toBe(avant);
+      }
+      expect(envoi, 'un verbe `hôte` est parti à l’hôte').not.toHaveBeenCalled();
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('chez un invité, en combat, chaque verbe `hôte` pose son refus à la bannière', () => {
+    const { partie: ouverte } = duel();
+    const garde = ouverte.etat();
+    ouverte.fermer();
+    const partie = creerPartie(chezLInvite(garde), ENTREES);
+    try {
+      for (const verbe of VERBES_D_HOTE) {
+        const refusPrecedent = partie.etat().refus;
+        partie.envoyer(sansArgument(verbe));
+        expect(partie.etat().refus, `${verbe} n’a pas posé de refus neuf`).not.toBe(refusPrecedent);
+        expect(partie.etat().refus?.texte, verbe).toBe(t('coop.hoteSeul'));
+      }
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('en partie locale et chez l’hôte d’une session, un verbe `hôte` se joue : la porte fermée s’ouvre', () => {
+    const scene = emptyScene('scene-test', 4, 4);
+    scene.effectZones = [{ id: 'piece', label: 'Pièce', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 1, h: 1 } }];
+    scene.walls = [{ x: 1, y: 1, side: 'N', door: true, closed: true }];
+    const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
+    ouverture.lancer({ party: [heroDuDuel()], scene, projet: null });
+    const garde = { ...ouverture.etat(), partyPos: { x: 1, y: 1 } };
+    ouverture.fermer();
+    for (const mode of ['local', 'hote'] as const) {
+      const partie = creerPartie({ ...garde, net: { ...garde.net, mode, roomCode: mode === 'hote' ? 'ABCDEF' : garde.net.roomCode } }, ENTREES);
+      try {
+        const porte = portesDuMobile(partie.etat()).find((p) => p.kind === 'door-closed');
+        expect(porte, `${mode} : fixture sans porte fermée`).toBeTruthy();
+        partie.envoyer({ type: 'actionnerLaPorte', args: [porte!.id] });
+        expect(portesDuMobile(partie.etat()).find((p) => p.id === porte!.id)?.kind, `${mode} : la porte ne s’est pas ouverte`).toBe('door-open');
+      } finally {
+        partie.fermer();
+      }
+    }
+  });
+
+  it('chez l’hôte d’une session, le verbe se joue chez lui comme en partie locale', () => {
+    const etat = etatAttable();
+    const partie = creerPartie({ ...etat, net: { ...etat.net, mode: 'hote', roomCode: 'ABCDEF' } }, ENTREES);
+    try {
+      partie.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id] });
+      expect(partie.etat().party.map((h) => h.id)).not.toContain(BRUNA.id);
     } finally {
       partie.fermer();
     }
@@ -183,3 +291,217 @@ describe('creerPartie — le `set` du propriétaire', () => {
   });
 });
 
+
+/** L'instantané que l'hôte diffuse, copié comme le réseau le porte. */
+const instantane = (hote: Partie): Record<string, unknown> => JSON.parse(JSON.stringify(instantaneDeLaCoop(hote.etat()))) as Record<string, unknown>;
+const textes = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const deCombat = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'combat' ? [l.evenement] : []));
+const etatsGagnesDe = ({ evenements }: ResultatDeLAppel) => evenements.filter((e) => e.type === 'etatGagne');
+
+/** Joue `jouer` sur une partie d'hôte ouverte sur `depart`, qui pousse à `diffuser` les instantanés qu'elle diffuse ; la ferme. */
+function chezLHote(depart: EtatDeJeu, jouer: (hote: Partie, diffuser: () => void) => void): Record<string, unknown>[] {
+  const diffuses: Record<string, unknown>[] = [];
+  const hote = creerPartie({ ...depart, net: { ...depart.net, mode: 'hote', mySeat: 0, roomCode: 'ABCDEF' } }, ENTREES);
+  try {
+    jouer(hote, () => diffuses.push(instantane(hote)));
+  } finally {
+    hote.fermer();
+  }
+  return diffuses;
+}
+
+/** Une partie d'invité ouverte, l'hôte fermé ; fermée après `jouer`. */
+function invite(jouer: (partie: Partie) => void, depart: EtatDeJeu = etatInitialDuJeu()): void {
+  const partie = creerPartie(chezLInvite(depart), ENTREES);
+  try {
+    jouer(partie);
+  } finally {
+    partie.fermer();
+  }
+}
+
+describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#3009 E3r)', () => {
+  it('R1 : pose l’état de l’hôte, l’invité garde son identité réseau, et ses verbes partent encore à l’hôte', () => {
+    const [premier, second] = chezLHote(etatAttable(), (hote, diffuser) => {
+      diffuser();
+      hote.etat().ecrireAuJournal('Une ligne de l’hôte.');
+      diffuser();
+    });
+    invite((partie) => {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      partie.recevoir(premier);
+      partie.recevoir(second);
+      expect(partie.etat().scene?.id, 'la scène de l’hôte n’est pas posée').toBe(etatAttable().scene?.id);
+      expect(partie.etat().party.map((h) => h.id)).toEqual(etatAttable().party.map((h) => h.id));
+      expect(partie.etat().net).toMatchObject({ mode: 'invite', mySeat: 1 });
+      partie.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id] });
+      expect(envoi.mock.calls, 'après deux instantanés, le verbe ne part plus à l’hôte').toEqual([['renvoyerLeHeros', [BRUNA.id]]]);
+    });
+  });
+
+  it('R2 : le journal arrive une fois ; deux lignes écrites entre deux instantanés arrivent dans l’ordre', () => {
+    const [zero, deux] = chezLHote(etatInitialDuJeu(), (hote, diffuser) => {
+      diffuser();
+      hote.etat().ecrireAuJournal('Première.');
+      hote.etat().ecrireAuJournal('Seconde.');
+      diffuser();
+    });
+    invite((partie) => {
+      expect(textes(partie.recevoir(zero))).toEqual([]);
+      expect(textes(partie.recevoir(deux))).toEqual(['Première.', 'Seconde.']);
+      expect(textes(partie.recevoir(deux)), 'le même instantané redit le journal').toEqual([]);
+    });
+  });
+
+  it('R3 : une ligne que l’invité écrit chez lui ne décale pas le compte de l’hôte', () => {
+    const [zero, deux] = chezLHote(etatAttable(), (hote, diffuser) => {
+      diffuser();
+      hote.etat().ecrireAuJournal(['Une.', 'Deux.']);
+      diffuser();
+    });
+    const verbeDHote = Object.entries(CLASSE_DES_ACTIONS_DU_NOYAU).find(([, classe]) => classe === 'hôte')![0];
+    const refusChezLInvite = (partie: Partie) => expect(textes(partie.envoyer({ type: verbeDHote, args: [] } as unknown as Intention)), 'témoin : le refus s’écrit chez l’invité').toEqual([t('coop.hoteSeul')]);
+    invite((partie) => {
+      partie.recevoir(zero);
+      refusChezLInvite(partie);
+      expect(textes(partie.recevoir(deux))).toEqual(['Une.', 'Deux.']);
+      refusChezLInvite(partie);
+      expect(textes(partie.recevoir(deux))).toEqual([]);
+    });
+  });
+
+  it('R4 : la fenêtre de l’hôte borne ce qui arrive entre deux instantanés', () => {
+    const lignes = Array.from({ length: 45 }, (_, i) => `Ligne ${i + 1}.`);
+    const [zero, uneAUne, enUnAppel] = chezLHote(etatInitialDuJeu(), (hote, diffuser) => {
+      diffuser();
+      for (const ligne of lignes) hote.etat().ecrireAuJournal(ligne);
+      diffuser();
+      hote.etat().ecrireAuJournal(lignes);
+      diffuser();
+    });
+    invite((partie) => {
+      partie.recevoir(zero);
+      expect(textes(partie.recevoir(uneAUne))).toEqual(lignes.slice(-41));
+      expect(textes(partie.recevoir(enUnAppel))).toEqual(lignes);
+    });
+  });
+
+  it('R5 : une partie relancée après une avance de l’horloge rend son message de départ une fois, et rien sans message', () => {
+    const texte = 'Vous entrez dans la salle.';
+    for (const scene of [{ ...testScene(), startMessage: { texte } }, testScene()]) {
+      const [lancee, avancee, relancee] = chezLHote(etatInitialDuJeu(), (hote, diffuser) => {
+        hote.lancer({ party: [heroDuDuel()], scene, projet: null });
+        diffuser();
+        hote.etat().avancerLeTemps(60);
+        diffuser();
+        hote.lancer({ party: [heroDuDuel()], scene, projet: null });
+        diffuser();
+      });
+      invite((partie) => {
+        partie.recevoir(lancee);
+        partie.recevoir(avancee);
+        const recu = partie.recevoir(relancee);
+        expect(recu.neuve, 'témoin : l’instantané relancé n’est pas `neuve`').toBe(true);
+        expect(textes(recu)).toEqual(scene.startMessage ? [texte] : []);
+        expect(textes(partie.relever())).toEqual([]);
+      });
+    }
+  });
+
+  it('R6 : la suite d’un combat rend sa queue, un combat neuf son journal entier, même égal au dernier reçu', () => {
+    const lancement = { party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' };
+    let garde = etatInitialDuJeu();
+    const [avant, premier, second] = chezLHote(garde, (hote, diffuser) => {
+      hote.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null });
+      diffuser();
+      hote.lancer(lancement);
+      diffuser();
+      hote.lancer(lancement);
+      diffuser();
+      hote.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
+      garde = hote.etat();
+    });
+    const { E, patch } = auContact(garde);
+    const [suite] = chezLHote({ ...garde, ...patch }, (hote, diffuser) => {
+      hote.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
+      hote.envoyer({ type: 'jetLancer', args: ['attaque'] });
+      hote.envoyer({ type: 'jetImposerLeResultat', args: ['attaque', 11] });
+      hote.envoyer({ type: 'jetValider', args: ['attaque'] });
+      diffuser();
+    });
+    const log = (i: Record<string, unknown>) => (i.battle as { log: unknown[] }).log;
+    expect(log(second), 'témoin : les deux ouvertures diffèrent').toEqual(log(premier));
+    expect(log(suite).length, 'témoin : l’attaque n’a rien écrit au combat').toBeGreaterThan(log(second).length);
+    invite((partie) => {
+      partie.recevoir(avant);
+      expect(deCombat(partie.recevoir(premier))).toEqual(log(premier));
+      const lignesAvant = partie.etat().lignesAuJournal;
+      expect(deCombat(partie.recevoir(second)), 'le combat relancé passe pour la suite du premier').toEqual(log(second));
+      expect(deCombat(partie.recevoir(suite))).toEqual(log(suite).slice(log(second).length));
+      expect(deCombat(partie.recevoir(suite)), 'le même instantané redit le combat').toEqual([]);
+      expect(deCombat(partie.relever()), 'la capture redit le combat reçu').toEqual([]);
+      expect(partie.etat().combatsOuverts).toBe(2);
+      expect(partie.etat().lignesAuJournal).toBeGreaterThanOrEqual(lignesAvant);
+    });
+  });
+
+  it('R7 : le premier instantané ne rend ni ligne ni État gagné ; au suivant, l’État gagné chez l’hôte sort', () => {
+    const { E, partie: hote } = duel((etat, { E }) => {
+      E.wounds.current = 1;
+      return { ...etat, net: { ...etat.net, mode: 'hote', mySeat: 0, roomCode: 'ABCDEF' } };
+    });
+    let avantLeCoup: Record<string, unknown>, apresLeCoup: Record<string, unknown>;
+    try {
+      avantLeCoup = instantane(hote);
+      hote.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
+      hote.envoyer({ type: 'jetLancer', args: ['attaque'] });
+      hote.envoyer({ type: 'jetImposerLeResultat', args: ['attaque', 11] });
+      hote.envoyer({ type: 'jetValider', args: ['attaque'] });
+      apresLeCoup = instantane(hote);
+    } finally {
+      hote.fermer();
+    }
+    const inconscient = { type: 'etatGagne', porteur: E.id, etat: 'inconscient' };
+    invite((partie) => {
+      const premier = partie.recevoir(apresLeCoup);
+      expect(combattant(partie, E.id).conditions.map((c) => c.id), 'témoin : le Mutant reçu n’est pas inconscient').toContain('inconscient');
+      expect(etatsGagnesDe(premier)).toEqual([]);
+      expect(premier.journal).toEqual([]);
+    });
+    invite((partie) => {
+      partie.recevoir(avantLeCoup);
+      expect(etatsGagnesDe(partie.recevoir(apresLeCoup))).toEqual(expect.arrayContaining([inconscient]));
+    });
+  });
+
+  it('R8 : `relever` rend une fois l’écrit hors appel, `abonner` suit chaque écriture, un appel qui lève ne jette que le sien', () => {
+    invite((partie) => {
+      const vu = vi.fn();
+      const desabonner = partie.abonner(vu);
+      partie.etat().ecrireAuJournal('Hors appel.');
+      bus.emit(EVT.SCENE_DIRTY);
+      expect(vu).toHaveBeenCalledTimes(1);
+      desabonner();
+      partie.etat().ecrireAuJournal('Hors appel, encore.');
+      expect(vu, 'appelée après le désabonnement').toHaveBeenCalledTimes(1);
+      // L'abonné d'un hôte qui lève sur une écriture qui suit l'arrivée en scène : l'appel a déjà écrit et émis.
+      let arrivee = false;
+      const desabonnerDuBus = bus.on(EVT.ARRIVEE_EN_SCENE, () => (arrivee = true));
+      const desabonnerLeveur = partie.abonner(() => {
+        if (arrivee) throw new Error('abonné de l’hôte');
+      });
+      try {
+        expect(() => partie.lancer({ party: [heroDuDuel()], scene: { ...testScene(), startMessage: { texte: 'Ligne de l’appel levé.' } }, projet: null })).toThrow('abonné de l’hôte');
+      } finally {
+        desabonnerLeveur();
+        desabonnerDuBus();
+      }
+      const releve = partie.relever();
+      expect(textes(releve)).toEqual(['Hors appel.', 'Hors appel, encore.']);
+      expect(emis(releve), 'l’appel levé a laissé ce qu’il avait émis, ou jeté ce qui l’attendait').toEqual(['scene_dirty']);
+      const vide = partie.relever();
+      expect([...vide.journal, ...vide.evenements]).toEqual([]);
+    });
+  });
+});
