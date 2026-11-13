@@ -2873,10 +2873,12 @@
     ],
     "trappings": [
       {
-        "text": "Armes de qualité",
-        "count": {
-          "fixed": 2
-        }
+        "wildcard": "arme",
+        "qualityChoice": true
+      },
+      {
+        "wildcard": "arme",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -3547,7 +3549,25 @@
     ],
     "trappings": [
       {
-        "text": "Arme simple ou arc avec 10 flèches"
+        "pick": 1,
+        "of": [
+          {
+            "id": "arme-simple"
+          },
+          {
+            "lot": [
+              {
+                "id": "arc"
+              },
+              {
+                "id": "fleche",
+                "count": {
+                  "fixed": 10
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "cheval-de-monte",
@@ -3843,7 +3863,24 @@
         "qualityChoice": true
       },
       {
-        "text": "Cheval de selle avec selle et harnais ou Diligence"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "cheval-de-monte",
+                "type": "creature"
+              },
+              {
+                "id": "selle-et-harnais"
+              }
+            ]
+          },
+          {
+            "id": "diligence",
+            "type": "vehicle"
+          }
+        ]
       },
       {
         "pick": 1,
@@ -5016,7 +5053,10 @@
         "pick": 1,
         "of": [
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           },
           {
             "id": "hallebarde"
@@ -5214,7 +5254,10 @@
             "id": "fleau"
           },
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           }
         ]
       },
@@ -5495,7 +5538,10 @@
         "pick": 1,
         "of": [
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           },
           {
             "id": "pistolet-ogre"
@@ -6274,7 +6320,21 @@
         "id": "plastron-de-cuir"
       },
       {
-        "text": "Arme de lancer ou d'entraves"
+        "pick": 1,
+        "of": [
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "lancer"
+            }
+          },
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "entraves"
+            }
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -6329,7 +6389,21 @@
         "text": "Caparaçon pour blaireau (2 PA sur la tête et le torse)"
       },
       {
-        "text": "Arme (Base) ou Arme (cavalerie)"
+        "pick": 1,
+        "of": [
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "base"
+            }
+          },
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "cavalerie"
+            }
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -8901,10 +8975,27 @@
     ],
     "trappings": [
       {
-        "text": "Arme à poudre noire"
+        "wildcard": "arme",
+        "groupe": {
+          "id": "poudre-noire"
+        }
       },
       {
-        "text": "Munitions"
+        "pick": 1,
+        "of": [
+          {
+            "id": "balle-et-poudre",
+            "count": {
+              "fixed": 12
+            }
+          },
+          {
+            "id": "petites-munitions-et-poudre",
+            "count": {
+              "fixed": 12
+            }
+          }
+        ]
       },
       {
         "id": "grappin"
@@ -9983,7 +10074,16 @@
     ],
     "trappings": [
       {
-        "text": "Armes de lancer"
+        "wildcard": "arme",
+        "groupe": {
+          "id": "lancer"
+        }
+      },
+      {
+        "wildcard": "arme",
+        "groupe": {
+          "id": "lancer"
+        }
       },
       {
         "id": "costume"
@@ -19128,7 +19228,41 @@
         "spec": "flamboyants"
       },
       {
-        "text": "Paire de pistolets avec Poudre noire et Munitions ou Arc avec Carquois de 10 flèches"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "pistolet",
+                "count": {
+                  "fixed": 2
+                }
+              },
+              {
+                "id": "balle-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          },
+          {
+            "lot": [
+              {
+                "id": "arc"
+              },
+              {
+                "id": "carquois"
+              },
+              {
+                "id": "fleche",
+                "count": {
+                  "fixed": 10
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "plastron"
@@ -25708,7 +25842,35 @@
     ],
     "trappings": [
       {
-        "text": "Pistolet ou tromblon avec des munitions"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "pistolet"
+              },
+              {
+                "id": "balle-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          },
+          {
+            "lot": [
+              {
+                "id": "tromblon"
+              },
+              {
+                "id": "petites-munitions-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "cotte-de-mailles",

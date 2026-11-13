@@ -361,7 +361,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   subType?: string;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
-   *  Résolu par `acceptableSpecs` (`weaponGroup ?? subType`) → Spé de tir du chef ET décompte d'équipage
+   *  Résolu par `acceptableSpecs` (`groupeDeLArme`) → Spé de tir du chef ET décompte d'équipage
    *  (servants à la bonne Projectiles, AA 10 l.230). Absent = `subType` EST le Groupe (armes normales). */
   weaponGroup?: string;
   /** Bloque la fusion des qualités de FAMILLE du Groupe (`resolveQualities`, `WeaponGroupData.qualities`)

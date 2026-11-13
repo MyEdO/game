@@ -39,7 +39,7 @@ import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, q
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
 import { spellEffectOps } from './flowCore';
-import { findPsychologyById, testSkillLabel, type RangeeDeRegleData } from '../data';
+import { findPsychologyById, groupeDeLArme, testSkillLabel, type RangeeDeRegleData } from '../data';
 import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, ignoresCalledShotPenalty, ignoresSizeRangedMods, sniperRangeAdjust } from './combatFeatures/dispatch';
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
@@ -149,11 +149,7 @@ const ANY_RANGED_SPEC = '*';
 function acceptableSpecs(c: Combatant, weapon: Weapon, kind: 'melee' | 'distance'): SpecAcceptance[] {
   const maniement = kind === 'melee' ? maniementRetenu(c, weapon, weapon.hands) : undefined;
   if (maniement) return [{ spec: maniement.groupe, mode: 'complet' }];
-  // `weaponGroup` PRIME sur `subType` : une arme de siège porte sa catégorie de catalogue (« armes-de-siege »)
-  // en `subType` mais son vrai Groupe de Projectiles (Arbalète/Catapulte/Ingénierie/Poudre noire,
-  // AA 10 l.178-193) en `weaponGroup` → c'est lui qui pilote la Spé de tir ET le décompte d'équipage. Pour toute
-  // arme normale, `weaponGroup` est absent → `subType` EST le Groupe (comportement inchangé).
-  const gid = weapon.weaponGroup ?? weapon.subType ?? ''; // id de Groupe d'arme (`WeaponGroupData.id`)
+  const gid = groupeDeLArme(weapon) ?? ''; // id de Groupe d'arme (`WeaponGroupData.id`). AA 10 l.178-193 ; AA 10 l.230
   if (!gid) return [];
   if (gid === 'poudre-noire' || gid === 'poudre-noire-et-ingenierie')
     return [{ spec: 'poudre-noire', mode: 'complet' }, { spec: 'ingenierie', mode: 'complet' }]; // LDB 62 l.192
