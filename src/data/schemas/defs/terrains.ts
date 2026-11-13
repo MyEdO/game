@@ -1,6 +1,6 @@
 /**
  * Schéma de `terrains.json` — LE dataset des sols de la grille (#1690), consommé comme
- * `TerrainDef[]` (`src/data/terrains.types.ts`). 25 entrées, UNE forme, aucun discriminant : tous
+ * `TerrainDef[]` (`EntreeDe`, `src/data/index.ts`). 25 entrées, UNE forme, aucun discriminant : tous
  * les terrains portent les mêmes clés requises et se distinguent par leurs VALEURS.
  *
  * RÈGLE et RENDU dans la MÊME entrée : `walkable`/`priority`/`opaque`/`built` sont lus par la

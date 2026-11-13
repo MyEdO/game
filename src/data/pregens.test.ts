@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import type { RNG } from '../engine/dice';
-import { pretire, pretires, idDuPretire, richesseDuPretire, GROUPE_VITRINE, groupeVitrine, type PregenDef } from './pregens';
+import { pretire, pretires, idDuPretire, richesseDuPretire, GROUPE_VITRINE, groupeVitrine } from './pregens';
+import type { PregenDef } from './index';
 import { pregens } from './index';
 import { meta } from './schemas/defs/pregens';
 import { validateDataset } from './schemas/validate';

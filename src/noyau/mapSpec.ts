@@ -984,7 +984,7 @@ export function buildScene(spec: MapSpec): Scene {
  */
 function assertAuthoredIds(spec: MapSpec, scene: Scene): void {
   const inconnus: { source: string; quoi: string; id: string; catalogue: string }[] = [];
-  const appearanceIds = new Set(structureAppearances.map((a) => a.id));
+  const appearanceIds = new Set<string>(structureAppearances.map((a) => a.id));
   // Un MÊME id faux est atteint par plusieurs sources (le char de `wallLegend` ET chacune des arêtes
   // qu'il a posées) : une faute = UNE ligne, nommée par la source la PLUS PROCHE de l'auteur — les
   // tables du spec sont parcourues avant les arêtes compilées.

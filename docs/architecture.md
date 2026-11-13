@@ -242,8 +242,8 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             que la donnée compose, pour que `src/data` n'importe rien de `src/gameIso`
                             (#2884) — `materials.types.ts` (`DetailRecipe`, `MaterialRef` lus par le
                             rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
-                            `structureAppearance.types.ts` (`StructureAppearanceDef`, `WALL_PARTS`),
-                            `ambiance.types.ts` (`AmbianceDef`, `Visibility`)
+                            `structureAppearance.types.ts` (`WALL_PARTS`),
+                            `ambiance.types.ts` (`Visibility`)
                             VALEURS NEUVES de l'atelier qui ne lisent que schémas et donnée
                             (`valeursNeuves.ts`) : le défaut d'une union fermée est son premier membre, lu au schéma
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,

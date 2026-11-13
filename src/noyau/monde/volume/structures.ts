@@ -1,14 +1,17 @@
-import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../../data';
+import type { EntreeVivante } from '../../../data/datasets';
 import type { WallSeg } from '../scene';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../../lib/ombrage';
 import { apparenceDuSegment, facadeAppearance, facadeRegit, type FacadeEdge } from '../facades';
 import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from './missing';
+import { RELIEF_PART_KEYS } from '../../../data/schemas/defs/structureAppearance';
 
-const MAP: Record<string, StructureAppearanceDef> = Object.fromEntries(structureAppearances.map((s) => [s.id, s]));
+const MAP: Record<string, EntreeVivante<StructureAppearanceDef>> = Object.fromEntries(structureAppearances.map((s) => [s.id, s]));
 
 /** Entrée de REPLI VISIBLE (#877) : un mur au ton d'alarme, jamais l'apparence d'une autre structure. */
-const MISSING: StructureAppearanceDef = {
+const MISSING: EntreeVivante<StructureAppearanceDef> = {
   id: MISSING_ID,
   type: 'structureAppearance',
   label: 'Apparence absente du catalogue',
@@ -20,20 +23,20 @@ const MISSING: StructureAppearanceDef = {
 /** Apparence d'une structure par id. `id` absent = INTENTIONNEL (aucune structure posée) → mur nu.
  *  Un `id` PRÉSENT mais SANS entrée dans `structureAppearance.json` est une donnée à corriger (#832) :
  *  repli VISIBLE + avertissement DEV, jamais l'identité d'une autre apparence. */
-export function structureAppearance(id?: string): StructureAppearanceDef {
+export function structureAppearance(id?: string): EntreeVivante<StructureAppearanceDef> {
   if (!id) return MAP['plain'];
   return catalogEntry((cle) => MAP[cle], id, 'structure', MISSING);
 }
 
 /** Apparence d'un mur d'arête — SOURCE UNIQUE iso + POV : override visuel, puis structure, sinon mur
  *  nu. L'apparence est une DONNÉE de la carte ; la hauteur n'y entre pas (#1180). */
-export function wallApp(seg: WallSeg): StructureAppearanceDef {
+export function wallApp(seg: WallSeg): EntreeVivante<StructureAppearanceDef> {
   return structureAppearance(apparenceDuSegment(seg));
 }
 
 /** Apparence de la façade authorée `id` (`noyau/monde/facades`) : celle de son mur, sous l'id de la façade ; une
  *  apparence de structure si `id` n'est pas une façade. */
-export function facadeStructureAppearance(id?: string): StructureAppearanceDef {
+export function facadeStructureAppearance(id?: string): EntreeVivante<StructureAppearanceDef> {
   const definition = facadeAppearance(id);
   if (!definition) return structureAppearance(id);
   return { ...structureAppearance(definition.wallAppearance), id: definition.id };
@@ -44,14 +47,14 @@ export function facadeStructureAppearance(id?: string): StructureAppearanceDef {
  *  RÉELLE, pas le repli d'un id inconnu : celui-là est le ton d'alarme de `noyau/monde/volume/missing.ts` (#877). */
 const defaultWindow = () => structureAppearance('plain').window;
 /** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — la def sinon le repli `plain`. Source unique iso + POV. */
-export function windowLit(app: StructureAppearanceDef): string {
+export function windowLit(app: EntreeVivante<StructureAppearanceDef>): string {
   return app.window?.lit ?? defaultWindow()?.lit ?? app.face;
 }
 
 /** Couleur de BASE d'une partie de mur du pivot — SOURCE UNIQUE des deux backends (écran-affine + POV),
  *  qui y appliquent ensuite chacun LEUR lumière (ombre d'orientation iso / tint + brume POV). Tout vient
  *  des CHAMPS de la def (replis `?? face` pour une def incomplète), jamais d'un littéral. */
-export function wallPartColor(app: StructureAppearanceDef, part: WallPart): string {
+export function wallPartColor(app: EntreeVivante<StructureAppearanceDef>, part: WallPart): string {
   switch (part) {
     case 'face': case 'parapet': case 'linteau': return app.face;
     case 'panneau': return app.wood?.inset ?? app.face;
@@ -123,19 +126,23 @@ export function wallPartRelief(part: WallPart): WallPartRelief {
   throw new Error(`partie de mur inconnue : ${part}`);
 }
 
+/** La partie admet-elle une surcharge de relief (`RELIEF_PART_KEYS`, le schéma de `structureAppearance.json`) ? */
+const estSurchargeable = (part: WallPart): part is (typeof RELIEF_PART_KEYS)[number] => (RELIEF_PART_KEYS as readonly WallPart[]).includes(part);
+
 /** ÉPAISSEUR MONDE (m) du volume d'une partie de mur — SOURCE UNIQUE du backend volumique, résolue par
  *  (apparence × partie) comme l'est sa couleur (`wallPartColor`). `wallM` = épaisseur de la matière
  *  pleine du mur (`wallMatterM`). 0 = la partie reste un PLAN unique, au plan médian du mur (le carreau
  *  d'une croisée). */
-export function wallPartDepthM(app: StructureAppearanceDef, part: WallPart, wallM: number): number {
+export function wallPartDepthM(app: EntreeVivante<StructureAppearanceDef>, part: WallPart, wallM: number): number {
   const relief = wallPartRelief(part);
   if (relief.famille === 'matiere') return wallM;
-  if (relief.famille === 'saillie') return wallM + 2 * (app.relief?.jut?.[part] ?? relief.jutM);
-  return app.relief?.thick?.[part] ?? relief.thickM;
+  const surchargeable = estSurchargeable(part);
+  if (relief.famille === 'saillie') return wallM + 2 * ((surchargeable ? app.relief?.jut?.[part] : undefined) ?? relief.jutM);
+  return (surchargeable ? app.relief?.thick?.[part] : undefined) ?? relief.thickM;
 }
 
 /** Apparence d'une ARÊTE de mur du rendu web (`wallGeometry` de `walls.ts`), résolue en sa def : la façade authorée sur
  *  l'arête l'emporte tant que le segment ne pose ni structure ni override (`facadeRegit`), sinon `wallApp` (#1180). */
-export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): StructureAppearanceDef {
+export function edgeAppearance(facade: FacadeEdge | undefined, seg: WallSeg): EntreeVivante<StructureAppearanceDef> {
   return facadeRegit(facade, seg) ? facadeStructureAppearance(facade.appearance) : wallApp(seg);
 }
