@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 14 l.142-151. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ecartsDuDeDeLaTable, enumNomme, plageSchema } from '../grammaire/valeurs';
+import { couvertureDuDeDuDocument, enumNomme, plageSchema } from '../grammaire/valeurs';
 
 export const file = 'dispersion.json';
 export const famille = 'config';
@@ -29,8 +29,6 @@ export const rangee = nommerChamps(z.strictObject({
   dy: { label: 'décalage en y' },
 });
 
-type Table = { id: string; die: string; entries: z.output<typeof rangee>[] };
-
 const doc = document(
   'dispersion',
   famille,
@@ -42,14 +40,7 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
-        const table = v as Table;
-        const ecarts = ecartsDuDeDeLaTable(table, table.entries, (r) => `la rangée « ${r.id} » (${r.min}-${r.max})`);
-        if (ecarts.length) {
-          ctx.addIssue({ code: 'custom', path: ['entries'], message: `${file} › ${table.id} : les rangées ne couvrent pas le ${table.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
-        }
-      }),
+    affinerDataset: couvertureDuDeDuDocument<{ id: string; die: string; entries: z.output<typeof rangee>[] }>(file, (r) => `la rangée « ${r.id} » (${r.min}-${r.max})`),
   },
 );
 

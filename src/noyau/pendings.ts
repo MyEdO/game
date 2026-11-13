@@ -149,10 +149,10 @@ export interface PendingTest {
   /** CONTEXTE du Test que l'interlocuteur déclare (sa fiche : amateur d'art ou de théâtre, ACE 12
    *  l.60-62) — lu par l'inversion (LDB 12 l.42). */
   contexte?: ContexteDeTest;
-  /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
+  /** Jet de la table Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
-  /** Delta de DR de la table Capricieux (`capriciousDR`, MSRC 15 l.149-159) : appliqué au DR du Test
+  /** Delta de DR de la table Capricieux (`tirerLeCapricieux`, MSRC 15 l.149-159) : appliqué au DR du Test
    *  RÉSOLU (`FLOWS.test.resolve`), jamais à `skillValue`/`target`. */
   capriciousDR?: number;
   /** Outil utilisé (uid résolu sur l'acteur) : sa qualité d'artisanat module l'issue / casse l'objet (Phase C2a). */

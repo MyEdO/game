@@ -23,6 +23,8 @@ import type * as miscast from './schemas/defs/miscast';
 const LIVRE: Record<string, { die: string; ref: string }> = {
   'artillery-misfire': { die: '1d10', ref: 'AA 10 l.272' },
   dispersion: { die: '1d10', ref: 'LDB 14 l.144' },
+  'reaction-au-statut': { die: '1d10', ref: 'LDB 08 l.40' },
+  'tableau-capricieux': { die: '1d10', ref: 'MSRC 15 l.151' },
   'incidents-monte': { die: '1d100', ref: 'EDOC 07 l.150' },
   'problemes-vehicule': { die: '1d100', ref: 'EDOC 07 l.259' },
   'structure-criticals': { die: '1d100', ref: 'AA 10 l.118' },

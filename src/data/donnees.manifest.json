@@ -211,6 +211,18 @@
         },
         {
           "files": [
+            "tableau-capricieux.json"
+          ],
+          "desc": "Table Capricieux (d10)"
+        },
+        {
+          "files": [
+            "reaction-au-statut.json"
+          ],
+          "desc": "Réaction au Statut (d10)"
+        },
+        {
+          "files": [
             "criticals.json"
           ],
           "desc": "Blessures critiques par localisation — 8 documents-tables, un par jeu × Localisation (base · variante *Aux Armes*)"

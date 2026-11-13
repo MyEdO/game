@@ -72,6 +72,8 @@ const FLIPPES_V_FLIP_CONFIG = [
   'ship-criticals', 'structure-criticals', 'surincantation', 'vents-tourbillonnants',
   // #1667 lot C-e
   'dispersion',
+  // #1667 lot C-g
+  'reaction-au-statut', 'tableau-capricieux',
 ];
 
 /** TOUTE racine-objet à enveloppe de `src/data` (`id` + `label`) : l'espace d'unicité est celui des

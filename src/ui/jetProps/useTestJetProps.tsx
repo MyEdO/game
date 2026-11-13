@@ -1,4 +1,6 @@
 import { cibleMesuree, evaluateTest } from '../../engine/tests';
+import { formatDice } from '../../engine/dice';
+import { deDuCapricieux } from '../../engine/social';
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { FLOWS } from '../../noyau/rollFlowSpecs';
@@ -56,10 +58,10 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const base = pt.base ?? pt.skillValue;
   const extraMods = pt.mods ?? [];
   const pendingLine = testPending(skillLabel, base, cibleMesuree(pt), pt.difficulty, extraMods, pt.easedBy);
-  // Capricieux (MSRC 15 l.149-159) : le d10 de l'interlocuteur ne touche NI `skillValue` NI `target` —
+  // Capricieux (MSRC 15 l.149-159) : le jet de l'interlocuteur ne touche NI `skillValue` NI `target` —
   // il décale le DR du Test résolu (`FLOWS.test`), donc il s'affiche comme une ligne de mod de DR.
   const capLabel = pt.capriciousRoll == null ? null
-    : `Capricieux (d10 ${pt.capriciousRoll} → ${pt.capriciousDR ? `${pt.capriciousDR > 0 ? '+' : '−'}${Math.abs(pt.capriciousDR)} DR` : 'DR indiqué'})`;
+    : `Capricieux (${formatDice(deDuCapricieux())} ${pt.capriciousRoll} → ${pt.capriciousDR ? `${pt.capriciousDR > 0 ? '+' : '−'}${Math.abs(pt.capriciousDR)} DR` : 'DR indiqué'})`;
   // LDB 12 l.127
   const amazing = amazingTestLabel(pt);
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie

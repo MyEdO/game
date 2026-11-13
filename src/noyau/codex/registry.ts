@@ -41,6 +41,7 @@ import { equipeSchema } from '../../data/schemas/grammaire/valeurs';
 import { phenomenonKindSchema, phenomenonTestSchema, saturationTierSchema } from '../../data/schemas/defs/arcane-phenomena';
 import { drivingMishapOutcomeSchema } from '../../data/schemas/defs/driving-mishap';
 import { depuisSchema as depuisDeDispersionSchema } from '../../data/schemas/defs/dispersion';
+import { issueDeReactionSchema } from '../../data/schemas/defs/reaction-au-statut';
 import { drunkennessOutcomeSchema } from '../../data/schemas/defs/drunkenness';
 import { progressionModeSchema } from '../../data/schemas/defs/naval-progression';
 import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
@@ -63,10 +64,14 @@ import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
 import drivingMishapJson from '../../data/driving-mishap.json';
 import dispersionJson from '../../data/dispersion.json';
+import capricieuxJson from '../../data/tableau-capricieux.json';
+import reactionAuStatutJson from '../../data/reaction-au-statut.json';
 import drunkennessJson from '../../data/drunkenness.json';
 import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
 import type * as dispersion from '../../data/schemas/defs/dispersion';
+import type * as capricieux from '../../data/schemas/defs/tableau-capricieux';
+import type * as reactionAuStatut from '../../data/schemas/defs/reaction-au-statut';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
 import { deDesEvenementsDeBord, deDuVoyageRapide } from '../../engine/seaVoyage';
@@ -1247,6 +1252,24 @@ const CODEX_SPECS = {
           fact(tr('codex.fiche.dispersionDepuis'), libelleDeValeur(depuisDeDispersionSchema, e.depuis)),
           fact(tr('codex.fiche.dispersionDecalage'), `(${e.dx}, ${e.dy})`),
         ),
+      }));
+    },
+  },
+  tableauCapricieux: {
+    label: 'codex.fiche.capricieux', group: 'tables', sourceRef: 'MSRC 15',
+    build: () => {
+      const de = deDeTirageDe<typeof capricieux>(capricieuxJson);
+      return datasetArray('tableauCapricieux').map((e) => ({
+        id: e.id, label: tr('codex.fiche.capricieuxDR', { dr: e.dr > 0 ? `+${e.dr}` : e.dr < 0 ? `−${-e.dr}` : '0' }), sub: bandeAuDe(de, e.min, e.max),
+      }));
+    },
+  },
+  reactionAuStatut: {
+    label: 'codex.fiche.reactionAuStatut', group: 'tables', sourceRef: 'LDB 08',
+    build: () => {
+      const de = deDeTirageDe<typeof reactionAuStatut>(reactionAuStatutJson);
+      return datasetArray('reactionAuStatut').map((e) => ({
+        id: e.id, label: libelleDeValeur(issueDeReactionSchema, e.issue), sub: bandeAuDe(de, e.min, e.max),
       }));
     },
   },
