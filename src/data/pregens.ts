@@ -58,7 +58,7 @@ export function ficheDuPretire(d: PregenDef): FicheDeHeros {
     charAdvances: d.charAdvances,
     skills: Object.entries(d.skills).flatMap(([id, a]) => (typeof a === 'number' ? [{ id, advances: a }] : Object.entries(a).map(([spec, advances]) => ({ id, spec, advances })))),
     talents: d.talents.map(({ id, spec, times }) => ({ id, ...(spec ? { spec } : {}), times: times ?? 1 })),
-    trappings: d.trappings.filter((t) => !estTiree(t)).map((t) => ('text' in t ? { text: t.text, qte: quantite(t.count) } : { id: t.id, ...(t.spec ? { spec: t.spec } : {}), qte: quantite(t.count) })),
+    trappings: d.trappings.filter((t) => !estTiree(t)).map((t) => ('text' in t ? { text: t.text, qte: quantite(t.count) } : { id: t.id, ...(t.spec ? { spec: t.spec } : {}), ...(t.qualities ? { qualities: t.qualities } : {}), qte: quantite(t.count) })),
     spells: d.spells,
     fate: d.fate,
     resilience: d.resilience,
