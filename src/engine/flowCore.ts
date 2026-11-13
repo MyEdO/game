@@ -23,7 +23,9 @@
  * délègue (appliquer une feuille, ouvrir une modale de Test, suspendre, reprendre) vit chez ses hôtes
  * du noyau (`runFlow`, `runCombatFlow`…).
  */
+import type { z } from 'zod';
 import type { IconId } from '../data/icons';
+import type { effectTargetingSchema, effectTriggerSchema, triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
@@ -630,79 +632,20 @@ export type NoeudDecideAuPorteur<E = EffectOp> = Omit<FlowTestNode<E>, 'test'> &
  *  par la donnée comme par l'état : gelé à sa définition (#2097). */
 export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'sequence', etapes: [] });
 
-/** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
- *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une
- *  touche réussie (du porteur ou de l'arme) ; `onWoundLoss` : quand le porteur PERD des PB ;
- *  `onRoundStart` : au début de son Round ; `onStartled` : magie / bruit fort ; `onKill` : adversaire
- *  mis hors de combat ; `onGainCondition` : le porteur vient de GAGNER un État (filtré par `condition` —
- *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
- *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
- *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
- *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
- *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
- *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
- *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
- *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
- *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
- *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de
- *  Round, après l'entretien), `onTurnStart`/`onTurnEnd` (début/fin du tour du porteur).
- *  Cycle de l'HORLOGE de campagne (émis par `noyau/clockHooks`, au franchissement de jour de
- *  `runDailyUpkeep`) : `onDayStart` — une fois par JOUR calendaire franchi, rattrapage compris (trois
- *  jours sautés = trois émissions) ; `onWake` — au RÉVEIL, c'est-à-dire le jour d'une nuit JOUÉE
- *  (`lastNightDay`) seulement : une avance d'horloge de 24 h sans sommeil ne l'émet pas. */
-export type EffectTrigger =
-  | 'onHit' | 'onCrit' | 'onWoundLoss' | 'onSlain' | 'onRoundStart' | 'onStartled' | 'onKill' | 'onCharged' | 'onGainCondition'
-  | 'onCombatStart' | 'onCombatEnd' | 'onRoundEnd' | 'onTurnStart' | 'onTurnEnd'
-  | 'onDayStart' | 'onWake'
-  | 'onAttackResolved' | 'onCastResolved' | 'onMiscast'
-  /** Le PORTEUR vient d'ÉCHOUER un Test (n'importe lequel : combat, scène, entretien) — `ctx.margin` = le
-   *  DR de l'échec (négatif). Les paliers de gravité s'expriment en DONNÉE via la Condition `slThreshold`
-   *  (jamais de bande codée en dur au moteur) : Crampes abdominales (MSRC 16 l.152-158) réagissent à
-   *  `slThreshold(≤-2)`/`(≤-4)`/`(≤-6)`. Émis par `fireOwnTestFailed` (noyau/triggeredEffects), qui garde
-   *  la RÉ-ENTRANCE (un Test résolu PENDANT le traitement ne ré-émet jamais). */
-  | 'onOwnTestFailed';
+/** DÉCLENCHEUR d'un effet déclenché : la sortie d'`effectTriggerSchema` (`data/schemas/grammaire/mecanique.ts`). */
+export type EffectTrigger = z.output<typeof effectTriggerSchema>;
 
-/** Effet DÉCLENCHÉ authoré (donnée éditable) : un Flow d'ops appliqué à `on` quand `trigger` se produit.
- *  GÉNÉRIQUE — porté indifféremment par `TraitData.effects` (Toile, Sang corrosif…) ET `QualityData.effects`
- *  (Atout d'arme : « à la touche, 1d10 + Empêtré »). Même vocabulaire que les sorts (réutilise
- *  `runPureFlowLines`/`applyOps`), jamais un handler en dur. `on` : le porteur lui-même (`soi`), la victime
- *  touchée (`victime`), ou les adversaires Engagés du porteur (`engages`). */
-/** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
- *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
- *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
- *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
- *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
- *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
- *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
- *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
- *  par tout effet « happe le plus proche petit ennemi engagé ». */
-export type EffectTargeting = 'soi' | 'victime' | 'engages' | 'empoigne'
-  | { near: 'victime' | 'soi'; radiusMeters: number }
-  | { pick: 'engages'; sizeAtMost?: 'soi'; max: number };
-export interface TriggeredEffect<E = EffectOp> {
-  trigger: EffectTrigger;
-  on: EffectTargeting;
-  flow: Flow<E>;
-  /** Filtre du déclencheur `onGainCondition` : ne réagit que si l'État GAGNÉ a cet `id` (Mâchoires
-   *  d'acier : `condition:'sonne'`). Absent = réagit à n'importe quel État gagné. Inerte pour les
-   *  autres triggers. */
-  condition?: string;
-  /** Filtre par TYPE d'attaque (`onHit`/`onWoundLoss`) : ne réagit que si la touche/perte provient d'une
-   *  attaque de ce type (`melee`/`distance`). Absent = tout type (Sang corrosif : « chaque fois qu'elle subit
-   *  des Blessures », LDB 85 l.310 → aucune restriction). Lu via `ctx.attackType`. */
-  attackType?: 'melee' | 'distance';
-  /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
-  coupCritique?: boolean;
-  /** Effet OPT-IN (RAW « Vous pouvez… » — Contrôle de la Frénésie, LDB 10 l.251-255) : le porteur CHOISIT
-   *  de le déclencher. Héros en cadence MANUELLE → proposé (étape de CHOIX de fin de Round, skippable) ;
-   *  IA / cadence auto → JAMAIS exercé (défaut conservateur : pas de décision silencieuse ni de jet caché
-   *  — la sortie rationnelle de l'IA, « plus d'ennemi en vue », est déjà l'effet auto de psychology.json). */
-  optional?: boolean;
+/** CIBLE(S) d'un effet déclenché : la sortie d'`effectTargetingSchema` (`data/schemas/grammaire/mecanique.ts`). */
+export type EffectTargeting = z.output<typeof effectTargetingSchema>;
+
+/** Effet DÉCLENCHÉ : la sortie de `triggeredEffectSchema` (`data/schemas/grammaire/mecanique.ts`), plus ce que le
+ *  jeu lui pose. */
+export type TriggeredEffect = z.output<typeof triggeredEffectSchema> & {
   /** ENTITÉ SOURCE — JAMAIS authorée : posée à l'ÉNUMÉRATION par `effectSourcesOf`
-   *  (`src/noyau/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. Voyage
-   *  jusqu'à l'`OpsCtx` du dispatch → ancre les `ActiveEffect` posés sur leur fiche de règle. */
+   *  (`src/noyau/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. Voyage jusqu'à
+   *  l'`OpsCtx` du dispatch → ancre les `ActiveEffect` posés sur leur fiche de règle. */
   source?: EffectSource;
-}
+};
 
 /** Enveloppe une liste d'effets-feuilles (`Effect[]`) en un Flow `sequence` de `effet` — pont de
  *  migration des consommateurs (`Trigger.effects`, `DialogueChoice.effects`) vers le Flow, sans réécrire
@@ -1128,6 +1071,14 @@ export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, che
     case 'choix': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
     case 'effet': break;
   }
+}
+
+/** `flow` ne porte-t-il QUE des feuilles `F` ? Rétrécit le Flow de scène qu'écrit l'éditeur au Flow d'un porteur à
+ *  feuilles restreintes (effet déclenché : `EffectOp`). */
+export function flowDeFeuilles<E, F extends E>(flow: Flow<E>, estFeuille: (e: E) => e is F): flow is Flow<F> {
+  let toutes = true;
+  walkFlow(flow, (n) => { if (n.kind === 'effet' && !estFeuille(n.effet)) toutes = false; });
+  return toutes;
 }
 
 /** Arrêt d'une exécution de Flow : `executerFlow` rend `arret` sans jouer le reste de sa pile. */
