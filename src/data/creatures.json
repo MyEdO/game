@@ -19554,7 +19554,19 @@
     ],
     "trappings": [
       {
-        "text": "armure lourde"
+        "id": "cotte-de-mailles"
+      },
+      {
+        "id": "chausses-de-mailles"
+      },
+      {
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
       },
       {
         "id": "bouclier"
@@ -19871,7 +19883,26 @@
     ],
     "trappings": [
       {
-        "text": "armure de malepierre complète"
+        "id": "cotte-de-mailles"
+      },
+      {
+        "id": "chausses-de-mailles"
+      },
+      {
+        "id": "plastron",
+        "spec": "de malepierre"
+      },
+      {
+        "id": "brassards",
+        "spec": "de malepierre"
+      },
+      {
+        "id": "jambieres-d-acier",
+        "spec": "de malepierre"
+      },
+      {
+        "id": "heaume",
+        "spec": "de malepierre"
       },
       {
         "id": "bourse"
@@ -29665,7 +29696,8 @@
     ],
     "trappings": [
       {
-        "text": "Nerf de Boeuf"
+        "id": "matraque-2",
+        "spec": "nerf de bœuf"
       }
     ],
     "spells": [],
@@ -29843,7 +29875,8 @@
     ],
     "trappings": [
       {
-        "text": "Nerf de Boeuf"
+        "id": "matraque-2",
+        "spec": "nerf de bœuf"
       }
     ],
     "spells": [],
@@ -35530,7 +35563,8 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Nerf de Boeuf"
+        "id": "matraque-2",
+        "spec": "nerf de bœuf"
       }
     ],
     "spells": [],
@@ -35726,7 +35760,8 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Nerf de Boeuf"
+        "id": "matraque-2",
+        "spec": "nerf de bœuf"
       }
     ],
     "spells": [],
@@ -49868,7 +49903,16 @@
     ],
     "trappings": [
       {
-        "text": "armure du chaos"
+        "id": "plastron",
+        "spec": "du Chaos"
+      },
+      {
+        "id": "brassards",
+        "spec": "du Chaos"
+      },
+      {
+        "id": "jambieres-d-acier",
+        "spec": "du Chaos"
       },
       {
         "id": "grande-hache",
@@ -70579,7 +70623,8 @@
     ],
     "trappings": [
       {
-        "text": "Faux"
+        "id": "hallebarde",
+        "spec": "faux"
       }
     ],
     "spells": [],
@@ -70957,7 +71002,8 @@
     ],
     "trappings": [
       {
-        "text": "Faux"
+        "id": "hallebarde",
+        "spec": "faux"
       }
     ],
     "spells": [],
