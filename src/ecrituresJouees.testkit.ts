@@ -6,8 +6,8 @@
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
  */
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
-import { editer, idDeLaSceneEditee, ouvrirLEdition, projetEdite, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
-import { accesDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type SorteDePorteur } from './noyau/sceneEditLecture';
+import { editer, idDeLaSceneEditee, ouvrirLEdition, projetEdite, sceneEditee, type GesteDEdition, type Segment, type SessionDEdition } from './noyau/index';
+import { accesDe, DOCUMENTS, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type SorteDePorteur } from './noyau/sceneEditLecture';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { estObjet } from './lib/objet.mjs';
@@ -22,9 +22,9 @@ function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
   return attendu ? editer(joue, { geste: 'chapitre', book: attendu.book, ch: attendu.ch, texte: texteDuChapitre(attendu.book, attendu.ch) }) : joue;
 }
 
-/** Une écriture jouée : le document avant et après, le chemin écrit depuis la scène, la valeur jouée et la saisie qui
- *  l'a portée (`bouton`, ou le type de la saisie d'un choix ou d'un formulaire). */
-export interface EcritureJouee { avant: Scene; apres: Scene; chemin: (string | number)[]; valeur: unknown; saisie: string }
+/** Une écriture jouée : le document de son porteur avant et après (`documentDu`), le chemin écrit depuis ce document, la
+ *  valeur jouée et la saisie qui l'a portée (`bouton`, ou le type de la saisie d'un choix ou d'un formulaire). */
+export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string | number)[]; valeur: unknown; saisie: string }
 
 /** Ce qu'un élément de l'inspecteur offre de jouer au geste `valeur` : son id, le jeu de l'élément, sa saisie, le chemin
  *  qu'il écrit, et s'il emporte des champs (`emporte` : le retrait d'un élément de liste, son déplacement, le choix
@@ -115,6 +115,9 @@ function empreinte(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'v
 /** Le porteur de formulaire que désigne la sélection de la session `s`, sans elle le singulier du document ouvert (`porteurDeLaSel`). */
 const porteurChoisi = (s: SessionDEdition) => porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
 
+/** Le document de la session `s` où vit un porteur de sorte `sorte` (`DOCUMENTS`, `accesDe`). */
+const documentDu = (s: SessionDEdition, sorte: SorteDePorteur): unknown => DOCUMENTS[accesDe(sorte).document].lire(projetEdite(s), idDeLaSceneEditee(s));
+
 /** Le porteur `porteur` de la session `s` (`porteurDuProjet`) : sa donnée et son chemin depuis son document. */
 const porteurDu = (s: SessionDEdition, porteur: { sorte: SorteDePorteur; id: string }) => porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id);
 
@@ -162,13 +165,15 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
   throw new Error(`plus de ${GESTES_AU_PLUS} offres du geste valeur`);
 }
 
-/** La session `s` où le geste `valeur` `geste` est joué (`jouer`), son écriture, avec son chemin depuis la scène et la
+/** La session `s` où le geste `valeur` `geste` est joué (`jouer`), son écriture, avec son chemin depuis le document de son
+ *  porteur et la
  *  saisie `saisie` qui l'a portée, ajoutée à `out` : celle du choix d'une variante qui porte le `discriminant`, sur une
  *  variante quittée, son discriminant et chaque champ qu'elle pose et que la variante quittée ne portait pas ; sur un
  *  champ absent, la variante entière, qui pose le champ. */
 function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'valeur' }>, saisie: string, out: EcritureJouee[], discriminant?: string): SessionDEdition {
-  const avant = sceneEditee(s);
-  const apres = sceneEditee(jouer(s, geste));
+  const suite = jouer(s, geste);
+  const avant = documentDu(s, geste.porteur.sorte);
+  const apres = documentDu(suite, geste.porteur.sorte);
   const porteur = porteurDu(s, geste.porteur)!;
   const quittee = geste.chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), porteur.donnee);
   const variante = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur ? geste.valeur : undefined;
@@ -176,24 +181,38 @@ function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'vale
     ? Object.keys(variante).filter((cle) => cle === discriminant || !(estObjet(quittee) && cle in quittee)).map((cle) => ({ chemin: [...geste.chemin, cle], valeur: variante[cle] }))
     : [{ chemin: geste.chemin, valeur: geste.valeur }];
   for (const ecrit of ecrits) out.push({ avant, apres, chemin: [...porteur.chemin, ...ecrit.chemin], valeur: ecrit.valeur, saisie });
-  return jouer(s, geste);
+  return suite;
 }
 
 /** La session `s` où la zone Logique ajoute un porteur de sorte `sorte` (`logique/<sorte>/ajouter`), sélectionné ;
- *  l'écriture de sa collection entière, le porteur neuf compris, avec son chemin depuis la scène, s'ajoute à `out`. */
+ *  l'écriture de sa collection entière, le porteur neuf compris, avec son chemin depuis son document, s'ajoute à `out`. */
 function ajouter(s: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]): SessionDEdition {
-  const avant = sceneEditee(s);
+  const avant = documentDu(s, sorte);
   const suite = presser(s, `logique/${sorte}/ajouter`);
   const porteur = porteurChoisi(suite);
   const cree = porteur?.sorte === sorte ? porteurDu(suite, porteur) : undefined;
   if (!cree) throw new Error(`la zone Logique n’a pas ajouté de porteur ${sorte}`);
-  out.push({ avant, apres: sceneEditee(suite), chemin: cree.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
+  out.push({ avant, apres: documentDu(suite, sorte), chemin: cree.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
   return suite;
 }
 
+/** Le chemin, dans la donnée `donnee`, de l'élément de liste d'identifiant `id`, le premier en profondeur. */
+function cheminDeLElement(donnee: unknown, id: string): Segment[] | undefined {
+  if (Array.isArray(donnee)) {
+    const rang = donnee.findIndex((e) => estObjet(e) && e.id === id);
+    if (rang >= 0) return [rang];
+  }
+  if (!estObjet(donnee) && !Array.isArray(donnee)) return undefined;
+  for (const [cle, v] of Object.entries(donnee)) {
+    const sous = cheminDeLElement(v, id);
+    if (sous) return [Array.isArray(donnee) ? Number(cle) : cle, ...sous];
+  }
+  return undefined;
+}
+
 /** La session `s` où le formulaire d'id `id` de son inspecteur, qui change l'identifiant d'un élément d'un porteur
- *  (`identifier/<famille>/<élément>`), est joué sous l'identifiant `vers` ; l'écriture, avec son chemin depuis la
- *  scène, s'ajoute à `out`. */
+ *  (`identifier/<famille>/<élément>`), est joué sous l'identifiant `vers` ; l'écriture, avec son chemin depuis le
+ *  document du porteur jusqu'à l'élément (`cheminDeLElement`), s'ajoute à `out`. */
 function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJouee[]): SessionDEdition {
   const zones = inspecteur(s);
   const formulaire = zones['editeur.inspecteur'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === id);
@@ -202,11 +221,9 @@ function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJ
   const geste = element === undefined ? undefined : gesteDuFormulaire(zones, { type: 'identifier', args: [element, vers] });
   const porteur = porteurChoisi(s);
   if (geste?.geste !== 'identifier' || !porteur) throw new Error(`aucun formulaire ${id} qui change un identifiant`);
-  const avant = sceneEditee(s);
   const suite = jouer(s, geste);
   const { donnee, chemin } = porteurDu(s, porteur)!;
-  const noeud = (donnee as { nodes: readonly { id: string }[] }).nodes.findIndex((n) => n.id === element);
-  out.push({ avant, apres: sceneEditee(suite), chemin: [...chemin, 'nodes', noeud, 'id'], valeur: vers, saisie: 'saisieTexte' });
+  out.push({ avant: documentDu(s, porteur.sorte), apres: documentDu(suite, porteur.sorte), chemin: [...chemin, ...cheminDeLElement(donnee, String(element))!, 'id'], valeur: vers, saisie: 'saisieTexte' });
   return suite;
 }
 

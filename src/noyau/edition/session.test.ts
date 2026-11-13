@@ -1650,4 +1650,14 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     expect(narratif(jouer(s, valeur('narratif', 'narratif', ['cloture'], valeurNeuveDe(clotureSchema)))).cloture).toEqual(valeurNeuveDe(clotureSchema));
     expect(refusDeLaValeur(s, valeur('narratif', 'narratif', ['affaires'], []))).toBe('nonOffert');
   });
+
+  it('la clôture qui lit un état compare une de ses valeurs déclarées, choisie ; le stade d’un indice révélé, un de ses stades', () => {
+    const cloture = { when: { kind: 'etat', etat: 'humeur' }, titre: 'Fin' } as NonNullable<typeof NARRATIF.cloture>;
+    const lit = ouvert({ ...NARRATIF, cloture });
+    expect(choixDuChamp('narratif', narratif(lit), ['cloture', 'when', 'value'], cadreDeLaSession(lit))).toEqual([{ valeur: 'calme', libelle: 'Calme', refus: null }]);
+    expect(narratif(jouer(lit, valeur('narratif', 'narratif', ['cloture', 'when', 'value'], 'calme'))).cloture).toEqual({ ...cloture, when: { kind: 'etat', etat: 'humeur', value: 'calme' } });
+    const scene = jouer(lit, { geste: 'document', document: 'scene' }, { geste: 'selectionner', porteur: { sorte: 'declencheur', id: 't0' } });
+    const declencheur = sceneEditee(scene).triggers[0];
+    expect(choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', 'stade'], cadreDeLaSession(scene))?.map((c) => c.valeur)).toEqual(['lue', 'dechiffree']);
+  });
 });

@@ -852,3 +852,29 @@ describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ
     expect(avecLaValeurDuPorteur('presetsPnj', vide, PARTS, [{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }], cadre({ ...CHARGEE, chapitres: {} })), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
   });
 });
+
+describe('une sous-référence se choisit parmi les sous-entrées de l’entrée que désigne sa référence sœur (`SOUS_REFERENCES`)', () => {
+  const NARRATIF = {
+    ...NARRATIF_VIDE,
+    etats: [
+      { id: 'humeur', label: 'Humeur', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }, { id: 'colere', label: 'Colère' }] } },
+      { id: 'meneur', label: 'Meneur', forme: { kind: 'heros' } },
+    ],
+    indices: [{ id: 'piste', affaireId: 'a', kind: 'indice', titre: 'Piste', stades: [{ id: 'vu', prose: '' }, { id: 'compris', prose: '' }] }],
+  } as unknown as typeof NARRATIF_VIDE;
+  const CADRE: CadreDuPorteur = { ...CADRE_VIDE, projet: { scenes: [], narratif: NARRATIF } };
+  const VALEURS = [{ valeur: 'calme', libelle: 'Calme', refus: null }, { valeur: 'colere', libelle: 'Colère', refus: null }];
+  const avecEffet = (effet: object): Declencheur => ({ ...declencheur(), flow: { kind: 'effet', effet } }) as Declencheur;
+
+  it('la valeur comparée de la clôture, la valeur posée d’un effet et la valeur d’une condition de déclencheur : les valeurs déclarées de l’état désigné', () => {
+    const narratif = { ...NARRATIF, cloture: { when: { kind: 'etat', etat: 'humeur' }, titre: '' } } as typeof NARRATIF;
+    expect(choixDuChamp('narratif', narratif, ['cloture', 'when', 'value'], CADRE)).toEqual(VALEURS);
+    expect(choixDuChamp('declencheur', avecEffet({ type: 'poserEtat', etat: 'humeur', valeur: 'calme' }), ['flow', 'effet', 'valeur'], CADRE)).toEqual(VALEURS);
+    expect(choixDuChamp('declencheur', declencheur({ kind: 'etat', etat: 'humeur' } as Condition), ['when', 'value'], CADRE)).toEqual(VALEURS);
+  });
+
+  it('le stade d’un indice révélé : ses stades, libellés de leur rang ; un état sans valeurs déclarées n’en offre aucune', () => {
+    expect(choixDuChamp('declencheur', avecEffet({ type: 'revealClue', indiceId: 'piste' }), ['flow', 'effet', 'stade'], CADRE)).toEqual([{ valeur: 'vu', libelle: 'stade 1', refus: null }, { valeur: 'compris', libelle: 'stade 2', refus: null }]);
+    expect(choixDuChamp('declencheur', declencheur({ kind: 'etat', etat: 'meneur' } as Condition), ['when', 'value'], CADRE)).toEqual([]);
+  });
+});

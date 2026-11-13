@@ -14,7 +14,7 @@ import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/gr
 import { affaireSchema, documentNarratifSchema, ecartSchema, etatNarratifSchema, formeDEtatSchema, indiceSchema, indiceStadeSchema, narratifSchema, presetPnjSchema, valeurDEtatSchema, type EcartDeFiche, type EtatNarratif, type Indice, type NarratifBlock, type PresetPnj } from '../data/schemas/defs-scenes/narratif';
 import { identiteDe, libelleDeLigne } from './narratifEdit';
 import { idFrais, identiteNeuve, lignesNeuves, repereNeuf, type Identite, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
-import { FORMES_D_ETAT, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
+import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
 import { porteeDeLaFeuille } from '../data/schemas/grammaire/ref';
@@ -34,8 +34,9 @@ import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/so
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
 import { mergeCreatureProfile, objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
-import { entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
+import { entreesDeStades, entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
+import { SOUS_REFERENCES, type CleDeSousReference } from '../data/schemas/defs-scenes/refs-narratives';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
 import { emptyWorldMap, resolvePortRef, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
 import type { Warning } from './validateScene';
@@ -1130,6 +1131,30 @@ export function cleDeLElement(noeud: unknown, element: unknown): string | undefi
 const estReferenceNarrative = (cle: Segment | undefined): cle is CleDeReferenceNarrative =>
   typeof cle === 'string' && Object.prototype.hasOwnProperty.call(REFERENCES_NARRATIVES, cle);
 
+/** La clé `cle` est-elle une sous-référence narrative (`SOUS_REFERENCES`) ? */
+const estSousReference = (cle: Segment | undefined): cle is CleDeSousReference =>
+  typeof cle === 'string' && Object.prototype.hasOwnProperty.call(SOUS_REFERENCES, cle);
+
+/** Le registre de la référence parente d'une sous-référence. */
+type RegistreDeSousReference = (typeof REFERENCES_NARRATIVES)[(typeof SOUS_REFERENCES)[CleDeSousReference]];
+
+/** Les sous-entrées de l'entrée `id` de chaque registre qu'une sous-référence désigne, dans le narratif `narratif` : les
+ *  stades d'un indice (`entreesDeStades`), les valeurs déclarées d'un état (`valeursDeclarees`). */
+const SOUS_ENTREES_DESIGNEES: { readonly [R in RegistreDeSousReference]: (narratif: NarratifBlock, id: string) => readonly { id: string; label: string }[] } = {
+  indices: entreesDeStades,
+  etats: (narratif, id) => valeursDeclarees(etatDeclare(narratif.etats, id)),
+};
+
+/** Les choix de la sous-référence au chemin `chemin` de la donnée `donnee`, sous la clé `cle` : quand sa référence
+ *  parente, sa clé sœur (`SOUS_REFERENCES`), désigne une entrée, chacune de ses sous-entrées (`SOUS_ENTREES_DESIGNEES`) ;
+ *  `undefined` sans elle, où la clé n'est pas une sous-référence. */
+function choixDeLaSousReference(donnee: unknown, chemin: readonly Segment[], cle: CleDeSousReference, narratif: NarratifBlock): readonly ChoixDuContexte[] | undefined {
+  const parente = SOUS_REFERENCES[cle];
+  const porteur = chemin.slice(0, -1).reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
+  const id = estObjet(porteur) ? porteur[parente] : undefined;
+  return typeof id === 'string' ? SOUS_ENTREES_DESIGNEES[REFERENCES_NARRATIVES[parente]](narratif, id).map((e) => ({ valeur: e.id, libelle: e.label, refus: null })) : undefined;
+}
+
 /** Un objet qui ouvre des portées locales (`ouvrirPortees`), avec son nœud : son schéma et sa valeur. */
 type Ouvreur = readonly [unknown, unknown];
 
@@ -1156,8 +1181,9 @@ function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans
  *  leur ordre, dans le cadre `cadre` : sous une adresse de prose, ceux de son `Source/` (`choixSousUneAdresse`) ; d'une
- *  référence narrative, chaque entrée du registre que son narratif désigne (`entreesNarratives`) ; d'une référence
- *  locale, chaque élément que sa portée admet, ouverte par le porteur, sa scène ou son projet
+ *  référence narrative, chaque entrée du registre que son narratif désigne (`entreesNarratives`) ; d'une
+ *  sous-référence, chaque sous-entrée de l'entrée que désigne sa référence parente (`choixDeLaSousReference`) ; d'une
+ *  référence locale, chaque élément que sa portée admet, ouverte par le porteur, sa scène ou son projet
  *  (`choixDeLaReferenceLocale`, `ouvreursDuCadre`), restreints à ceux de son porteur s'il en pose (`FORMULAIRES`) ;
  *  sinon ceux de son porteur ; `undefined` : ceux du nœud. */
 export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
@@ -1166,6 +1192,8 @@ export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeD
   const deLAdresse = choixSousUneAdresse(formulaire.schema, donnee, chemin, cadre.source);
   if (deLAdresse) return deLAdresse;
   if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
+  const sous = estSousReference(cle) ? choixDeLaSousReference(donnee, chemin, cle, cadre.projet.narratif) : undefined;
+  if (sous) return sous;
   const locaux = choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), ouvreursDuCadre([formulaire.schema, donnee], cadre));
   const duPorteur = formulaire.choix?.(donnee, chemin, cadre);
   return locaux && duPorteur ? duPorteur.filter((c) => locaux.some((l) => jsonCanonique(l.valeur) === jsonCanonique(c.valeur))) : locaux ?? duPorteur;
