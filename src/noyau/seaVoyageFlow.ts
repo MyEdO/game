@@ -1898,7 +1898,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   const value = testValue(eng, { characteristic: 'initiative' }); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
   set({
     pendingSteamSave: {
-      actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
+      actorId: eng.id, skillValue: value, difficulty: 'intermediaire',
       ...cibleMesuree(rollLine({ actor: eng, test: { characteristic: 'initiative' }, difficulty: 'intermediaire', valeur: value })),
       scaldOps: [{ op: 'wounds', amount: dmg, ignoreTB: false, ignoreAP: true }], // « qui ignorent l'Armure » (le BE reste déduit)
       roll: null, success: false, sl: 0,

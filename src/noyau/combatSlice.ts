@@ -113,6 +113,7 @@ import { actorIn, inBattleId, porteurParId } from './monde/combatants';
 import { refusDImmunite } from './determinationDuJet';
 import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
@@ -1287,7 +1288,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!rt) return; // État non récupérable par Action (pas de `recover` en donnée)
       set({
         pendingStateRecovery: {
-          actorId: active.id, actorName: active.label, state: etat,
+          actorId: active.id, state: etat,
           skillLabel: rt.skillLabel, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
           opposition: rt.opposition, requireSl: rt.requireSl,
           entangleOnFail: rt.entangleOnFail, struggleDamage: rt.struggleDamage, stacks: n,
@@ -1674,7 +1675,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { skillValue, difficulty, ligne } = jetDuSoigneur(healer, ouverture.test, mode);
       set({
         pendingHeal: {
-          healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
+          healerId: healer.id, healerName: nomDe(healer), targetId: target.id,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
           // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (réglage `soins.bandages`).
           test: ouverture.test, bandagesDe: ouverture.bandages ? healer.id : null,
@@ -2735,9 +2736,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ pendingApproach: null });
       if (!c) return;
       const ok = lance.success;
+      const nomDeLaSource = garanti(nomEnVue(get(), pa.sourceId), pa.sourceId, 'source de l’Approche');
       const log = [...battle.log, ev('peur', ok
-        ? t('cs.courageYes', { name: c.label, src: pa.sourceName })
-        : t('cs.courageNo', { name: c.label, src: pa.sourceName }), c.id, src?.id)];
+        ? t('cs.courageYes', { name: c.label, src: nomDeLaSource })
+        : t('cs.courageNo', { name: c.label, src: nomDeLaSource }), c.id, src?.id)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
         // Relance le geste différé (le gate est 'passed') AVEC l'intention de son clic d'origine, que ce clic a dissoute.

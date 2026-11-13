@@ -16,6 +16,7 @@
  * aucune fin de partie ; elle nomme en revanche l'image de celui qui « roule sous la table » (l.88),
  * d'où l'arrêt anticipé sur un joueur Inconscient.
  */
+import { nomDe } from '../engine/nom';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -39,7 +40,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** L'adversaire au profil standard, nommé comme `jouerALaTaverne` le nomme (`opponentActor.label`). */
-const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
+const NOM_HABITUE = nomDe(pnjAuProfil('humain', HABITUE)!);
 
 const get = () => banc.getState();
 const CEREVIS = findTavernGameById('cerevis')!;
