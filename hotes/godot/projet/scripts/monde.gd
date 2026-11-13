@@ -654,11 +654,12 @@ func _zoomer(sens: float) -> void:
 ## Les nappes retirées (`plateau.toitsLeves`), les arêtes retirées (`plateau.aretesDegagees`) et les couronnes crénelées
 ## tombées avec leur mur abattu (`plateau.couronnesAbattues`), `Monde.cacher_le_bati` les cache à la caméra : les
 ## nappes, et chaque arête retirée sous le cran de la caméra (`MiseEnPage.rotation_iso`) avec sa couronne, revue à
-## chaque quart de tour ; chaque nappe et chaque couronne en ombre seule (`SHADOWS_ONLY`, `VolumeDeScene._cacher_sous`),
-## chaque arête hors du compte visible des instances vues de son groupe, les instances en ombre seule du groupe
-## entières (`VolumeDeScene._ecrire_les_instances`). Le regard ne change que ce que voit la caméra, jamais l'éclairage :
-## sous un toit levé, l'intérieur reste à l'ombre (recette `projet/recettes/ombres-du-regard.gd`) ; une couronne
-## abattue, tombée avec son mur, disparaît (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
+## chaque quart de tour ; de chaque nappe et de chaque couronne, l'instance vue cachée, son instance en ombre seule
+## (`SHADOWS_ONLY`) gardée (`VolumeDeScene._cacher_sous`), chaque arête hors du compte visible des instances vues de son
+## groupe, les instances en ombre seule du groupe entières (`VolumeDeScene._ecrire_les_instances`). Le regard ne change
+## que ce que voit la caméra, jamais l'éclairage : sous un toit levé, l'intérieur reste à l'ombre (recette
+## `projet/recettes/ombres-du-regard.gd`) ; une couronne abattue, tombée avec son mur, disparaît
+## (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
 
 ## @contrat Monde
 ## Le volume de la scène (`projet/scenes/VolumeDeScene.tscn`, `VolumeDeScene`, #3802), que le monde
@@ -690,15 +691,28 @@ func _zoomer(sens: float) -> void:
 ## lieu, traverse une case retirée, puis reprend par tronçons bornés, sans sauter une face sous le biais coplanaire du
 ## noyau (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`).
 ##
-## Le shader de monde rend chaque surface vue d'un morceau, une matière standard chaque surface d'une nappe, de sa
-## texture, `projet/textures/<matiere>.jpg`, et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du
-## volume, un motif tous les deux mètres ; une matière sans texture garde la couleur de ses sommets. La provenance et la
-## licence de chaque texture sont dans `projet/textures/provenance.json` ; celles du kit des arêtes, dans
-## `projet/kit/provenance.json` (dossiers épinglés, `asset/epingles.ts`).
+## Le shader de monde rend chaque surface vue d'un morceau et d'une nappe de sa texture, `projet/textures/<matiere>.jpg`,
+## et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une
+## matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
+## `projet/textures/provenance.json` ; celles du kit des arêtes, dans `projet/kit/provenance.json` (dossiers épinglés,
+## `asset/epingles.ts`).
 ##
-## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, dans une matière standard
-## que le masque ne lie jamais, et que le rayon du pointeur traverse. Aucune géométrie ni couleur ne se réécrit en
-## GDScript.
+## Le monde pose chaque nappe de toit et chaque couronne crénelée sous le volume comme un morceau : une instance vue
+## dans le shader de monde, que la vision voile (chaque sommet porte en `UV2` le texel de sa case au plan `sol` de sa
+## couche, `2·i·h + y`) et que le masque ne lie jamais, et une instance en ombre seule ; le rayon du pointeur la
+## traverse. Aucune géométrie ne se réécrit en GDScript.
+##
+## La vision du groupe (méthode `vision`, `VisionDuMonde`) voile le monde case par case dans le shader de monde
+## (`VolumeDeScene.voir`) ; chaque instance vue d'une arête prend pour couleur la part de lumière de la meilleure des
+## cases qu'elle sépare (`cases`), fondue comme le reste, en sRGB (`MiseEnPage.teinte_d_instance`, jumelle de
+## `part_de_lumiere` du shader, recette `projet/recettes/voile-du-bati.gd`) ; sans vision, blanche. Ses matières n'ont
+## pas de spéculaire, que la couleur d'instance ne voilerait pas. La couleur d'instance, en sRGB, se lit de même sous
+## les deux rendus (`vertex_color_is_srgb`). Le reflet d'un fragment voilé suit sa part de lumière.
+## La part est exacte par passe de lumière ; sous un soleil qui porte une ombre, le pilote de compatibilité somme deux
+## passes déjà encodées en sRGB, et la part rendue s'abaisse avec la luminance du pixel, mesurée jusqu'à 0,10 sous la
+## teinte (#3950, `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs`). Sous Forward+, le brouillard volumétrique
+## (`scenes/Lumiere.tscn`) diffuse une lumière que la vision ne voile pas : mesuré sous le ciel du jeu, une case inconnue
+## se rend à 0,17 de sa lumière au soleil et jusqu'à 0,26 sur une face à l'ombre, pour 0,15 (#4066).
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
 ## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son

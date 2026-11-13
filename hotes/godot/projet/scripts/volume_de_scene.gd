@@ -5,11 +5,12 @@
 ## même maillage, dans une matière standard, une surface par matière, texturée ou colorée par sommet, rendue des deux
 ## côtés hors des surfaces d'un navire, la mer de chaque navire bordée par sa coque (`border_la_mer`) ; ce que le regard
 ## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; ce que le
-## groupe en voit, voilé de même case par case et fondu d'une vision à la suivante (`voir`) ; les nappes
-## de toit et les couronnes crénelées des murs, dans des matières standard, réconciliées de même par clé et empreinte ;
-## les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`) que l'arête nomme, sinon sa
-## boîte, en groupes d'instances (`poser_les_aretes`) ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en
-## retire (`retirer_les_couronnes`).
+## groupe en voit, voilé de même case par case et fondu d'une vision à la suivante (`voir`) ; les nappes de toit et les
+## couronnes crénelées des murs, de même forme qu'un morceau, voilées comme lui mais jamais masquées, réconciliées de
+## même par clé et empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`)
+## que l'arête nomme, sinon sa boîte, en groupes d'instances (`poser_les_aretes`), chaque instance vue teinte par l'état
+## de la meilleure des cases qu'elle sépare ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en retire
+## (`retirer_les_couronnes`).
 class_name VolumeDeScene
 extends Node3D
 
@@ -31,15 +32,12 @@ const DUREE_DU_FONDU_S := 0.3
 @export var mesh_mur: BoxMesh
 @export var mesh_porte: BoxMesh
 @export var mesh_seuil: BoxMesh
-## La matière standard d'une surface sans texture d'une nappe, et de l'instance en ombre seule de chaque morceau, jamais
-## masquée : la couleur de ses sommets. Une matière qui ne déplace pas ses sommets porte l'ombre que Godot dessine pour
-## toutes (`drivers/gles3/rasterizer_scene_gles3.cpp:283` à 4.7).
+## La matière standard de l'instance en ombre seule de chaque morceau et de chaque nappe, jamais masquée : la couleur
+## de ses sommets. Une matière qui ne déplace pas ses sommets porte l'ombre que Godot dessine pour toutes
+## (`drivers/gles3/rasterizer_scene_gles3.cpp:283` à 4.7).
 @export var couleur_des_sommets: StandardMaterial3D
-## Le modèle de la matière standard d'une surface texturée d'une nappe, projetée sur ses trois axes (triplanaire) dans
-## le repère du volume (`texturer`).
-@export var matiere_texturee: StandardMaterial3D
-## Les modèles de la matière d'une surface de l'instance vue d'un morceau, du shader de monde, sans texture puis
-## texturée (`texturer`), que le masque lie (`retirer`).
+## Les modèles de la matière d'une surface de l'instance vue d'un morceau ou d'une nappe, du shader de monde, sans
+## texture puis texturée (`texturer`), que la vision lie (`voir`), et le masque celle d'un morceau (`retirer`).
 @export var couleur_des_sommets_masquee: ShaderMaterial
 @export var matiere_texturee_masquee: ShaderMaterial
 
@@ -54,16 +52,21 @@ var metres_par_case := 1.0
 ## Par id de navire, le contour de sa coque à sa flottaison dans le plan du volume (`border_la_mer`).
 var _coques := {}
 ## Par nom de matière, la matière de rendu des surfaces des morceaux, que le masque lie (`retirer`), et celle des
-## nappes et des couronnes, qu'il ne lie jamais.
+## nappes et des couronnes, qu'il ne lie jamais : le retrait d'une nappe est par nœud (`cacher`).
 var _matieres_masquees := {}
-var _matieres_entieres := {}
+var _matieres_des_nappes := {}
+## L'indice de chaque couche du volume posé (`poser`, dans l'ordre de `hauteurs`), par son `z`, et les rangées d'une
+## couche, en cases.
+var _couches := {}
+var _rangees_d_une_couche := 0
 ## Le masque posé (`retirer`), en image et en texture, `null` sans retrait.
 var _masque: Image = null
 var _retrait: ImageTexture = null
-## La vision posée (`voir`) en image, `null` sans vision ; ses textures, celle d'où le fondu part et celle où il va, et
-## ce qui se lie avec elles au shader de monde : la part du fondu et les teintes (inconnue, explorée, vue) ; la
-## dernière vision reçue pendant un fondu, qui attend sa fin, `null` sinon.
+## La vision posée (`voir`) en image, `null` sans vision, et celle d'où son fondu part ; ses textures, celle d'où le
+## fondu part et celle où il va, et ce qui se lie avec elles au shader de monde : la part du fondu et les teintes
+## (inconnue, explorée, vue) ; la dernière vision reçue pendant un fondu, qui attend sa fin, `null` sinon.
 var _vision: Image = null
+var _vision_d_avant: Image = null
 var _vision_avant: ImageTexture = null
 var _vision_neuve: ImageTexture = null
 var _part_du_fondu := 1.0
@@ -71,6 +74,11 @@ var _teintes := Vector3.ONE
 ## Les rangées d'un plan de la vision posée (`rangeesParPlan`), un plan par couche : la hauteur `h`, en cases.
 var _rangees_par_plan := 1
 var _vision_en_attente: Variant = null
+## Les groupes d'arêtes à teindre à la prochaine image dessinée (`_teindre_le_pose`), chacun en clé, et ceux que chaque
+## pas du fondu reteint (`avancer_le_fondu`) : ceux dont une case change d'état d'une vision à l'autre
+## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
+var _a_teindre := {}
+var _du_fondu := {}
 ## Le kit des arêtes, hors de l'arbre, `null` sans kit au projet.
 var _kit: Node3D
 ## Les clés des arêtes cachées à la caméra (`cacher`), indexées (`aretes`, chaque clé à `true`), et celles des nappes
@@ -78,11 +86,26 @@ var _kit: Node3D
 var _cachees := {aretes = {}, toits = [], couronnes = []}
 ## Les clés des couronnes retirées (`retirer_les_couronnes`).
 var _retirees: Array = []
+## Par maillage d'une pièce du kit ou d'une boîte, sa copie que voient les instances vues de ses arêtes, et par matière,
+## sa copie qui prend pour albédo la couleur de l'instance (`_maillage_teint`).
+var _maillages_teints := {}
+var _matieres_teintes := {}
 
 
 func _ready() -> void:
 	if ResourceLoader.exists(KIT):
 		_kit = (load(KIT) as PackedScene).instantiate()
+	RenderingServer.frame_pre_draw.connect(_teindre_le_pose)
+
+
+## Juste avant que l'image se dessine (`frame_pre_draw`), chaque groupe d'arêtes posé que `_a_teindre` nomme teint
+## (`_teindre`) sur ce qui est posé à cet instant : le monde, la vision et les arêtes d'une même scène, quel que soit
+## l'ordre où l'appelant les a posés (`combat.gd`, `_suivre`).
+func _teindre_le_pose() -> void:
+	for groupe: Node3D in _aretes.get_children():
+		if _a_teindre.has(groupe):
+			_teindre(groupe)
+	_a_teindre.clear()
 
 
 func _notification(quoi: int) -> void:
@@ -108,6 +131,10 @@ func manquants(monde: Dictionary) -> Dictionary:
 ## (`voir`) liée à l'échelle du volume.
 func poser(monde: Dictionary, recus: Dictionary) -> void:
 	metres_par_case = monde.monde.metresParCase
+	_couches = {}
+	for indice in monde.monde.hauteurs.size():
+		_couches[int(monde.monde.hauteurs[indice].z)] = indice
+		_rangees_d_une_couche = monde.monde.hauteurs[indice].rangees.size()
 	var echelle := MiseEnPage.echelle_metrique(monde.monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
@@ -138,16 +165,19 @@ func retiree(case: Vector2i, rangee: int) -> bool:
 ## les rangées d'un plan : le shader de monde en voile chaque fragment ; `null`, rien n'est voilé. La première vision,
 ## ou une vision d'une autre taille, se pose sans fondu ; une autre se fond depuis celle d'avant en `DUREE_DU_FONDU_S`
 ## (`avancer_le_fondu`), et une vision reçue pendant un fondu attend sa fin, à la place de celle qui attendait. Ni nœud
-## ni maillage ne change.
+## ni maillage ne change ; la vision se lie aussi aux nappes (`_lier_la_vision`) et teint les instances vues des
+## groupes d'arêtes du fondu (`_mesurer_le_fondu`) à la prochaine image dessinée (`_teindre_le_pose`).
 func voir(vision: Variant) -> void:
 	if vision == null:
 		_vision = null
+		_vision_d_avant = null
 		_vision_avant = null
 		_vision_neuve = null
 		_part_du_fondu = 1.0
 		_teintes = Vector3.ONE
 		_vision_en_attente = null
 		_lier_la_vision()
+		_mesurer_le_fondu()
 		return
 	if _part_du_fondu != 1.0:
 		_vision_en_attente = vision
@@ -155,6 +185,7 @@ func voir(vision: Variant) -> void:
 	var image := Image.create_from_data(int(vision.largeur), int(vision.rangees), false, Image.FORMAT_R8, Marshalls.base64_to_raw(vision.masque))
 	var neuve := ImageTexture.create_from_image(image)
 	var fondue := _vision != null and _vision.get_size() == image.get_size()
+	_vision_d_avant = _vision if fondue else image
 	_vision_avant = _vision_neuve if fondue else neuve
 	_part_du_fondu = 0.0 if fondue else 1.0
 	_vision = image
@@ -162,6 +193,7 @@ func voir(vision: Variant) -> void:
 	_teintes = Vector3(vision.teintes.unknown, vision.teintes.explored, vision.teintes.visible)
 	_rangees_par_plan = int(vision.rangeesParPlan)
 	_lier_la_vision()
+	_mesurer_le_fondu()
 
 
 ## L'octet (0 inconnue, 128 explorée, 255 vue) de la case `case` de la couche d'indice `couche` dans la vision posée
@@ -184,14 +216,17 @@ func _process(secondes: float) -> void:
 	avancer_le_fondu(secondes)
 
 
-## Le fondu de la vision (`voir`) avancé de `secondes` secondes, que `_process` avance à chaque image ; parvenu à sa fin,
-## la vision qui attend se pose, sinon il se dit fini (`fondu_fini`).
+## Le fondu de la vision (`voir`) avancé de `secondes` secondes, que `_process` avance à chaque image, sur les matières
+## du shader de monde et, à la prochaine image dessinée, sur les instances vues des arêtes (`_teindre_le_pose`) ;
+## parvenu à sa fin, la vision qui attend se pose, sinon il se dit fini (`fondu_fini`).
 func avancer_le_fondu(secondes: float) -> void:
 	if _part_du_fondu == 1.0:
 		return
 	_part_du_fondu = MiseEnPage.part_du_fondu(_part_du_fondu, secondes, DUREE_DU_FONDU_S)
-	for matiere: ShaderMaterial in _matieres_masquees.values():
-		matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
+	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes]:
+		for matiere: ShaderMaterial in matieres.values():
+			matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
+	_a_teindre.merge(_du_fondu)
 	if _part_du_fondu != 1.0:
 		return
 	if _vision_en_attente == null:
@@ -202,10 +237,34 @@ func avancer_le_fondu(secondes: float) -> void:
 	voir(attendue)
 
 
-## La vision posée (`voir`) liée à chaque matière des morceaux (`_lier_la_vision_a`).
+## La vision posée (`voir`) liée à chaque matière des morceaux et des nappes (`_lier_la_vision_a`).
 func _lier_la_vision() -> void:
-	for matiere: ShaderMaterial in _matieres_masquees.values():
-		_lier_la_vision_a(matiere)
+	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes]:
+		for matiere: ShaderMaterial in matieres.values():
+			_lier_la_vision_a(matiere)
+
+
+## Les groupes d'arêtes du fondu de la vision posée (`voir`, `_du_fondu`), à teindre à la prochaine image dessinée
+## (`_teindre_le_pose`) : tous sans fondu, ceux dont une case change d'état (`_change_d_etat`) sinon.
+func _mesurer_le_fondu() -> void:
+	_du_fondu = {}
+	for groupe: Node3D in _aretes.get_children():
+		if _part_du_fondu == 1.0 or _change_d_etat(groupe):
+			_du_fondu[groupe] = true
+	_a_teindre.merge(_du_fondu)
+
+
+## Si une case d'une arête du groupe `groupe` (méta `aretes`) change d'état de la vision d'où le fondu part à la posée
+## (`voir`).
+func _change_d_etat(groupe: Node3D) -> bool:
+	return groupe.get_meta("aretes").any(func(a: Dictionary) -> bool: return a.cases.any(func(c: Dictionary) -> bool:
+		var texel := _texel_de_vision(c)
+		return _vision_d_avant.get_pixelv(texel).r8 != _vision.get_pixelv(texel).r8))
+
+
+## Le texel de la case `c` (`{ x, y, z }`) dans la vision posée (`voir`), au plan de sa couche.
+func _texel_de_vision(c: Dictionary) -> Vector2i:
+	return MiseEnPage.texel_de_vision(Vector2i(int(c.x), int(c.y)), _couches[int(c.z)], _rangees_par_plan)
 
 
 ## La vision posée (`voir`) liée à la matière `matiere` du shader de monde, à l'échelle du volume posé (`poser`).
@@ -284,18 +343,12 @@ static func _manquants_sous(parent: Node, voulus: Array) -> Array:
 	return voulus.filter(func(voulu: Dictionary) -> bool: return posees.get(voulu.cle) != voulu.empreinte).map(func(voulu: Dictionary) -> String: return voulu.cle)
 
 
-## Le nœud du morceau `morceau` (`MorceauDuMonde`) : `Vu`, que la caméra voit sans qu'il porte d'ombre, et `Ombre`, en
-## ombre seule (`SHADOWS_ONLY`, #3758) dans la matière standard `couleur_des_sommets`, du même maillage (`_mailler`) ;
-## s'il porte un luminaire (surfaces `luminaire`, #3811), `Ombre` sans ses surfaces et `OmbreDesLuminaires`, en ombre
-## seule sur `COUCHE_DES_LUMINAIRES`, avec elles seules ; les navires dont il porte la mer (`flottaison`), et sa
-## géométrie s'il en porte, que `border_la_mer` remaille.
+## Le nœud du morceau `morceau` (`MorceauDuMonde`, `_vu_et_ombre`) maillé (`_mailler`) ; s'il porte un luminaire
+## (surfaces `luminaire`, #3811), `Ombre` sans ses surfaces et `OmbreDesLuminaires`, en ombre seule sur
+## `COUCHE_DES_LUMINAIRES`, avec elles seules ; les navires dont il porte la mer (`flottaison`), et sa géométrie s'il en
+## porte, que `border_la_mer` remaille.
 func _morceau(morceau: Dictionary) -> Node3D:
-	var noeud := Node3D.new()
-	var vu := MeshInstance3D.new()
-	vu.name = "Vu"
-	vu.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	noeud.add_child(vu)
-	noeud.add_child(_en_ombre_seule("Ombre"))
+	var noeud := _vu_et_ombre()
 	if morceau.surfaces.any(_est_d_un_luminaire):
 		var des_luminaires := _en_ombre_seule("OmbreDesLuminaires")
 		des_luminaires.layers = COUCHE_DES_LUMINAIRES
@@ -305,6 +358,18 @@ func _morceau(morceau: Dictionary) -> Node3D:
 	if not flottaisons.is_empty():
 		noeud.set_meta("geometrie", morceau)
 	_mailler(noeud, morceau)
+	return noeud
+
+
+## Un nœud à deux instances d'un même maillage : `Vu`, que la caméra voit sans qu'il porte d'ombre, et `Ombre`, en ombre
+## seule (`SHADOWS_ONLY`, #3758) dans la matière standard `couleur_des_sommets`.
+func _vu_et_ombre() -> Node3D:
+	var noeud := Node3D.new()
+	var vu := MeshInstance3D.new()
+	vu.name = "Vu"
+	vu.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	noeud.add_child(vu)
+	noeud.add_child(_en_ombre_seule("Ombre"))
 	return noeud
 
 
@@ -322,25 +387,30 @@ static func _est_d_un_luminaire(surface: Dictionary) -> bool:
 	return surface.has("luminaire")
 
 
-## Le maillage de la géométrie `morceau` (`_maillage_de`, masqué) posé sur les instances du nœud `noeud` : entier sur
-## `Vu` ; sur `Ombre` aussi, ou, si le morceau porte un luminaire, sans ses surfaces, qui vont à `OmbreDesLuminaires`.
+## Le maillage de la géométrie `morceau` (`_maillage_de`, chaque case sur la `rangee` du morceau, dans les matières que
+## le masque lie) posé sur les instances du nœud `noeud` : entier sur `Vu` ; sur `Ombre` aussi, ou, si le morceau porte
+## un luminaire, sans ses surfaces, qui vont à `OmbreDesLuminaires`.
 func _mailler(noeud: Node3D, morceau: Dictionary) -> void:
-	var maillage := _maillage_de(morceau, true)
+	var texel_de := func(c: Vector3) -> Vector2i: return MiseEnPage.texel_du_masque(Vector2i(int(c.x), int(c.y)), int(morceau.rangee))
+	var maillage := _maillage_de(morceau, texel_de, true)
 	(noeud.get_node("Vu") as MeshInstance3D).mesh = maillage
 	var des_luminaires: MeshInstance3D = noeud.get_node_or_null("OmbreDesLuminaires")
 	if des_luminaires == null:
 		(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
 		return
-	(noeud.get_node("Ombre") as MeshInstance3D).mesh = _maillage_de(morceau, true, func(surface: Dictionary) -> bool: return not _est_d_un_luminaire(surface))
-	des_luminaires.mesh = _maillage_de(morceau, true, _est_d_un_luminaire)
+	(noeud.get_node("Ombre") as MeshInstance3D).mesh = _maillage_de(morceau, texel_de, true, func(surface: Dictionary) -> bool: return not _est_d_un_luminaire(surface))
+	des_luminaires.mesh = _maillage_de(morceau, texel_de, true, _est_d_un_luminaire)
 
 
-## Le maillage d'une nappe de toit ou d'une couronne (`NappeDuMonde`, `_maillage_de`, jamais masqué, dans des matières
-## standard), vu et portant son ombre tant que `cacher` ne la nomme pas.
-func _nappe(nappe: Dictionary) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	instance.mesh = _maillage_de(nappe, false)
-	return instance
+## Le nœud d'une nappe de toit ou d'une couronne (`NappeDuMonde`, `_vu_et_ombre`) : son maillage (`_maillage_de`, chaque
+## case au plan `sol` de sa couche, `MiseEnPage.texel_de_nappe`, dans des matières que le masque ne lie jamais), voilé
+## par la vision, vu tant que `cacher` ne la nomme pas, son ombre toujours portée.
+func _nappe(nappe: Dictionary) -> Node3D:
+	var noeud := _vu_et_ombre()
+	var maillage := _maillage_de(nappe, func(c: Vector3) -> Vector2i: return MiseEnPage.texel_de_nappe(Vector2i(int(c.x), int(c.y)), _couches[int(c.z)], _rangees_d_une_couche), false)
+	(noeud.get_node("Vu") as MeshInstance3D).mesh = maillage
+	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
+	return noeud
 
 
 ## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied, en groupes
@@ -399,31 +469,30 @@ func ce_qui_est_pose() -> Dictionary:
 	}
 
 
-## Chaque nappe sous `parent` (`_nappe`) que `cles` nomme cachée à la caméra, en ombre seule (`SHADOWS_ONLY`, #3758),
-## montrée sinon.
+## Chaque nappe sous `parent` (`_nappe`) que `cles` nomme cachée à la caméra, son instance en ombre seule gardée
+## (#3758), montrée sinon.
 func _cacher_sous(parent: Node3D, cles: Array) -> void:
-	for nappe: GeometryInstance3D in parent.get_children():
-		nappe.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if cles.has(nappe.get_meta("cle")) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for nappe: Node3D in parent.get_children():
+		(nappe.get_node("Vu") as Node3D).visible = not cles.has(nappe.get_meta("cle"))
 
 
-## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
-## texturée ou colorée par sommet (`_matiere`), masquée si `masquee` (chaque sommet porte en `UV2` le texel de sa case au
-## masque, `MiseEnPage.texel_du_masque`, sur la `rangee` du morceau, la case de chaque triangle lue en `x, y, z` à plat
+## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `cases`, `surfaces`) : une surface par
+## matière, texturée ou colorée par sommet (`_matiere`, liée au masque si `masquee`), chaque sommet portant en `UV2` le
+## texel au masque de la case de son triangle que `texel_de` rend (la case de chaque triangle lue en `x, y, z` à plat
 ## dans `cases`), chaque tableau retourné en entier (`_retournes`) ;
 ## sans les surfaces d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre ; la mer
 ## d'un navire (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il
 ## n'est pas connu ; de ses seules surfaces que `retenue` retient, s'il est donné. Godot tient pour face avant le sens
 ## horaire, le volume le sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle.
-func _maillage_de(geometrie: Dictionary, masquee: bool, retenue := Callable()) -> ArrayMesh:
+func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, retenue := Callable()) -> ArrayMesh:
 	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
 	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
 	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
 	var texels := PackedVector2Array()
-	if masquee:
-		for c: Vector3 in PackedFloat32Array(geometrie.cases).to_byte_array().to_vector3_array():
-			var texel := Vector2(MiseEnPage.texel_du_masque(Vector2i(int(c.x), int(c.y)), int(geometrie.rangee)))
-			texels.append_array([texel, texel, texel])
-	var rangs := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV2] if masquee else [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR]
+	for c: Vector3 in PackedFloat32Array(geometrie.cases).to_byte_array().to_vector3_array():
+		var texel := Vector2(texel_de.call(c))
+		texels.append_array([texel, texel, texel])
+	var rangs := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV2]
 	var maillage := ArrayMesh.new()
 	for surface: Dictionary in geometrie.surfaces:
 		if surface.has("navire") or (retenue.is_valid() and not retenue.call(surface)):
@@ -433,8 +502,7 @@ func _maillage_de(geometrie: Dictionary, masquee: bool, retenue := Callable()) -
 		tableaux[Mesh.ARRAY_VERTEX] = sommets.slice(int(surface.debut), int(surface.fin))
 		tableaux[Mesh.ARRAY_NORMAL] = normales.slice(int(surface.debut), int(surface.fin))
 		tableaux[Mesh.ARRAY_COLOR] = couleurs.slice(int(surface.debut), int(surface.fin))
-		if masquee:
-			tableaux[Mesh.ARRAY_TEX_UV2] = texels.slice(int(surface.debut), int(surface.fin))
+		tableaux[Mesh.ARRAY_TEX_UV2] = texels.slice(int(surface.debut), int(surface.fin))
 		if surface.has("flottaison") and _coques.has(surface.flottaison):
 			tableaux = _hors_du_contour(tableaux, _coques[surface.flottaison])
 		if tableaux[Mesh.ARRAY_VERTEX].is_empty():
@@ -491,20 +559,18 @@ func _retournes(tableau: Variant) -> Variant:
 	return tableau
 
 
-## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde ») :
-## texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets. Celle d'un morceau (`masquee`),
-## du shader de monde, est la sienne, liée au masque posé (`retirer`) et à la vision posée (`voir`) ; celle d'une nappe,
-## standard, jamais masquée.
-func _matiere(nom: String, masquee: bool) -> Material:
-	var matieres := _matieres_masquees if masquee else _matieres_entieres
+## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde »), du shader
+## de monde : texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets, liée à la vision posée
+## (`voir`). Celle d'un morceau (`masquee`) est liée au masque posé (`retirer`) ; celle d'une nappe, jamais : sa texture
+## de retrait reste la noire par défaut, rien ne s'y replie.
+func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
+	var matieres := _matieres_masquees if masquee else _matieres_des_nappes
 	if not matieres.has(nom):
-		var texturee := ResourceLoader.exists(texture_de(nom))
-		var modele: Material = (matiere_texturee_masquee if texturee else couleur_des_sommets_masquee) if masquee else (matiere_texturee if texturee else couleur_des_sommets)
-		var matiere: Material = modele.duplicate() if texturee or masquee else modele
+		var matiere: ShaderMaterial = (matiere_texturee_masquee if ResourceLoader.exists(texture_de(nom)) else couleur_des_sommets_masquee).duplicate()
 		texturer(matiere, nom)
 		if masquee:
 			matiere.set_shader_parameter("retrait", _retrait)
-			_lier_la_vision_a(matiere as ShaderMaterial)
+		_lier_la_vision_a(matiere)
 		matieres[nom] = matiere
 	return matieres[nom]
 
@@ -538,9 +604,10 @@ static func texturer(materiau: Material, nom: String) -> void:
 ## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `sens` et `hauteurM`), à l'origine de
 ## `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur pièce, celle du kit, `<famille>--<pièce>`,
 ## mise à la hauteur de leur mur (`MiseEnPage.echelle_de_piece`), sinon leur boîte (`_boite`), où chaque maillage
-## devient deux instances groupées de même place et de même maillage (`_instances`), une par arête : `Vu_<maillage>`,
-## que la caméra voit sans qu'il porte d'ombre, et `Ombre_<maillage>`, en ombre seule (`SHADOWS_ONLY`, #3758). Les
-## arêtes vont en méta (`aretes`) ; les instances s'écrivent une fois le groupe dans l'arbre (`_ecrire_les_instances`).
+## devient deux instances groupées de même place (`_instances`), une par arête : `Vu_<maillage>`, que la caméra voit sans
+## qu'il porte d'ombre, de son maillage teint (`_maillage_teint`), et `Ombre_<maillage>`, en ombre seule
+## (`SHADOWS_ONLY`, #3758), de son maillage. Les arêtes vont en méta (`aretes`), et la couleur de chaque instance vue,
+## aucune encore (`couleurs`) ; les instances s'écrivent une fois le groupe dans l'arbre (`_ecrire_les_instances`).
 func _groupe(aretes: Array) -> Node3D:
 	var a: Dictionary = aretes[0]
 	var sens := Vector2(a.sens.x, a.sens.y)
@@ -558,23 +625,28 @@ func _groupe(aretes: Array) -> Node3D:
 		socle = boite.mesh.size.y
 		groupe.add_child(boite)
 	for maillage: MeshInstance3D in groupe.find_children("*", "MeshInstance3D", true, false):
-		var vu := _instances(maillage, "Vu_%s" % maillage.name, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, aretes.size(), socle)
-		var ombre := _instances(maillage, "Ombre_%s" % maillage.name, GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY, aretes.size(), socle)
+		var vu := _instances(maillage, _maillage_teint(maillage.mesh), "Vu_%s" % maillage.name, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, aretes.size(), socle)
+		var ombre := _instances(maillage, maillage.mesh, "Ombre_%s" % maillage.name, GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY, aretes.size(), socle)
 		vu.set_meta("ombre", ombre)
 		maillage.add_sibling(vu)
 		maillage.add_sibling(ombre)
 		maillage.get_parent().remove_child(maillage)
 		maillage.free()
+	var aucune := []
+	aucune.resize(aretes.size())
 	groupe.set_meta("aretes", aretes)
+	groupe.set_meta("couleurs", aucune)
 	return groupe
 
 
-## Les instances groupées `nom` du maillage de `maillage`, à sa place, dans ses matières, `nombre` instances projetant
-## l'ombre `ombre`, pour une pièce dont le centre est à `socle` au-dessus de son pied (`translation_d_instance`).
-func _instances(maillage: MeshInstance3D, nom: String, ombre: GeometryInstance3D.ShadowCastingSetting, nombre: int, socle: float) -> MultiMeshInstance3D:
+## Les instances groupées `nom` du maillage `mesh`, à la place de `maillage`, `nombre` instances chacune de sa couleur
+## (`use_colors`, posé avant leur nombre), projetant l'ombre `ombre`, pour une pièce dont le centre est à `socle`
+## au-dessus de son pied (`translation_d_instance`).
+func _instances(maillage: MeshInstance3D, mesh: Mesh, nom: String, ombre: GeometryInstance3D.ShadowCastingSetting, nombre: int, socle: float) -> MultiMeshInstance3D:
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = maillage.mesh
+	multimesh.use_colors = true
+	multimesh.mesh = mesh
 	multimesh.instance_count = nombre
 	var instances := MultiMeshInstance3D.new()
 	instances.name = nom
@@ -587,8 +659,10 @@ func _instances(maillage: MeshInstance3D, nom: String, ombre: GeometryInstance3D
 
 ## Les instances du groupe `groupe` (`_groupe`), une par arête, dans l'ordre des arêtes montrées puis des arêtes cachées
 ## (`cacher`), le même pour chaque maillage : `Vu_<maillage>` n'en montre que les premières, `Ombre_<maillage>` les
-## projette toutes. Réécrites seulement si l'ensemble de ses arêtes cachées, lu à l'index de `cacher`, a changé depuis
-## la dernière écriture (méta `cachees`, absente d'un groupe neuf).
+## projette toutes ; cet ordre en méta (`ordre`), chaque instance vue teinte à son rang à la prochaine image dessinée
+## (`_teindre_le_pose`), et à chaque pas d'un fondu en cours si une de ses cases y change d'état (`_du_fondu`). Réécrites
+## seulement si l'ensemble de ses arêtes cachées, lu à l'index de `cacher`, a changé depuis la dernière écriture (méta
+## `cachees`, absente d'un groupe neuf).
 func _ecrire_les_instances(groupe: Node3D) -> void:
 	var aretes: Array = groupe.get_meta("aretes")
 	var cachees := aretes.filter(func(a: Dictionary) -> bool: return _cachees.aretes.has(a.cle))
@@ -606,6 +680,59 @@ func _ecrire_les_instances(groupe: Node3D) -> void:
 			ombre.multimesh.set_instance_transform(rang, instance)
 		vu.multimesh.visible_instance_count = montrees
 	groupe.set_meta("cachees", cles)
+	groupe.set_meta("ordre", ordre)
+	_a_teindre[groupe] = true
+	if _part_du_fondu != 1.0 and _change_d_etat(groupe):
+		_du_fondu[groupe] = true
+
+
+## Chaque instance vue du groupe `groupe` (`Vu_<maillage>`) de la teinte de l'arête de son rang (méta `ordre`,
+## `_teinte_d_arete`), réécrite seulement si elle n'est pas celle que l'instance de ce rang porte déjà (méta `couleurs`,
+## aucune dans un groupe neuf).
+func _teindre(groupe: Node3D) -> void:
+	var avant: Array = groupe.get_meta("couleurs")
+	var couleurs: Array = groupe.get_meta("ordre").map(_teinte_d_arete)
+	var vus := groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false)
+	for rang in couleurs.size():
+		if avant[rang] == couleurs[rang]:
+			continue
+		for vu: MultiMeshInstance3D in vus:
+			vu.multimesh.set_instance_color(rang, couleurs[rang])
+	groupe.set_meta("couleurs", couleurs)
+
+
+## La teinte de l'instance vue de l'arête `a` : sans vision (`voir`), blanche ; sinon le plus grand des états fondus de
+## ses cases (`cases`, chacune lue au plan de sa couche dans la vision d'avant et dans la posée, à la part du fondu),
+## en part de lumière sRGB (`MiseEnPage.teinte_d_instance`).
+func _teinte_d_arete(a: Dictionary) -> Color:
+	if _vision == null:
+		return Color.WHITE
+	var etat := 0.0
+	for c: Dictionary in a.cases:
+		var texel := _texel_de_vision(c)
+		etat = MiseEnPage.plus_grand_etat(etat, MiseEnPage.etat_fondu(_vision_d_avant.get_pixelv(texel).r8, _vision.get_pixelv(texel).r8, _part_du_fondu))
+	var teinte := MiseEnPage.teinte_d_instance(etat, _teintes)
+	return Color(teinte, teinte, teinte)
+
+
+## La copie de `mesh` que voient les instances vues de ses arêtes, une par maillage : chaque matière remplacée par sa
+## copie qui prend pour albédo la couleur de l'instance (`vertex_color_use_as_albedo`), en sRGB, que chaque rendu lit de
+## même (`vertex_color_is_srgb`), sans spéculaire (`metallic_specular`), que la couleur d'instance ne voile pas, une par
+## matière.
+func _maillage_teint(mesh: Mesh) -> Mesh:
+	if not _maillages_teints.has(mesh):
+		var copie: Mesh = mesh.duplicate()
+		for rang in mesh.get_surface_count():
+			var matiere: BaseMaterial3D = mesh.surface_get_material(rang)
+			if not _matieres_teintes.has(matiere):
+				var teinte: BaseMaterial3D = matiere.duplicate()
+				teinte.vertex_color_use_as_albedo = true
+				teinte.vertex_color_is_srgb = true
+				teinte.metallic_specular = 0.0
+				_matieres_teintes[matiere] = teinte
+			copie.surface_set_material(rang, _matieres_teintes[matiere])
+		_maillages_teints[mesh] = copie
+	return _maillages_teints[mesh]
 
 
 ## La translation, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de

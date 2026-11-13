@@ -32,6 +32,15 @@ export async function enHauteDefinition(session) {
   await recharger(session)
 }
 
+/** Les gains du graphe audio de la page relevés dès son prochain chargement, par rang de création (`wfrpGains`), où
+ *  l'export porte le volume de chaque bus : vrai, la page a ce graphe. */
+export async function releverLesGains(session) {
+  await session.rpc('Page.addScriptToEvaluateOnNewDocument', {
+    source: 'globalThis.wfrpGains = []; { const creer = BaseAudioContext.prototype.createGain; BaseAudioContext.prototype.createGain = function () { const gain = creer.call(this); wfrpGains.push(gain); return gain } }',
+  })
+  return true
+}
+
 /** Ce que rend à `entree` le rappel que Godot expose sous `nom` (`Transport.exposer`), une fonction de la page. */
 export const rappeler = (session, nom, entree) =>
   evaluate(session, `new Promise((rendre) => globalThis[${JSON.stringify(nom)}](${JSON.stringify(entree)}, rendre))`, { timeoutMs: FIL_DE_LA_PAGE_MS })

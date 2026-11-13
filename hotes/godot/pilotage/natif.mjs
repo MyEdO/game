@@ -199,6 +199,12 @@ export async function shot(session, name, dir) {
 /** Sans rendu, aucune image à redessiner. */
 export async function enHauteDefinition() {}
 
+/** Hors d'une page, aucun graphe audio que le lieu lise : faux (le volume d'un bus s'y prouve à
+ *  `projet/recettes/campagne.gd`). */
+export async function releverLesGains() {
+  return false
+}
+
 /** Le jeu rechargé (`session.recharger`). */
 export const recharger = (session) => session.recharger()
 

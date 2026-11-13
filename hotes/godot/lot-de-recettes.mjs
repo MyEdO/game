@@ -33,6 +33,7 @@ export const JEUX_DU_PARCOURS = {
   bataille: { bataille: ['--scenario', 'bataille-de-masse'] },
   exploration: { exploration: ['--scenario', 'porte-close'] },
   relief: { relief: ['--scenario', 'grimpant'] },
+  murs: { murs: ['--scenario', 'zones-pieces'] },
   etage: { etage: ['--scenario', 'fenetre-ecuries'] },
   regards: { regards: ['--scenario', 'fenetre-ecuries'] },
   meteo: { meteo: ['--scenario', 'voyage'] },
@@ -60,9 +61,9 @@ const HORS_NATIF = {
 }
 
 /** Les jeux qu'une recette native joue en rendu réel (`--rendu`), sous le rendu de la page, les autres sans écran :
- *  `vision` lit les pixels de ses captures, `wfrpCadrer` (`cadrages`) attend l'image dessinée de la caméra posée, et
- *  l'atelier (`preset`) mesure ses meshes skinnés aux os que le serveur de rendu leur pourvoit. */
-const RENDUS_EN_NATIF = new Set(['vision', 'cadrages', 'preset'])
+ *  `vision` et `murs` lisent les pixels de leurs captures, `wfrpCadrer` (`cadrages`) attend l'image dessinée de la
+ *  caméra posée, et l'atelier (`preset`) mesure ses meshes skinnés aux os que le serveur de rendu leur pourvoit. */
+const RENDUS_EN_NATIF = new Set(['vision', 'murs', 'cadrages', 'preset'])
 const RENDU_DE_LA_PAGE = 'gl_compatibility'
 
 const RECETTE = fileURLToPath(new URL('./recette.mjs', import.meta.url))
