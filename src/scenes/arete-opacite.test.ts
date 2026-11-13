@@ -11,8 +11,8 @@
  * (combat et vision) rendent le même verdict sur la même arête.
  */
 import { describe, it, expect } from 'vitest';
-import { emptyScene, areteOcculte, wallBetween, wallIsOpen, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../noyau/monde/scene';
-import { wallOnSight, couvertDArete } from '../noyau/monde/lineOfSight';
+import { emptyScene, areteOcculte, wallBetween, wallIsOpen, setDoorOpen, setStructureDown, wallOnSight, type Scene, type WallSeg } from '../noyau/monde/scene';
+import { couvertDArete } from '../noyau/monde/lineOfSight';
 import { buildOpaque } from '../noyau/monde/vision';
 import { structures, findStructureById } from '../data';
 import diligenceCampaign from './diligence/diligence-projet.json';

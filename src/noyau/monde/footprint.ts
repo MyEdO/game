@@ -19,7 +19,9 @@ import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
 import type { Pt } from './path';
-import type { SceneEntity } from './scene';
+import { wallOnSight, type Scene, type SceneEntity } from './scene';
+import { isStructure } from '../../engine/structures';
+import { chebyshev } from '../../engine/grid';
 import { verticalTiles } from './relief';
 
 /** Côté N de l'empreinte carrée pour une Taille créature (défaut Moyenne = 1). */
@@ -137,13 +139,32 @@ export function distanceDeCombat(a: Combatant, b: Combatant, mpt = 2): number {
   return Math.max(horizontal, vertical);
 }
 
+/** Le corps de `c` est-il porté par la scène : une structure de siège (ses arêtes), un navire sur ses ponts ? */
+export const porteParLaScene = (c: Combatant): boolean => isStructure(c) || !!c.surSesPonts;
+
+/** Distance horizontale de contact : la plus petite distance de Chebyshev entre une case de chaque empreinte que
+ *  nulle arête pleine (`wallOnSight`, à la couche la plus haute des deux) ne sépare ; `Infinity` s'il n'y en a aucune.
+ *  Un corps porté par la scène n'est séparé de personne par une arête. LDB 13 l.94 ; LDB 13 l.114. */
+function horizontalDeContact(scene: Scene | null, a: Combatant, b: Combatant, aPos: Pt, bPos: Pt): number {
+  const an = footprintN(a), bn = footprintN(b);
+  if (!scene?.walls?.length || porteParLaScene(a) || porteParLaScene(b)) return footprintChebyshev(aPos, an, bPos, bn);
+  const z = Math.max(aPos.z ?? 0, bPos.z ?? 0);
+  let best = Infinity;
+  for (const ta of footprintTiles(aPos, an))
+    for (const tb of footprintTiles(bPos, bn)) {
+      const d = chebyshev(ta, tb);
+      if (d < best && !wallOnSight(scene, ta, tb, z)) best = d;
+    }
+  return best;
+}
+
 /** Distance de CONTACT, en cases : celle de tout ce qui dit « au contact » (Allonge, adjacence, Surnombre).
- *  `Infinity` quand le plafond du plus bas (`pos.plafond`) n'est pas plus haut que le sol du plus haut. LDB 13 l.114 ;
+ *  `Infinity` quand le plafond du plus bas (`pos.plafond`) n'est pas plus haut que le sol du plus haut, ou quand une
+ *  arête pleine sépare les deux empreintes (`horizontalDeContact`). Sans scène, aucune arête. LDB 13 l.114 ;
  *  LDB 15 l.12. */
-export function distanceDeContact(a: Combatant, b: Combatant, mpt = 2): number {
-  if (a.pos && b.pos) {
-    const [bas, haut] = (a.pos.h ?? 0) <= (b.pos.h ?? 0) ? [a.pos, b.pos] : [b.pos, a.pos];
-    if ((bas.plafond ?? Infinity) <= (haut.h ?? 0)) return Infinity;
-  }
-  return distanceDeCombat(a, b, mpt);
+export function distanceDeContact(scene: Scene | null, a: Combatant, b: Combatant, mpt = 2): number {
+  if (!a.pos || !b.pos) return Infinity;
+  const [bas, haut] = (a.pos.h ?? 0) <= (b.pos.h ?? 0) ? [a.pos, b.pos] : [b.pos, a.pos];
+  if ((bas.plafond ?? Infinity) <= (haut.h ?? 0)) return Infinity;
+  return Math.max(horizontalDeContact(scene, a, b, a.pos, b.pos), verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, mpt));
 }
