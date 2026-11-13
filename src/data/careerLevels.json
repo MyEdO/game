@@ -2154,7 +2154,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "pinceau"
           },
@@ -2656,7 +2657,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "arme-simple"
           },
@@ -2740,7 +2742,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "main-gauche"
           },
@@ -3740,7 +3743,8 @@
         "id": "costume-de-cour"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "fleuret"
           },
@@ -3842,7 +3846,8 @@
         "text": "Cheval de selle avec selle et harnais ou Diligence"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "main-gauche"
           },
@@ -3990,7 +3995,8 @@
         }
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "fleuret",
             "qualityChoice": true
@@ -5007,7 +5013,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "text": "Arme à deux mains"
           },
@@ -5201,7 +5208,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "fleau"
           },
@@ -5214,7 +5222,8 @@
         "id": "arme-simple"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "filet"
           },
@@ -5224,7 +5233,8 @@
         ]
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "bouclier"
           },
@@ -5482,7 +5492,8 @@
         "spec": "locaux"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "text": "Arme à deux mains"
           },
@@ -6449,7 +6460,8 @@
         "id": "coup-de-poing"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "capuchon"
           },
@@ -9699,7 +9711,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "arbalete-de-poing"
           },
@@ -10430,7 +10443,8 @@
         "spec": "de boucher"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "arme-simple",
             "spec": "Couperet"
@@ -12704,7 +12718,8 @@
         "id": "grand-sac"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "masque"
           },
@@ -16487,7 +16502,8 @@
         "id": "grappin"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "masque"
           },
@@ -17435,7 +17451,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "harpon"
           },
@@ -17550,7 +17567,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "label": "Ferme",
             "nature": "immeuble"
@@ -18149,7 +18167,8 @@
         "spec": "de pacotille"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "paquet-de-cartes"
           },
@@ -18901,7 +18920,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "bouclier"
           },
@@ -20120,7 +20140,8 @@
     ],
     "trappings": [
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "bijoux",
             "spec": "anneau orné d'un emblème de panthère"
@@ -26600,7 +26621,8 @@
         "nature": "immeuble"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "atelier",
             "spec": "Ingénierie"
@@ -27082,7 +27104,8 @@
         "nature": "personne"
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "sphere-armillaire",
             "spec": "de valeur"
