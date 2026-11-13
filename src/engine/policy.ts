@@ -21,16 +21,27 @@ import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { t } from '../i18n';
 
-/** Forme du contrôle qu'une règle optionnelle fait auto-rendre au panneau in-game : `flag` =
- *  interrupteur, `param` = nombre borné, `mode` = choix parmi `options`. */
 /** Id d'une règle optionnelle : l'espace `reglesOptionnelles.json` de `IdsParEspace` — un id retiré du dataset ne compile plus. */
 export type RegleOptionnelleId = IdsParEspace['reglesOptionnelles.json'];
 
-export type RuleKind = 'flag' | 'param' | 'mode';
+/** La forme du contrôle qu'un réglage fait auto-rendre au panneau, règle optionnelle ou préférence
+ *  (`noyau/preferences.ts`). Le schéma de la donnée la refuse incomplète (`data/schemas/defs/reglesOptionnelles.ts`). */
+export type FormeDeControle =
+  /** un interrupteur. */
+  | { kind: 'flag' }
+  /** un choix parmi `options`. */
+  | { kind: 'mode'; options: readonly string[] }
+  /** un nombre entre `min` et `max`, au pas `step` (1 sans lui). */
+  | { kind: 'param'; min: number; max: number; step?: number };
+
+export type RuleKind = FormeDeControle['kind'];
 /** Valeur d'une règle optionnelle — union FERMÉE (miroir `ruleValueSchema`, `data/schemas/grammaire/valeurs.ts`). */
 export type RuleValue = boolean | number | string;
 
-export interface OptionalRule {
+/** Une règle optionnelle du registre : ses champs, et la forme de son contrôle. */
+export type OptionalRule = RegleOptionnelle & FormeDeControle;
+
+interface RegleOptionnelle {
   /** Identifiant stable (clé de surcharge + persistance). */
   id: RegleOptionnelleId;
   type: 'reglesOptionnelles';
@@ -47,16 +58,8 @@ export interface OptionalRule {
   maison?: string;
   /** Sous-système (regroupement dans le panneau). */
   group: string;
-  /** Forme du contrôle auto-rendu : flag=toggle, param=nombre, mode=select. */
-  kind: RuleKind;
   /** Valeur par défaut (RAW). */
   default: RuleValue;
-  /** Valeurs possibles (kind='mode'). */
-  options?: string[];
-  /** Bornes (kind='param'). */
-  min?: number;
-  max?: number;
-  step?: number;
   /** Aide courte (optionnelle). */
   hint?: string;
   /**
@@ -140,14 +143,14 @@ export function ruleOverrides(): Record<string, RuleValue> {
 
 /** `v` est-elle une valeur de la forme `kind` que déclare `regle` : `flag` booléen, `param` nombre dans ses
  *  bornes, `mode` l'une de ses `options` ? */
-export function valeurConforme(regle: Pick<OptionalRule, 'kind' | 'min' | 'max'> & { options?: readonly string[] }, v: unknown): v is RuleValue {
+export function valeurConforme(regle: FormeDeControle, v: unknown): v is RuleValue {
   switch (regle.kind) {
     case 'flag':
       return typeof v === 'boolean';
     case 'param':
-      return typeof v === 'number' && Number.isFinite(v) && (regle.min === undefined || v >= regle.min) && (regle.max === undefined || v <= regle.max);
+      return typeof v === 'number' && Number.isFinite(v) && v >= regle.min && v <= regle.max;
     case 'mode':
-      return typeof v === 'string' && (regle.options ?? []).includes(v);
+      return typeof v === 'string' && regle.options.includes(v);
   }
 }
 
