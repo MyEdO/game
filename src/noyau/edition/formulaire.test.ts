@@ -16,12 +16,12 @@ import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
-import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, porteursDuProjet, projetAvecLePorteur, type AccesDuPorteur, type CadreDuPorteur, type ProjetDEdition, type Sel } from '../sceneEditLecture';
+import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, porteursDuProjet, projetAvecLePorteur, type AccesDuPorteur, type CadreDuPorteur, type DonneeDuPorteur, type ProjetDEdition, type Sel, type SorteDePorteur } from '../sceneEditLecture';
 import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
-import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
+import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, clesPosees, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
@@ -35,6 +35,7 @@ import type { GameOp } from '../../engine/ops';
 import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
+import { trappingRefSchema } from '../../data/schemas/grammaire/reference';
 import { dialogueNodeSchema, dialogueSchema, encounterDefSchema, victoryConditionSchema } from '../../data/schemas/defs-scenes/scene';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 
@@ -593,10 +594,13 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
   });
 });
 
-/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
- *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
- *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
- *  `json`). Un nœud déjà descendu ne se redescend pas. */
+/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`) de chaque porteur de
+ *  `PORTEURS`, toutes branches ouvertes, sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) :
+ *  `variantes` d'une union nommée, puis chaque variante, `ajouter` ou `json` d'une liste, `ajouter` d'un record dont les clés sont posées
+ *  (`clesPosees`), puis sa première entrée, ou `aucune` s'il n'en pose aucune, `json` d'une op sans forme déclarée, sinon
+ *  celle de la feuille (`choix`, `nombre`, `texte`, `json`), sauf d'un champ exigé à formes objet, toujours présent,
+ *  dont l'hôte rend les champs de la forme que dessine sa valeur (`formeAuPoint`). Un nœud déjà descendu ne se redescend
+ *  pas. */
 function saisiesDesFormulaires(): Map<string, string> {
   const saisies = new Map<string, string>();
   const vus = new Set<unknown>();
@@ -609,8 +613,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     for (const c of sous(noeud, tenus)) champ({ ...c, contexte: f.contexte }, `${chemin}/${c.key}`);
   };
   const feuille = (f: FieldDesc, chemin: string) => {
-    const segments = chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
-    const choix = f.contexte?.choix(segments) ?? choixDuNoeud(f.noeud);
+    const choix = f.contexte?.choix(segmentsDe(chemin)) ?? choixDuNoeud(f.noeud);
     const nombre = f.kind === 'number' || bornesAuPoint(f.noeud, undefined) !== undefined;
     saisies.set(chemin, choix ? 'choix' : nombre ? 'nombre' : f.kind === 'text' || f.kind === 'textarea' ? 'texte' : 'json');
   };
@@ -626,6 +629,7 @@ function saisiesDesFormulaires(): Map<string, string> {
         if (v.noeud === undefined) saisies.set(ici, 'json');
         else if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
         else if (champsDeclares(v.noeud)) objet(v.noeud, f, ici, [...tenus, u.discriminant]);
+        else if (elementDuNoeud(v.noeud) !== undefined) champ({ ...f, noeud: v.noeud }, ici);
         else feuille({ ...f, noeud: v.noeud, kind: kindDuNoeud('', v.noeud) }, ici);
       }
       return;
@@ -636,24 +640,57 @@ function saisiesDesFormulaires(): Map<string, string> {
       if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`);
       return;
     }
-    const record = recordDuNoeud(f.noeud);
-    if (record && champsDuRecord(f, {}, []).length) return champ({ ...f, key: '{}', kind: kindDuNoeud('', record.valeur), noeud: record.valeur }, `${chemin}/{}`);
+    if (clesPosees(f, segmentsDe(chemin))) {
+      const [entree] = champsDuRecord(f, {}, segmentsDe(chemin));
+      saisies.set(chemin, entree ? 'ajouter' : 'aucune');
+      return entree && champ(entree, `${chemin}/${entree.key}`);
+    }
     const formes = ouverts([f.noeud]).filter((n) => champsDeclares(n));
-    feuille(f, chemin);
+    if (f.nullable || !formes.length) feuille(f, chemin);
     formes.forEach((n, i) => objet(n, f, `${chemin}{${i}}`));
   }
   const vide = emptyScene('s', 4, 4);
-  const porteurs = [
-    ['zone', zone()],
-    ['declencheur', declencheur()],
-    ['entite', { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } }],
-    ['entite', { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } }],
-    ['dialogue', DIALOGUE],
-    ['rencontre', RENCONTRE],
-  ] as const;
-  for (const [sorte, donnee] of porteurs) for (const f of formulaireDe(sorte, donnee as never, { ...CADRE_VIDE, scene: vide })) champ(f, `${sorte}/${f.key}`);
+  const cadre: CadreDuPorteur = { ...CADRE_VIDE, scene: vide, projet: { scenes: [vide], narratif: NARRATIF_VIDE, worldMap: CARTE_DES_PORTEURS } };
+  for (const sorte of Object.keys(PORTEURS) as SorteDePorteur[]) {
+    for (const donnee of PORTEURS[sorte]) for (const f of formulaireDe(sorte, donnee as never, cadre)) champ(f, `${sorte}/${f.key}`);
+  }
   return saisies;
 }
+
+/** Le chemin de données d'un chemin de `saisiesDesFormulaires`, sans ses variantes (`<…>`) ni ses formes (`{N}`), privé
+ *  de sa sorte de porteur. */
+const segmentsDe = (chemin: string): Segment[] => chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
+
+/** La carte où vivent les porteurs de la carte de `PORTEURS` : deux lieux, reliés par une route à pied et en diligence. */
+const CARTE_DES_PORTEURS: WorldMap = {
+  ...emptyWorldMap('monde'),
+  places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 's' } }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 's' } }],
+  routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied', 'diligence'] }],
+};
+
+/** Les données de chaque sorte de porteur que descend `saisiesDesFormulaires` : la table est totale. */
+const PORTEURS: { readonly [S in SorteDePorteur]: readonly DonneeDuPorteur[S][] } = {
+  zone: [zone()],
+  declencheur: [declencheur()],
+  entite: [
+    { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } } as DonneeDuPorteur['entite'],
+    { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } } as unknown as DonneeDuPorteur['entite'],
+  ],
+  dialogue: [DIALOGUE],
+  rencontre: [RENCONTRE],
+  scene: [emptyScene('s', 4, 4)],
+  lieu: CARTE_DES_PORTEURS.places,
+  route: CARTE_DES_PORTEURS.routes,
+  carte: [CARTE_DES_PORTEURS],
+  projet: [{ id: 'projet' }],
+  affaires: [{ id: 'aff', titre: 'La route' }],
+  indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }] }],
+  presetsPnj: [{ id: 'pnj-1', base: { id: creatureSemee() } }],
+  documents: [{ id: 'doc', titre: 'L’affiche', prose: 'VOYAGEURS' }],
+  etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+  ecart: [{ entree: 'EDO-01#x', motif: 'm' }],
+  narratif: [NARRATIF_VIDE],
+};
 
 describe('chaque feuille des formulaires tirés du schéma a un contrôle typé (#3606 M2e)', () => {
   const saisies = saisiesDesFormulaires();
@@ -671,6 +708,29 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
     const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
     expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
+  });
+
+  it('les modes d’une route se choisissent ; ses billets et sa vitesse, l’apparence des objets du profil d’un PNJ s’ajoutent par clé posée ; ses dotations et le choix d’une spécialisation se choisissent par variante nommée (#3606 L6)', () => {
+    const attendues: Record<string, string> = {
+      'route/modes/0': 'choix',
+      'route/billets': 'ajouter',
+      'route/billets/diligence/prix': 'ajouter',
+      'route/billets/diligence/prix/interieur': 'nombre',
+      'route/billets/diligence/suite/0': 'choix',
+      'route/billets/diligence/depuis/id': 'choix',
+      'route/billets/diligence/marchandage/presetId': 'choix',
+      'route/billets/diligence/marchandage/paliers/0/prix/interieur': 'nombre',
+      'route/speed': 'ajouter',
+      'route/speed/pied': 'nombre',
+      'presetsPnj/profil/appearance/apparencesObjets': 'aucune',
+      'presetsPnj/profil/trappings': 'ajouter',
+      'presetsPnj/profil/trappings/0': 'variantes',
+      'presetsPnj/profil/trappings/0<forme=0>/of/0': 'variantes',
+      'presetsPnj/profil/skills/0/choix': 'variantes',
+      'presetsPnj/profil/skills/0/choix<forme=1>': 'ajouter',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    expect(unionDuNoeud(trappingRefSchema)?.variantes.map((v) => v.libelle)).toEqual(['une parmi', 'objet du catalogue', 'ligne de texte', 'mention', 'possession', 'somme d’argent', 'arme au choix']);
   });
 
   it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {

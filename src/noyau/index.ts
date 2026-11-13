@@ -85,7 +85,7 @@ export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 export { FORMULAIRES, accesDe, cleDeLElement, formulaireDe, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, type DonneeDuPorteur, type SorteDeDocument, type SorteDePorteur } from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
-export { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
+export { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, clesPosees, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { type Segment } from './sceneEdit';
 export { buildingsMeta } from './monde/buildings';

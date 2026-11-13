@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, cleDeLElement, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, cleDeLElement, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, clesPosees, choixDuNoeud, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -96,25 +96,25 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * Un formulaire tiré du schéma (`formulaireDe`, `src/noyau/sceneEditLecture.ts`, décrit par `inferFields`) se joue `{
  * type: 'valeur', args: [porteur, chemin, valeur?] }`, en `{ geste: 'valeur', porteur, chemin, valeur }`
  * (`gesteDuFormulaire`), refusé en `validation` si aucun formulaire des zones ne porte ce porteur et ce chemin, ni
- * aucune valeur d'un de leurs choix ce geste même ; `porteur` est `{ sorte: 'zone' | 'declencheur' | 'entite' |
- * 'dialogue' | 'rencontre' | 'scene', id }`, la zone d'effet, le déclencheur, l'entité, le dialogue, la rencontre ou la
- * scène éditée par son identifiant, et `chemin` les clés du champ depuis lui, le rang
- * entier d'un élément de liste et la clé d'une entrée de record compris. Sa saisie d'un texte est optionnelle là où le
+ * aucune valeur d'un de leurs choix ce geste même ; `porteur` est `{ sorte, id }`, une sorte de porteur de formulaire
+ * (`SorteDePorteur`, `src/noyau/sceneEditLecture.ts`) et son identifiant, et `chemin` les clés du champ depuis lui, le
+ * rang entier d'un élément de liste et la clé d'une entrée de record compris. Sa saisie d'un texte est optionnelle là où le
  * retrait du champ s'écrit (`retraitOffert`) : laissée vide, `valeur` part absente.
  *
  * Le geste, joué par un bouton ou par ce formulaire, n'écrit que ce que le formulaire offre (`avecLaValeur`) : sous un
- * champ que son porteur offre (`FORMULAIRES`, `cheminOffert`), le rang d'un élément d'une liste présente, une clé
- * d'un record présent qu'il porte, ou qu'il offre (l'une de celles que le contexte de son porteur y pose, sinon une
- * qu'admet sa clé), une clé déclarée d'un objet présent ou de la variante courante d'une union, jamais son discriminant, que tient le choix de la
- * variante, ni une clé `id` qui n'est pas une référence de catalogue ; et l'un des choix admis que le contexte de son
- * porteur y pose (`choixDuChamp`), ou, sans eux, une valeur de la sorte du champ : l'une de ses valeurs pour un choix
- * (`choixDuNoeud`), la valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
- * choisir pour une union (`variantesAChoisir`), la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le
- * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise ou si c'est l'entrée d'un record,
- * sinon, à travers les clés des objets qui le portent tant qu'aucun ne porte d'autre donnée exigée présente (un champ
- * dont l'absence n'est pas admise, hors du discriminant que tient le choix de sa variante), le plus proche dont
- * l'absence est admise, entier, ses champs facultatifs avec lui ; sinon le champ est requis, et le geste refusé ; une
- * liste vidée part si la sienne l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
+ * champ que son porteur offre (`FORMULAIRES`, `cheminOffert`), le rang d'un élément d'une liste présente, la variante
+ * courante d'une union comprise, une clé d'un record présent qu'il porte, ou qu'il offre (l'une de celles que le
+ * contexte de son porteur y pose, sinon une qu'admet sa clé), une clé déclarée d'un objet présent ou de la variante
+ * courante d'une union, jamais son discriminant, que tient le choix de la variante, ni une clé `id` qui n'est pas une
+ * référence de catalogue ; et l'un des choix admis que le contexte de son porteur y pose (`choixDuChamp`), ou, sans
+ * eux, une valeur de la sorte du champ : l'une de ses valeurs pour un choix (`choixDuNoeud`), la valeur neuve d'un
+ * objet (`valeurNeuveDe`), l'une de ses variantes à choisir pour une union (`variantesAChoisir`), ou ce qu'admet sa
+ * variante courante, union ou liste, la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le schéma du
+ * champ parse ; `valeur` absente retire le champ si son absence est admise ou si c'est l'entrée d'un record, sinon, à
+ * travers les clés des objets qui le portent tant qu'aucun ne porte d'autre donnée exigée présente (un champ dont
+ * l'absence n'est pas admise, hors du discriminant que tient le choix de sa variante), le plus proche dont l'absence
+ * est admise, entier, ses champs facultatifs avec lui ; sinon le champ est requis, et le geste refusé ; une liste
+ * vidée part si la sienne l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
  *
  * L'entité s'écrit par sa porte (`editEntity`), et l'écriture qui lui fait enfreindre une règle qu'elle n'enfreignait
  * pas (`refusDeLEntite`, `src/data/schemas/defs-scenes/scene.ts` ; `TypeNonNomme`) est refusée, la règle dite ; une
@@ -1364,7 +1364,7 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
  *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
  *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent :
  *  « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
- *  liste : ses éléments (`elementsDeLaListe`). Un record qui offre des clés : ses entrées (`elementsDuRecord`). Un objet d'une union sans variantes nommées : son libellé et les champs
+ *  liste : ses éléments (`elementsDeLaListe`). Un record dont les clés sont posées (`clesPosees`) : ses entrées (`elementsDuRecord`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent.
  *  « Retirer » ne se pose que là où son contexte écrit le champ entier (`ContexteDuChamp.ecrivable`). */
@@ -1380,7 +1380,7 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   }
   if (unionDuNoeud(f.noeud)) return elementsDeLUnion(porteur, f, valeur, ici);
   if (elementDuNoeud(f.noeud) !== undefined) return elementsDeLaListe(porteur, f, valeur, ici);
-  if (recordDuNoeud(f.noeud) && champsDuRecord(f, {}, ici).length) return elementsDuRecord(porteur, f, valeur, ici, retirer);
+  if (clesPosees(f, ici)) return elementsDuRecord(porteur, f, valeur, ici, retirer);
   const forme = formeAuPoint(f.noeud, valeur)?.noeud;
   if (estObjet(valeur) && champsDeclares(forme)) return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, forme, valeur), valeur, ici), ...retirer];
   const a = argumentDeValeur(f, valeur, ici);
@@ -1415,13 +1415,13 @@ function elementsDeLAdresse(porteur: PorteurDeValeur, f: FieldDesc, valeur: unkn
 /** Le plus long passage qu'une adresse de prose montre, en caractères (`coupeAuMot`). */
 const LONGUEUR_DU_PASSAGE = 240;
 
-/** Les éléments du champ record `f` (`recordDuNoeud`) qui offre des clés (`champsDuRecord`), de valeur `valeur`, au
- *  chemin `ici`, « Retirer » `retirer` : présent, son libellé, chacune de ses entrées, comme les champs d'un objet, et
- *  « Retirer » ; absent, « Ajouter », qui le pose vide (`valeurNeuveDe`). */
+/** Les éléments du champ record `f` dont les clés sont posées (`clesPosees`), de valeur `valeur`, au chemin `ici`,
+ *  « Retirer » `retirer` : présent, son libellé, chacune de ses entrées (`champsDuRecord`), comme les champs d'un objet,
+ *  et « Retirer » ; absent, « Ajouter », qui le pose vide (`valeurNeuveDe`), si une clé lui est offerte. */
 function elementsDuRecord(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], retirer: Bouton[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   if (estObjet(valeur)) return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsDuRecord(f, valeur, ici), valeur, ici), ...retirer];
-  return [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))];
+  return champsDuRecord(f, {}, ici).length ? [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))] : [];
 }
 
 /** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
@@ -1429,7 +1429,7 @@ function elementsDuRecord(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
  *  chacune posant sa valeur (celles que son
  *  contexte y pose, `FieldDesc.contexte`, sinon `variantesAChoisir`), suivi de « Aucune » si son absence est
  *  admise ; puis, de la variante courante, une union
- *  choisie sous le même chemin, ses champs offerts, la saisie de sa valeur hors objet (le nombre d'une formule), ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
+ *  choisie sous le même chemin, ses champs offerts, les éléments de sa liste (`elementsDeLaListe`), la saisie de sa valeur hors objet (le nombre d'une formule), ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
  *  JSON de l'op entière. */
 function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], tenus: readonly string[] = []): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
@@ -1446,6 +1446,7 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
       return [ligne(`${id}/motif`, t('ecran.editeur.valeur.motif.opNonTypee')), elementDeValeur(id, porteur, ici, f, { ...a, saisie: 'json', valeurs: null })];
     }
     if (unionDuNoeud(courante.noeud)) return elementsDeLUnion(porteur, { ...f, label: courante.libelle, nullable: false, noeud: courante.noeud }, valeur, ici, choisis);
+    if (elementDuNoeud(courante.noeud) !== undefined) return elementsDeLaListe(porteur, { ...f, label: courante.libelle, noeud: courante.noeud }, valeur, ici);
     if (!champsDeclares(courante.noeud)) {
       const scalaire = { ...f, label: courante.libelle, noeud: courante.noeud };
       return [elementDeValeur(id, porteur, ici, scalaire, argumentDeValeur(scalaire, valeur, ici))];

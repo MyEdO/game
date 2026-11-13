@@ -258,37 +258,37 @@ type CountSpecInfer = z.infer<typeof countSpecSchema>;
 type QualityRefInfer = z.infer<typeof qualityRefSchema>;
 /** Une somme : `count` pièces de `monnaie` (`Somme`, tirée par `sommeTiree`, `engine/possessionGrants.ts`). Dotation
  *  d'argent, valeur d'un objet doté, Richesse de départ d'un prétiré. LDB 57 */
-export const sommeSchema = nommerChamps(z.strictObject({ monnaie: monnaieSchema, count: countSpecSchema }), { monnaie: { label: 'monnaie' }, count: { label: 'nombre de pièces' } });
+export const sommeSchema = nommerNoeud(nommerChamps(z.strictObject({ monnaie: monnaieSchema, count: countSpecSchema }), { monnaie: { label: 'monnaie' }, count: { label: 'nombre de pièces' } }), { label: 'somme d’argent' });
 export type Somme = z.infer<typeof sommeSchema>;
 
 /** Dotation d'un objet du catalogue : sa `spec` est la précision de la dotation, pas une Spécialisation. */
-export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({
+export const dotationDeCatalogueSchema = nommerNoeud(nommerChamps(z.strictObject({
   id: idDe('trapping'),
   spec: z.string().optional(),
   count: countSpecSchema.optional(),
   qualities: z.array(qualityRefSchema).optional(),
   qualityChoice: z.literal(true).optional(),
   valeur: sommeSchema.optional(),
-}), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' }, valeur: { label: 'valeur' } });
+}), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' }, valeur: { label: 'valeur' } }), { label: 'objet du catalogue' });
 
 /** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */
-export const dotationDeMentionSchema = nommerChamps(z.strictObject({
+export const dotationDeMentionSchema = nommerNoeud(nommerChamps(z.strictObject({
   label: z.string().min(1),
   nature: natureDeMentionSchema,
   count: countSpecSchema.optional(),
-}), { label: { label: 'libellé' }, nature: { label: 'nature' }, count: { label: 'nombre' } });
+}), { label: { label: 'libellé' }, nature: { label: 'nature' }, count: { label: 'nombre' } }), { label: 'mention' });
 export type DotationDeMention = z.infer<typeof dotationDeMentionSchema>;
 
 /** Dotation d'une ligne hors catalogue : son texte imprimé et sa quantité. */
-export const dotationDeTexteSchema = nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } });
+export const dotationDeTexteSchema = nommerNoeud(nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }), { label: 'ligne de texte' });
 
 /** Ce qu'une dotation POSSÈDE hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
 export const typeDePossessionSchema = enumNomme({ creature: 'Créature', vehicle: 'Véhicule' });
 /** Dotation d'une POSSESSION : la référence typée, sa quantité et son libellé imprimé. */
-export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
+export const dotationDePossessionSchema = nommerNoeud(refTypee(typeDePossessionSchema, {}, {
   count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
-});
+}), { label: 'possession' });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
 type FormeSansTexte =
   | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true; valeur?: Somme }
@@ -299,12 +299,12 @@ type DotationSansTexte = FormeSansTexte | Parmi<1, FormeSansTexte>;
 type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
 type FormeDeDotation = FormeSansTexte | DotationDeTexte | DotationDeMention;
 
-const jokerDeDotationSchema = nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } });
+const jokerDeDotationSchema = nommerNoeud(nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } }), { label: 'arme au choix' });
 
 /** Les branches typées d'une dotation, plus les formes `autres`, et le « 1 parmi » de ces seules formes (`parmi`). */
 function formesDeDotation<A = never>(...autres: z.ZodType<A>[]): z.ZodType<FormeSansTexte | A | Parmi<1, FormeSansTexte | A>> {
   const formes: z.ZodType<FormeSansTexte | A>[] = [dotationDeCatalogueSchema, ...autres, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema];
-  return z.union([parmi(formes, z.literal(1)), ...formes], { error: messageDeFormes });
+  return z.union([nommerNoeud(parmi(formes, z.literal(1)), { label: 'une parmi' }), ...formes], { error: messageDeFormes });
 }
 
 /** Dotation sans texte ni mention : `classes.json`. LDB 05 l.552 ; #4053 */

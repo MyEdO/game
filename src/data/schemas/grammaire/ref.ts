@@ -1,4 +1,4 @@
-import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps } from './meta';
+import { nommerChamps, nommerNoeud, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps } from './meta';
 /**
  * FABRIQUE DE RÉFÉRENCE (#1466) — la seule façon de désigner une entité par son id.
  *
@@ -923,7 +923,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   const champs = {
     id: idDe(type),
     spec: z.string().min(1).optional(),
-    choix: z.union([z.literal(true), z.array(z.string().min(1))]).optional(),
+    choix: z.union([nommerNoeud(z.literal(true), { label: 'spécialisation au choix' }), nommerNoeud(z.array(z.string().min(1)), { label: 'spécialisation parmi' })]).optional(),
     ...((extra ?? {}) as Record<string, z.ZodType>),
   };
   const { choix: _choix, ...designe } = champs;

@@ -2177,7 +2177,7 @@ async function parcoursEditeur() {
   }
   /** La carte du monde (#3606 M5) : ouverte au menu Fichier, un lieu posé au pointeur, un second par « Ajouter un lieu »,
    *  le premier glissé puis ramené d'une annulation, les deux reliés au pointeur, la route choisie et orientée, un champ
-   *  du lieu et un de la route écrits, un point d'intérêt épinglé au plan du lieu puis retiré, un axe actif coché ;
+   *  du lieu et un de la route écrits, un billet posé au clic sur la route, un point d'intérêt épinglé au plan du lieu puis retiré, un axe actif coché ;
    *  « Annuler » jusqu'au plan d'avant, puis la scène rendue. */
   const etapeDeLaCarte = async () => {
     const titre = (await editeur()).zones['editeur.titre'][0].texte
@@ -2227,6 +2227,24 @@ async function parcoursEditeur() {
     await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/refus/texte')?.champs.some((c) => c.valeur === 'Pont rompu')`)
     ed = await editeur()
     noter(`outil Chemin, ${premier.nom} tiré jusqu’à ${second.nom} : la route ${route.id} ; outil Sélection, un clic sur elle, « ${inspecte(ed, 'route/sens').valeurs.find((b) => b.presse).libelle} », son refus écrit au formulaire : « Pont rompu »`)
+    const choisirAuChoix = async (id, voulue, attendu) => {
+      const c = inspecte(await editeur(), id)
+      const valeur = c.valeurs.find(voulue)
+      assert.ok(valeur, `${id} offre la valeur voulue : ${c.valeurs.map((b) => b.libelle).join(', ')}`)
+      if (c.type === 'liste') await choisirALaListe(id, valeur.id, 'editeur.inspecteur', attendu)
+      else await cliquerAuPanneau({ element: `bouton/${valeur.id}` })
+      await waitFor(session, attendu)
+      return valeur
+    }
+    await choisirAuChoix('valeur/modes/ajouter', (b) => b.libelle === 'Diligence', montre('valeur/billets/ajouter'))
+    await cliquerAuPanneau({ element: 'bouton/valeur/billets/ajouter' })
+    await waitFor(session, montre('valeur/billets/diligence/ajouter'))
+    await cliquerAuPanneau({ element: 'bouton/valeur/billets/diligence/ajouter' })
+    await waitFor(session, montre('valeur/billets/diligence/prix/interieur'))
+    const depart = await choisirAuChoix('valeur/billets/diligence/depuis/ajouter', (b) => b.libelle === second.nom, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).find((el) => el.id === 'valeur/billets/diligence/depuis/id')?.valeurs.find((b) => b.presse)?.libelle === ${JSON.stringify(second.nom)}`)
+    ed = await editeur()
+    noter(`la route ${route.id} : « Diligence » ajoutée à ses modes, son billet posé au clic, ses prix par classe offerts (${ed.zones['editeur.inspecteur'].filter((el) => /^valeur\/billets\/diligence\/prix\/[^/]+$/.test(el.id)).map((el) => el.id.split('/').pop()).join(', ')}), son départ, le seul de sa route à sens unique, « ${depart.libelle} »`)
+    await capturer('3606-l6-billet')
     await cliquerPoint(...auPlan(ed, [premier.x, premier.y]))
     await waitFor(session, montre('lieu/plan'))
     await taper('saisieTexte/valeur/label/valeur', 'Bourg')

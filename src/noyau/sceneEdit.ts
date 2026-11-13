@@ -1056,8 +1056,8 @@ const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
 
 /** La valeur `valeur` est-elle de la sorte du nœud `noeud`, où la valeur `actuelle` est écrite ? `undefined` : s'il
  *  admet le retrait ; d'un champ à choix, l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve
- *  (`valeurNeuveDe`) ; d'une union, l'une de ses variantes à choisir (`variantesAChoisir`), ou de l'union qu'est sa
- *  variante courante ; d'une liste, l'actuelle après l'un de ses gestes (`gestesDeLaListe`) ; sinon, et pour une union
+ *  (`valeurNeuveDe`) ; d'une union, l'une de ses variantes à choisir (`variantesAChoisir`), ou de l'union ou de la liste
+ *  qu'est sa variante courante ; d'une liste, l'actuelle après l'un de ses gestes (`gestesDeLaListe`) ; sinon, et pour une union
  *  ou une liste saisie entière, une valeur que le nœud parse. */
 function admise(noeud: unknown, actuelle: unknown, valeur: unknown): boolean {
   if (valeur === undefined) return retirable(noeud);
@@ -1070,7 +1070,7 @@ function admise(noeud: unknown, actuelle: unknown, valeur: unknown): boolean {
   if (union) {
     const courante = varianteCourante(union, actuelle)?.noeud;
     return variantesAChoisir(noeud, actuelle)!.some((v) => jsonCanonique(v.valeur) === jouee)
-      || (unionDuNoeud(courante) !== undefined && admise(courante, actuelle, valeur)) || parse();
+      || ((unionDuNoeud(courante) !== undefined || elementDuNoeud(courante) !== undefined) && admise(courante, actuelle, valeur)) || parse();
   }
   const element = elementDuNoeud(noeud);
   if (element !== undefined) {
@@ -1092,13 +1092,14 @@ function ecrit(o: unknown, [cle, ...reste]: readonly Segment[], valeur: unknown,
 }
 
 /** Le nœud du pas `pas` depuis le point de nœud `noeud` et de valeur `point`, où le contexte pose les choix `poses` : le
- *  rang d'un élément d'une liste présente (`elementDuNoeud`), ou celui qui suit son dernier, où l'élément s'ajoute ; une clé du record présent (`recordDuNoeud`) qu'il porte, ou
+ *  rang d'un élément d'une liste présente (`elementDuNoeud`), la variante courante d'une union comprise (`formeAuPoint`),
+ *  ou celui qui suit son dernier, où l'élément s'ajoute ; une clé du record présent (`recordDuNoeud`) qu'il porte, ou
  *  qu'il offre (`champsDuRecord`) : l'un des choix admis que le contexte y pose, sinon une clé qu'admet son nœud ; une clé
  *  déclarée de l'objet présent (`champsDeclares`), à travers ses unions (`formeAuPoint`), ni discriminant que tient le
  *  choix d'une variante, ni identité (`cleOfferte`) ; `undefined` si le formulaire ne l'offre pas. */
 function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => readonly ChoixDuContexte[] | undefined): unknown {
   if (typeof pas === 'number') {
-    const element = elementDuNoeud(noeud);
+    const element = elementDuNoeud(formeAuPoint(noeud, point)?.noeud ?? noeud);
     return element !== undefined && Array.isArray(point) && Number.isInteger(pas) && pas >= 0 && pas <= point.length ? element : undefined;
   }
   if (!estObjet(point)) return undefined;

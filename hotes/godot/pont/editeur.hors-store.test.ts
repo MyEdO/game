@@ -23,6 +23,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findCreatureById, traits } from '../../../src/data';
+import { travelVehicles } from '../../../src/engine/travel';
 import { statblockDeLaCreature } from '../../../src/data/valeursNeuves';
 import { emptyScene } from '../../../src/noyau/monde/scene';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
@@ -614,6 +615,46 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     const ferme = presser(boutonDe(annule, 'lieu/plan'));
     expect([planDe(ferme).id, boutonDe(ferme, 'lieu/plan').presse]).toEqual(['carte/plan', false]);
   });
+
+  it('un billet se pose au clic sur un mode payant de la route : son prix par classe, son départ parmi ses extrémités, sa suite parmi les autres routes du mode, son vendeur parmi les PNJ (#3606 L6)', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ecrire = (chemin: (string | number)[], valeur: unknown) => editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'route', id: 'route-futaie' }, chemin, valeur] }));
+    const ids = (x: Edition) => x.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    const narratif = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'document/narratif'));
+    const carte = presser(boutonDe(presser(boutonDe(narratif, 'logique/presetsPnj/ajouter')), 'document/carte'));
+    const diligence = (x: Edition) => presser(valeursDeLInspecteur(x, 'valeur/modes/ajouter').find((b) => b.libelle === 'Diligence')!);
+    const route = presser(boutonDe(carte, 'logique/route/route-futaie'));
+    expect(ids(route).filter((id) => id.startsWith('valeur/billets')), 'à pied seulement, aucun billet ne s’offre').toEqual([]);
+    expect(valeursDeLInspecteur(route, 'valeur/modes/ajouter').map((b) => b.libelle), 'les modes s’ajoutent parmi ceux qu’elle n’offre pas').toEqual(travelVehicles().map((v) => v.label));
+    const deuxModes = diligence(route);
+    const billets = presser(boutonDe(deuxModes, 'valeur/billets/ajouter'));
+    expect(ids(billets).filter((id) => /^valeur\/billets\/[^/]+\/ajouter$/.test(id)), 'seul le mode payant s’offre').toEqual(['valeur/billets/diligence/ajouter']);
+    const billet = presser(boutonDe(billets, 'valeur/billets/diligence/ajouter'));
+    expect(ids(billet).filter((id) => /^valeur\/billets\/diligence\/prix\//.test(id))).toEqual(['valeur/billets/diligence/prix/interieur', 'valeur/billets/diligence/prix/exterieur']);
+    const prix = ecrire(['billets', 'diligence', 'prix', 'interieur'], 30);
+    const departs = valeursDeLInspecteur(prix, 'valeur/billets/diligence/depuis/ajouter');
+    expect(departs.map((b) => b.libelle)).toEqual(['Le Bourg de l’Arène', 'La Vieille Futaie']);
+    const depuis = presser(departs[0]);
+    const suites = valeursDeLInspecteur(depuis, 'valeur/billets/diligence/suite/ajouter');
+    expect(suites.map((b) => b.id), 'les autres routes du mode seules').toEqual(['valeur/billets/diligence/suite/ajouter/0']);
+    const suite = presser(suites[0]);
+    const vendu = presser(boutonDe(suite, 'valeur/billets/diligence/marchandage/ajouter'));
+    const vendeurs = valeursDeLInspecteur(vendu, 'valeur/billets/diligence/marchandage/presetId');
+    expect(vendeurs).toHaveLength(1);
+    const fini = presser(vendeurs[0]);
+    const champ = (id: string) => fini.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+    expect([
+      (champ('valeur/billets/diligence/prix/interieur') as Formulaire).champs[2],
+      valeursDeLInspecteur(fini, 'valeur/billets/diligence/depuis/id').find((b) => b.presse)?.libelle,
+      valeursDeLInspecteur(fini, 'valeur/billets/diligence/suite/0').find((b) => b.presse)?.id,
+      valeursDeLInspecteur(fini, 'valeur/billets/diligence/marchandage/presetId').find((b) => b.presse)?.id,
+    ]).toEqual([expect.objectContaining({ valeur: 30 }), 'Le Bourg de l’Arène', 'valeur/billets/diligence/suite/0/0', vendeurs[0].id]);
+    expect(refusDuRetraitDuMode(appel), 'le mode qui porte le billet ne se retire pas').toBe(true);
+  });
+
+  /** Le retrait du mode `diligence` de la route `route-futaie`, qui porte un billet, est-il refusé ? */
+  const refusDuRetraitDuMode = (appel: ReturnType<typeof table>['appel']) => !appel('editer', { type: 'valeur', args: [{ sorte: 'route', id: 'route-futaie' }, ['modes'], ['pied']] }).ok;
 
   it('sur la carte sans sélection, les axes actifs du projet s’ajoutent parmi ceux du catalogue, et se retirent', () => {
     const { appel } = table();
@@ -2105,5 +2146,21 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const sans = presser(boutonDe(une, 'valeur/forme/identite/retirer'));
     expect([boutonDe(sans, 'etat/forme/enum').refus, inspecte(sans, 'valeur/forme/identite/ajouter')?.type]).toEqual([null, 'choix']);
     expect(boutonDe(presser(boutonDe(sans, 'etat/forme/enum')), 'etat/forme/enum').presse).toBe(true);
+  });
+
+  it('le choix d’une spécialisation au profil d’un PNJ se choisit par variante nommée ; la liste des spécialisations parmi lesquelles choisir s’écrit élément par élément (#3606 L6)', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const preset = { id: 'pnj-metier', base: { id: 'humain' }, profil: { skills: [{ id: 'metier', choix: true, value: 40 }] } };
+    const projet = { ...SERVI, narratif: { ...SERVI.narratif, presetsPnj: [...((SERVI.narratif as { presetsPnj?: unknown[] }).presetsPnj ?? []), preset] } };
+    const ouverte = editionDe(appel('editer', { ouvrir: SERVI.id, projet: JSON.stringify(projet) }));
+    const pnj = presser(boutonDe(presser(boutonDe(ouverte, 'document/narratif')), 'logique/presetsPnj/pnj-metier'));
+    const CHOIX = 'valeur/profil/skills/0/choix';
+    const variantes = (inspecte(pnj, `${CHOIX}/forme`) as Choix).valeurs;
+    expect(variantes.map((b) => [b.libelle, b.presse])).toEqual([['spécialisation au choix', true], ['spécialisation parmi', false]]);
+    const parmi = presser(variantes[1]);
+    const ajoutee = presser(boutonDe(parmi, `${CHOIX}/ajouter`));
+    const ecrite = editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'presetsPnj', id: 'pnj-metier' }, ['profil', 'skills', 0, 'choix', 0], 'forgeron'] }));
+    expect([inspecte(ajoutee, `${CHOIX}/0`)?.type, (inspecte(ecrite, `${CHOIX}/0`) as Formulaire).champs[2]]).toEqual(['formulaire', expect.objectContaining({ valeur: 'forgeron' })]);
   });
 });

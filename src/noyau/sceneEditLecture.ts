@@ -23,6 +23,7 @@ import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuCo
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { chargeLArme, gabaritDObjet } from '../engine/items';
+import { travelModeLabels, travelVehicles, vehicleTravel } from '../engine/travel';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
@@ -789,14 +790,57 @@ function choixDuLieu(lieu: MapPlace, chemin: readonly Segment[], cadre: CadreDuP
 const departsDuBillet = (route: MapRoute, cle: Segment | undefined, { projet }: CadreDuPorteur): readonly ChoixDuContexte[] =>
   (route.from ? [route.from] : [route.a, route.b]).map(({ id }) => ({ valeur: cle === undefined ? { id } : id, libelle: projet.worldMap?.places.find((p) => p.id === id)?.label ?? id, refus: null }));
 
-/** Les choix que le contexte de la route `route` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière
- *  péripétie, la péripétie neuve (`peripetieNeuve`) ; au départ d'un de ses billets, ses départs (`departsDuBillet`) ;
- *  à son embuscade, de son point d'entrée, ceux de sa scène (`entreesDeLaScene`), de sa rencontre, chaque rencontre de
- *  sa scène. #3606 */
+/** Les modes de la route `route` que retient `retenu`, chacun à son libellé (`travelModeLabels`). */
+const modesDeLaRoute = (route: MapRoute, retenu: (mode: string) => boolean = () => true): ChoixDuContexte[] =>
+  route.modes.filter(retenu).map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
+
+/** Les modes de voyage que la route `route` offre au rang `rang` de ses modes : à pied et chaque véhicule à passage
+ *  payant (`travelVehicles`), hors de ceux qu'elle offre déjà, le courant restant offert, chacun à son libellé. LDB 51
+ *  l.178-189 */
+const modesDeVoyage = (route: MapRoute, rang: number): ChoixDuContexte[] =>
+  ['pied', ...travelVehicles().map((v) => v.id)]
+    .filter((mode) => mode === route.modes[rang] || !route.modes.includes(mode))
+    .map((mode) => ({ valeur: mode, libelle: travelModeLabels()[mode] ?? mode, refus: null }));
+
+/** Les clés des prix d'un billet en `mode` (`prixParClasseSchema`) : chaque classe de passage de son véhicule. */
+const classesDuBillet = (mode: Segment): ChoixDuContexte[] =>
+  (typeof mode === 'string' ? vehicleTravel(mode)?.classes ?? [] : []).map((c) => ({ valeur: c.id, libelle: c.label, refus: null }));
+
+/** Les routes que la suite du billet en `mode` de la route `route` couvre au rang `rang` : chaque autre route de la carte
+ *  qui offre ce mode, hors de celles que sa suite couvre déjà, la courante restant offerte, chacune nommée par ses
+ *  extrémités. EDO 01 l.142 */
+function suitesDuBillet(route: MapRoute, mode: Segment, rang: number, { projet }: CadreDuPorteur): ChoixDuContexte[] {
+  const carte = projet.worldMap;
+  const suite = route.billets?.[mode as keyof NonNullable<MapRoute['billets']>]?.suite ?? [];
+  const nom = (ref: { id: string }) => carte?.places.find((p) => p.id === ref.id)?.label ?? ref.id;
+  return (carte?.routes ?? [])
+    .filter((r) => r.id !== route.id && r.modes.includes(mode as string) && (r.id === suite[rang] || !suite.includes(r.id)))
+    .map((r) => ({ valeur: r.id, libelle: `${nom(r.a)} → ${nom(r.b)}`, refus: null }));
+}
+
+/** Les choix que le contexte d'un billet de la route `route`, en `mode`, pose sous lui au chemin `reste` : ses départs
+ *  (`departsDuBillet`) ; les routes de sa suite (`suitesDuBillet`) ; les clés de son prix et de celui de chaque palier
+ *  de son marchandage (`classesDuBillet`). EDO 01 l.142 */
+function choixDuBillet(route: MapRoute, mode: Segment, reste: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  const [cle, ...sous] = reste;
+  if (cle === 'depuis' && (sous.length === 0 || (sous.length === 1 && sous[0] === 'id'))) return departsDuBillet(route, sous[0], cadre);
+  if (cle === 'prix' && !sous.length) return classesDuBillet(mode);
+  if (cle === 'suite' && sous.length === 1 && typeof sous[0] === 'number') return suitesDuBillet(route, mode, sous[0], cadre);
+  const [paliers, rang, prix, ...plus] = sous;
+  return cle === 'marchandage' && paliers === 'paliers' && typeof rang === 'number' && prix === 'prix' && !plus.length ? classesDuBillet(mode) : undefined;
+}
+
+/** Les choix que le contexte de la route `route` pose au chemin `chemin` de sa donnée : chacun de ses modes
+ *  (`modesDeVoyage`) ; les clés de ses billets, chacun
+ *  de ses modes à passage payant (`vehicleTravel`), et sous l'un d'eux, ceux du billet (`choixDuBillet`) ; les clés de
+ *  sa vitesse, chacun de ses modes ; au rang qui suit sa dernière péripétie, la péripétie neuve (`peripetieNeuve`) ; à
+ *  son embuscade, de son point d'entrée, ceux de sa scène (`entreesDeLaScene`), de sa rencontre, chaque rencontre de sa
+ *  scène. #3606 */
 function choixDeLaRoute(route: MapRoute, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const [ambush, cle, ...reste] = chemin;
-  const [depuis, feuille, ...plus] = reste;
-  if (ambush === 'billets' && depuis === 'depuis' && (feuille === undefined || feuille === 'id') && !plus.length) return departsDuBillet(route, feuille, cadre);
+  if (ambush === 'billets') return cle === undefined ? modesDeLaRoute(route, (mode) => vehicleTravel(mode) !== undefined) : choixDuBillet(route, cle, reste, cadre);
+  if (ambush === 'speed') return cle === undefined ? modesDeLaRoute(route) : undefined;
+  if (ambush === 'modes' && typeof cle === 'number' && !reste.length) return modesDeVoyage(route, cle);
   if (ambush === 'perils' && cle === (route.perils?.length ?? 0) && !reste.length) {
     const neuve = peripetieNeuve();
     return [{ valeur: neuve, libelle: neuve.label, refus: null }];
@@ -909,18 +953,20 @@ function choixDeLEtat(etat: EtatNarratif, chemin: readonly Segment[]): readonly 
 }
 
 /** Les choix que le contexte du PNJ `preset`, dans le cadre `cadre`, pose au chemin `chemin` de sa donnée : à
- *  l'apparence de ses objets (`choixDesApparencesDObjets`), les armes de son profil fusionné à sa créature de base
+ *  l'apparence de ses objets et à celle de son profil (`APPARENCES_DU_PRESET`, `choixDesApparencesDObjets`), les armes de son profil fusionné à sa créature de base
  *  (`mergeCreatureProfile`, `armesDEntite`), comme l'éditeur web (`NarratifEditor`, `PresetForm`). #3606 */
 function choixDuPreset(preset: PresetPnj, chemin: readonly Segment[], { projet: { narratif } }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
-  if (!APPARENCES_DU_PRESET.every((cle, i) => chemin[i] === cle)) return undefined;
+  const apparences = APPARENCES_DU_PRESET.find((prefixe) => prefixe.every((cle, i) => chemin[i] === cle));
+  if (!apparences) return undefined;
   const objet = objetDuNarratif(narratif);
   const base = preset.base ? findCreatureById(preset.base.id) : undefined;
   const fusion = base ? mergeCreatureProfile(base, preset.profil) : preset.profil ?? {};
-  return choixDesApparencesDObjets(() => armesDEntite(objet, undefined, { traits: fusion.traits, char: fusion.char }), objet, chemin.slice(APPARENCES_DU_PRESET.length));
+  return choixDesApparencesDObjets(() => armesDEntite(objet, undefined, { traits: fusion.traits, char: fusion.char }), objet, chemin.slice(apparences.length));
 }
 
-/** L'apparence des objets d'un PNJ, par objet (`PresetPnj.apparence.apparencesObjets`). */
-const APPARENCES_DU_PRESET = ['apparence', 'apparencesObjets'] as const;
+/** L'apparence des objets d'un PNJ, par objet : la sienne (`PresetPnj.apparence.apparencesObjets`), et celle de son profil
+ *  (`PresetPnj.profil.appearance.apparencesObjets`). */
+const APPARENCES_DU_PRESET = [['apparence', 'apparencesObjets'], ['profil', 'appearance', 'apparencesObjets']] as const;
 
 /** Ce que déclare le formulaire d'une entrée de chaque registre créable du narratif (`RegistreCreable`) : son schéma,
  *  ses champs, chacun hors de son identifiant, que le renommage propage (`renommeAuProjet`), et les choix de son
