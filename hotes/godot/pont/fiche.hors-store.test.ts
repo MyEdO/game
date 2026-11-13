@@ -76,8 +76,8 @@ describe('la fiche d’un combattant par le pont', () => {
     expect(possessions.every((b) => b.type === 'bouton' && !b.presse), 'chaque possession est un bouton ; aucune choisie').toBe(true);
     const batonPossede = possessions.find((b) => b.libelle === 'Bâton de combat')!;
     const libelles = possessions.map((b) => b.libelle);
-    expect(libelles.indexOf('Bâton de combat'), 'les possessions équipées d’abord').toBeLessThan(libelles.indexOf('Feuille de parchemin ×7'));
-    expect(possessions.map((b) => b.libelle), 'les possessions pareilles comptées ensemble').toContain('Feuille de parchemin ×7');
+    expect(libelles.indexOf('Bâton de combat'), 'les possessions équipées d’abord').toBeLessThan(libelles.indexOf('Parchemin ×7'));
+    expect(possessions.map((b) => b.libelle), 'les possessions pareilles comptées ensemble').toContain('Parchemin ×7');
     expect(s.vue.zones['fiche.objet'], 'aucune possession choisie, rien n’en est dit').toEqual([]);
     s = suiteDe(appel('fiche', batonPossede.jeu));
     expect(s.vue.projection.pas, 'choisir une possession ne joue aucun geste de la partie').toBe(debut.vue.projection.pas);

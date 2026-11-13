@@ -40,7 +40,7 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     entries.push({ type, text: format(...args) })
     ecrire(...args)
   }
-  const { code } = await empaqueter(null)
+  const { code } = await empaqueter(null, 'development')
   const consoleRelevee = Object.assign(Object.create(console), { error: relever('error', console.error), warn: relever('warning', console.warn) })
   const stockage = stockageDuProcessus(null)
   /** Les noms que Godot a publiés en global depuis le dernier lancement. */

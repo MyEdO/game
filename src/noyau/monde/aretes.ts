@@ -14,7 +14,7 @@ import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tileAt, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
 import { estAbsent } from './terrain';
 import { versionDesDatasets } from '../../data/versionDataset';
-import { memoByRefDeps } from './sceneMemo';
+import { memoByRef, memoByRefDeps } from './sceneMemo';
 import { hash32, hash32AuMillieme } from '../../data/hash';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { spaceCellKey } from './volume/architectureVisibility';
@@ -119,14 +119,14 @@ export function regardDuJeu(voulu: Regard, enCombat: boolean): Regard {
 /** Le sol (m) de la case d'un allié (`heightAt`). */
 const piedDe = (scene: Scene, a: Pt): number => heightAt(scene, a.x, a.y, a.z ?? 0);
 
-const couvrantsRetenus = memoByRefDeps<Scene, Map<number, ReadonlySet<string>>>();
+const couvrantsRetenus = memoByRef((_scene: Scene) => new Map<number, ReadonlySet<string>>());
 
 /** Les cases `x,y,z` de `scene` qui couvrent la couche `couche` : celles d'une couche plus basse dont le sol
  *  (`heightAt`) dépasse celui de la case de `couche` à leur verticale (la hune élevée par le Nid-de-pie au-dessus de la
  *  passerelle, #4040). Retenues par scène et par la version des datasets (`versionDesDatasets` : la présence d'une case
  *  lit le catalogue des terrains, `estAbsent`), chaque couche au premier appel. */
 function couvrantsDeLaCouche(scene: Scene, couche: number): ReadonlySet<string> {
-  const parCouche = couvrantsRetenus(scene, [versionDesDatasets()], () => new Map());
+  const parCouche = couvrantsRetenus(scene);
   const present = (x: number, y: number, z: number): boolean => !estAbsent(tileAt(scene, x, y, z));
   const { w, h } = scene.dimensions;
   return parCouche.get(couche) ?? parCouche.set(couche, new Set(scene.layers.filter(({ z }) => z < couche).flatMap(({ z }) =>
@@ -190,7 +190,10 @@ const empreinteDesNavires = (scene: Scene): string => {
   return jsonCanonique([[...cases], [...aretes], [...flottaison]]);
 };
 
-const clesRetenues = memoByRefDeps<Scene, { deLaScene: number; parRegard: Map<Regard, string> }>();
+const clesRetenues = memoByRef((scene: Scene): { deLaScene: number; parRegard: Map<Regard, string> } => ({
+  deLaScene: hash32(empreinteDesDecors(scene), tuilesEffondreesSignature(scene), empreinteDesNavires(scene), String(versionDesDatasets())),
+  parRegard: new Map(),
+}));
 
 /** La clé du monde de `scene` (`PlateauDeLaScene.cleDuMonde`) sous le regard `regard` : l'empreinte de ce qui ne tient
  *  qu'à la scène (ses décors, `empreinteDesDecors`, ses tuiles effondrées, `tuilesEffondreesSignature`, ses navires posés,
@@ -198,20 +201,14 @@ const clesRetenues = memoByRefDeps<Scene, { deLaScene: number; parRegard: Map<Re
  *  par celle de la météo que le regard montre (`meteoDuRegard`). Retenue par scène et par cette version, chaque regard
  *  au premier appel. */
 function cleDuMonde(scene: Scene, regard: Regard): string {
-  const version = versionDesDatasets();
-  const { deLaScene, parRegard } = clesRetenues(scene, [version], () => ({
-    deLaScene: hash32(empreinteDesDecors(scene), tuilesEffondreesSignature(scene), empreinteDesNavires(scene), String(version)),
-    parRegard: new Map(),
-  }));
+  const { deLaScene, parRegard } = clesRetenues(scene);
   return parRegard.get(regard) ?? parRegard.set(regard, hash32(deLaScene, jsonCanonique(meteoDuRegard(scene, regard))).toString(36)).get(regard)!;
 }
-
-const oeilsRetenus = memoByRefDeps<Scene, Record<string, number>>();
 
 /** La hauteur de l'œil de chaque case marchable de `scene` où elle est plus basse que debout (`hauteurDeLOeil`), par
  *  sa clé `x,y,z` (`spaceCellKey`). Retenue par scène et par la version des datasets (`versionDesDatasets` : la marche
  *  et le plafond lisent le catalogue des terrains, `isWalkable`, `estAbsent`). */
-const oeilsSousPlafond = (scene: Scene): Record<string, number> => oeilsRetenus(scene, [versionDesDatasets()], () => {
+const oeilsSousPlafond = memoByRef((scene: Scene): Record<string, number> => {
   const { w, h } = scene.dimensions;
   const oeils: Record<string, number> = {};
   for (const { z } of scene.layers)
@@ -300,15 +297,13 @@ export interface PlateauDeLaScene {
   coupesDesNavires: Record<string, number>;
 }
 
-const aretesRetenues = memoByRefDeps<Scene, { aretes: AreteDessinee[]; cle: string }>();
-
 /**
  * Les arêtes de toutes les couches de `scene` hors des ponts de ses navires, que la marche garde et que le modèle du
  * navire montre (`aretesHorsDesNavires`, `src/noyau/planDeNavire.ts`), chacune dessinée (`areteDessinee`), et leur
  * empreinte (`cle`, `hash32`). Retenues par scène et par la version des datasets (`versionDesDatasets` : les ponts d'un
  * navire se lisent à la fiche de son véhicule, le pied d'une arête au catalogue des terrains).
  */
-const aretesEtEmpreinte = (scene: Scene): { aretes: AreteDessinee[]; cle: string } => aretesRetenues(scene, [versionDesDatasets()], () => {
+const aretesEtEmpreinte = memoByRef((scene: Scene): { aretes: AreteDessinee[]; cle: string } => {
   const aretes = aretesHorsDesNavires(scene).map((seg) => areteDessinee(scene, seg));
   return { aretes, cle: hash32(...aretes.map(jsonCanonique)).toString(36) };
 });
@@ -327,11 +322,11 @@ const plateauRetenu = memoByRefDeps<Scene, PlateauDeLaScene>();
  * : en tactique, celles qu'il dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il
  * dégage ; au plateau, celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires
  * (`coupesDesNavires`, la hauteur de la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées
- * (`couronnesAbattues`). Retenu par scène, version des datasets (`versionDesDatasets`), cases du groupe et regard
+ * (`couronnesAbattues`). Retenu par scène, version des datasets, cases du groupe et regard
  * (`memoByRefDeps`) : une vue relue sans que le groupe, la scène ni un catalogue aient changé rend le même plateau.
  */
 export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): PlateauDeLaScene {
-  return plateauRetenu(scene, [versionDesDatasets(), regard, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => plateauDuRegard(scene, allies, regard));
+  return plateauRetenu(scene, [regard, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => plateauDuRegard(scene, allies, regard));
 }
 
 function plateauDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): PlateauDeLaScene {

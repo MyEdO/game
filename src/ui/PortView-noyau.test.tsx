@@ -3,7 +3,7 @@
  * L'écran du port lit les verdicts du NOYAU (#3059) : la pose d'une Amélioration se ferme sur le refus de
  * `devisDAmelioration`, l'achat de cargaison sur celui de `devisDAchatEnPort` (cale au plafond dur, bourse sous
  * le prix plancher au meilleur Marchandage). MDG 12 l.195-364 ; MDG 12 l.70-75 ; MDG 15 l.319-349 ; MDG 15 l.335 ;
- * LDB 59 l.43.
+ * LDB 59 l.43 ; MDG 12 l.230.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { acheterAuMarche } from '../noyau/cargaison.testkit';
@@ -14,12 +14,13 @@ import { PortView } from './PortView';
 import { useGame } from '../state/store';
 import { emptyScene } from '../noyau/monde/scene';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
-import { findVehicleById, NAVAL_TRAITS } from '../data';
+import { findNavalTrait, findVehicleById, NAVAL_TRAITS } from '../data';
+import { PORT_A_CHANTIER, PORT_SANS_CHANTIER } from '../data/navalPorts.testkit';
 import { installCost } from '../engine/shipBuild';
 import { overloadMaxEnc } from '../engine/seaVoyage';
 import { t } from '../i18n';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
-import type { WorldMap } from '../noyau/worldMap';
+import { resolvePortRef, type WorldMap } from '../noyau/worldMap';
 import type { CampaignVessel } from '../noyau/etat';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
@@ -111,6 +112,20 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
     const offre = get().port!.offers[0];
     expect(offre, 'escale sans offre').toBeTruthy();
     expect(geste('cargaison', `port-buy-${offre.cargoId}`)).toEqual({ ferme: 'true', raison: t('port.holdFull') });
+  });
+
+  /** Le lieu `A` est le port `ref` du catalogue, l'escale ouverte en porte la `ref`, la bourse est pleine. */
+  const auPort = (ref: string) => {
+    const port = resolvePortRef({ ref })!;
+    useGame.setState({ worldMap: { ...carte, places: [{ ...carte.places[0], port }] }, port: { ...get().port!, ref, port: structuredClone(port) } });
+    creditBourse(get, useGame.setState, get().party[0].id, { gold: 100000, silver: 0, brass: 0 });
+  };
+
+  it('Blindage : fermé sur le refus du noyau au port sans chantier naval spécialisé, ouvert au port qui en a un', () => {
+    auPort(PORT_SANS_CHANTIER);
+    expect(geste('coque', 'port-upgrade-blindage-fer')).toEqual({ ferme: 'true', raison: t('sv.upgradeNeedsShipyard', { label: findNavalTrait('blindage-fer')!.label }) });
+    auPort(PORT_A_CHANTIER);
+    expect(geste('coque', 'port-upgrade-blindage-fer')).toEqual({ ferme: null, raison: null });
   });
 });
 

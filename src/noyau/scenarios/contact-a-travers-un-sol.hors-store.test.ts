@@ -3,10 +3,12 @@ import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { MELEE, ouvrirLeDuel } from '../combatDeTest.testkit';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
-import { distanceDeCombat, distanceDeContact, footprintChebyshev, footprintN } from '../monde/footprint';
+import { distanceDeCombat, distanceDeContact, footprintChebyshev } from '../monde/footprint';
 import { positionPosee } from '../monde/spawn';
 import { STEP_MAX_M } from '../monde/relief';
-import { advanceTurn, aiAvailableFreeAttack, attackEnv, attackPlan, buildAiInput } from '../combatFlow';
+import { emptyScene, plafondDe, setTileCollapsed, tileAt, type Scene } from '../monde/scene';
+import { addLayer, paintHeight, paintTiles } from '../sceneEdit';
+import { advanceTurn, aiAvailableFreeAttack, attackEnv, attackPlan, buildAiInput, collapseStructure } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
 import { hoverTargeting } from '../targeting';
 import { effectifAuContact } from '../combat/surnombre';
@@ -31,7 +33,7 @@ const melee = (A: Combatant, B: Combatant): { offerte: boolean; aTraversLeSol: b
   const plan = attackPlan(banc.getState, A, B);
   if (plan.kind === 'bloque') return { offerte: false, aTraversLeSol: false };
   if (plan.kind === 'attaque') return { offerte: true, aTraversLeSol: distanceDeContact(banc.getState().scene, A, B) > 1 };
-  const arrivee = { ...A, pos: positionPosee(banc.getState().scene, footprintN(A), plan.dest) };
+  const arrivee = { ...A, pos: positionPosee(banc.getState().scene, plan.dest) };
   return { offerte: true, aTraversLeSol: distanceDeContact(banc.getState().scene, arrivee, B) !== 1 };
 };
 const offert = (A: Combatant, B: Combatant) => melee(A, B).offerte;
@@ -41,7 +43,7 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
     poser(E, { x: 5, y: 6, z: 0 });
     poser(H, { x: 5, y: 6, z: 1 });
-    expect(E.pos!.plafond, 'la cale est sous le pont').toBeLessThanOrEqual(H.pos!.h ?? 0);
+    expect(distanceDeContact(banc.getState().scene, E, H), 'la cale est sous le pont').toBe(Infinity);
     expect(melee(H, E).aTraversLeSol).toBe(false);
     expect(attackPlan(banc.getState, E, H).kind, 'ni attaque ni charge de la cale vers le pont').toBe('bloque');
     expect(effectifAuContact(banc.getState().scene, banc.getState().battle!, E, 'heros')).toBe(0);
@@ -98,8 +100,7 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente();
     expect(banc.getState().pendingAttack?.fromCharge).toBe(true);
-    expect(H.pos).toEqual(positionPosee(banc.getState().scene, 1, H.pos!));
-    expect(H.pos!.plafond, 'arrivée sous le pont').toBeLessThanOrEqual(D.pos!.h ?? 0);
+    expect(H.pos).toEqual(positionPosee(banc.getState().scene, H.pos!));
     expect(distanceDeContact(banc.getState().scene, H, D)).toBe(Infinity);
     expect(attackPlan(banc.getState, D, H).kind).toBe('bloque');
     banc.getState().jetLancer('attaque');
@@ -140,16 +141,16 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(distanceDeCombat(H, E)).toBe(Math.max(1, Math.abs((H.pos!.h ?? 0) - (E.pos!.h ?? 0)) / 2));
   });
 
-  it('`pos.plafond` : absent à ciel ouvert, posé sous le pont, retiré quand le combattant en sort', () => {
-    const { E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
-    poser(E, { x: 4, y: 8, z: 1 });
-    expect(E.pos!.plafond ?? Infinity).toBeGreaterThan(E.pos!.h ?? 0);
-    poser(E, { x: 0, y: 0, z: 0 });
-    expect('plafond' in E.pos!).toBe(false);
+  it('le plafond se lit à la scène où le combattant se tient : à ciel ouvert sous la trappe, sous le pont, puis sorti', () => {
+    const { H, E, poser } = duel('embuscade-fluviale', 'enc-fluvial');
+    const contact = () => distanceDeContact(banc.getState().scene, E, H);
+    poser(H, { x: 5, y: 7, z: 1 });
+    poser(E, { x: 4, y: 7, z: 0 });
+    expect(contact(), 'sous la trappe, à ciel ouvert').toBe(distanceDeCombat(E, H));
     poser(E, { x: 5, y: 6, z: 0 });
-    expect(E.pos!.plafond).toBeDefined();
-    poser(E, { x: 0, y: 0, z: 0 });
-    expect('plafond' in E.pos!).toBe(false);
+    expect(contact(), 'sous le pont').toBe(Infinity);
+    poser(E, { x: 4, y: 7, z: 0 });
+    expect(contact(), 'sorti de sous le pont').toBe(distanceDeCombat(E, H));
   });
 });
 
@@ -200,6 +201,19 @@ describe('#4090 — embuscade-fluviale : le Surnombre ne compte que des Personna
 });
 
 describe('#4090 — siege-enceinte : deux hauteurs que rien ne sépare', () => {
+  it('le sol effondré ne coupe plus le contact : la passerelle tombée sur la herse abattue, le combattant du dessous et celui d’au-dessus, sans bouger, sont à leur distance de combat', () => {
+    const { H, E, poser } = duel('siege-enceinte', 'assaut');
+    const herse = banc.getState().battle!.combatants.find((c) => c.structureEdge?.x === 14 && c.structureEdge.y === 37 && c.structureEdge.side === 'N')!;
+    poser(E, { x: 14, y: 37, z: 0 });
+    poser(H, { x: 13, y: 37, z: 1 });
+    expect(distanceDeContact(banc.getState().scene, E, H), 'sous la passerelle').toBe(Infinity);
+    const [posE, posH] = [{ ...E.pos }, { ...H.pos }];
+    collapseStructure(banc.getState, banc.setState, herse);
+    const [E1, H1] = [E, H].map((c) => banc.getState().battle!.combatants.find((x) => x.id === c.id)!);
+    expect([E1.pos, H1.pos], 'personne n’a bougé').toEqual([posE, posH]);
+    expect(distanceDeContact(banc.getState().scene, E1, H1)).toBe(distanceDeCombat(E1, H1));
+  });
+
   it('pied de rampe (2,41,0) à 0 m et rampe (3,41,0) à 2 m : mêlée offerte, avec « En contrebas »', () => {
     const { H, E, poser } = duel('siege-enceinte', 'assaut');
     poser(H, { x: 2, y: 41, z: 0 });
@@ -214,5 +228,25 @@ describe('#4090 — siege-enceinte : deux hauteurs que rien ne sépare', () => {
     poser(H, { x: 3, y: 39, z: 0 });
     poser(E, { x: 3, y: 38, z: 1 });
     expect(offert(H, E)).toBe(true);
+  });
+});
+
+describe('#4105 — plafondDe : une tuile effondrée n’est plus un sol', () => {
+  /** Une case au rez couverte d'un plancher à 2 m (couche 1) puis d'un autre à 4 m (couche 2). */
+  function colonne(): Scene {
+    const rez = emptyScene('colonne', 1, 1);
+    const sol = tileAt(rez, 0, 0, 0);
+    const o = { x: 0, y: 0 };
+    const un = paintHeight(paintTiles(addLayer(rez, 1), o, sol, 1, 1), o, 2, 1, 1);
+    return paintHeight(paintTiles(addLayer(un, 2), o, sol, 1, 2), o, 4, 1, 2);
+  }
+  const rez = { x: 0, y: 0, z: 0 };
+
+  it('le plancher effondré cède au plafond suivant, puis au ciel ouvert', () => {
+    const s = colonne();
+    expect(plafondDe(s, rez)).toBe(2);
+    const sansLePremier = setTileCollapsed(s, 0, 0, 1);
+    expect(plafondDe(sansLePremier, rez)).toBe(4);
+    expect(plafondDe(setTileCollapsed(sansLePremier, 0, 0, 2), rez)).toBe(Infinity);
   });
 });

@@ -9,7 +9,8 @@ import type { EntreeVivante } from '../../../data/datasets';
 import { DIR4_ORDER, DIR8_DELTA } from '../../../geometry/dir8';
 import { isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../relief';
-import { crenellatedAt, edgeOf, heightAt, isCrenellated, isWalkable, structureAt, wallEnds, type SceneDuVolume, type WallSide } from '../scene';
+import { crenellatedAt, edgeOf, heightAt, isCrenellated, isWalkable, structureAt, tileAt, wallEnds, type SceneDuVolume, type WallSide } from '../scene';
+import { estAbsent } from '../terrain';
 import { structureAppearance } from './structures';
 import type { Face, GP } from './types';
 
@@ -55,8 +56,9 @@ export interface CreteDePerimetre {
 
 /** Les crêtes crénelées de `scene` : pour chaque arête de PÉRIMÈTRE d'une case crénelée (voisine de même couche NON
  *  crénelée), sa couronne (`crownFaces`) assise à la surface de la case. Merlons CEINTURANT la zone, jamais à
- *  l'intérieur. Une crête n'est PAS un `WallSeg` de scène : elle ne coupe NI le passage NI la LdV plongeante (les
- *  défenseurs tirent par-dessus). La MAÇONNERIE, elle, vient du bloc plein du sol. */
+ *  l'intérieur. Une case crénelée sans sol (`estAbsent`) n'en porte aucune. Une crête n'est PAS un `WallSeg` de scène :
+ *  elle ne coupe NI le passage NI la LdV plongeante (les défenseurs tirent par-dessus). La MAÇONNERIE, elle, vient du
+ *  bloc plein du sol. */
 export function cretesDePerimetre(scene: SceneDuVolume): CreteDePerimetre[] {
   const { w, h } = scene.dimensions;
   const out: CreteDePerimetre[] = [];
@@ -65,7 +67,7 @@ export function cretesDePerimetre(scene: SceneDuVolume): CreteDePerimetre[] {
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const appId = crenellatedAt(scene, x, y, z);
-        if (!appId) continue;
+        if (!appId || estAbsent(tileAt(scene, x, y, z))) continue;
         const surfaceH = heightAt(scene, x, y, z);
         const apparence = structureAppearance(appId);
         for (const cap of DIR4_ORDER) {
