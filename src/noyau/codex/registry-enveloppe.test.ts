@@ -369,7 +369,7 @@ const ORPHELINS: string[] = [
   "reseau-routier.json#0",
   "river-navigation.json#1",
   "sea-cargo.json#0",
-  "sea-navigation.json#0",
+  "sea-navigation.json#1",
   "sea-weather.json#0",
   "sea-weather.json#1",
   "sea-weather.json#2",
