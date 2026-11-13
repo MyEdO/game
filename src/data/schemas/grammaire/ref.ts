@@ -18,7 +18,17 @@ import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
 import type { CategorieCodexDuFichier } from '../_cles-de-dataset.generated';
-import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, vocabulaireDuFichier, type FiltreDEspace, type SousListeMarquee } from './cle-d-espace';
+import {
+  baseDe,
+  cleDesLibelles,
+  cleDesSpecs,
+  cleFiltree,
+  lireCleDEspace,
+  marqueurPorte,
+  vocabulaireDuFichier,
+  type FiltreDEspace,
+  type SousListeMarquee,
+} from './cle-d-espace';
 import { REGISTRE_DU_VOCABULAIRE_D_ART } from '../_vocabulaires-d-art.generated';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';

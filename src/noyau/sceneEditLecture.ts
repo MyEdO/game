@@ -5,13 +5,58 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { dialoguesDeLaScene, sceneMetresPerTile, type Dialogue, type DialogueChoice, type DialogueNode, type EncounterDef, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, canonEdge, porteAuteur } from './monde/scene';
+import {
+  dialoguesDeLaScene,
+  sceneMetresPerTile,
+  type Dialogue,
+  type DialogueChoice,
+  type DialogueNode,
+  type EncounterDef,
+  type EntityKind,
+  type FaceDArete,
+  type Scene,
+  type SceneEffectZone,
+  type SceneEntity,
+  type Trigger,
+  type WallSeg,
+  type WallSide,
+  type ZoneArea,
+  type CellSide,
+  canonEdge,
+  porteAuteur,
+} from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { dialogueSchema, encounterDefSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import {
+  dialogueSchema,
+  encounterDefSchema,
+  faceDAreteSchema,
+  optionalDeSceneSchema,
+  sceneEffectZoneSchema,
+  sceneEntitySchema,
+  sceneSchema,
+  triggerSchema,
+  type Terrain,
+} from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { mapPlaceSchema, mapRouteSchema, placePoiSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
-import { affaireSchema, documentNarratifSchema, ecartSchema, etatNarratifSchema, formeDEtatSchema, indiceSchema, indiceStadeSchema, narratifSchema, presetPnjSchema, valeurDEtatSchema, type EcartDeFiche, type EtatNarratif, type Indice, type NarratifBlock, type PresetPnj } from '../data/schemas/defs-scenes/narratif';
+import {
+  affaireSchema,
+  documentNarratifSchema,
+  ecartSchema,
+  etatNarratifSchema,
+  formeDEtatSchema,
+  indiceSchema,
+  indiceStadeSchema,
+  narratifSchema,
+  presetPnjSchema,
+  valeurDEtatSchema,
+  type EcartDeFiche,
+  type EtatNarratif,
+  type Indice,
+  type NarratifBlock,
+  type PresetPnj,
+} from '../data/schemas/defs-scenes/narratif';
 import { identiteDe, libelleDeLigne } from './narratifEdit';
 import { idFrais, identiteNeuve, lignesNeuves, repereNeuf, type Identite, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
@@ -30,7 +75,22 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, estUnNavireAPonts, navalPorts, findCreatureById, findTrappingById, profilsStandard, refEstVolumique, siegeEngines, spells, trappingsInstanciables, structureAppearances, structures, traits, type CreatureData } from '../data';
+import {
+  creatures,
+  estUnNavireAPonts,
+  navalPorts,
+  findCreatureById,
+  findTrappingById,
+  profilsStandard,
+  refEstVolumique,
+  siegeEngines,
+  spells,
+  trappingsInstanciables,
+  structureAppearances,
+  structures,
+  traits,
+  type CreatureData,
+} from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';

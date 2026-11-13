@@ -19,7 +19,16 @@ import type { RNG } from './dice';
 import { porteEntretien, applique } from './upkeepPorte.testkit';
 import { contractDisease, tickDisease, severiteEffective } from './disease';
 import { dailyDiseaseUpkeep, cureDiseases, applyRecoveryDay } from './rest';
-import { syncDerivedConditions, derivedStacks, stacks, addCondition, removeCondition, setConditionGainedHook, raisonRefusDetermination, fenetreDetermination } from './conditions';
+import {
+  syncDerivedConditions,
+  derivedStacks,
+  stacks,
+  addCondition,
+  removeCondition,
+  setConditionGainedHook,
+  raisonRefusDetermination,
+  fenetreDetermination,
+} from './conditions';
 import { suspendSource } from './suspension';
 import { applyOps } from './ops';
 import { MINUTES_PER_DAY } from './clock';

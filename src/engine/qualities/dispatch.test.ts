@@ -1,7 +1,19 @@
 import { idsDeTest } from '../idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Weapon } from '../types';
-import { hasQuality, qualitySum, qualityCritTriggered, parryDRAdjust, isUnbreakable, attackDRAdjust, dangerousNine, reloadDRTarget, magazineSize, resolveQualities, qualityArmourBypasses } from './dispatch';
+import {
+  hasQuality,
+  qualitySum,
+  qualityCritTriggered,
+  parryDRAdjust,
+  isUnbreakable,
+  attackDRAdjust,
+  dangerousNine,
+  reloadDRTarget,
+  magazineSize,
+  resolveQualities,
+  qualityArmourBypasses,
+} from './dispatch';
 import { craftEncDelta } from './craftEconomy';
 import { findQualityById, findTrappingById, qualityRefLabel, trappings } from '../../data';
 import { itemFromTrappingById } from '../items';

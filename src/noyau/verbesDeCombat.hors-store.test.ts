@@ -5,7 +5,17 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, activeCombatant, actionGate, type ActionCtx, type EntreesDeLaPartie, type Jeton, type Partie, type ResultatDeLAppel } from './index';
+import {
+  creerPartie,
+  etatInitialDuJeu,
+  activeCombatant,
+  actionGate,
+  type ActionCtx,
+  type EntreesDeLaPartie,
+  type Jeton,
+  type Partie,
+  type ResultatDeLAppel,
+} from './index';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Intention } from './partie';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';

@@ -90,74 +90,61 @@ export type IdDeModeDeCiblage = (typeof MODES_DE_CIBLAGE)[number];
 /** Ce que l'acte consomme dans l'économie du Tour. */
 const coutActionSchema = z.enum(['action', 'mouvement', 'gratuit', 'aucun']);
 
-/** Vue des champs que les deux raffinements lisent — le nœud pré-sceau est `ZodObject<ZodRawShape>`,
- *  son `v` arrive donc en `unknown`. */
-type EntreeAction = {
-  id: string;
-  surface: z.infer<typeof surfaceSchema>;
-  gate: GateDAction | GateDAction[];
-  candidates?: SelecteurDAction;
-  run?: RunDAction;
-  intent?: PorteeDIntention;
-  stance?: 'tirImmobile' | 'dansLeTas';
-  blocked?: { ticket: string; raison: string };
-  exitSafe?: boolean;
-  role?: 'valide' | 'renonce';
-  hote?: { id: string };
-  mode?: IdDeModeDeCiblage;
-  armed?: true;
+const champs = {
+  surface: surfaceSchema,
+  /** Id de PRÉDICAT enregistré dans `ACTION_GATES` (`src/noyau/actionRegistry.ts`), ou LISTE d'ids :
+   *  ils se composent alors par l'ET séquentiel d'`actionGate` (toutes passent, sinon la première
+   *  raison refusée est rendue). Une condition de plus sur une action = un id de plus ici. */
+  gate: z.union([z.enum(GATES_D_ACTION), z.array(z.enum(GATES_D_ACTION)).min(2)]),
+  /** Id de SÉLECTEUR impur enregistré dans `ACTION_CANDIDATES` (liste des cibles/objets offerts). */
+  candidates: z.enum(SELECTEURS_D_ACTION).optional(),
+  /** Id de l'ENTRÉE d'`ENTREES_PAR_RUN` (`src/noyau/actionRegistry.ts`) : le verbe qui joue l'offre et ses arguments,
+   *  résolu au chargement du registre. Absent = `blocked`. */
+  run: z.enum(RUNS_D_ACTION).optional(),
+  /** Id de `TargetingMode` (`src/noyau/targetingModes.ts`) armé par cette action. */
+  mode: z.enum(MODES_DE_CIBLAGE).optional(),
+  /** Id de PORTÉE d'INTENTION (`INTENT_REACH`, `src/noyau/localIntent.ts`) : la case ARME le mode
+   *  local qui peint cette portée sur le champ. Le clic qui suit reste le geste par défaut du grid,
+   *  et dissout l'intention (spec zone 4). */
+  intent: z.enum(PORTEES_D_INTENTION).optional(),
+  /** L'action ARME son `mode` : il s'écrit dans `battle.action` (mode à bouton). */
+  armed: z.literal(true).optional(),
+  /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
+   *  `PendingAttack` qu'elle pré-remplit) — exigée par le verbe `basculerLaPosture`. */
+  stance: z.enum(['tirImmobile', 'dansLeTas']).optional(),
+  coutAction: coutActionSchema,
+  /** FOYER de la règle : l'entrée Codex qui la porte (jamais une phrase recomposée). */
+  rule: foyerDeRegleSchema.optional(),
+
+  keys: z.array(z.string()).optional(),
+  /** Dette BLOQUANTE : l'action est déclarée mais aucun verbe ne la joue encore. */
+  blocked: blocageDeLivraison.optional(),
+  /** SORTIE D'INTERLUDE ATTEIGNABLE À ÉCHAP (`surface: 'interlude'` uniquement) : `false` = son
+   *  geste COMMET quelque chose (un renoncement, un placement) — la touche d'annulation ne
+   *  doit jamais le déclencher, seul le clic explicite le fait. `true` = la sortie ne perd rien
+   *  (retour à la modale, désarmement d'un mode). */
+  exitSafe: z.boolean().optional(),
+  /** RÔLE SÉMANTIQUE de la sortie d'interlude (`surface: 'interlude'` uniquement, requis) : ce que
+   *  le joueur FAIT en la prenant. `valide` = elle mène le geste à son terme (« Terminer »,
+   *  « Valider », « Rester sur place ») ; `renonce` = elle abandonne ou revient en arrière
+   *  (« Renoncer », « Retour », « Annuler »). C'est un rôle, PAS un style : la proéminence du
+   *  bouton s'en DÉDUIT au rendu (même doctrine que `RollShell`), elle ne se déclare pas ici. */
+  role: z.enum(['valide', 'renonce']).optional(),
+  /** ENTRÉE HÔTE d'un geste secondaire (`surface: 'geste-secondaire'` uniquement, requis) : l'action
+   *  dont l'alvéole porte le geste. Déclaré ICI pour qu'aucune console ne teste un id. */
+  hote: ref('action').optional(),
+  /** L'action FAIT NAÎTRE un panneau-paramètre (`PanneauParametre`) de SON alvéole : la surface qui
+   *  la rend y pose l'ANCRE du panneau. Déclaré ICI pour qu'aucune console ne teste un id. */
+  panneau: z.boolean().optional(),
 };
+
+/** L'entrée que les deux raffinements lisent, au type de ses champs. */
+type EntreeAction = { id: string } & z.output<z.ZodObject<typeof champs>>;
 
 const doc = document(
   'actions',
   famille,
-  {
-    surface: surfaceSchema,
-    /** Id de PRÉDICAT enregistré dans `ACTION_GATES` (`src/noyau/actionRegistry.ts`), ou LISTE d'ids :
-     *  ils se composent alors par l'ET séquentiel d'`actionGate` (toutes passent, sinon la première
-     *  raison refusée est rendue). Une condition de plus sur une action = un id de plus ici. */
-    gate: z.union([z.enum(GATES_D_ACTION), z.array(z.enum(GATES_D_ACTION)).min(2)]),
-    /** Id de SÉLECTEUR impur enregistré dans `ACTION_CANDIDATES` (liste des cibles/objets offerts). */
-    candidates: z.enum(SELECTEURS_D_ACTION).optional(),
-    /** Id de l'ENTRÉE d'`ENTREES_PAR_RUN` (`src/noyau/actionRegistry.ts`) : le verbe qui joue l'offre et ses arguments,
-     *  résolu au chargement du registre. Absent = `blocked`. */
-    run: z.enum(RUNS_D_ACTION).optional(),
-    /** Id de `TargetingMode` (`src/noyau/targetingModes.ts`) armé par cette action. */
-    mode: z.enum(MODES_DE_CIBLAGE).optional(),
-    /** Id de PORTÉE d'INTENTION (`INTENT_REACH`, `src/noyau/localIntent.ts`) : la case ARME le mode
-     *  local qui peint cette portée sur le champ. Le clic qui suit reste le geste par défaut du grid,
-     *  et dissout l'intention (spec zone 4). */
-    intent: z.enum(PORTEES_D_INTENTION).optional(),
-    /** L'action ARME son `mode` : il s'écrit dans `battle.action` (mode à bouton). */
-    armed: z.literal(true).optional(),
-    /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
-     *  `PendingAttack` qu'elle pré-remplit) — exigée par le verbe `basculerLaPosture`. */
-    stance: z.enum(['tirImmobile', 'dansLeTas']).optional(),
-    coutAction: coutActionSchema,
-    /** FOYER de la règle : l'entrée Codex qui la porte (jamais une phrase recomposée). */
-    rule: foyerDeRegleSchema.optional(),
-
-    keys: z.array(z.string()).optional(),
-    /** Dette BLOQUANTE : l'action est déclarée mais aucun verbe ne la joue encore. */
-    blocked: blocageDeLivraison.optional(),
-    /** SORTIE D'INTERLUDE ATTEIGNABLE À ÉCHAP (`surface: 'interlude'` uniquement) : `false` = son
-     *  geste COMMET quelque chose (un renoncement, un placement) — la touche d'annulation ne
-     *  doit jamais le déclencher, seul le clic explicite le fait. `true` = la sortie ne perd rien
-     *  (retour à la modale, désarmement d'un mode). */
-    exitSafe: z.boolean().optional(),
-    /** RÔLE SÉMANTIQUE de la sortie d'interlude (`surface: 'interlude'` uniquement, requis) : ce que
-     *  le joueur FAIT en la prenant. `valide` = elle mène le geste à son terme (« Terminer »,
-     *  « Valider », « Rester sur place ») ; `renonce` = elle abandonne ou revient en arrière
-     *  (« Renoncer », « Retour », « Annuler »). C'est un rôle, PAS un style : la proéminence du
-     *  bouton s'en DÉDUIT au rendu (même doctrine que `RollShell`), elle ne se déclare pas ici. */
-    role: z.enum(['valide', 'renonce']).optional(),
-    /** ENTRÉE HÔTE d'un geste secondaire (`surface: 'geste-secondaire'` uniquement, requis) : l'action
-     *  dont l'alvéole porte le geste. Déclaré ICI pour qu'aucune console ne teste un id. */
-    hote: ref('action').optional(),
-    /** L'action FAIT NAÎTRE un panneau-paramètre (`PanneauParametre`) de SON alvéole : la surface qui
-     *  la rend y pose l'ANCRE du panneau. Déclaré ICI pour qu'aucune console ne teste un id. */
-    panneau: z.boolean().optional(),
-  },
+  champs,
   {
     surface: { label: 'Surface d’accueil', hint: 'Zone de la console de combat où l’action naît par défaut' },
     gate: {

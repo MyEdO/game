@@ -1,6 +1,22 @@
 // La pile des couches résolue au montage (#3842) : la couche du dessous cède à celle qui la couvre.
 import { describe, expect, it } from 'vitest';
-import { couvertureDe, endroitDe, ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SAUT_D_ARETE, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile, visiterLaCouverture } from './pile.ts';
+import {
+  couvertureDe,
+  endroitDe,
+  ENTRAINEMENT,
+  HALO_M,
+  JEU_M,
+  PERCEE_M,
+  PORTEE_DE_COUVERTURE_M,
+  SAUT_D_ARETE,
+  SERRAGE_M,
+  ordreDesCouches,
+  resoudreLaPile,
+  type CoucheDePile,
+  type MaillageDePile,
+  type PieceDePile,
+  visiterLaCouverture,
+} from './pile.ts';
 
 /** Une nappe carrée de `cote` mètres centrée en (`cx`, 0) à la hauteur `z`, en grille de `n` × `n` mailles, tournée vers
  *  +Z. Elle est tout entière sur l'os `os`, ou, avec `vers`, passe de `os` à `vers` par des poids tous différents d'un

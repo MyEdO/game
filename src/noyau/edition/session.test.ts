@@ -18,7 +18,22 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { emptyWorldMap, resolvePortRef, type WorldMap } from '../worldMap';
-import { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, editer, groupesDuLieu, idDeLaSceneEditee, ouvrirLEdition, planDeLaVolee, planDuLieuOuvert, projetEdite, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
+import {
+  avertissementsDeLaSession,
+  cadreDeLaSession,
+  calqueDeLaCouche,
+  editer,
+  groupesDuLieu,
+  idDeLaSceneEditee,
+  ouvrirLEdition,
+  planDeLaVolee,
+  planDuLieuOuvert,
+  projetEdite,
+  sceneEditee,
+  vueDeLaScene,
+  type GesteDEdition,
+  type SessionDEdition,
+} from './session';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
 import { validateScene } from '../validateScene';
@@ -32,7 +47,16 @@ import { peripetieNeuve, portNeuf } from '../worldMapEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, porteurDeLaSel, segmentDeLaSelection, type CadreDuPorteur, type SorteDePorteur } from '../sceneEditLecture';
+import {
+  capsOfferts,
+  choixDuChamp,
+  entiteDeLaSelection,
+  formulaireDe,
+  porteurDeLaSel,
+  segmentDeLaSelection,
+  type CadreDuPorteur,
+  type SorteDePorteur,
+} from '../sceneEditLecture';
 import { champsDeclares, champsDuRecord, choixDuNoeud, elementDuNoeud, recordDuNoeud } from '../codex/editFields';
 import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/schemas/grammaire/valeurs';
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';

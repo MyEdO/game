@@ -571,7 +571,8 @@
         "id": "besace"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "d'alcool"
       },
       {
         "id": "dague"
@@ -590,9 +591,6 @@
       },
       {
         "id": "vetements"
-      },
-      {
-        "id": "alcool"
       }
     ],
     "spells": [],
@@ -1237,7 +1235,8 @@
         "id": "parchemin",
         "count": {
           "fixed": 9
-        }
+        },
+        "spec": "vierge"
       }
     ],
     "spells": [
@@ -1515,7 +1514,12 @@
         "id": "dague"
       },
       {
-        "id": "vetements"
+        "id": "vetements",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
       },
       {
         "id": "trousse-de-toilette"
@@ -1535,7 +1539,10 @@
       },
       {
         "id": "parchemin",
-        "spec": "lettres adressées à son père (jamais envoyées)"
+        "spec": "lettre adressée à son père (jamais envoyée)",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "arc-court"

@@ -1,5 +1,17 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { moraleBase, MORALE_FACTORS, MORALE_BANDS, moraleBand, recalcMorale, resolveCrewTest, tickShipMorale, payChoices, payChoiceCostBrass, isPayChoice, findMoraleFactor } from './crewMorale';
+import {
+  moraleBase,
+  MORALE_FACTORS,
+  MORALE_BANDS,
+  moraleBand,
+  recalcMorale,
+  resolveCrewTest,
+  tickShipMorale,
+  payChoices,
+  payChoiceCostBrass,
+  isPayChoice,
+  findMoraleFactor,
+} from './crewMorale';
 import { setDataset } from '../data/overrides';
 import { makeRNG, type RNG } from './dice';
 import { desEnSuite } from './dice.testkit';

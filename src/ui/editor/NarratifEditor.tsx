@@ -21,8 +21,27 @@ import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE, identiteSchema } from '../../data/schemas/grammaire/campagne';
 import type { RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { CibleNarrative, Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
-import { ajouteEntree, idFrais, identiteCouverte, identiteNeuve, lignesNeuves, repereNeuf, stadeCouple, type Identite, type RegistreCreable } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
-import { formeNeuve, libelleDeLigne, refusDeForme, refusDeRenommage, refusDeRetrait, renommeAuProjet, retireDuProjet, type ProjetEdite } from '../../noyau/narratifEdit';
+import {
+  ajouteEntree,
+  idFrais,
+  identiteCouverte,
+  identiteNeuve,
+  lignesNeuves,
+  repereNeuf,
+  stadeCouple,
+  type Identite,
+  type RegistreCreable,
+} from '../../data/schemas/defs-scenes/ecritures-du-narratif';
+import {
+  formeNeuve,
+  libelleDeLigne,
+  refusDeForme,
+  refusDeRenommage,
+  refusDeRetrait,
+  renommeAuProjet,
+  retireDuProjet,
+  type ProjetEdite,
+} from '../../noyau/narratifEdit';
 import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
@@ -32,7 +51,19 @@ import { NumberField } from '../NumberField';
 import { CouvreField, SelecteurDEntreeDeFiche } from './CouvreField';
 import { Stack } from '../Layout';
 import { t } from '../../i18n';
-import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, EtatNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre, EcartDeFiche } from '../../data/schemas/defs-scenes/narratif';
+import type {
+  NarratifBlock,
+  PresetPnj,
+  Affaire,
+  Indice,
+  IndiceStade,
+  DocumentNarratif,
+  EtatNarratif,
+  OuvertureBlock,
+  ClotureBlock,
+  AmbianceCadre,
+  EcartDeFiche,
+} from '../../data/schemas/defs-scenes/narratif';
 import { raceKeySchema, sexeSchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { validateDocument, cheminLisible } from '../../data/schemas/validate';

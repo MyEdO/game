@@ -7,7 +7,21 @@ import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { validateScene } from '../../noyau/validateScene';
 import { siegeEmplacementEntity } from '../../noyau/monde/siegeEmplacement';
-import { editEntity, editEntityCombat, moveEntityTo, removeEntity, seatOccupant, setPosteCrew, setPosteSide, setPosteEngine, changePropRef, deleteSel, moveSel, eraseAt, placeEntity } from '../../noyau/sceneEdit';
+import {
+  editEntity,
+  editEntityCombat,
+  moveEntityTo,
+  removeEntity,
+  seatOccupant,
+  setPosteCrew,
+  setPosteSide,
+  setPosteEngine,
+  changePropRef,
+  deleteSel,
+  moveSel,
+  eraseAt,
+  placeEntity,
+} from '../../noyau/sceneEdit';
 
 /**
  * INVARIANT DE SOCLE #2 — UN SEUL SEAM D'ASSISE.

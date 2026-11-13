@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexGroupLabel, codexLookupById, creatureStatblock, raceTalentSection, type CodexItem } from './registry';
+import {
+  CODEX,
+  CODEX_GROUPS,
+  categoriesIn,
+  categoryByKey,
+  clustersIn,
+  codexGroupLabel,
+  codexLookupById,
+  creatureStatblock,
+  raceTalentSection,
+  type CodexItem,
+} from './registry';
 import { woundsForSize } from '../../engine/size';
 import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from '../../data/atelierDuCodex';

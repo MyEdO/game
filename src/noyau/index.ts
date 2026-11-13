@@ -17,12 +17,44 @@ export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
 export { dayIndex, formatImperial, formatJourImperial } from '../engine/clock';
-export { careers, conditionLabel, findCareerById, findSpellById, levelsForCareer, lightLevels, lightTones, matieresCouvrantes, matieresDe, props, refLabel, siegeEngines, structureAppearances, trappingRefLabel, trappingsInstanciables } from '../data';
+export {
+  careers,
+  conditionLabel,
+  findCareerById,
+  findSpellById,
+  levelsForCareer,
+  lightLevels,
+  lightTones,
+  matieresCouvrantes,
+  matieresDe,
+  props,
+  refLabel,
+  siegeEngines,
+  structureAppearances,
+  trappingRefLabel,
+  trappingsInstanciables,
+} from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
-export { candidatsDuSlot, carriereActuelle, designationsDeCarriere, parcoursDe, parcoursRetouche, talentsDuParcours, type ParcoursDeCarriere } from '../engine/pnjDeCarriere';
+export {
+  candidatsDuSlot,
+  carriereActuelle,
+  designationsDeCarriere,
+  parcoursDe,
+  parcoursRetouche,
+  talentsDuParcours,
+  type ParcoursDeCarriere,
+} from '../engine/pnjDeCarriere';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
-export { dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, libelleDeLaValeur, sousEmplacementActif, valeursDeLEmplacement, type EmplacementDeDotation } from '../engine/trappingChoices';
+export {
+  dotationsDuPnj,
+  emplacementsDeDotation,
+  estEmplacementRacine,
+  libelleDeLaValeur,
+  sousEmplacementActif,
+  valeursDeLEmplacement,
+  type EmplacementDeDotation,
+} from '../engine/trappingChoices';
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';
@@ -41,9 +73,32 @@ export type { LigneDeGardeRobe } from '../data/index';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
-export { cataloguesDeComposition, emplacementsDeRangement, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
+export {
+  cataloguesDeComposition,
+  emplacementsDeRangement,
+  lireApparenceDAuteur,
+  lireComposition,
+  lireSurchargesDEmblemes,
+  porteeDeComposition,
+  presetDeComposition,
+  type Composition,
+  type LectureAuSchema,
+  type Portee,
+  type PorteeDeComposition,
+  type SurchargesDEmblemes,
+} from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
-export { aLEchelleDesPonts, CAPS_DES_PONTS, estPoseParSesPonts, naviresDeLaScene, stationsDuNavire, TYPES_DE_NAVIRE, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire } from './planDeNavire';
+export {
+  aLEchelleDesPonts,
+  CAPS_DES_PONTS,
+  estPoseParSesPonts,
+  naviresDeLaScene,
+  stationsDuNavire,
+  TYPES_DE_NAVIRE,
+  type EmprisesDesCases,
+  type NavireDeLaScene,
+  type StationDeNavire,
+} from './planDeNavire';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
@@ -69,20 +124,107 @@ export { labelEmplacement, seatSlotsOf, type SeatOccupant } from './monde/seatin
 export { assoirALaPlace, ECRITURES_DES_PORTEURS, retraitOffert, type PatchDeZone } from './sceneEdit';
 export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
-export { areteDessinee, aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type AreteDessinee, type PlateauDeLaScene, type Regard } from './monde/aretes';
+export {
+  areteDessinee,
+  aretesDeLaCouche,
+  aretesDeLaScene,
+  masqueDuRegard,
+  plateauDeLaScene,
+  regardDuJeu,
+  REGARDS,
+  type AreteDessinee,
+  type PlateauDeLaScene,
+  type Regard,
+} from './monde/aretes';
 export type { Scene } from './monde/scene';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
-export { couronnesDuMonde, matieresDeDecor, retraitDuMonde, toitsDuMonde, volumeDuMonde, type MorceauDuMonde, type NappeDuMonde, type RetraitDuMonde, type VolumeDuMonde } from './monde/volume/volume';
+export {
+  couronnesDuMonde,
+  matieresDeDecor,
+  retraitDuMonde,
+  toitsDuMonde,
+  volumeDuMonde,
+  type MorceauDuMonde,
+  type NappeDuMonde,
+  type RetraitDuMonde,
+  type VolumeDuMonde,
+} from './monde/volume/volume';
 export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
-export { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, planDuLieuOuvert, projetDuDepot, refusDOuvrage, refusDeLaValeur, refusDeRetrait, refusDuRenommage, idDeLaSceneEditee, projetEdite, sceneEditee, vueDeLaScene, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, BORNES_DE_LA_TROUPE, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, groupesDuLieu, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type SessionDEdition } from './edition/session';
+export {
+  avertissementsDeLaSession,
+  cadreDeLaSession,
+  calqueDeLaCouche,
+  casesDuDefaut,
+  corpsActif,
+  editer,
+  ouvrirLEdition,
+  planDeLaVolee,
+  planDuLieuOuvert,
+  projetDuDepot,
+  refusDOuvrage,
+  refusDeLaValeur,
+  refusDeRetrait,
+  refusDuRenommage,
+  idDeLaSceneEditee,
+  projetEdite,
+  sceneEditee,
+  vueDeLaScene,
+  essaiDeLaScene,
+  texteAEnregistrer,
+  ACTIONS_D_ARCHITECTURE,
+  AMBIANCES,
+  BORNES_DE_LA_TROUPE,
+  ENVIRONNEMENTS,
+  HAUTEURS,
+  METEOS,
+  OUVRAGES,
+  PINCEAUX,
+  PROFILS_DE_TOIT,
+  SORTES_D_OUVERTURE,
+  groupesDuLieu,
+  versLaFautive,
+  type BrouillonDArete,
+  type GesteDEdition,
+  type PatchDArete,
+  type PatchDEntite,
+  type PatchDeScene,
+  type SessionDEdition,
+} from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
 export { orienterRoute } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
-export { FORMULAIRES, accesDe, cleDeLElement, formulaireDe, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, type DonneeDuPorteur, type SorteDeDocument, type SorteDePorteur } from './sceneEditLecture';
+export {
+  FORMULAIRES,
+  accesDe,
+  cleDeLElement,
+  formulaireDe,
+  retraitsDuPorteur,
+  porteurDeLaSel,
+  porteurDuProjet,
+  porteursDuProjet,
+  idDuPorteur,
+  SOUS_ENTREES,
+  type DonneeDuPorteur,
+  type SorteDeDocument,
+  type SorteDePorteur,
+} from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
-export { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, clesPosees, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
+export {
+  bornesAuPoint,
+  champDeLElement,
+  champsDeclares,
+  champsDuRecord,
+  champsOfferts,
+  choixDuNoeud,
+  clesPosees,
+  elementDuNoeud,
+  formeAuPoint,
+  unionDuNoeud,
+  varianteCourante,
+  type FieldDesc,
+} from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { type Segment } from './sceneEdit';
 export { buildingsMeta } from './monde/buildings';
@@ -98,7 +240,26 @@ export { terrainIds, terrainLabel } from './monde/terrain';
 export { crenellatedAt, tileAt, heightAt, idDuCorps, porteAuteur, reposDeScene, sceneMetresPerTile, secretAuteur } from './monde/scene';
 export { isRoomZone } from './monde/rooms';
 export { sceneZoneTiles } from './monde/zones';
-export { capDeLEntite, capsOfferts, effectZoneRect, entiteDeLaSelection, ficheEditee, FACES_D_ARETE, fichesDePersonnage, libelleDeStructure, lumiereAllumee, poigneeDeLaSelection, sameSel, segmentDeLaSelection, selRect, structuresCrenelables, structuresDeLArete, type Sel, type WallPaint, ZONE_VARIANTS } from './sceneEditLecture';
+export {
+  capDeLEntite,
+  capsOfferts,
+  effectZoneRect,
+  entiteDeLaSelection,
+  ficheEditee,
+  FACES_D_ARETE,
+  fichesDePersonnage,
+  libelleDeStructure,
+  lumiereAllumee,
+  poigneeDeLaSelection,
+  sameSel,
+  segmentDeLaSelection,
+  selRect,
+  structuresCrenelables,
+  structuresDeLArete,
+  type Sel,
+  type WallPaint,
+  ZONE_VARIANTS,
+} from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
 export { effetsDeLAppel, vitrineDesEffets, zonesQuiDurentEnVue, type Effet, type VitrineDesEffets, type ZoneQuiDure } from './effetsDeLAppel';
 export { cleDeLaVision, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, visionDuMonde, type VisionDuMonde } from './visionDuGroupe';
@@ -124,7 +285,16 @@ export { batailleEnVue } from './batailleEnVue';
 export { reposEnVue } from './reposEnVue';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeDetermination } from './determinationDuJet';
-export { libelleDuGeste, libelleDuReglage, libelleDuChoix, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
+export {
+  libelleDuGeste,
+  libelleDuReglage,
+  libelleDuChoix,
+  libelleDuParametre,
+  libelleDuLitteral,
+  libelleDeLaFenetre,
+  libelleDuJet,
+  libelleDeLaFermeture,
+} from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';
 export { cleDuGeste, type GesteDuJeu } from './modalArbiter';
 export { verbeDeJetDe, viseUneRangee, type FlowKey } from './flowVerbs';
@@ -137,17 +307,62 @@ export { avecSigne } from '../engine/types';
 export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
 export type { VerrouDesMots } from './fabriquesDuNoyau';
 export type { Maniement } from '../data/schemas/grammaire/valeurs';
-export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, rosterExport, rosterImport, type HerosDuRoster, type RosterEntry } from './persistance/roster';
-export { engagement, herosDuRosterOfferts, intentionDEngagement, intentionDeRenvoi, pretiresOfferts, refusDEngagement, refusDUnNouveauHeros, type IntentionDEngagement } from './creation/engagement';
+export {
+  lireLeRoster,
+  ecrireLeRoster,
+  idDeRosterDuHeros,
+  rosterAvecLeHeros,
+  rosterExport,
+  rosterImport,
+  type HerosDuRoster,
+  type RosterEntry,
+} from './persistance/roster';
+export {
+  engagement,
+  herosDuRosterOfferts,
+  intentionDEngagement,
+  intentionDeRenvoi,
+  pretiresOfferts,
+  refusDEngagement,
+  refusDUnNouveauHeros,
+  type IntentionDEngagement,
+} from './creation/engagement';
 export { partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
 export type { CreatorDraft } from './creation/brouillon';
-export { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, refusDeLaPage, rubriquesDeLaPage, type GesteDuBrouillon, type PageDeCreation, type RubriqueDeCreation } from './creation/vueDeLaCreation';
+export {
+  apresLeGeste,
+  brouillonDeLaPartie,
+  pagesDeCreation,
+  refusDeLaPage,
+  rubriquesDeLaPage,
+  type GesteDuBrouillon,
+  type PageDeCreation,
+  type RubriqueDeCreation,
+} from './creation/vueDeLaCreation';
 export { lireLesRetraits, cumulerLesRetraits, nommerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
 export { poserLesReglesMaisonPersistees, reglesMaisonMutables, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
-export { PREFERENCES, preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
+export {
+  PREFERENCES,
+  preferenceDef,
+  preferencesAPersister,
+  poserLesPreferencesPersistees,
+  valeurDEntree,
+  type IdDePreference,
+  type Preference,
+  type PrefValue,
+} from './preferences';
 export {
   snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde, estUnPointDeReprise, pointDeRepriseAGarder,
   type SaveGame, type SaveMeta, type ObsoleteCause, type RefusDeSauvegarde, CAUSES_DE_REFUS_DE_SAVE,
 } from './persistance/save';
-export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
+export {
+  aEcrire,
+  campagneDUneEntree,
+  entreesRelues,
+  idDesignable,
+  projetDUneEntree,
+  type CampagneLancee,
+  type EntreeListee,
+  type SavedProject,
+} from './persistance/bibliotheque';
 export { ProjetRefuse, type ProjectDoc } from './worldMap';

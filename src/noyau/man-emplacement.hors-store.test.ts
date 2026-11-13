@@ -1,6 +1,16 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
-import { servablePostes, serveAtPoste, leaveChef, isPosteManned, applyShipPostes, servingCrewPresent, serveTargetPoste, posteCrewSplit, isCrewQualified } from './monde/shipPostes';
+import {
+  servablePostes,
+  serveAtPoste,
+  leaveChef,
+  isPosteManned,
+  applyShipPostes,
+  servingCrewPresent,
+  serveTargetPoste,
+  posteCrewSplit,
+  isCrewQualified,
+} from './monde/shipPostes';
 import { firedWeapon, resolveAttack, buildAiInput, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { availableAttacks } from './combatManeuvers';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';

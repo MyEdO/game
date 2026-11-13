@@ -26,7 +26,11 @@ import type { Combatant, CharKey } from './types';
 import { RNG, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import type { GameOp } from './ops';
-import { addClockCondition, removeActiveEffects } from './conditions'; // cycle runtime (conditions→characteristics→trauma→drunkenness) : appelés au dessoûlage, jamais à l'init
+// cycle runtime (conditions→characteristics→trauma→drunkenness) : appelés au dessoûlage, jamais à l'init
+import {
+  addClockCondition,
+  removeActiveEffects,
+} from './conditions';
 import drunkennessJson from '../data/drunkenness.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
 import type * as ivresse from '../data/schemas/defs/drunkenness';

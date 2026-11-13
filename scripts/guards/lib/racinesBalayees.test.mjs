@@ -14,7 +14,18 @@ import { instanceDeDepot } from './depotGabarit.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 import { balayagesNonResolus, perimetreDuDepot } from '../../test/perimetre.mjs'
 import { analyserTexte } from './dialecte.mjs'
-import { certifierLecture, clesDeLEvaluateur, evaluateurDuDepot, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, encoderLecture, decoderLecture, mesureLecture } from './racinesBalayees.mjs'
+import {
+  certifierLecture,
+  clesDeLEvaluateur,
+  evaluateurDuDepot,
+  evaluerLotDuDepot,
+  evaluer,
+  lecteurDExpressions,
+  lectureDeModule,
+  encoderLecture,
+  decoderLecture,
+  mesureLecture,
+} from './racinesBalayees.mjs'
 import { gelerLaConstante, gelerProfond } from '../../../src/lib/gelerProfond.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 

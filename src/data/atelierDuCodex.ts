@@ -2,7 +2,21 @@
  * Atelier du Codex, moitié DONNÉE : routes d'édition d'une catégorie, validation d'une entrée éditée
  * et sa TRANSACTION d'enregistrement (#3059). Tout hôte les appelle ; l'écriture disque reste à l'hôte.
  */
-import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, champDEnTete, setEnTete, type DatasetKey, type EcritureDEnTete, type ObjectDatasetKey } from './overrides';
+import {
+  datasetArray,
+  setDataset,
+  datasetObject,
+  datasetObjectSerializeRoot,
+  setObjectDataset,
+  datasetFile,
+  datasetSerializeRoot,
+  datasetObjectFile,
+  champDEnTete,
+  setEnTete,
+  type DatasetKey,
+  type EcritureDEnTete,
+  type ObjectDatasetKey,
+} from './overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './schemas/exposition-derivee';
 import { validateDataset } from './schemas/validate';
 import { serializeDataset } from './serialize';

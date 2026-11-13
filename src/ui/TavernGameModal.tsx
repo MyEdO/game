@@ -1,8 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
-import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
+import {
+  TAVERN_GAMES,
+  findTavernGameById,
+  tavernFastRegime,
+  difficulteDeBase,
+  difficulteDuJoueur,
+  specialsApplicables,
+  type TavernGame,
+} from '../engine/tavernGame';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { HABITUE, refusDAdversaire, refusDeJouer, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type ReglageDePartie, type TavernOpponent } from '../noyau/tavernFlow';
+import {
+  HABITUE,
+  refusDAdversaire,
+  refusDeJouer,
+  refusDOuvrirLaTaverne,
+  tavernGameValue,
+  tavernPartieEnCours,
+  tavernNpcOffers,
+  type ReglageDePartie,
+  type TavernOpponent,
+} from '../noyau/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../noyau/monde/sceneNpc';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { Row } from './Layout';

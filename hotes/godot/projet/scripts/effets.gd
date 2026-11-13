@@ -63,6 +63,8 @@ static var _scenes := {}
 static var _tours := {}
 
 var _metres_par_case := 1.0
+## Les matières de ses mailles teintes (`teinter`), qu'il tient au-delà de leur vie (`MontageDeComposition.materiau_local`).
+var _locaux := {}
 
 
 ## La clé d'une case d'un effet (`{ x, y, z? }`) parmi les lieux que reçoit `jouer`.
@@ -233,7 +235,7 @@ func _phase(phase: Variant, point: Vector3, teinte: Color) -> void:
 ## l'échelle du plateau ; son animation `eclat` l'éteint puis le retire.
 func eclater(visuel: String, point: Vector3, teinte: Color) -> Node3D:
 	var eclat: Node3D = scene_de_l_effet(FAMILLE_DES_VISUELS, visuel).instantiate()
-	teinter(eclat, teinte)
+	teinter(eclat, teinte, _locaux)
 	eclat.name = visuel
 	eclat.position = point
 	eclat.scale = MiseEnPage.echelle_au_plateau(_metres_par_case)
@@ -243,7 +245,7 @@ func eclater(visuel: String, point: Vector3, teinte: Color) -> Node3D:
 
 ## La scène de l'effet `id` de la famille `famille` posée en continu, teinte de `teinte` : chacune de ses gerbes émet
 ## sans fin, ses particules nées d'avance (`preprocess`), tout autre enfant (éclair, animation) retiré avant l'entrée
-## dans l'arbre. Une flamme, une zone qui dure, la marque d'un État.
+## dans l'arbre, donc aucune maille à teindre. Une flamme, une zone qui dure, la marque d'un État.
 static func pose_continue(famille: String, id: String, teinte: Color) -> Node3D:
 	var pose: Node3D = scene_de_l_effet(famille, id).instantiate()
 	for enfant in pose.get_children():
@@ -254,7 +256,7 @@ static func pose_continue(famille: String, id: String, teinte: Color) -> Node3D:
 		gerbe.one_shot = false
 		gerbe.explosiveness = 0.0
 		gerbe.preprocess = gerbe.lifetime
-	teinter(pose, teinte)
+	teinter(pose, teinte, {})
 	return pose
 
 
@@ -272,9 +274,9 @@ static func scene_de_l_effet(famille: String, id: String) -> PackedScene:
 
 
 ## Teint de `teinte` chaque descendant de `noeud` du groupe `GROUPE_DE_LA_TEINTE` : une gerbe par sa `color`, une lampe
-## par sa `light_color`, une maille par une copie de sa matière posée en surcharge ; aucune ressource de la scène ne
-## change.
-static func teinter(noeud: Node, teinte: Color) -> void:
+## par sa `light_color`, une maille par sa matière locale (`MontageDeComposition.materiau_local`), tenue dans `locaux`,
+## ceux de son porteur ; aucune ressource de la scène ne change.
+static func teinter(noeud: Node, teinte: Color, locaux: Dictionary) -> void:
 	for teint in noeud.find_children("*", "", true, false):
 		if not teint.is_in_group(GROUPE_DE_LA_TEINTE):
 			continue
@@ -283,12 +285,10 @@ static func teinter(noeud: Node, teinte: Color) -> void:
 		elif teint is OmniLight3D:
 			(teint as OmniLight3D).light_color = teinte
 		elif teint is MeshInstance3D:
-			var maille := teint as MeshInstance3D
-			var matiere := maille.mesh.surface_get_material(0).duplicate() as StandardMaterial3D
+			var matiere := MontageDeComposition.materiau_local(teint as MeshInstance3D, 0, locaux)
 			matiere.albedo_color = teinte
 			if matiere.emission_enabled:
 				matiere.emission = teinte
-			maille.set_surface_override_material(0, matiere)
 
 
 ## Le projectile du trajet `trajet` en vol de `de` à `vers` en `trajet.dureeS` secondes : son nœud file droit vers la
@@ -317,7 +317,7 @@ func projectile_de(nom: String, teinte: Color) -> Node3D:
 	var projectile: Node3D = scene_de_l_effet(FAMILLE_DES_PROJECTILES, nom).instantiate()
 	projectile.name = nom
 	(projectile.get_node("Corps") as Node3D).scale = MiseEnPage.echelle_au_plateau(_metres_par_case)
-	teinter(projectile, teinte)
+	teinter(projectile, teinte, _locaux)
 	for gerbe: CPUParticles3D in projectile.find_children("*", "CPUParticles3D", true, false):
 		if not gerbe.local_coords:
 			gerbe.scale_amount_min = MiseEnPage.hauteur_au_plateau(gerbe.scale_amount_min, _metres_par_case)

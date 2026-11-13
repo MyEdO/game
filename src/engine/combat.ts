@@ -10,7 +10,19 @@ import { d100, RNG } from './dice';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { nomDe } from './nom';
-import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason, type VainqueurOppose, reverseRoll } from './tests';
+import {
+  rollTest,
+  resolveOpposed,
+  evaluateTest,
+  isDoubleRoll,
+  opposedReasons,
+  exactDifficultyFromModifier,
+  cibleMesuree,
+  TestResult,
+  type VerdictReason,
+  type VainqueurOppose,
+  reverseRoll,
+} from './tests';
 import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
@@ -19,12 +31,23 @@ import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue, testValue, type TestDesigne } from './skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine, type Main } from './types';
+import {
+  Combatant,
+  HitLocation,
+  Weapon,
+  BodyShape,
+  RangeBandId,
+  DIFFICULTY_MODIFIERS,
+  locationLabel,
+  type CharKey,
+  type Difficulty,
+  type ModLine,
+  type Main,
+} from './types';
 import { weatherTestMods } from './weatherTestMod';
 import { precipitationTestMods } from './seaWeather';
 import { findTableEntry } from './tables';
 import { maxBy } from './pick';
-import locJson from '../data/localisation.json';
 import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
 import { effectiveWeaponDamage, effectiveWeapon } from './weaponDamage';
 import { maniementRetenu, speDeCorpsACorps } from './weaponGroup';
@@ -35,16 +58,49 @@ import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDa
 import { ignoredArmourAP, activeLoadout, porteeDeTir, unarmedWeapon, buildWeapon, damageArmour, impenetrableAt, casserLaPieceBaclee } from './items';
 import { incomingAttackLines, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom, sourceCombattant, sousPeur, vise } from './psychology';
-import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
+import {
+  qualitySum,
+  attackModQualityIds,
+  qualityCritTriggered,
+  parryDRAdjust,
+  qualityDamageStep,
+  craftTestDRAdjust,
+  hasQuality,
+  canFireWhileEngaged as qCanFireWhileEngaged,
+  attackDRAdjust,
+  vsDefenseDRAdjust,
+  rapideParryMod,
+  protectriceAP,
+  rangedOpposeWeapon,
+  isMagicWeapon,
+  resolveQualities,
+} from './qualities/dispatch';
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
 import { spellEffectOps } from './flowCore';
-import { findPsychologyById, groupeDeLArme, testSkillLabel, type RangeeDeRegleData } from '../data';
-import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, ignoresCalledShotPenalty, ignoresSizeRangedMods, sniperRangeAdjust } from './combatFeatures/dispatch';
+import { findPsychologyById, groupeDeLArme, tablesDeLocalisation, testSkillLabel, type RangeeDeRegleData } from '../data';
+import {
+  offHandPenalty,
+  talentDamageBonus,
+  isSlayer,
+  talentRangedAPIgnore,
+  ignoresCalledShotPenalty,
+  ignoresSizeRangedMods,
+  sniperRangeAdjust,
+} from './combatFeatures/dispatch';
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
+import {
+  lancerDuTableau,
+  jeuDeCritique,
+  critiquesDuCoup,
+  relanceLaLocalisation,
+  estUnCoupCritique,
+  critWoundLocation,
+  type CauseCoupCritique,
+  type CompteDesCritiques,
+} from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Jet de la seconde frappe du Maniement de deux armes : le lancer du tableau des Critiques au dé de sa table
@@ -73,24 +129,17 @@ export type ShipRig = 'avirons' | 'voile' | 'mixte';
 /** Localisation d'un coup sur un bateau — DISTINCTE de la `HitLocation` humaine. `equipements`/`cargaison`
  *  sont navales (MDG 13) ; `gouvernail`/`superstructure` sont fluviales (MSRC 7). `avirons` couvre
  *  aussi les « Rames » du bateau fluvial (mêmes avirons). */
-export type ShipLocation = 'equipage' | 'avirons' | 'greement' | 'coque' | 'equipements' | 'cargaison' | 'gouvernail' | 'superstructure';
+export type ShipLocation = (typeof tablesDeLocalisation)['navire']['entries'][number]['avirons'];
 
-interface BodyLocEntry { min: number; max: number; loc: HitLocation }
-interface ShipLocEntry { min: number; max: number; avirons: ShipLocation; voile: ShipLocation; mixte: ShipLocation }
-const BODY_SHAPES = (locJson as { personnage: { shapes: Record<string, BodyLocEntry[]> } }).personnage.shapes;
 /** Id de table de Localisation navale — union FERMÉE : `navire` (MDG 13) / `navire-fluvial` (MSRC 7).
  *  Miroir du schéma de la coque (`hull.locationTable`, `data/schemas/defs/vehicles.ts`). */
-type ShipLocTableId = 'navire' | 'navire-fluvial';
-const SHIP_LOC_ALL = locJson as unknown as Record<ShipLocTableId, { entries: ShipLocEntry[] }>;
-const SHIP_LOC_TABLES: Record<ShipLocTableId, ShipLocEntry[]> = {
-  navire: SHIP_LOC_ALL.navire.entries,
-  'navire-fluvial': SHIP_LOC_ALL['navire-fluvial'].entries,
-};
-const isShipLocTableId = (id: string): id is ShipLocTableId => id in SHIP_LOC_TABLES;
+const TABLES_NAVALES = { navire: true, 'navire-fluvial': true } as const;
+type ShipLocTableId = keyof typeof TABLES_NAVALES;
+const isShipLocTableId = (id: string): id is ShipLocTableId => id in TABLES_NAVALES;
 
 /** Tableau de Localisation humanoïde (LDB 13 l.137-145) — un dé déjà INVERSÉ (1..100). */
 export function hitLocation(reversed: number): HitLocation {
-  return findTableEntry(BODY_SHAPES.humanoide, reversed).loc;
+  return findTableEntry(tablesDeLocalisation.personnage.shapes.humanoide, reversed).loc;
 }
 
 /**
@@ -99,7 +148,7 @@ export function hitLocation(reversed: number): HitLocation {
  * serpent (01-19 Tête / 20-00 Corps) et araignée (01-09 / 10-79 Pattes / 80-00 Abdomen) ont la leur.
  */
 export function hitLocationByShape(reversed: number, shape: BodyShape = 'humanoide'): HitLocation {
-  return findTableEntry(BODY_SHAPES[shape] ?? BODY_SHAPES.humanoide, reversed).loc;
+  return findTableEntry(tablesDeLocalisation.personnage.shapes[shape] ?? tablesDeLocalisation.personnage.shapes.humanoide, reversed).loc;
 }
 
 /** Localisation d'un coup (d100) sur un BATEAU du gréement donné — `ShipLocation`. `tableId` choisit la
@@ -107,9 +156,8 @@ export function hitLocationByShape(reversed: number, shape: BodyShape = 'humanoi
  *  fluviale mal orthographiée se résoudrait sinon sur la table maritime, sans un mot. */
 export function shipHitLocation(rig: ShipRig, roll: number, tableId: string = 'navire'): ShipLocation {
   if (!isShipLocTableId(tableId))
-    throw new Error(`shipHitLocation : table de Localisation inconnue « ${tableId} » (attendu : ${Object.keys(SHIP_LOC_TABLES).join(' | ')}).`);
-  const table = SHIP_LOC_TABLES[tableId];
-  return findTableEntry(table, roll)[rig];
+    throw new Error(`shipHitLocation : table de Localisation inconnue « ${tableId} » (attendu : ${Object.keys(TABLES_NAVALES).join(' | ')}).`);
+  return findTableEntry(tablesDeLocalisation[tableId].entries, roll)[rig];
 }
 
 export { locationLabel } from './types';

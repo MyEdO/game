@@ -13,7 +13,22 @@
 // Usage : `npm run ops:synchroniser [-- --json]`, `[-- --mesurer [--visee <sha>] --json]` (ni fetch, ni
 // verrou, ni écriture), `[-- --consommer]` (le consommateur), depuis n'importe quel worktree du dépôt.
 import { randomUUID, createHash } from 'node:crypto'
-import { accessSync, appendFileSync, closeSync, constants as fsConstants, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, rmdirSync, writeFileSync, writeSync } from 'node:fs'
+import {
+  accessSync,
+  appendFileSync,
+  closeSync,
+  constants as fsConstants,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  rmdirSync,
+  writeFileSync,
+  writeSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import {
   GitIndisponible, INDEX, TIMEOUT_DU_DISTANT_MS, TIMEOUT_DU_HOOK_MS, TIMEOUT_READ_TREE_MS, TRONC, ajoutDe, arbrePrincipal, attributsDe, avancerArbre, brancheDe, ceQuiChange, ceriseDe,
@@ -28,7 +43,17 @@ import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { ageDe, consignant, mtimeDe, naissanceDuTenant, nomDesOrphelins, prendreVerrouAsync, sousEcheanceAsync, tenantDe, vivantSousBorne } from '../test/verrou.mjs'
+import {
+  ageDe,
+  consignant,
+  mtimeDe,
+  naissanceDuTenant,
+  nomDesOrphelins,
+  prendreVerrouAsync,
+  sousEcheanceAsync,
+  tenantDe,
+  vivantSousBorne,
+} from '../test/verrou.mjs'
 import { estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'

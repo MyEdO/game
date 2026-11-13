@@ -70,7 +70,31 @@ import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
-import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
+import {
+  type Pt,
+  setEdgeWall,
+  patchWall,
+  toggleDiagonalWall,
+  paintHeight,
+  paintCrenellated,
+  paintTiles,
+  fillTerrainRect,
+  addLayer,
+  putLayer,
+  placeEmplacement,
+  setPosteCrew,
+  setPosteSide,
+  pasteEntity,
+  addRestZone,
+  setSceneScalaires,
+  setSceneFlags,
+  realFloorAt,
+  roofExclusionsByZ,
+  deriveArchitectureMasses,
+  bodyFootCellsByZ,
+  bodyFootCells,
+  adoptableOpeningsAt,
+} from './sceneEdit';
 import { edgeWallState } from './sceneEditLecture';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
@@ -984,7 +1008,7 @@ export function buildScene(spec: MapSpec): Scene {
  */
 function assertAuthoredIds(spec: MapSpec, scene: Scene): void {
   const inconnus: { source: string; quoi: string; id: string; catalogue: string }[] = [];
-  const appearanceIds = new Set(structureAppearances.map((a) => a.id));
+  const appearanceIds = new Set<string>(structureAppearances.map((a) => a.id));
   // Un MÊME id faux est atteint par plusieurs sources (le char de `wallLegend` ET chacune des arêtes
   // qu'il a posées) : une faute = UNE ligne, nommée par la source la PLUS PROCHE de l'auteur — les
   // tables du spec sont parcourues avant les arêtes compilées.

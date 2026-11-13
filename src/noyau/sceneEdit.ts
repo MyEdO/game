@@ -7,7 +7,44 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, dialoguesDeLaScene, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneDesToits, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, canonEdge, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
+import {
+  ActionAuthoree,
+  DEFAULT_TERRAIN,
+  dialoguesDeLaScene,
+  emptyScene,
+  Scene,
+  SceneEntity,
+  SceneEffectZone,
+  type SceneStationAnchor,
+  type Dialogue,
+  type DialogueChoice,
+  type Trigger,
+  type EncounterDef,
+  CellSide,
+  canonEdge,
+  EncounterMember,
+  crenellatedAt,
+  heightAt,
+  layerTiles,
+  porteAuteur,
+  secretAuteur,
+  tileAt,
+  sceneMetresPerTile,
+  reposDeScene,
+  WallSeg,
+  WallSide,
+  ArchitectureBody,
+  ArchitectureEdgeRef,
+  ArchitecturePart,
+  type ArchitectureStorey,
+  type FacadeFeature,
+  ArchitectureRect,
+  FacadeSection,
+  BuildingMass,
+  RoofDefaults,
+  ZoneArea,
+  type SceneDesToits,
+} from './monde/scene';
 import { aretesA } from './monde/wallIndex';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
@@ -15,7 +52,19 @@ import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { MapPlace, MapRoute, PlacePoi, WorldMap } from './worldMap';
-import { ajouterLieu, ajouterPoi, BORNES_DE_CARTE, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, type PatchDeCarte, type PatchDeRoute } from './worldMapEdit';
+import {
+  ajouterLieu,
+  ajouterPoi,
+  BORNES_DE_CARTE,
+  lierLieux,
+  majCarte,
+  majLieu,
+  majRoute,
+  supprimerLieu,
+  supprimerRoute,
+  type PatchDeCarte,
+  type PatchDeRoute,
+} from './worldMapEdit';
 import { t as tr } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
 import { creatures, findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
@@ -35,8 +84,28 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, refusDeLEntite, typeNonNomme,type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
-import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type ChoixDuContexte, type ContexteDuChamp } from './codex/editFields';
+import {
+  entityKindSchema,
+  refusDeLEntite,
+  typeNonNomme,
+  type Terrain,
+  type SceneRoofDefaults,
+  type ReliefDefaults,
+  PENTE_TOIT_DEG,
+} from '../data/schemas/defs-scenes/scene';
+import {
+  champsDeclares,
+  choixDuNoeud,
+  cleOfferte,
+  elementDuNoeud,
+  formeAuPoint,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  videDuNoeud,
+  type ChoixDuContexte,
+  type ContexteDuChamp,
+} from './codex/editFields';
 import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
@@ -55,7 +124,33 @@ import { ajouteEntree, etatCouvert, indiceCouple, type RegistreCreable } from '.
 import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
-import { SOUS_ENTREES, cheminOffert, choixDuChamp, DOCUMENTS, ecritureOfferte, noeudNeuf, formeDuPorteur, projetAvecLePorteur, type CadreDuPorteur, type ProjetDEdition, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect, accesDe } from './sceneEditLecture';
+import {
+  SOUS_ENTREES,
+  cheminOffert,
+  choixDuChamp,
+  DOCUMENTS,
+  ecritureOfferte,
+  noeudNeuf,
+  formeDuPorteur,
+  projetAvecLePorteur,
+  type CadreDuPorteur,
+  type ProjetDEdition,
+  type DonneeDuPorteur,
+  type SorteDePorteur,
+  type EntityTool,
+  type Sel,
+  type Tool,
+  EFFECT_ZONE_SEEDS,
+  dansLaCarte,
+  edgeWallState,
+  effectZoneArea,
+  effectZoneRect,
+  empriseDuPinceau,
+  entityAt,
+  selPos,
+  selRect,
+  accesDe,
+} from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
 import { tableTotale } from '../lib/tableTotale';

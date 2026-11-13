@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { projectsLoad, projectSave, projectRemove, publishedProjects, initLibrary, __resetLibraryForTest, campagneDeLEntree, estRefusee, projetDeLEntree } from './projectLibrary';
+import {
+  projectsLoad,
+  projectSave,
+  projectRemove,
+  publishedProjects,
+  initLibrary,
+  __resetLibraryForTest,
+  campagneDeLEntree,
+  estRefusee,
+  projetDeLEntree,
+} from './projectLibrary';
 import { type SavedProject } from '../noyau/persistance/bibliotheque';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees, brancherOuvertures } from '../web/indexedDb.testkit';

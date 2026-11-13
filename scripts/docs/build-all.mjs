@@ -40,7 +40,18 @@ import { gitDirDe } from '../hooks/barriere-outil.mjs'
 import { ecrireDoc, ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
 import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
-import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide, SourceModifiee, vueApresGenerateur } from './lib/fraicheur-docs.mjs'
+import {
+  avantGenerateur,
+  certifierGenerateur,
+  chargerPreuve,
+  enregistrerPreuve,
+  invaliderPreuve,
+  nouvelleVue,
+  preparerPreuves,
+  recordValide,
+  SourceModifiee,
+  vueApresGenerateur,
+} from './lib/fraicheur-docs.mjs'
 
 import { GENERATORS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
 export { GENERATORS, SOURCES_LUES, ciblesLitterales, estCiblePure } from './lib/cibles-generees.mjs'
