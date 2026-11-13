@@ -152,12 +152,16 @@ class TraceDesExtremes(NamedTuple):
     clips_mesures: bool
     cotes_clip: numpy.ndarray
     domaine_repos: MinimumDuDomaine
-    domaine_clip: MinimumDuDomaine
     bornes_repos: tuple
 
 
 def extremes(w, aretes, groupes, traces=None, filtrer=True):
-    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »."""
+    """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base ». En clip, l'arête se juge aux seuls états du groupe, les coins
+    de ses cellules, par leur clause de clip, écrasement et étirement (#4002) : le vecteur d'arête est affine dans une
+    cellule (`minima_des_cellules`), sa longueur convexe, son maximum à un coin ; son minimum strictement entre des
+    coins sains est la distance de l'origine au plan affine des vecteurs d'arête, l'écrasement passager d'un mélange de
+    poids dans un pli de clip, toléré. Un coin écrasé reste une faute, par la clause de son état. Au repos, le minimum
+    du domaine (`domaine_repos`) se juge sur toute la cellule."""
     sommets, locales = numpy.unique(aretes, return_inverse=True)
     locales = locales.reshape(aretes.shape)
 
@@ -170,7 +174,7 @@ def extremes(w, aretes, groupes, traces=None, filtrer=True):
                 numpy.full(len(aretes), '', dtype=object), {n: numpy.zeros(len(aretes)) for n in noms},
                 numpy.zeros(len(aretes), dtype=int), numpy.full(len(aretes), -1, dtype=numpy.int8),
                 numpy.zeros(len(aretes), dtype=int), numpy.zeros(len(aretes), dtype=int))
-        domaine_repos, domaine_clip = vide(), vide()
+        domaine_repos = vide()
         longueurs_du_groupe = longueurs_de_reference(w, groupe, sommets, locales)
         valides = longueurs_du_groupe > 0
         bas = numpy.full((len(positions), len(aretes)), numpy.inf, dtype=numpy.float64)
@@ -179,28 +183,30 @@ def extremes(w, aretes, groupes, traces=None, filtrer=True):
         mesures_repos = numpy.full(bas.shape, numpy.nan)
         colonnes = numpy.arange(len(aretes))
 
-        def mesurer_cellules(lot, debut, fin, domaine, bornes):
-            normes = lot.normes[:, debut:fin]
-            forcer = (normes > bornes[1] * longueurs_du_groupe[:, None]).any(axis=(0, 1))[None] if filtrer else True
-            for cellule, minimum in zip(cellules, minima_des_cellules(lot.vecteurs[:, debut:fin], normes,
-                                                                       longueurs_du_groupe, cellules, bornes[0], forcer)):
+        def mesurer_le_repos_des_cellules(lot, fin):
+            """Le minimum de chaque cellule sur les `fin` premiers échantillons de `lot`, ceux du repos, porté dans
+            `domaine_repos` et jugé à `ETIREMENT_DES_CLES`."""
+            bas_, haut_ = ETIREMENT_DES_CLES
+            normes = lot.normes[:, :fin]
+            forcer = (normes > haut_ * longueurs_du_groupe[:, None]).any(axis=(0, 1))[None] if filtrer else True
+            for cellule, minimum in zip(cellules, minima_des_cellules(lot.vecteurs[:, :fin], normes,
+                                                                       longueurs_du_groupe, cellules, bas_, forcer)):
                 valide = valides[cellule['coins'][0]]
-                domaine.certifiees_par_arete[:] += ((~minimum.exactes) & valide[None]).sum(axis=0)
-                domaine.resolues_par_arete[:] += minimum.exactes.sum(axis=0)
+                domaine_repos.certifiees_par_arete[:] += ((~minimum.exactes) & valide[None]).sum(axis=0)
+                domaine_repos.resolues_par_arete[:] += minimum.exactes.sum(axis=0)
                 instant = minimum.rapports.argmin(axis=0)
                 plus_bas = minimum.rapports[instant, colonnes]
-                change = plus_bas < domaine.bas
-                domaine.bas[change] = plus_bas[change]
-                domaine.exact[change] = minimum.exactes[instant, colonnes][change]
-                domaine.cellules[change] = cellule['nom']
-                domaine.instants[change] = lot.debut + debut + instant[change]
+                change = plus_bas < domaine_repos.bas
+                domaine_repos.bas[change] = plus_bas[change]
+                domaine_repos.exact[change] = minimum.exactes[instant, colonnes][change]
+                domaine_repos.cellules[change] = cellule['nom']
+                domaine_repos.instants[change] = instant[change]
                 argmin = minimum.uv[instant, colonnes]
                 for nom in noms:
                     ca, cb = (col[nom] for col in cellule['colonnes'])
                     poids = cellule['origine'][nom] + argmin[:, 0] * ca + argmin[:, 1] * cb
-                    domaine.poids[nom][change] = poids[change]
-            domaine.cotes[:] = numpy.where(domaine.bas < bornes[0], 0, -1)
-            return domaine
+                    domaine_repos.poids[nom][change] = poids[change]
+            domaine_repos.cotes[:] = numpy.where(domaine_repos.bas < bas_, 0, -1)
 
         for lot in mesurer_par_lots(w, groupe, sommets, locales, longueurs_du_groupe):
             debut = min(lot.rapports.shape[1], max(0, 1 - lot.debut))
@@ -218,30 +224,26 @@ def extremes(w, aretes, groupes, traces=None, filtrer=True):
                 ih[e, change] = lot.debut + debut + rh[change]
                 bas[e, valides[e]] = numpy.minimum(bas[e, valides[e]], rapport[:, valides[e]].min(axis=0))
                 haut[e, valides[e]] = numpy.maximum(haut[e, valides[e]], rapport[:, valides[e]].max(axis=0))
-            if cellules:
-                if debut:
-                    domaine_repos = mesurer_cellules(lot, 0, debut, domaine_repos, ETIREMENT_DES_CLES)
-                if debut < lot.rapports.shape[1]:
-                    domaine_clip = mesurer_cellules(lot, debut, lot.rapports.shape[1], domaine_clip, ETIREMENT_EN_CLIP)
+            if cellules and debut:
+                mesurer_le_repos_des_cellules(lot, debut)
         cotes_repos = numpy.where((not cellules) & (mesures_repos < ETIREMENT_DES_CLES[0]), 0,
                                   numpy.where(mesures_repos > ETIREMENT_DES_CLES[1], 1, -1))
-        cotes_clip = numpy.where((not cellules) & (bas < ETIREMENT_EN_CLIP[0]), 0,
+        cotes_clip = numpy.where(bas < ETIREMENT_EN_CLIP[0], 0,
                                  numpy.where(haut > ETIREMENT_EN_CLIP[1], 1, -1))
         if cellules and filtrer:
             defauts = (cotes_repos >= 0).any(axis=0) | (cotes_clip >= 0).any(axis=0)
-            defauts |= (domaine_repos.cotes >= 0) | (domaine_clip.cotes >= 0)
-            incomplets = defauts & ((numpy.isfinite(domaine_repos.bas) & ~domaine_repos.exact)
-                                    | (numpy.isfinite(domaine_clip.bas) & ~domaine_clip.exact))
+            defauts |= domaine_repos.cotes >= 0
+            incomplets = defauts & numpy.isfinite(domaine_repos.bas) & ~domaine_repos.exact
             if incomplets.any():
                 indices = numpy.flatnonzero(incomplets)
                 detail = []
                 extremes(w, aretes[indices], [groupe], detail, filtrer=False)
                 trace = TraceDesExtremes(bas, haut, ib, ih, longueurs_du_groupe, mesures_repos, cotes_repos,
-                    len(piles[0]) > 1, cotes_clip, domaine_repos, domaine_clip, ETIREMENT_DES_CLES)
+                    len(piles[0]) > 1, cotes_clip, domaine_repos, ETIREMENT_DES_CLES)
                 integrer_trace(trace, detail[0], indices)
                 return trace
         return TraceDesExtremes(bas, haut, ib, ih, longueurs_du_groupe, mesures_repos, cotes_repos,
-            len(piles[0]) > 1, cotes_clip, domaine_repos, domaine_clip, ETIREMENT_DES_CLES)
+            len(piles[0]) > 1, cotes_clip, domaine_repos, ETIREMENT_DES_CLES)
     mesures = par_groupes(mesurer_groupe, groupes)
     if traces is not None:
         traces.extend(mesures)
@@ -306,12 +308,10 @@ def mesurer_correction(etat, indices=None):
     if 'cotesClip' not in etat:
         etat['cotesClip'] = hors_clip
         etat['domaineRepos'] = numpy.zeros(len(etat['aretes']), dtype=bool)
-        etat['domaineClip'] = numpy.zeros(len(etat['aretes']), dtype=bool)
     else:
         etat['cotesClip'][:, indices] = hors_clip
     etat['domaineRepos'][indices] = numpy.logical_or.reduce([m.domaine_repos.cotes >= 0 for m in traces])
-    etat['domaineClip'][indices] = numpy.logical_or.reduce([m.domaine_clip.cotes >= 0 for m in traces])
-    etat['horsClip'] = (etat['cotesClip'] >= 0).any(axis=0) | etat['domaineClip']
+    etat['horsClip'] = (etat['cotesClip'] >= 0).any(axis=0)
     etat['horsRepos'] = (etat['cotesRepos'] >= 0).any(axis=0) | etat['domaineRepos']
     etat['hors'] = etat['horsClip'] | etat['horsRepos']
     return etat['hors']
@@ -368,7 +368,6 @@ def ecart_des_aretes(etat):
     échelle commune à `ETIREMENT_EN_CLIP` et `ETIREMENT_DES_CLES`. Choisit l'arête d'une passe (`avancer_correction`)."""
     bas, bas_repos = etat['bas'].min(axis=0), numpy.fmin.reduce(etat['repos'], axis=0)
     for trace in etat['traces']:
-        bas = numpy.minimum(bas, trace.domaine_clip.bas)
         bas_repos = numpy.fmin(bas_repos, trace.domaine_repos.bas)
     with numpy.errstate(divide='ignore', invalid='ignore'):
         sorties = [numpy.log(ETIREMENT_EN_CLIP[0] / bas), numpy.log(etat['haut'].max(axis=0) / ETIREMENT_EN_CLIP[1]),
@@ -381,12 +380,12 @@ def essayer_le_pas(etat, incidentes, proposition):
     """Mesure `proposition` sur `incidentes` : si toutes sont dans les bornes, l'état la prend et rend vrai ; sinon
     l'état reste intact."""
     essai = {**etat, 'w': proposition, 'traces': copy.deepcopy(etat['traces'])}
-    for cle in ['bas', 'haut', 'repos', 'cotesRepos', 'cotesClip', 'domaineRepos', 'domaineClip']:
+    for cle in ['bas', 'haut', 'repos', 'cotesRepos', 'cotesClip', 'domaineRepos']:
         essai[cle] = etat[cle].copy()
     mesurer_correction(essai, incidentes)
     if essai['hors'][incidentes].any():
         return False
-    for cle in ['w', 'bas', 'haut', 'repos', 'cotesRepos', 'cotesClip', 'domaineRepos', 'domaineClip', 'horsClip', 'horsRepos', 'hors', 'traces']:
+    for cle in ['w', 'bas', 'haut', 'repos', 'cotesRepos', 'cotesClip', 'domaineRepos', 'horsClip', 'horsRepos', 'hors', 'traces']:
         etat[cle] = essai[cle]
     return True
 

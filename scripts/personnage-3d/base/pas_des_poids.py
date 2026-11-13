@@ -383,7 +383,8 @@ class Region:
     def balayer(self, w):
         """Les sorties de chaque groupe sous `w`, par `par_groupes`, retenues par `retenir`, sans garder les vecteurs. Le
         noyau `mesurer_par_lots` et `minima_des_cellules` est celui de `poids.extremes` : sous les mêmes octets de `w`,
-        rapports et décisions sont les siens, marges de clip mises à part."""
+        rapports et décisions sont les siens, marges de clip mises à part ; en clip, les seuls états, des deux côtés
+        (#4002)."""
         violations = par_groupes(lambda g: self.balayer_groupe(w, g), range(len(self.groupes)))
         return [violation for du_groupe in violations for violation in du_groupe]
 
@@ -398,12 +399,14 @@ class Region:
             coupe = min(n, max(0, 1 - lot.debut))
             for de, a in ((0, coupe), (coupe, n)):
                 if de < a:
+                    au_repos = lot.debut + de == 0
                     seuils = seuils_de_balayage(lot.debut + de)
                     self.relever_etats(releves, lot.rapports[:, de:a].astype(numpy.float64), lot.debut + de, seuils,
-                                       not cellules)
-                    for c, minimum in enumerate(minima_des_cellules(lot.vecteurs[:, de:a], lot.normes[:, de:a], longueurs,
-                                                                    cellules, seuils[0])):
-                        self.relever_cellule(releves, minimum, lot.debut + de, seuils[0], len(positions) + c)
+                                       not (cellules and au_repos))
+                    if au_repos:
+                        for c, minimum in enumerate(minima_des_cellules(lot.vecteurs[:, de:a], lot.normes[:, de:a],
+                                                                        longueurs, cellules, seuils[0])):
+                            self.relever_cellule(releves, minimum, lot.debut + de, seuils[0], len(positions) + c)
         violations = []
         for source, haut, arete, instant, _, u, v, rapport in retenir(releves, groupe.clauses):
             source = int(source)

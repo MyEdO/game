@@ -373,7 +373,7 @@ def parts_des_fautes(w, aretes, groupes, traces, monde, noms, portes=()):
     matrices de peau ne disent pas son effet, il a la part 0 partout. La part du site est la plus grande de ses
     clauses ; un nom qui ne pèse pas au site y a la part 0."""
     etats = [e for g in groupes for e in g.demandes]
-    parts = {nom: numpy.zeros((len(etats) + 2 * len(groupes), len(aretes))) for nom in noms}
+    parts = {nom: numpy.zeros((len(etats) + len(groupes), len(aretes))) for nom in noms}
     clauses = []
     debut = 0
     for gi, (groupe, t) in enumerate(zip(groupes, traces)):
@@ -388,14 +388,14 @@ def parts_des_fautes(w, aretes, groupes, traces, monde, noms, portes=()):
             if t.cotes_clip[i, j] == 0:
                 etat(i, j, t.instants_bas[i, j], ETIREMENT_EN_CLIP)
         cellules = {c['nom']: c for c in groupe.cellules}
-        for k, (d, bornes) in enumerate(((t.domaine_repos, ETIREMENT_DES_CLES), (t.domaine_clip, ETIREMENT_EN_CLIP))):
-            for j in numpy.flatnonzero(d.cotes >= 0):
-                c = cellules[d.cellules[j]]
-                origine = list(c['origine'])
-                uv = numpy.linalg.lstsq(numpy.array([[c['colonnes'][0][n], c['colonnes'][1][n]] for n in origine]),
-                                        numpy.array([d.poids[n][j] - c['origine'][n] for n in origine]), rcond=None)[0]
-                clauses.append((len(etats) + 2 * gi + k, j, gi, tuple(c['coins'][:3]), tuple(uv), d.instants[j], bornes,
-                                t.longueurs_reference[c['coins'][0], j], {n: p[j] for n, p in d.poids.items()}))
+        d = t.domaine_repos
+        for j in numpy.flatnonzero(d.cotes >= 0):
+            c = cellules[d.cellules[j]]
+            origine = list(c['origine'])
+            uv = numpy.linalg.lstsq(numpy.array([[c['colonnes'][0][n], c['colonnes'][1][n]] for n in origine]),
+                                    numpy.array([d.poids[n][j] - c['origine'][n] for n in origine]), rcond=None)[0]
+            clauses.append((len(etats) + gi, j, gi, tuple(c['coins'][:3]), tuple(uv), d.instants[j], ETIREMENT_DES_CLES,
+                            t.longueurs_reference[c['coins'][0], j], {n: p[j] for n, p in d.poids.items()}))
         debut += len(groupe.demandes)
     rabotes = [nom for nom in noms if nom not in portes]
     if not clauses or not rabotes:
@@ -437,7 +437,7 @@ def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None, portes=
     """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » : `groupes`, `[(domaine, matrices, clips)]` ; `derivees`, des champs
     aux décalages monde des clés qui en dérivent (`cuisson_gabarit.cuisson_des_champs`). La mesure rend `(fautes, parts)`
     par site (#4002) : un site est un état des domaines, ses clauses repos et clip réunies, dans leur ordre, puis par
-    groupe sa clause de domaine au repos et sa clause de domaine en clip. `fautes`, booléen (sites, arêtes), le site
+    groupe sa clause de domaine au repos (`poids.extremes`). `fautes`, booléen (sites, arêtes), le site
     en faute à l'arête ; `parts`, nom de `champs` -> (sites, arêtes) dans [0, 1], la part du nom à chaque site en faute
     (`parts_des_fautes`, noms portés `portes`), nulle ailleurs. Seules les arêtes que déplace un champ changé depuis la mesure précédente se
     remesurent ; les tableaux rendus sont des copies."""
@@ -451,7 +451,7 @@ def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None, portes=
             monde.update(derivees(champs))
         if vus is None:
             touchees = numpy.ones(len(aretes), dtype=bool)
-            fautes = numpy.zeros((len(etats) + 2 * len(groupes), len(aretes)), dtype=bool)
+            fautes = numpy.zeros((len(etats) + len(groupes), len(aretes)), dtype=bool)
             parts = {n: numpy.zeros(fautes.shape) for n in champs}
         else:
             sommets = numpy.logical_or.reduce([(monde[n] != vus[n]).any(axis=1) for n in monde])
@@ -460,9 +460,8 @@ def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None, portes=
             traces = []
             ponderes = etats_ponderes(x, monde, groupes)
             extremes(w, aretes[touchees], ponderes, traces)
-            domaines = [d for t in traces for d in (t.domaine_repos, t.domaine_clip)]
             fautes[:, touchees] = numpy.concatenate([(t.cotes_repos >= 0) | (t.cotes_clip >= 0) for t in traces]
-                                                    + [numpy.stack([d.cotes >= 0 for d in domaines])])
+                                                    + [numpy.stack([t.domaine_repos.cotes >= 0 for t in traces])])
             for nom, p in parts_des_fautes(w, aretes[touchees], ponderes, traces, monde, list(champs),
                                              portes).items():
                 parts[nom][:, touchees] = p

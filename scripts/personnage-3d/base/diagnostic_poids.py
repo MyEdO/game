@@ -18,13 +18,12 @@ def decrire_aretes(aretes, groupes, contexte, traces):
             {'nom': f'groupe-{g}-etat-{i}'} for i in range(len(positions))]
         bornes_clips = [('minimum', bas, ib), ('maximum', haut, ih)] if trace.clips_mesures else []
         for a, resultat in enumerate(resultats):
-            for domaine, clause in ((trace.domaine_repos, 'R'), (trace.domaine_clip, 'clip')):
-                if not np.isfinite(domaine.bas[a]):
-                    continue
+            domaine = trace.domaine_repos
+            if np.isfinite(domaine.bas[a]):
                 instant = int(domaine.instants[a])
                 temps = contexte.get('echantillons', [])
                 pose = temps[instant] if instant < len(temps) else {'clip': 'echantillon', 't': instant}
-                mesure = {'clause': clause, 'rapport': float(domaine.bas[a]),
+                mesure = {'clause': 'R', 'rapport': float(domaine.bas[a]),
                           'nature': 'EXACT' if domaine.exact[a] else 'CERTIFIÉ',
                           'basEstUneBorneInferieure': not bool(domaine.exact[a]),
                           'portee': 'exact sur les silhouettes, aux facteurs de etatsDuGabarit',
@@ -57,12 +56,6 @@ def decrire_aretes(aretes, groupes, contexte, traces):
                                         'seuil': trace.bornes_repos[cote] if cote >= 0 else None,
                                         'cote': cote}
                 resultat['parEtat'].append(mesures)
-            domaine = trace.domaine_clip
-            if np.isfinite(domaine.bas[a]):
-                candidat = next(m for m in reversed(resultat['domaine']) if m['clause'] == 'clip')
-                precedent = resultat['minimum']
-                if precedent is None or candidat['rapport'] <= precedent['rapport']:
-                    resultat['minimum'] = dict(candidat)
     return resultats
 
 

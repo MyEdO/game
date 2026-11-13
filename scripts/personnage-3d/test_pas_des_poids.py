@@ -222,19 +222,19 @@ class AreteTraitee(unittest.TestCase):
 
 
 class InterieurDeCellule(unittest.TestCase):
-    def test_un_defaut_seulement_interieur_est_corrige(self):
+    def test_un_ecrasement_seulement_interieur_en_clip_n_est_ni_marque_ni_balaye(self):
+        """#4002 : en clip, les coins sains ; le mélange de poids (0,5, 0,5) écrase l'arête sous `BAS`."""
         x, _, aretes, demandes, champs, _, _ = arete_du_domaine(z=.5)
         w = numpy.array([[.002, .998], [.002, .998]], dtype=numpy.float32)
         pile = numpy.array([[numpy.eye(4), numpy.eye(4)], [numpy.eye(4), numpy.diag([1, 1, .01, 1])]], dtype=numpy.float32)
         groupes = etats_ponderes(x, champs, [(demandes, pile_partagee(demandes, pile), (1,))])
         etat = preparer_correction('cellule', x, w, numpy.arange(2), aretes, groupes)
-        trace = etat['traces'][0]
-        self.assertGreaterEqual(float(trace.bas.min()), BAS, 'les états seuls sont dans les bornes')
-        self.assertLess(float(trace.domaine_clip.bas[0]), BAS)
-        self.assertTrue(etat['horsClip'][0])
-        avancer_correction(etat)
+        self.assertGreaterEqual(float(etat['traces'][0].bas.min()), BAS, 'les états seuls sont dans les bornes')
+        milieu = x[1, :3] + .5 * (champs['corpulence'][1] + champs['carrure_moins'][1])
+        self.assertLess(float(numpy.linalg.norm(milieu * [1, 1, .01]) / numpy.linalg.norm(x[1, :3])), BAS)
         self.assertFalse(etat['hors'].any())
-        self.assertGreaterEqual(float(etat['traces'][0].domaine_clip.bas[0]), BAS)
+        self.assertFalse(avancer_correction(etat))
+        self.assertEqual(Region(w, [0, 1], aretes, groupes).balayer(w), [])
 
 
 def chaine_a_repos_comprime(rapport_au_repos):
@@ -497,10 +497,12 @@ def flechi(angle, tete):
     return m
 
 
-def groupe_a_deux_piles(repos_b=None):
+def groupe_a_deux_piles(repos_b=None, au_repos=False):
     """Deux états de mêmes facteurs, poids de silhouette `s` 0 et 1 sur deux os, la cellule de coins (0, 1, 0, 1) :
     pile A (os enfant fléchi de 90° autour de (1, 0)) pour l'état 0, pile B (fléchi de -90° autour de la tête déplacée
-    (1,2455, 0,2545)) pour l'état 1 : au clip, le segment entre leurs vecteurs de (1, 2) passe à 0,006 de l'origine ; `repos_b`, le repos de l'os 1 sous B s'il n'est pas l'identité. (x, w, arêtes, groupe)."""
+    (1,2455, 0,2545)) pour l'état 1 : au clip, le segment entre leurs vecteurs de (1, 2) passe à 0,006 de l'origine ;
+    `repos_b`, le repos de l'os 1 sous B s'il n'est pas l'identité ; `au_repos`, chaque pile réduite à sa pose fléchie,
+    devenue son repos, sans clip. (x, w, arêtes, groupe)."""
     x = numpy.array([[0, 0, 0, 1], [1, 0, 0, 1], [2, 0, 0, 1]], dtype=numpy.float64)
     w = numpy.array([[1, 0], [1, 0], [0, 1]], dtype=numpy.float64)
     aretes = numpy.array([[0, 1], [1, 2]])
@@ -508,7 +510,8 @@ def groupe_a_deux_piles(repos_b=None):
     b = numpy.array([[numpy.eye(4), numpy.eye(4) if repos_b is None else repos_b], [numpy.eye(4), flechi(-90, (1.2455, 0.2545))]])
     etats = [{'nom': f's{k}', 'poidsSilhouettes': {'s': k}, 'poidsGabarit': {}, 'poidsReference': {}} for k in (0, 1)]
     cellule = {'nom': 'segment', 'origine': {'s': 0}, 'colonnes': [{'s': 1}, {'s': 0}]}
-    groupes = etats_ponderes(x, {'s': numpy.zeros((3, 3))}, [({'etats': etats, 'cellulesSilhouettes': [cellule]}, [a, b], (1,))])
+    piles, clips = ([a[1:], b[1:]], ()) if au_repos else ([a, b], (1,))
+    groupes = etats_ponderes(x, {'s': numpy.zeros((3, 3))}, [({'etats': etats, 'cellulesSilhouettes': [cellule]}, piles, clips)])
     return x, w, aretes, groupes[0]
 
 
@@ -531,18 +534,18 @@ class PilesParEtat(unittest.TestCase):
             numpy.testing.assert_allclose(lot.vecteurs[e], attendus[e], rtol=0, atol=1e-12)
         self.assertEqual(lot.vecteurs.shape, (2, 2, 2, 3))
 
-    def test_la_cellule_entre_deux_piles_se_mesure_sur_le_segment_des_vecteurs_deformes(self):
-        _, w, aretes, groupe = groupe_a_deux_piles()
+    def test_la_cellule_entre_deux_piles_se_mesure_au_repos_sur_le_segment_des_vecteurs_deformes(self):
+        _, w, aretes, groupe = groupe_a_deux_piles(au_repos=True)
         self.assertEqual(groupe.cellules[0]['coins'], [0, 1, 0, 1])
         traces = []
         extremes(w, aretes, [groupe], traces, filtrer=False)
-        e0, e1 = (vecteurs_deformes(w, groupe[0][e], groupe[2][e], aretes)[1, 1] for e in (0, 1))
+        e0, e1 = (vecteurs_deformes(w, groupe[0][e], groupe[2][e], aretes)[0, 1] for e in (0, 1))
         u = numpy.clip(-(e0 @ (e1 - e0)) / ((e1 - e0) @ (e1 - e0)), 0, 1)
         self.assertGreater(u, 0)
         self.assertLess(u, 1)
-        self.assertTrue(traces[0].domaine_clip.exact[1])
-        self.assertAlmostEqual(traces[0].domaine_clip.bas[1], numpy.linalg.norm(e0 + u * (e1 - e0)), places=12)
-        self.assertAlmostEqual(traces[0].domaine_clip.poids['s'][1], u, places=12)
+        self.assertTrue(traces[0].domaine_repos.exact[1])
+        self.assertAlmostEqual(traces[0].domaine_repos.bas[1], numpy.linalg.norm(e0 + u * (e1 - e0)), places=12)
+        self.assertAlmostEqual(traces[0].domaine_repos.poids['s'][1], u, places=12)
 
     def test_la_longueur_de_reference_d_un_etat_est_posee_par_le_repos_de_sa_pile(self):
         _, w, aretes, groupe = groupe_a_deux_piles(numpy.diag([3.0, 3.0, 3.0, 1.0]))
@@ -554,10 +557,10 @@ class PilesParEtat(unittest.TestCase):
         self.assertNotAlmostEqual(longueurs[0, 1], longueurs[1, 1])
 
     def test_les_plans_d_une_violation_posent_chaque_coin_par_sa_pile(self):
-        x, w, aretes, groupe = groupe_a_deux_piles()
+        x, w, aretes, groupe = groupe_a_deux_piles(au_repos=True)
         region = Region(w, [1], aretes, [groupe])
         violations = [v for v in region.balayer(w) if len(v.coins) == 4]
-        self.assertTrue(violations, 'la cellule sort par le bas au clip')
+        self.assertTrue(violations, 'la cellule sort par le bas au repos')
         for violation in violations:
             a, b = aretes[violation.arete]
             coefficients = (1 - violation.u - violation.v, violation.u, violation.v)
@@ -566,7 +569,7 @@ class PilesParEtat(unittest.TestCase):
             n = sum(k * 0.5 * (par_coin[c][0] + par_coin[c][1])[:3, :3] @ (x[a] - x[b])[:3]
                     for k, c in zip(coefficients, violation.coins[:3]))
             n = n / numpy.linalg.norm(n)
-            facteur = BAS * pas_des_poids.MARGE_PLAN_BAS
+            facteur = ETIREMENT_DES_CLES[0] * pas_des_poids.MARGE_PLAN_BAS
             plans = region.plans_de(w, violation)
             self.assertEqual(len(plans), 4)
             for plan, c in zip(plans, (0, 1, 0, 1)):

@@ -23,7 +23,7 @@ from formes import PENTE_DU_RABOT, RABOT, STAGNATION_M, aux_noeuds, raboter, rap
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
-from seuils import ETIREMENT_DES_CLES, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
+from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, MAJORITE_DU_POIDS, SOL_TOLERANCE_M  # noqa: E402
 from silhouettes import (AnneauIndetectable, ComposanteSansAppui, ContraintesLiees, correction, fondu,  # noqa: E402
                          mesurer_domaine, par_nom, raboter_sous_correction, refuser_les_inertes)
 from cuisson_gabarit import etats_aux_facteurs_neutres, etats_du_gabarit  # noqa: E402
@@ -846,6 +846,24 @@ def arete_du_domaine(interieur=True, clip=None, z=.1):
     return x, w, aretes, demandes, champs, matrices, groupes
 
 
+def arete_au_coin_ecrase():
+    """Une arête sous `domaine_a_facteurs_neutres`, son second sommet en (1, 0, 1), que `corpulence` porte en (0, 0, 1)
+    et `carrure_moins` en (1, 1, 1) ; à l'identité puis sous un clip qui écrase z à 0,001 : l'état `corpulence` y a
+    l'arête à 0,001 / √2, les autres états restent sains. (x, w, arêtes, demandes, champs, matrices, indice de l'état
+    `corpulence`)."""
+    x = numpy.array([[0, 0, 0, 1], [1, 0, 1, 1]], dtype=float)
+    champs = {nom: numpy.zeros((2, 3)) for nom in ('corpulence', 'carrure_moins')}
+    champs['corpulence'][1] = [-1, 0, 0]
+    champs['carrure_moins'][1] = [0, 1, 0]
+    clip = numpy.eye(4)
+    clip[2, 2] = .001
+    demandes = domaine_a_facteurs_neutres()
+    ecrase = next(i for i, e in enumerate(demandes['etats'])
+                  if e['poidsSilhouettes'] == {'corpulence': 1, 'carrure_moins': 0})
+    return (x, numpy.ones((2, 1)), numpy.array([[0, 1]]), demandes, champs, numpy.array([[numpy.eye(4)], [clip]]),
+            ecrase)
+
+
 class MinimumContinu(unittest.TestCase):
     def test_le_minimum_interieur_exact_refuse_R_malgre_les_coins_valides(self):
         x, w, aretes, demandes, champs, matrices, groupes = arete_du_domaine()
@@ -862,42 +880,56 @@ class MinimumContinu(unittest.TestCase):
                                            numpy.eye(3))(champs))
         self.assertTrue(all(m[0] for m in marques.values()))
 
-    def test_le_minimum_interieur_de_clip_refuse_malgre_les_coins_valides(self):
+    def test_un_ecrasement_strictement_interieur_entre_coins_sains_en_clip_n_est_pas_une_faute(self):
+        """#4002 : au poids (0,5, 0,5), l'arête vaut (0, 0, 0,005) sous le clip, rapport 0,005 / 1,5 ; ses coins sains."""
         clip = numpy.eye(4)
         clip[2, 2] = .01
-        x, w, aretes, _, champs, _, groupes = arete_du_domaine(clip=clip, z=.5)
+        x, w, aretes, demandes, champs, matrices, groupes = arete_du_domaine(clip=clip, z=.5)
+        milieu = (x[1, :3] + .5 * (champs['corpulence'][1] + champs['carrure_moins'][1])) @ clip[:3, :3]
+        self.assertAlmostEqual(float(numpy.linalg.norm(milieu)) / 1.5, .005 / 1.5, places=12)
+        self.assertLess(.005 / 1.5, ETIREMENT_EN_CLIP[0])
         etat = preparer_correction('clip-interieur', x, w, numpy.arange(2), aretes, groupes)
         trace = etat['traces'][0]
+        self.assertGreaterEqual(float(trace.bas.min()), ETIREMENT_EN_CLIP[0])
         self.assertTrue((trace.cotes_clip < 0).all())
-        self.assertFalse(etat['horsRepos'][0])
-        self.assertTrue(etat['horsClip'][0])
-        self.assertAlmostEqual(trace.domaine_clip.bas[0], .005 / 1.5, places=12)
-        self.assertTrue(trace.domaine_clip.exact[0])
-        self.assertTrue(numpy.isfinite(trace.domaine_clip.bas[0]))
-        for nom in champs:
-            self.assertAlmostEqual(trace.domaine_clip.poids[nom][0], .5)
+        self.assertFalse(etat['hors'].any())
+        fautes, _ = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices), (1,))], numpy.eye(3))(champs)
+        self.assertFalse(fautes.any())
+
+    def test_un_coin_ecrase_en_clip_est_une_faute_de_son_etat(self):
+        """#4002 : `arete_au_coin_ecrase`."""
+        x, w, aretes, domaine, champs, matrices, ecrase = arete_au_coin_ecrase()
+        groupes = etats_ponderes(x, champs, [(domaine, pile_partagee(domaine, matrices), (1,))])
+        traces = []
+        extremes(w, aretes, groupes, traces)
+        numpy.testing.assert_array_equal(numpy.flatnonzero(traces[0].cotes_clip[:, 0] >= 0), [ecrase])
+        self.assertEqual(traces[0].cotes_clip[ecrase, 0], 0)
+        self.assertAlmostEqual(traces[0].bas[ecrase, 0], .001 / numpy.sqrt(2), places=9)
+        etat = preparer_correction('coin', x, w, numpy.arange(2), aretes, groupes)
+        numpy.testing.assert_array_equal(etat['horsClip'], [True])
+        fautes, parts = mesurer_domaine(w, x, aretes, [(domaine, pile_partagee(domaine, matrices), (1,))],
+                                        numpy.eye(3))(champs)
+        numpy.testing.assert_array_equal(numpy.flatnonzero(fautes[:, 0]), [ecrase])
+        self.assertEqual((parts['corpulence'][ecrase, 0], parts['carrure_moins'][ecrase, 0]), (1.0, 0.0))
 
     def test_la_finition_marque_les_cles_d_un_defaut_de_clip(self):
-        clip = numpy.eye(4)
-        clip[2, 2] = .01
-        x, w, aretes, demandes, champs, matrices, _ = arete_du_domaine(clip=clip, z=.5)
+        """#4002 : `arete_au_coin_ecrase`, mesurée au repos puis au repos et en clip."""
+        x, w, aretes, demandes, champs, matrices, ecrase = arete_au_coin_ecrase()
         au_repos = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices[:1]), ())], numpy.eye(3))(champs)
         self.assertFalse(any(m.any() for m in par_nom(*au_repos).values()))
         fautes, parts = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices[:1]), ()),
                                                        (demandes, pile_partagee(demandes, matrices), (1,))],
                                         numpy.eye(3))(champs)
-        self.assertTrue(all(m[0] for m in par_nom(fautes, parts).values()))
+        self.assertEqual({nom: bool(m[0]) for nom, m in par_nom(fautes, parts).items()},
+                         {'corpulence': True, 'carrure_moins': False})
         n = len(demandes['etats'])
-        self.assertEqual(fautes.shape, (2 * n + 4, len(aretes)))
+        self.assertEqual(fautes.shape, (2 * n + 2, len(aretes)))
         self.assertEqual(list(parts), list(champs))
         for nom, p in parts.items():
             self.assertEqual(p.shape, fautes.shape)
             numpy.testing.assert_array_equal(p[~fautes], 0.0)
-            pese = [e['poidsSilhouettes'].get(nom, 0) != 0 for e in demandes['etats']] * 2
-            self.assertFalse(((p[:2 * n, 0] > 0) & ~numpy.array(pese)).any())
-        numpy.testing.assert_allclose(numpy.max(list(parts.values()), axis=0)[fautes], 1.0)
-        self.assertFalse(fautes[list(range(n)) + [2 * n, 2 * n + 1]].any())
-        self.assertTrue(fautes[list(range(n, 2 * n)) + [2 * n + 2, 2 * n + 3]].any())
+        numpy.testing.assert_array_equal(numpy.flatnonzero(fautes[:, 0]), [n + ecrase])
+        self.assertEqual(parts['corpulence'][n + ecrase, 0], 1.0)
 
     def test_une_topologie_absente_est_un_refus_nomme(self):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()
@@ -908,24 +940,6 @@ class MinimumContinu(unittest.TestCase):
         x, w, aretes, _, _, matrices, groupes = arete_du_domaine()
         with self.assertRaisesRegex(RuntimeError, 'topologie-silhouettes-absente'):
             extremes(w, aretes, [tuple(groupes[0])])
-
-    def test_un_minimum_de_clip_au_coin_neutre_reste_dans_la_trace(self):
-        domaine = domaine_a_facteurs_neutres()
-        x = numpy.array([[0, 0, 0, 1], [0, 0, 1, 1]], dtype=float)
-        w, aretes = numpy.ones((2, 1)), numpy.array([[0, 1]])
-        champs = {nom: numpy.zeros((2, 3)) for nom in ('corpulence', 'carrure_moins')}
-        champs['corpulence'][1] = [1, 0, 0]
-        champs['carrure_moins'][1] = [0, 1, 0]
-        clip = numpy.eye(4)
-        clip[2, 2] = .001
-        matrices = numpy.array([[numpy.eye(4)], [clip]])
-        traces = []
-        groupes = etats_ponderes(x, champs, [(domaine, pile_partagee(domaine, matrices), (1,))])
-        extremes(w, aretes, groupes, traces)
-        self.assertEqual(traces[0].domaine_clip.cotes[0], 0)
-        self.assertTrue(traces[0].domaine_clip.exact[0])
-        self.assertAlmostEqual(traces[0].domaine_clip.bas[0], .001)
-        self.assertTrue(all(p[0] == 0 for p in traces[0].domaine_clip.poids.values()))
 
     def test_le_repli_ne_remesure_que_les_aretes_incompletes(self):
         clip = numpy.eye(4)
@@ -977,7 +991,6 @@ class MinimumContinu(unittest.TestCase):
         traces = []
         extremes(w, aretes, groupes, traces)
         self.assertTrue(traces[0].domaine_repos.exact[0])
-        self.assertTrue(traces[0].domaine_clip.exact[0])
 
     def test_une_topologie_declaree_incomplete_est_refusee(self):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()

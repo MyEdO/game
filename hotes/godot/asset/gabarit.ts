@@ -56,21 +56,25 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
  *   `gabarit_*` que `cuisson_des_champs` cuit sur ces champs sous les poids courants : le même calcul sur les mêmes
  *   entrées que la cuisson de la phase gabarit. Une clé croisée ne lit que le champ de sa silhouette ; seuls les
  *   champs changés depuis la mesure précédente sont recuits, et l'opération `cles` nomme la silhouette de chaque clé.
- *   À chaque instant et dans chaque cellule, `extremes` certifie le minimum par la borne triangulaire (minimum des
+ *   Au repos, dans chaque cellule, `extremes` certifie le minimum par la borne triangulaire (minimum des
  *   coins moins la demi-somme des normes des colonnes), puis résout le QP sur les cellules que cette borne ne
  *   certifie pas : quatre bords et point stationnaire intérieur. Le rapport garde la même longueur de référence sans
  *   silhouettes `l_b`. La trace porte le minimum, sa nature EXACT ou CERTIFIÉ (dans ce cas `bas` est une borne
  *   inférieure), la cellule, les poids de l’argmin exact sur toute arête en défaut, et l’instant. Sa portée est «
  *   exact sur les silhouettes, aux facteurs de `etatsDuGabarit` » : au repos l’arête est bilinéaire en silhouettes ×
- *   facteurs. `mesurer_domaine` et `diagnostic_poids` lisent cette trace ; la finition donne à chaque silhouette
- *   rabotée de poids non nul de l'argmin d'une arête en défaut, au repos ou en clip, sa part de la faute
+ *   facteurs. En clip, l'arête se juge aux seuls états, les coins des cellules, par leur clause de clip, écrasement
+ *   et étirement (#4002) : le maximum du continu est à un coin, par convexité ; le minimum strictement entre des
+ *   coins sains, distance de l'origine au plan affine des vecteurs d'arête, est l'écrasement passager d'un mélange
+ *   de poids dans un pli de clip, toléré ; un coin écrasé reste une faute, par la clause de son état.
+ *   `mesurer_domaine` et `diagnostic_poids` lisent cette trace ; la finition donne à chaque silhouette rabotée de
+ *   poids non nul d'un état en défaut, ou de l'argmin d'une arête en défaut au repos, sa part de la faute
  *   (`parts_des_fautes`, `silhouettes.py`, #4002) : la baisse relative de l'excès en log quand son champ et ses clés
  *   dérivées passent à poids nul au même point, rapportée à la plus grande des silhouettes rabotées du site, 1 à
  *   chacune quand aucune ne baisse. Une silhouette portée, qui déplace les os, a la part 0.
  * - Une couche par domaine : défaut d'une silhouette, au repos ou en clip aux facteurs neutres → clés (finition des
  *   clés, sous les poids de la phase neutre) ; défaut en clip du neutre, ou que la finition laisse aux clés →
  *   correction des poids de la phase silhouettes, qui mesure les mêmes états sous les clips posés au sol.
- *   `raboter_sous_correction` (`silhouettes.py`) compte les fautes par site, un état ou une clause de domaine d'un
+ *   `raboter_sous_correction` (`silhouettes.py`) compte les fautes par site, un état ou la clause de domaine au repos d'un
  *   groupe : une faute de site présente quand les clés rabotées sont nulles est au socle, hors du rabot (#4002).
  *   Chaque passe de `formes.raboter` multiplie par `RABOT ** s`, sur les nœuds de leurs arêtes en défaut (région qui
  *   gagne un anneau quand la clé y stagne sous `STAGNATION_M`), s la plus grande part de la clé aux sites en défaut
