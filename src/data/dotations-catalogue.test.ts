@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { careerLevels, classes, creatures, estMention, trappings, trappingRefLabel, type TrappingRef } from './index';
+import { careerLevels, classes, creatures, estMention, trappings, trappingRefLabel, type BrancheDeDotation, type TrappingRef } from './index';
 import { replier } from '../lib/ordre.mjs';
 
 /**
@@ -44,12 +44,13 @@ for (const t of trappings) {
   PAR_SINGULIER.set(s, [...(PAR_SINGULIER.get(s) ?? []), t.id]);
 }
 
-/** Toutes les dotations des deux datasets, branches de `pick` comprises, avec leur porteur. */
+/** Toutes les dotations des deux datasets, branches de `pick` et membres de lot compris, avec leur porteur. */
 const dotations = (): { porteur: string; ref: TrappingRef }[] => {
   const out: { porteur: string; ref: TrappingRef }[] = [];
-  const pousser = (porteur: string, refs: readonly TrappingRef[]) => {
+  const pousser = (porteur: string, refs: readonly BrancheDeDotation[]) => {
     for (const ref of refs) {
-      out.push({ porteur, ref });
+      if ('lot' in ref) pousser(porteur, ref.lot);
+      else out.push({ porteur, ref });
       if ('pick' in ref) pousser(porteur, ref.of);
     }
   };

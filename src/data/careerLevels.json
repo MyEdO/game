@@ -2088,7 +2088,14 @@
         "label": "Grand chien féroce"
       },
       {
-        "text": "Sac d'appâts empoisonnés (10 doses de Brise-Cœur)"
+        "id": "sac",
+        "spec": "d'appâts empoisonnés"
+      },
+      {
+        "id": "brise-coeur",
+        "count": {
+          "fixed": 10
+        }
       }
     ],
     "characteristics": [
@@ -2873,10 +2880,12 @@
     ],
     "trappings": [
       {
-        "text": "Armes de qualité",
-        "count": {
-          "fixed": 2
-        }
+        "wildcard": "arme",
+        "qualityChoice": true
+      },
+      {
+        "wildcard": "arme",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -3547,7 +3556,25 @@
     ],
     "trappings": [
       {
-        "text": "Arme simple ou arc avec 10 flèches"
+        "pick": 1,
+        "of": [
+          {
+            "id": "arme-simple"
+          },
+          {
+            "lot": [
+              {
+                "id": "arc"
+              },
+              {
+                "id": "fleche",
+                "count": {
+                  "fixed": 10
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "cheval-de-monte",
@@ -3843,7 +3870,24 @@
         "qualityChoice": true
       },
       {
-        "text": "Cheval de selle avec selle et harnais ou Diligence"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "cheval-de-monte",
+                "type": "creature"
+              },
+              {
+                "id": "selle-et-harnais"
+              }
+            ]
+          },
+          {
+            "id": "diligence",
+            "type": "vehicle"
+          }
+        ]
       },
       {
         "pick": 1,
@@ -5016,7 +5060,10 @@
         "pick": 1,
         "of": [
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           },
           {
             "id": "hallebarde"
@@ -5214,7 +5261,10 @@
             "id": "fleau"
           },
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           }
         ]
       },
@@ -5495,7 +5545,10 @@
         "pick": 1,
         "of": [
           {
-            "text": "Arme à deux mains"
+            "wildcard": "arme",
+            "groupe": {
+              "id": "deux-mains"
+            }
           },
           {
             "id": "pistolet-ogre"
@@ -6274,7 +6327,21 @@
         "id": "plastron-de-cuir"
       },
       {
-        "text": "Arme de lancer ou d'entraves"
+        "pick": 1,
+        "of": [
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "lancer"
+            }
+          },
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "entraves"
+            }
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -6329,7 +6396,21 @@
         "text": "Caparaçon pour blaireau (2 PA sur la tête et le torse)"
       },
       {
-        "text": "Arme (Base) ou Arme (cavalerie)"
+        "pick": 1,
+        "of": [
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "base"
+            }
+          },
+          {
+            "wildcard": "arme",
+            "groupe": {
+              "id": "cavalerie"
+            }
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -6606,7 +6687,27 @@
         "id": "lacet-etrangleur"
       },
       {
-        "text": "Poison"
+        "pick": 1,
+        "of": [
+          {
+            "id": "brise-coeur"
+          },
+          {
+            "id": "lotus-noir"
+          },
+          {
+            "id": "baiser-de-la-vouivre"
+          },
+          {
+            "id": "boursoufleur"
+          },
+          {
+            "id": "long-sommeil"
+          },
+          {
+            "id": "sibilance"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -7395,7 +7496,16 @@
         "qualityChoice": true
       },
       {
-        "text": "Armure de cuir avec au moins 1 Atout"
+        "id": "veste-de-cuir",
+        "qualityChoice": true
+      },
+      {
+        "id": "jambieres-en-cuir",
+        "qualityChoice": true
+      },
+      {
+        "id": "calotte-de-cuir",
+        "qualityChoice": true
       },
       {
         "id": "fleche-elfique",
@@ -8901,10 +9011,27 @@
     ],
     "trappings": [
       {
-        "text": "Arme à poudre noire"
+        "wildcard": "arme",
+        "groupe": {
+          "id": "poudre-noire"
+        }
       },
       {
-        "text": "Munitions"
+        "pick": 1,
+        "of": [
+          {
+            "id": "balle-et-poudre",
+            "count": {
+              "fixed": 12
+            }
+          },
+          {
+            "id": "petites-munitions-et-poudre",
+            "count": {
+              "fixed": 12
+            }
+          }
+        ]
       },
       {
         "id": "grappin"
@@ -9983,7 +10110,16 @@
     ],
     "trappings": [
       {
-        "text": "Armes de lancer"
+        "wildcard": "arme",
+        "groupe": {
+          "id": "lancer"
+        }
+      },
+      {
+        "wildcard": "arme",
+        "groupe": {
+          "id": "lancer"
+        }
       },
       {
         "id": "costume"
@@ -11642,7 +11778,8 @@
     ],
     "trappings": [
       {
-        "text": "Tenue d'apparat"
+        "id": "costume-de-cour",
+        "spec": "tenue d'apparat"
       },
       {
         "text": "Lettre d'engagement"
@@ -13653,7 +13790,8 @@
     ],
     "trappings": [
       {
-        "text": "Cartes maritimes"
+        "id": "carte",
+        "spec": "maritimes"
       },
       {
         "text": "Voilier"
@@ -19128,7 +19266,41 @@
         "spec": "flamboyants"
       },
       {
-        "text": "Paire de pistolets avec Poudre noire et Munitions ou Arc avec Carquois de 10 flèches"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "pistolet",
+                "count": {
+                  "fixed": 2
+                }
+              },
+              {
+                "id": "balle-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          },
+          {
+            "lot": [
+              {
+                "id": "arc"
+              },
+              {
+                "id": "carquois"
+              },
+              {
+                "id": "fleche",
+                "count": {
+                  "fixed": 10
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "plastron"
@@ -20717,7 +20889,30 @@
         "id": "arme-simple"
       },
       {
-        "text": "Couvre-chef"
+        "pick": 1,
+        "of": [
+          {
+            "id": "chapeau"
+          },
+          {
+            "id": "capuchon"
+          },
+          {
+            "id": "masque"
+          },
+          {
+            "id": "calotte-de-cuir"
+          },
+          {
+            "id": "coiffe-de-mailles"
+          },
+          {
+            "id": "heaume-ouvert"
+          },
+          {
+            "id": "heaume"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -22136,7 +22331,8 @@
         "id": "plastron"
       },
       {
-        "text": "Lot de six mèches durant 1 minute"
+        "id": "meche",
+        "spec": "lot de six mèches durant 1 minute"
       }
     ],
     "characteristics": [
@@ -23717,7 +23913,8 @@
     ],
     "trappings": [
       {
-        "text": "Cartes de navigation"
+        "id": "carte",
+        "spec": "de navigation"
       },
       {
         "id": "longue-vue"
@@ -25708,7 +25905,35 @@
     ],
     "trappings": [
       {
-        "text": "Pistolet ou tromblon avec des munitions"
+        "pick": 1,
+        "of": [
+          {
+            "lot": [
+              {
+                "id": "pistolet"
+              },
+              {
+                "id": "balle-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          },
+          {
+            "lot": [
+              {
+                "id": "tromblon"
+              },
+              {
+                "id": "petites-munitions-et-poudre",
+                "count": {
+                  "fixed": 12
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         "id": "cotte-de-mailles",

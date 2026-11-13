@@ -6,7 +6,7 @@
 import type { IconId } from './icons/types';
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
-import { t } from '../i18n';
+import { listeEt, t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
@@ -3159,11 +3159,18 @@ export function findStarById(id: string | null | undefined): StarData | undefine
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
 }
-/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE. */
+/** Le Groupe d'armes d'une arme : `weaponGroup`, qui prime, sinon `subType`. AA 10 l.178-193 */
+export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | null }): G | undefined {
+  return arme.weaponGroup ?? arme.subType ?? undefined;
+}
+/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
+const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
+/** ARMES choisissables `{ id, label, groupe }` : toute Possession `melee`/`distance` hors « Mains nues »
+ *  (`TrappingData.unarmed`) et hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`), triée au
+ *  libellé. `id` = `trappingId` STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
 export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed)
-  .map((t) => ({ id: t.id, label: t.label }))
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
+  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
@@ -3252,8 +3259,9 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
  *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU somme d'argent (`Somme`) —
  *  OU mention par nature (`DotationDeMention`) — OU « 1 parmi »
- *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
- *  (`wildcard`, ex. `{wildcard:'arme'}`). `pick`/`wildcard` sont des EMPLACEMENTS, résolus par
+ *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`), dont une option peut être un lot d'objets ou de
+ *  possessions dotés ensemble (`LotDeDotation`) — OU joker d'arme (`JokerDArme`), de tout le catalogue ou d'un Groupe
+ *  d'armes, son Atout au choix compris. `pick`/`wildcard` sont des EMPLACEMENTS, résolus par
  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
  *  restent tels quels et ne produisent aucun objet.
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
@@ -3261,14 +3269,22 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
 export type { DotationDePossession, DotationDeMention, Somme };
+/** Un objet du catalogue doté tel quel, sans emplacement. */
+type ObjetDote = RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; valeur?: Somme };
+/** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, son Atout au choix. */
+export type JokerDArme = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: true };
+/** Objets et possessions dotés ensemble, option d'un « 1 parmi ». */
+export type LotDeDotation = { lot: (ObjetDote | DotationDePossession)[] };
 export type TrappingRef =
-  | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true; valeur?: Somme })
+  | (ObjetDote & { qualityChoice?: true })
   | { text: string; count?: CountSpec }
   | DotationDePossession
   | Somme
   | DotationDeMention
-  | { pick: 1; of: TrappingRef[] }
-  | { wildcard: string };
+  | { pick: 1; of: BrancheDeDotation[] }
+  | JokerDArme;
+/** Une option d'un « 1 parmi » de dotation : une dotation, ou un lot. */
+export type BrancheDeDotation = TrappingRef | LotDeDotation;
 /** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni somme, ni mention, ni texte, ni emplacement ? */
 export const estDotationDObjet = (ref: TrappingRef): ref is Extract<TrappingRef, { id: string; type?: never }> => 'id' in ref && !('type' in ref);
 /** La dotation est-elle une somme d'argent ? */
@@ -3520,25 +3536,28 @@ export function advancementLabel(category: string, a: AdvancementRef): PlayerTex
 export function advancementBaseId(a: AdvancementRef): string | undefined {
   return 'id' in a ? a.id : undefined;
 }
-/** Libellé d'affichage d'une `TrappingRef` : « Marteau », « Pamphlétaire (3) », « Chiffon (1d10) »,
- *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
+/** Libellé d'affichage d'une dotation ou d'une option de « 1 parmi » (`BrancheDeDotation`) : « Marteau », « Pamphlétaire (3) »,
+ *  « Chiffon (1d10) », « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
  *  `RefDesignee` — `LDB 08 l.1130`), « Bijoux valant 3d10 couronnes d'or » (`valeur`), somme d'argent
- *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), ou joker
- *  « Arme (au choix) ». SOURCE UNIQUE (Codex, créateur, marchand, inventaire). */
-export function trappingRefLabel(ref: TrappingRef): PlayerText {
+ *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), lot
+ *  « Arc et Flèche (10) », ou joker « Arme (au choix) », « Arme du groupe Deux-mains (au choix) ». SOURCE UNIQUE
+ *  (Codex, créateur, marchand, inventaire). */
+export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
   if ('pick' in ref) return libelleDuParmi(ref.pick, ref.of.map(trappingRefLabel));
-  if ('wildcard' in ref) return ref.wildcard === 'arme' ? t('ref.armeAuChoix') : t('ref.jokerAuChoix', { base: ref.wildcard });
+  if ('lot' in ref) return dataLabel(listeEt(ref.lot.map(trappingRefLabel)));
   if (estDotationDArgent(ref)) return dataLabel(libelleDeLaSomme(ref));
-  const base = 'text' in ref
-    ? ref.text
-    : estMention(ref)
-      ? ref.label
-      : !('type' in ref)
-        ? refLabel('trappings', ref)
-        : ref.type === 'vehicle'
-          ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
-          : dataLabel(findCreatureById(ref.id)?.label, ref.id);
-  const count = ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
+  const base = 'wildcard' in ref
+    ? (ref.groupe ? t('ref.armeDuGroupeAuChoix', { groupe: dataLabel(findWeaponGroupById(ref.groupe.id)?.label, ref.groupe.id) }) : t('ref.armeAuChoix'))
+    : 'text' in ref
+      ? ref.text
+      : estMention(ref)
+        ? ref.label
+        : !('type' in ref)
+          ? refLabel('trappings', ref)
+          : ref.type === 'vehicle'
+            ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
+            : dataLabel(findCreatureById(ref.id)?.label, ref.id);
+  const count = 'count' in ref && ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
   if ('qualityChoice' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
   const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
   const libelle = base + count + quality;
