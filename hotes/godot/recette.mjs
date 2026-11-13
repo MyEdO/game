@@ -107,7 +107,9 @@
 //   recrutement refusé ensuite ; la Diligence lancée avec lui, puis quittée, il reste au roster ; « Exporter » en
 //   télécharge le fichier ; « Supprimer », puis « Importer un personnage… » sur ce fichier le rend au roster ;
 //   « Supprimer » l'en retire, page rechargée comprise.
-// - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; « Oui » des dés fixés pressé, le pont dit la
+// - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; la molette, tournée sur un curseur de
+//   volume, défile le panneau sans régler ce volume, jusqu'à ce que ses quatre curseurs de volume tiennent ensemble
+//   dans la page de 1280 × 720 (#4081) ; « Oui » des dés fixés pressé, le pont dit la
 //   préférence réglée ; la page rechargée, elle revient du stockage ; « Jouer », puis « Options » de la partie : le
 //   même panneau, « Non » la remet, « Fermer » rend la partie. Le volume de la musique (#3949) réglé par le pont avant
 //   le rechargement : il revient du stockage et, dans la page (`lieu.releverLesGains`), un gain de son graphe audio le
@@ -1820,6 +1822,26 @@ async function parcoursReglages() {
   const non = { element: 'bouton/preference/des-fixes/false' }
   const BAS = 0.35
   await cliquerBouton('Options')
+  await attendreLeBouton(oui.element)
+  const volumes = Object.keys(await preferences()).filter((id) => id.startsWith('volume-')).map((id) => `curseur/preference/${id}`)
+  assert.equal(volumes.length, 4, 'un volume par canal de son')
+  const curseursDeVolume = async () => (await ecran()).curseurs.filter((c) => volumes.includes(c.element))
+  const avant = await preferences()
+  const curseurs = await curseursDeVolume()
+  assert.deepEqual(curseurs.map((c) => c.element).sort(), [...volumes].sort(), 'les quatre curseurs de volume dans le cadre à l’ouverture du panneau')
+  for (const c of curseurs) assert.ok(c.gauche >= 0 && c.droite <= 1280 && c.y >= 0 && c.y <= 720, `${c.element} dans la page : ${JSON.stringify(c)}`)
+  await capturer('4081-reglages-volumes')
+  const [premier] = curseurs
+  const tourner = async (sens) => {
+    await marquer()
+    await molette(session, { surface: 'canvas', x: premier.gauche, y: premier.y }, sens * CRAN_DE_MOLETTE)
+    await nouvelEcran()
+  }
+  await tourner(1)
+  const defile = (await curseursDeVolume()).find((c) => c.element === premier.element)
+  assert.ok(!defile || defile.y < premier.y, `la molette sur un curseur défile le panneau : ${JSON.stringify(defile)}`)
+  assert.deepEqual(await preferences(), avant, 'la molette sur un curseur ne règle rien')
+  await tourner(-1)
   await attendreLeBouton(oui.element)
   assert.equal((await preferences())['des-fixes'], false, 'les dés fixés à leur défaut')
   await capturer('3009-reglages-1-au-menu')

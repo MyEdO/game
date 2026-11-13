@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table, type Reponse, enFocus } from './pont.testkit';
+import { ambiance } from '../../../src/data';
 import { siegeEngines, type Effet, type VitrineDesEffets } from '../../../src/noyau/index';
 import { clicDuCombattant, type Suite } from './pont';
 
@@ -32,6 +33,8 @@ describe('les effets par le pont', () => {
     const vitrine = r as unknown as VitrineDesEffets;
     expect(Object.keys(vitrine.attaques).sort()).toEqual(siegeEngines().map((t) => t.id).sort());
     expect(vitrine.attaques['trebuchet-ade2']).toMatchObject({ quoi: 'coup', de: vitrine.de, vers: vitrine.vers, trajet: { projectile: 'pierre' } });
+    expect(vitrine.meteos.map((m) => m.id), 'chaque météo du catalogue (#4081)').toEqual(Object.keys(ambiance.iso.weather));
+    expect(vitrine.meteos.find((m) => m.id === 'pluie')?.meteo).toMatchObject({ pluie: { averses: [{ nombre: expect.any(Number) }] }, nappes: [], son: { id: 'pluie' } });
   });
 
   it('une charge rend le coup de l’attaquant à sa cible, son issue, son rendu et ses flottants ; le jet du joueur, ses dés ; la vue, la musique du combat', { timeout: 120_000 }, () => {

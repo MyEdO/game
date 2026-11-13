@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { isMuted, setMuted } from '../audio/engine';
+import { pref } from '../noyau/preferences';
+import { setPreference } from '../state/preferences';
 import { Icon } from './Icon';
 import { Stack } from './Layout';
 
-/** Contrôles audio du menu ☰ (Jalon 8 — sons CC0) : la sourdine globale, persistante. Les volumes des canaux sont des
- *  préférences (`PreferencesPanel`). */
+/** Contrôles audio du menu ☰ (Jalon 8 — sons CC0) : la préférence `son-coupe`, réglée par `setPreference` comme au
+ *  panneau `PreferencesPanel`, où vivent aussi les volumes des canaux (#4081). */
 export function AudioControls() {
-  const [muted, setMute] = useState(isMuted());
+  const [coupe, poserCoupe] = useState(pref('son-coupe') === true);
   return (
     <Stack gap="xs">
       <span className="mini-title">Audio</span>
@@ -14,14 +15,14 @@ export function AudioControls() {
         <button
           type="button"
           className="btn small"
-          aria-label={muted ? 'Réactiver le son' : 'Couper le son'}
-          title={muted ? 'Réactiver le son' : 'Couper le son'}
+          aria-label={coupe ? 'Réactiver le son' : 'Couper le son'}
+          title={coupe ? 'Réactiver le son' : 'Couper le son'}
           onClick={() => {
-            setMuted(!muted);
-            setMute(!muted);
+            setPreference('son-coupe', !coupe);
+            poserCoupe(!coupe);
           }}
         >
-          <Icon id={muted ? 'son/coupe' : 'son/volume'} size="sm" />
+          <Icon id={coupe ? 'son/coupe' : 'son/volume'} size="sm" />
         </button>
       </div>
     </Stack>

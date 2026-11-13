@@ -1295,7 +1295,6 @@ export const fr = {
   'ecran.partie.reglages': 'Options',
   'ecran.reglages.fermer': 'Fermer',
   'ecran.reglages.defaut': 'Défaut',
-  'ecran.reglages.regler': 'Appliquer',
   'ecran.reglages.inconnu': 'réglage inconnu : « {id} »',
   'ecran.reglages.nonConforme': 'valeur {valeur} non conforme au réglage « {id} »',
   'ecran.accueil.jouer': 'Jouer',
