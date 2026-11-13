@@ -2088,7 +2088,14 @@
         "label": "Grand chien féroce"
       },
       {
-        "text": "Sac d'appâts empoisonnés (10 doses de Brise-Cœur)"
+        "id": "sac",
+        "spec": "d'appâts empoisonnés"
+      },
+      {
+        "id": "brise-coeur",
+        "count": {
+          "fixed": 10
+        }
       }
     ],
     "characteristics": [
@@ -6680,7 +6687,27 @@
         "id": "lacet-etrangleur"
       },
       {
-        "text": "Poison"
+        "pick": 1,
+        "of": [
+          {
+            "id": "brise-coeur"
+          },
+          {
+            "id": "lotus-noir"
+          },
+          {
+            "id": "baiser-de-la-vouivre"
+          },
+          {
+            "id": "boursoufleur"
+          },
+          {
+            "id": "long-sommeil"
+          },
+          {
+            "id": "sibilance"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -7469,7 +7496,16 @@
         "qualityChoice": true
       },
       {
-        "text": "Armure de cuir avec au moins 1 Atout"
+        "id": "veste-de-cuir",
+        "qualityChoice": true
+      },
+      {
+        "id": "jambieres-en-cuir",
+        "qualityChoice": true
+      },
+      {
+        "id": "calotte-de-cuir",
+        "qualityChoice": true
       },
       {
         "id": "fleche-elfique",
@@ -11742,7 +11778,8 @@
     ],
     "trappings": [
       {
-        "text": "Tenue d'apparat"
+        "id": "costume-de-cour",
+        "spec": "tenue d'apparat"
       },
       {
         "text": "Lettre d'engagement"
@@ -13753,7 +13790,8 @@
     ],
     "trappings": [
       {
-        "text": "Cartes maritimes"
+        "id": "carte",
+        "spec": "maritimes"
       },
       {
         "text": "Voilier"
@@ -20851,7 +20889,30 @@
         "id": "arme-simple"
       },
       {
-        "text": "Couvre-chef"
+        "pick": 1,
+        "of": [
+          {
+            "id": "chapeau"
+          },
+          {
+            "id": "capuchon"
+          },
+          {
+            "id": "masque"
+          },
+          {
+            "id": "calotte-de-cuir"
+          },
+          {
+            "id": "coiffe-de-mailles"
+          },
+          {
+            "id": "heaume-ouvert"
+          },
+          {
+            "id": "heaume"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -22270,7 +22331,8 @@
         "id": "plastron"
       },
       {
-        "text": "Lot de six mèches durant 1 minute"
+        "id": "meche",
+        "spec": "lot de six mèches durant 1 minute"
       }
     ],
     "characteristics": [
@@ -23851,7 +23913,8 @@
     ],
     "trappings": [
       {
-        "text": "Cartes de navigation"
+        "id": "carte",
+        "spec": "de navigation"
       },
       {
         "id": "longue-vue"
