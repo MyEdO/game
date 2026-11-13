@@ -11,7 +11,9 @@ import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '.
 import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
 import { metricToLift } from '../../noyau/monde/relief';
 import { wallPartColor, windowLit } from '../../noyau/monde/volume/structures';
-import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
+import type { WallPart } from '../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../data';
+import type { EntreeVivante } from '../../data/datasets';
 import { facadeStructureAppearance } from '../../noyau/monde/volume/structures';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../../lib/ombrage';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
@@ -57,7 +59,7 @@ const line = (a: Pt2, b: Pt2, color: string, w: number) =>
 const strokeAttr = (color: string, w: number) => ` stroke="${color}" stroke-width="${w}"`;
 
 /** Montant plein (poteau) du haut [0] au bas [1] : rect + chapiteau clair + socle sombre. */
-function postSvg(top: Pt2, bot: Pt2, app: StructureAppearanceDef): string {
+function postSvg(top: Pt2, bot: Pt2, app: EntreeVivante<StructureAppearanceDef>): string {
   const x = top[0] - POST_W / 2;
   return `<rect x="${x}" y="${top[1]}" width="${POST_W}" height="${bot[1] - top[1]}" fill="${app.post}"/>` +
     `<rect x="${x}" y="${top[1]}" width="${POST_W}" height="${POST_CAP_H}" fill="${shade(app.post, POST_CAP)}"/>` +
@@ -65,7 +67,7 @@ function postSvg(top: Pt2, bot: Pt2, app: StructureAppearanceDef): string {
 }
 
 /** Jambage de porte (montant fin aux couleurs de la def de porte, repli dérivé de la face). */
-function jambSvg(top: Pt2, bot: Pt2, app: StructureAppearanceDef): string {
+function jambSvg(top: Pt2, bot: Pt2, app: EntreeVivante<StructureAppearanceDef>): string {
   const x = top[0] - JAMB_W / 2;
   return `<rect x="${x}" y="${top[1]}" width="${JAMB_W}" height="${bot[1] - top[1]}" fill="${wallPartColor(app, 'jambage')}"/>` +
     `<rect x="${x}" y="${top[1]}" width="${JAMB_W}" height="${JAMB_CAP_H}" fill="${app.door?.jambCap ?? shade(app.face, JAMBCAP)}"/>`;
@@ -74,7 +76,7 @@ function jambSvg(top: Pt2, bot: Pt2, app: StructureAppearanceDef): string {
 /** VITRE d'une croisée : verre FROID le jour (léger reflet en haut-gauche via `spec`), AMBRÉ ÉMISSIF la
  *  nuit (halo + scintillement, classes `glow`/`warm` — signal de
  *  bâtiment fort). Le poly = [hautA, hautB, basB, basA] projeté. */
-function glassSvg(p: Pt2[], app: StructureAppearanceDef, tintK: number, night: boolean): string {
+function glassSvg(p: Pt2[], app: EntreeVivante<StructureAppearanceDef>, tintK: number, night: boolean): string {
   const poly = polyPts(p);
   if (night) {
     const lit = windowLit(app);
@@ -91,7 +93,7 @@ function glassSvg(p: Pt2[], app: StructureAppearanceDef, tintK: number, night: b
 /** Une face du pivot en SVG. Quads = polygones remplis (+ liseré par partie) ; montants (2 points) =
  *  rects de largeur fixe ; moulure/barreau = leur LIGNE MÉDIANE (trait historique 1.3/1.7 px). Une
  *  partie MAÇONNÉE d'une def à recette reçoit PAR-DESSUS son motif d'appareillage partagé (LOD ≥ 1). */
-function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number, dims: Dims, opts?: DetailOpts): string {
+function faceSvg(f: Face, el: WallEl, app: EntreeVivante<StructureAppearanceDef>, tintK: number, dims: Dims, opts?: DetailOpts): string {
   const part = f.material.part as WallPart;
   const p = f.poly.map((gp) => projGP(gp, dims));
   if (part === 'poteau') return postSvg(p[0], p[1], app);
@@ -115,7 +117,7 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
 
 /** Vue du DESSUS symbolique : trait épais sur l'arête (courtine ferrée / mur bois / brèche en tirets),
  *  porte bois = deux jambages, corps de garde = case pleine + glyphe de herse. */
-function topSvg(el: WallEl, app: StructureAppearanceDef, dims: Dims): string {
+function topSvg(el: WallEl, app: EntreeVivante<StructureAppearanceDef>, dims: Dims): string {
   const [a, b] = el.ends.map((gp) => projGP(gp, dims));
   const seg = (p: Pt2, q: Pt2, w: number, col: string, dash?: string) =>
     `<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;

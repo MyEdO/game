@@ -254,3 +254,90 @@ describe('RoomGuest (Transport + reprise)', () => {
     expect(ws.sent).toContain(JSON.stringify({ ctl: 'bye' }));
   });
 });
+
+describe('panne des chaînes, messages illisibles (#3009)', () => {
+  it('`comprimer` lève une fois : la panne, puis l’envoi suivant part', async () => {
+    const pannes: unknown[] = [];
+    let leve = true;
+    const ports = { ...portsDuTest(undefined, (e) => pannes.push(e)), compression: { ...compressionFactice, comprimer: async (texte: string) => {
+      if (leve) { leve = false; throw new Error('comprimer'); }
+      return compressionFactice.comprimer(texte);
+    } } };
+    const rh = new RoomHost(BASE, 'ABC234', 'T', ports);
+    const ws = FakeSocket.last!;
+    ws.open();
+    const t1 = rh.seatTransport(1);
+    t1.send('x'.repeat(5000));
+    t1.send('SUIVANT');
+    await rh.idle();
+    expect(pannes.map((e) => (e as Error).message)).toEqual(['comprimer']);
+    expect(ws.sent.map((raw) => JSON.parse(raw) as unknown)).toEqual([{ to: 1, data: 'SUIVANT' }]);
+  });
+
+  it('au-delà de `WS_MAX` : la panne dit la taille, rien n’est envoyé, la console se tait', async () => {
+    const pannes: unknown[] = [];
+    const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const ports = { ...portsDuTest(undefined, (e) => pannes.push(e)), compression: { ...compressionFactice, comprimer: async () => 'z'.repeat(1_000_001) } };
+    const rg = new RoomGuest(BASE, 'ABC234', 'Anna', ports);
+    const ws = FakeSocket.last!;
+    ws.open();
+    rg.send('x'.repeat(5000));
+    await rg.idle();
+    expect(pannes).toHaveLength(1);
+    expect((pannes[0] as Error).message).toContain('1000001 o');
+    expect(ws.sent).toEqual([]);
+    expect(console_).not.toHaveBeenCalled();
+    console_.mockRestore();
+  });
+
+  it.each(['pas du json', 'null', '123', '"texte"', '[1]', JSON.stringify({ z: 'invalide' }), JSON.stringify({ from: 1, z: 'invalide' })])(
+    'message illisible %s : ni livré, ni dit à la panne, rien ne lève',
+    async (brut) => {
+      const pannes: unknown[] = [];
+      const ports = portsDuTest(undefined, (e) => pannes.push(e));
+      const rg = new RoomGuest(BASE, 'ABC234', 'Anna', ports);
+      const wsg = FakeSocket.last!;
+      const rh = new RoomHost(BASE, 'ABC234', 'T', ports);
+      const wsh = FakeSocket.last!;
+      wsg.open();
+      wsh.open();
+      const got: string[] = [];
+      rg.onMessage((d) => got.push(d));
+      rh.seatTransport(1).onMessage((d) => got.push(d));
+      wsg.receive(brut);
+      wsh.receive(brut);
+      await rg.idle();
+      await rh.idle();
+      expect(got).toEqual([]);
+      expect(pannes).toEqual([]);
+    },
+  );
+
+  it('client fermé : une enveloppe ne passe plus, un maillon en vol ne livre ni n’envoie', async () => {
+    const enVol: (() => void)[] = [];
+    const differee = <T,>(valeur: T) => new Promise<T>((r) => { enVol.push(() => r(valeur)); });
+    const rg = new RoomGuest(BASE, 'ABC234', 'Anna', { ...ports, compression: {
+      comprimer: (texte) => differee(`z:${texte}`),
+      decomprimer: (b64) => differee(b64.slice(2)),
+    } });
+    const ws = FakeSocket.last!;
+    ws.open();
+    const got: string[] = [];
+    const seated = vi.fn();
+    rg.onMessage((d) => got.push(d));
+    rg.onSeated = seated;
+    ws.receive(JSON.stringify({ z: 'z:EN VOL' }));
+    rg.send('x'.repeat(5000));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(enVol).toHaveLength(2);
+    rg.close();
+    const envoyes = ws.sent.length;
+    for (const reprendre of enVol) reprendre();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TARD' }));
+    ws.receive(JSON.stringify({ data: 'TARD' }));
+    await rg.idle();
+    expect(got).toEqual([]);
+    expect(seated).not.toHaveBeenCalled();
+    expect(ws.sent).toHaveLength(envoyes);
+  });
+});

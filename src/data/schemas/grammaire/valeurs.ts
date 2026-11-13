@@ -501,70 +501,164 @@ const specEntrySchema = nommerChamps(z.strictObject({
 export const specsSchema = listeCle(specEntrySchema, 'id', { espace: {} });
 
 // ============================================================================
-// COMBAT FEATURE (`src/engine/combatFeatures/types.ts`) — sac de flags CLOS conféré par un Talent/Trait,
-// `aa` récursif (variante « Avantage de groupe », Aux Armes Annexe I). Promu ici (partagé avec
-// `talents.ts`) : SOURCE UNIQUE pour tout schéma qui porte `combat`/`variants[].combat`.
-// La FORME est retapée ici, pas dérivée : `CombatFeature` est un TYPE, sans contrepartie runtime à
-// importer (au contraire d'`AVAILABILITIES`/`STAKE_FORMS`, tuples importés de `src/engine/types` l.8).
-// Reflet FIDÈLE de l'interface TS — une dérive rougit au parse des données qui portent `combat`.
+// COMBAT FEATURE (`src/engine/combatFeatures/types.ts`) — sac de flags CLOS conféré par un Talent/Trait.
+// Promu ici (partagé avec `talents.ts`) : SOURCE UNIQUE pour tout schéma qui porte `combat`/`variants[].combat`, dont `CombatFeature`
+// (`src/engine/combatFeatures/types.ts`) est la sortie.
 // ============================================================================
 
 export const castingKindSchema = z.enum(['mineure', 'arcane', 'invocation', 'beni', 'chaos']);
 
-export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
+export const combatFeatureSchema = z.lazy(() =>
   nommerChamps(z.strictObject({
+    /** Pénalité de main secondaire transformée par niveau (Ambidextre, LDB 10 : -20 → -10 à 1×, 0 à `zeroAt`).
+     *  DÉCLARATIF (`offHandPenalty(c)` l'interprète) — jamais une hook-fonction, 100 % donnée éditable. */
     offHandPenalty: nommerChamps(z.strictObject({ perLevel: z.number(), zeroAt: z.number() }), { perLevel: { label: "par niveau" }, zeroAt: { label: "seuil de zéro" } }).optional(),
+    /** Modes d'attaque ajoutés par la capacité (Maniement de deux armes → ['dual-wield']). */
     attackModes: z.array(z.string()).optional(),
+    /** Pénalité aux défenses du porteur après une double frappe, jusqu'au début de son prochain Tour
+     *  (Maniement de deux armes, LDB 10 l.773). Lue par `dualStrikeDefensePenalty(c)`. */
     dualStrikeDefense: z.number().optional(),
+    // ── Dégâts (× niveau) ──────────────────────────────────────────────────────
+    /** Coup puissant : +niveau Dégâts avec les armes de Corps à corps. */
     meleeDamageBonus: z.boolean().optional(),
+    /** Tir précis : +niveau Dégâts avec les armes à distance. */
     rangedDamageBonus: z.boolean().optional(),
+    /** Combat déloyal : +niveau Dégâts avec Corps à corps (Bagarre). */
     brawlDamageBonus: z.boolean().optional(),
+    /** Charge berserk / Déterminé : +niveau Dégâts quand on Charge. */
     chargeDamageBonus: z.boolean().optional(),
+    /** Tueur : Bonus de Force = Bonus d'Endurance de la cible s'il est plus élevé. */
     slayer: z.boolean().optional(),
+    /** Robuste : réduit tous les Dégâts SUBIS de niveau (min 1 Blessure). */
     damageReduction: z.boolean().optional(),
+    /** Frappe blessante : +niveau Blessures quand on inflige une Blessure Critique. */
     critExtraWounds: z.boolean().optional(),
+    /** Tir sûr : ignore niveau PA de la cible au tir. */
     rangedAPIgnore: z.boolean().optional(),
+    // ── Modificateurs de Test d'attaque ────────────────────────────────────────
+    /** Frappe assommante : pas de −20 de Localisation visée (Tête) avec une arme Assommante. */
     ignoreCalledShotHead: z.boolean().optional(),
+    /** Tir mortel : choisit la Localisation au tir — pas de −20 de Localisation visée à distance. */
     ignoreCalledShotRanged: z.boolean().optional(),
+    /** Tireur d'élite : ignore les modificateurs de Taille de la cible au tir. */
     ignoreSizeRangedMods: z.boolean().optional(),
+    /** Tireur embusqué : aucune pénalité à Longue portée, moitié à Portée extrême. */
     sniper: z.boolean().optional(),
+    // ── Initiative / économie d'action ─────────────────────────────────────────
+    /** Combat instinctif : +10 × niveau à l'Initiative de combat. */
     initiativeBonus: z.boolean().optional(),
+    /** Tir rapide : tire hors de l'ordre d'Initiative si l'arme à distance est chargée (pré-emption gratuite). */
     strikeFirstRanged: z.boolean().optional(),
+    /** Vigilance : Test de Perception Intermédiaire (+0) pour ignorer la Surprise. */
     surpriseSave: z.boolean().optional(),
+    /** Rechargement rapide ('all') / Artilleur ('blackpowder') : +niveau DR aux Tests de rechargement. */
     reloadDR: z.enum(['all', 'blackpowder']).optional(),
+    /** Sprinter : Mouvement +1 quand on Court. */
     runBonus: z.boolean().optional(),
+    /** Fuite ! : Mouvement +1 quand on Fuit. */
     fleeBonus: z.boolean().optional(),
+    /** Fuite ! — variante « Nouveaux talents et talents mis à jour » (AA 13 l.68) : Mouvement +1 quand on
+     *  est la Cible d'une Poursuite. Lu par la manche de poursuite terrestre (`noyau/pursuitFlow.ts`,
+     *  `pursuedMovement`) au calcul du DR de vitesse (LDB 15 l.104-108). */
     pursuitTargetBonus: z.boolean().optional(),
+    // ── Défense / Avantage ─────────────────────────────────────────────────────
+    /** Porte-Bouclier (LDB 10 l.972) : +niveau Avantage quand on se défend au Bouclier et qu'on PERD le
+     *  Test opposé (consolation d'une situation désespérée — pas sur une défense gagnée). */
     shieldAdvantage: z.boolean().optional(),
+    /** Réaction défensive à coût d'Avantages de réserve (Porte-Bouclier variante « Avantage de groupe »,
+     *  AA 13 l.84) : quand on se défend au Bouclier, 1×/Round, dépenser `cost` Avantages soit pour causer des
+     *  Dégâts « comme s'il s'agissait de son Action », soit pour repousser l'attaquant de 2 m et se
+     *  désengager. Déclarée en DONNÉE (variante `variants[].combat`, active en mode Avantage de groupe) ;
+     *  offerte par le chooser de défense (`shieldReactionCost`), débitée par `campSpend`, résolue par
+     *  `applyShieldReaction`. */
     advantageDefenseReaction: nommerChamps(z.strictObject({ avantage: z.number() }), { avantage: { label: "Avantage" } }).optional(),
+    /** Contre-attaque en gagnant un Test opposé de défense en mêlée (Champion LDB 85 sans condition d'arme ;
+     *  Riposte LDB 10 avec `counterRequiresFastParry`). GÉNÉRIQUE : tout talent/trait qui le déclare contre. */
     counterOnDefenseWin: z.boolean().optional(),
+    /** La contre-attaque exige une arme de PARADE Rapide (Riposte ; Champion ne l'exige pas). */
     counterRequiresFastParry: z.boolean().optional(),
+    /** La contre-attaque se DÉCLARE, au plus Niveau fois par Round (Riposte LDB 10 l.1037). */
     counterDeclaredPerLevel: z.boolean().optional(),
+    /** Renversement : en gagnant le Test opposé de Corps à corps, prend TOUS les Avantages adverses au lieu de +1. */
     stealAdvantage: z.boolean().optional(),
+    /** Renversement — variante « Avantage de groupe » (AA 13 l.92-98) : prend 1 Avantage dans la réserve
+     *  ADVERSE (au lieu de tout l'Avantage individuel de l'adversaire), l'ajoute à sa réserve, sans Dégât. */
     stealOne: z.boolean().optional(),
+    /** Coude-à-coude — variante « Avantage de groupe » (AA 13 l.43) : « compte comme deux combattants »
+     *  au décompte de domination de fin de Round (transfert d'Avantage). Poids par défaut 1. */
     transferWeight: z.number().optional(),
+    /** Artilleur / Rechargement rapide — variante « Avantage de groupe » (AA 13 l.9/90) : recharger une
+     *  arme pendant un combat compte comme une Action Évaluer → +1 Avantage supplémentaire au rechargement. */
     reloadAssessAdvantage: z.boolean().optional(),
+    /** Cavalier émérite — variante « Avantage de groupe » (AA 13 l.25) : Taille considérée égale à celle de
+     *  la monture pour résister à la Peur/Terreur causée UNIQUEMENT par la Taille de l'adversaire. */
     fearSizeAsMount: z.boolean().optional(),
+    /** Impitoyable — variante « Avantage de groupe » (AA 13 l.74) : le coût d'Avantage d'une Retraite
+     *  stratégique (Désengagement, défaut 2 Avantages, AA 11 l.37) tombe à cette valeur pour le porteur. */
     retreatCost: z.number().optional(),
+    /** Impitoyable (LDB 10 l.591) : au Désengagement « Sacrifier l'Avantage », GARDE niveau Avantages au
+     *  lieu de tomber à 0 (× niveau). */
     keepAdvantageOnDisengage: z.boolean().optional(),
+    /** Impitoyable (LDB 10 l.591) : peut Sacrifier l'Avantage pour se Désengager MÊME avec moins d'Avantage
+     *  que ses adversaires (relâche la garde de supériorité stricte). */
     disengageWithLessAdvantage: z.boolean().optional(),
+    /** Battement — variante « Avantage de groupe » (AA 13 l.17) : manœuvre d'Action retirant de l'Avantage
+     *  à la réserve ADVERSE (−1 sur Succès de Corps à corps, −1 de plus à 6 DR). Le porteur peut la déclarer. */
     battement: z.boolean().optional(),
+    /** Distraire (LDB 10 / AA 13 l.51) : manœuvre de Mouvement — Test opposé Athlétisme/Calme ; sur Succès,
+     *  la cible (mode groupe : sa réserve) ne gagne aucun Avantage jusqu'à la fin du prochain Round. */
     distraire: z.boolean().optional(),
+    /** Maîtrise du combat : compte pour 1+niveau personnes au calcul du surnombre. */
     outnumberCount: z.boolean().optional(),
+    /** Cœur vaillant : tente de retirer le Brisé même Engagé (Calme en fin de Round). */
     braveheart: z.boolean().optional(),
+    /** Sans peur (LDB 10 l.1051) : PAS une immunité — détecte que le porteur a le Talent contre
+     *  l'Ennemi spécifié (`ctx.spec` ; sans spec — talent ACCORDÉ par Flambeau de Vertu/Cœurs
+     *  ardents — toutes sources). L'effet réel (un seul Test de Calme Accessible (+20), qui PEUT
+     *  échouer) est résolu par `sansPeurVs`/`psychTest`/`pasDePeur` (psychology.ts). */
     fearImmune: z.boolean().optional(),
+    /** Endurci : ignore niveau Points de Blessure perdus par l'État Hémorragique. */
     bleedIgnore: z.boolean().optional(),
+    // ── Magie / psychologie ────────────────────────────────────────────────────
+    /** Harmonisation aethyrique : pas d'Incantation Imparfaite sur un double RÉUSSI de Focalisation. */
     focusNoMiscastOnDouble: z.boolean().optional(),
+    /** Diction instinctive : pas d'Incantation Imparfaite sur un double RÉUSSI de Langue (Magick). */
     castNoMiscastOnDouble: z.boolean().optional(),
+    /** Effrayant : le porteur a un Indice de Peur égal à son niveau. */
     causesFear: z.boolean().optional(),
+    // ── Tests hors combat ──────────────────────────────────────────────────────
+    /** Inverse un Test RATÉ de la Compétence référencée s'il devient réussi (Sociable → Ragot, Studieux →
+     *  Recherche…). Réfs STRUCTURÉES `{ id, spec? }` (jamais un match par libellé) ; `capDR` plafonne le DR
+     *  (Pansement +1). TOUJOURS une LISTE : un Talent peut couvrir plusieurs Compétences en « ou »
+     *  (Pilote → Ramer OU Voile, LDB 10 l.964). `contexte` : le Test que le Talent vise (LDB 10 l.899, l.966). */
     reverseFailed: nommerChamps(z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional(), contexte: contexteDeTestSchema.optional() }), { skills: { label: "Compétences" }, capDR: { label: "limite de DR" }, contexte: { label: "contexte du Test" } }).optional(),
+    // ── Économie / social ──────────────────────────────────────────────────────
+    /** Négociateur : LDB 10 l.818 ; appliqué par `engine/bargain`. */
     bargainBonus: z.boolean().optional(),
+    // ── Capacités diverses (hors combat direct) ──────────────────────────────────
+    /** Costaud (LDB 10) : limite d'Encombrement +2 × niveau (items.maxEncumbrance). */
     encumbranceBonus: z.boolean().optional(),
+    /** Âme pure (LDB 10) : seuil de Corruption +niveau (corruption.corruptionThresholdExceeded). */
     corruptionThreshold: z.boolean().optional(),
+    /** Chirurgie (LDB 10) : débloque le mode de soin chirurgical (healing/partyFlow : fracture/amputation). */
     surgery: z.boolean().optional(),
+    // ── Incantation (apprentissage des sorts — grimoire.ts) ──────────────────────
+    /** Talent de lanceur (LDB 10) : famille d'incantation qu'il ouvre (Magie mineure → 'mineure',
+     *  Magie des Arcanes → 'arcane', Invocation → 'invocation', Béni → 'beni', Magie du Chaos → 'chaos').
+     *  La spécialisation (Domaine/Culte) est portée par `ctx.spec`. Remplace le name-match de grimoire. */
     castingKind: castingKindSchema.optional(),
+    /** Commandant d'équipe (AA 13 l.29-35) : peut DIRIGER une équipe servant une Arme d'équipe « à portée
+     *  de voix » (Test de Commandement Intermédiaire) — sur réussite, l'équipe tire au score de Projectiles
+     *  du Personnage. Lu par `hasCommandTeam` (affordance + substitution `noyau/monde/commandTeam`). */
     commandTeam: z.boolean().optional(),
+    /** Chanson de marin (MDG 09 l.32-40) : peut ENTONNER une chanson de marin connue (une spec du Talent =
+     *  une chanson apprise, l.36) — Test de Divertissement (Chant), effet 3 min + DR sur tout l'équipage,
+     *  une seule chanson par quart. Lu par `shantySingers` (affordance) + `chanterLaChanson` (state). */
     seaShanty: z.boolean().optional(),
+    /** Frappe blessante — variante « Nouveaux talents et talents mis à jour » (AA 13 l.57) : au lieu de
+     *  Blessures supplémentaires (`critExtraWounds`), lance deux fois le tableau de Blessures Critiques et
+     *  garde le résultat préféré. Lu par la résolution de Critique (kind-agnostique, même primitive que le
+     *  drapeau temporaire `critRollTwice` de Bénédiction de Sauvagerie, `engine/activeFlags.ts`). */
     critRollTwice: z.boolean().optional(),
   }), { offHandPenalty: { label: "malus de main secondaire" }, attackModes: { label: "modes d’attaque" }, dualStrikeDefense: { label: "pénalité de défense après double frappe" }, meleeDamageBonus: { label: "bonus de dégâts au contact" }, rangedDamageBonus: { label: "bonus de dégâts au tir" }, brawlDamageBonus: { label: "bonus de dégâts de bagarre" }, chargeDamageBonus: { label: "bonus de dégâts de charge" }, slayer: { label: "tueur" }, damageReduction: { label: "réduction des dégâts" }, critExtraWounds: { label: "Blessures critiques supplémentaires" }, rangedAPIgnore: { label: "armure ignorée au tir" }, ignoreCalledShotHead: { label: "ignorer la visée à la tête" }, ignoreCalledShotRanged: { label: "ignorer la visée à distance" }, ignoreSizeRangedMods: { label: "ignorer les modificateurs de Taille au tir" }, sniper: { label: "tireur d’élite" }, initiativeBonus: { label: "bonus d’Initiative" }, strikeFirstRanged: { label: "tirer le premier" }, surpriseSave: { label: "sauvegarde de surprise" }, reloadDR: { label: "DR de rechargement" }, runBonus: { label: "bonus de course" }, fleeBonus: { label: "bonus de fuite" }, pursuitTargetBonus: { label: "bonus de poursuite" }, shieldAdvantage: { label: "Avantage du bouclier" }, advantageDefenseReaction: { label: "réaction défensive avec Avantage" }, counterOnDefenseWin: { label: "riposte après défense réussie" }, counterRequiresFastParry: { label: "riposte avec parade rapide" }, counterDeclaredPerLevel: { label: "riposte déclarée, plafond par Niveau" }, stealAdvantage: { label: "vol d’Avantage" }, stealOne: { label: "voler un point" }, transferWeight: { label: "poids transféré" }, reloadAssessAdvantage: { label: "Avantage d’évaluation au rechargement" }, fearSizeAsMount: { label: "Taille de la monture pour la Peur" }, retreatCost: { label: "coût de retraite" }, keepAdvantageOnDisengage: { label: "conserver l’Avantage au désengagement" }, disengageWithLessAdvantage: { label: "désengagement avec moins d’Avantage" }, battement: { label: "battement" }, distraire: { label: "distraction" }, outnumberCount: { label: "nombre pour la supériorité numérique" }, braveheart: { label: "courage" }, fearImmune: { label: "immunité à la Peur" }, bleedIgnore: { label: "ignorer le saignement" }, focusNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi de Focalisation" }, castNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi d’incantation" }, causesFear: { label: "Peur provoquée" }, reverseFailed: { label: "inverser les échecs" }, bargainBonus: { label: "bonus de marchandage" }, encumbranceBonus: { label: "bonus d’encombrement" }, corruptionThreshold: { label: "seuil de Corruption" }, surgery: { label: "chirurgie" }, castingKind: { label: "type d’incantation" }, commandTeam: { label: "équipe commandée" }, seaShanty: { label: "chant de marin" }, critRollTwice: { label: "double jet de Critique" } }),
 );

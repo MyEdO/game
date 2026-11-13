@@ -21,6 +21,7 @@ import {
   raceAppearance,
   trappingsInstanciables,
   type GabaritId,
+  type PresetDePersonnage,
 } from '../../data';
 import type { HitLocation } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -35,7 +36,6 @@ import {
   file as FICHIER_DES_PRESETS,
   meta as metaDesPresets,
   schema as schemaDesPresets,
-  type PresetDePersonnage,
 } from '../../data/schemas/defs/presets-de-personnage';
 import { defDe, enfantsDe, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';

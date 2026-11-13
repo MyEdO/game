@@ -267,4 +267,4 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SeaNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;
+type SeaNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

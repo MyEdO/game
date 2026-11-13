@@ -3,7 +3,8 @@ import { terrainGradient, terrainGradientId, MISSING_GRADIENT } from './terrain'
 import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { tousLesTerrains, terrainEntree, terrainWalkable, terrainStopsOrdonnes } from '../../noyau/monde/terrain';
 import { setDataset } from '../../data/overrides';
-import { type TerrainDef } from '../../data/terrains.types';
+import { type TerrainDef } from '../../data';
+import type { EntreeVivante } from '../../data/datasets';
 import { defsGlobaux, degradesDeTerrains } from '../sprites';
 import { MISSING_ID, MISSING_TONE } from '../../noyau/monde/volume/missing';
 
@@ -56,7 +57,7 @@ const offsetsDuDegrade = (svg: string, id: string): number[] => {
 
 describe('rampe d’un terrain — l’ordre des arrêts est celui de l’ÉMISSION', () => {
   it('l’émetteur de `sprites` émet les arrêts DANS L’ORDRE — un Record écrit à l’envers ne perd aucun arrêt', () => {
-    const renverse: TerrainDef = {
+    const renverse: EntreeVivante<TerrainDef> = {
       id: 'renverse', type: 'terrains', label: 'Renversé', maison: 'fixture en mémoire', walkable: true,
       priority: 0, swatch: '#808080', stops: { '100%': '#ffffff', '0%': '#000000', '45%': '#808080' },
     };

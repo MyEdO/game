@@ -125,7 +125,7 @@
         }
       },
       {
-        "text": "Gamelles"
+        "id": "gamelles"
       },
       {
         "id": "pilon-et-mortier"
@@ -140,7 +140,7 @@
         "id": "vetements"
       },
       {
-        "text": "assortiment d’herbes"
+        "id": "assortiment-d-herbes"
       }
     ],
     "spells": [],
@@ -274,7 +274,8 @@
         "id": "besace"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "de tisane"
       },
       {
         "id": "chapeau"
@@ -289,10 +290,11 @@
         "id": "heaume"
       },
       {
-        "text": "Manteau à capuche"
+        "id": "cape",
+        "spec": "à capuche"
       },
       {
-        "text": "Poche"
+        "id": "bourse"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -301,10 +303,7 @@
         "id": "vetements"
       },
       {
-        "text": "le déjeuner"
-      },
-      {
-        "text": "tisane"
+        "id": "dejeuner"
       }
     ],
     "spells": [],
@@ -436,7 +435,7 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "roll": {
             "n": 1,
@@ -593,7 +592,7 @@
         "id": "vetements"
       },
       {
-        "text": "alcool"
+        "id": "alcool"
       }
     ],
     "spells": [],
@@ -904,7 +903,7 @@
         "id": "pied-de-biche"
       },
       {
-        "text": "Pochette"
+        "id": "bourse"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -1519,10 +1518,11 @@
         "id": "vetements"
       },
       {
-        "text": "Trousse de toilette"
+        "id": "trousse-de-toilette"
       },
       {
-        "text": "Rames de papier"
+        "id": "parchemin",
+        "spec": "rames de papier"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -1534,7 +1534,8 @@
         "id": "outils-professionnels-artiste"
       },
       {
-        "text": "Lettres adressées à son père (jamais envoyées)"
+        "id": "parchemin",
+        "spec": "lettres adressées à son père (jamais envoyées)"
       },
       {
         "id": "arc-court"
@@ -1693,7 +1694,8 @@
         }
       },
       {
-        "text": "Livre (à moitié rédigé)"
+        "id": "livre",
+        "spec": "à moitié rédigé"
       },
       {
         "id": "potion-de-guerison"
@@ -1708,7 +1710,7 @@
         "id": "outils-professionnels-apothicaire"
       },
       {
-        "text": "Canne à pêche"
+        "id": "canne-a-peche"
       },
       {
         "id": "arme-simple"
@@ -1866,7 +1868,10 @@
         }
       },
       {
-        "text": "Pièges à animal"
+        "id": "piege-a-animaux",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "arc-elfique"
@@ -2035,13 +2040,17 @@
         }
       },
       {
-        "text": "Livres de référence"
+        "id": "livre",
+        "spec": "de référence",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "sac-a-dos"
       },
       {
-        "text": "Alcool"
+        "id": "alcool"
       },
       {
         "id": "rapiere"

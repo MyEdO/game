@@ -20,7 +20,7 @@
  * `invité` = l'invité la DEMANDE à l'hôte (`transmettreLesIntentions` l'enrobe, `reseau.ts`) ; `hôte` = écran ou
  * décision pilotés par l'hôte ; `local` = état d'écran du client, jamais un intent. La machinerie (`MachinerieDuNoyau`)
  * n'est pas un verbe et n'a pas de classe (#3370). Chez l'invité, `transmettreLesIntentions` n'enrobe que l'allowlist :
- * par une `Partie` (`Partie.envoyer`), un verbe `hôte` se refuse (`refusDuVerbeDHote`) ; l'action de l'état appelée
+ * par une `Partie` (`Partie.envoyer`), un verbe `hôte` ou une intention à siège se refuse (`refusChezLInvite`) ; l'action de l'état appelée
  * sans elle se joue dans sa copie. Chez l'hôte, toute intention d'un siège passe par `appliquerLIntentionDUnSiege`.
  */
 import { coopFlowIntents, type FLOW_VERBS, type NomDeVerbeDeJet } from './flowVerbs';
@@ -150,10 +150,13 @@ type Classes = typeof CLASSE_DES_ACTIONS_DU_NOYAU;
 /** Actions manuscrites d'une classe donnée. */
 export type ActionDeClasse<C extends ClasseCoop> = { [K in keyof Classes]: Classes[K] extends C ? K : never }[keyof Classes];
 
-/** Chez un invité, un verbe de classe `hôte` ne se joue pas (#2895) : le texte de son refus ; `null` sinon. */
-export function refusDuVerbeDHote(s: Pick<Jeu, 'net'>, verbe: string): string | null {
-  const classe: ClasseCoop | undefined = (CLASSE_DES_ACTIONS_DU_NOYAU as Readonly<Record<string, ClasseCoop>>)[verbe];
-  if (s.net.mode !== 'invite' || classe !== 'hôte') return null;
+/** Chez un invité, une intention qui porte un siège (#3009) ou dont le verbe est de classe `hôte` (#2895) ne se joue
+ *  pas : le texte de son refus ; `null` sinon. */
+export function refusChezLInvite(s: Pick<Jeu, 'net'>, intention: { type: string; siege?: number }): string | null {
+  if (s.net.mode !== 'invite') return null;
+  if (intention.siege !== undefined) return t('coop.siegeHoteSeul');
+  const classe: ClasseCoop | undefined = (CLASSE_DES_ACTIONS_DU_NOYAU as Readonly<Record<string, ClasseCoop>>)[intention.type];
+  if (classe !== 'hôte') return null;
   return t('coop.hoteSeul');
 }
 
