@@ -19,6 +19,7 @@ import { riverForceLabel, riverDirLabel } from '../engine/riverNavigation';
 import { cargoTotalEnc } from '../engine/seaVoyage';
 import { partyItemsCargoEnc, partyLandCapacity } from '../noyau/carriers';
 import { moraleBand } from '../engine/crewMorale';
+import { rationsDeCale } from '../engine/provisions';
 import { seasonOfMonth, weatherCondition, type Weather } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
 import { findVehicleById, seasonLabel, libelleOuAbsence } from '../data';
@@ -235,7 +236,7 @@ export function voyageTiles(
       const cargoEnc = cargoTotalEnc(vessel.cargo ?? []);
       tiles.push({ key: 'coque', icon: 'scenario/port', label: 'Coque', value: `${hullGauge.current} / ${hullGauge.max}`, gauge: { value: hullGauge.current, max: hullGauge.max, tone: hullGauge.tone }, onClick: onDossier, title: 'Dossier du navire' });
       tiles.push({ key: 'moral', icon: 'navigation/proprietaire-du-siege', label: 'Moral', value: `${vessel.morale.score} — ${moraleBand(vessel.morale.score).label}`, gauge: { value: vessel.morale.score, max: 100, tone: moraleGaugeTone }, onClick: onDossier });
-      if (vessel.provisions != null) tiles.push({ key: 'provisions', icon: 'objet/divers', label: 'Provisions', value: `${vessel.provisions} j-homme` });
+      if (vessel.provisions != null) tiles.push({ key: 'provisions', icon: 'objet/divers', label: 'Provisions', value: `${rationsDeCale(vessel.provisions)} j-homme` });
       tiles.push({ key: 'cale', icon: 'objet/divers', label: 'Cale', value: `${cargoEnc} / ${capacity} Enc`, gauge: { value: cargoEnc, max: Math.max(capacity, 1), tone: cargoGaugeTone }, onClick: onDossier });
     }
     return tiles;
@@ -245,7 +246,7 @@ export function voyageTiles(
     tiles.push({ key: 'vent', icon: 'nautique/vent', label: 'Vent du jour', value: `${riverForceLabel(river.windForce)} · ${riverDirLabel(river.windDir)}` });
     const hull = plan.vehicle;
     if (hull) tiles.push({ key: 'coque', icon: 'scenario/port', label: 'Coque de la barge', value: `${hull.wounds.current} / ${hull.wounds.max}`, gauge: { value: hull.wounds.current, max: hull.wounds.max, tone: hullTone }, onClick: onDossier });
-    if (vessel?.provisions != null) tiles.push({ key: 'provisions', icon: 'objet/divers', label: 'Provisions', value: `${vessel.provisions} j-homme` });
+    if (vessel?.provisions != null) tiles.push({ key: 'provisions', icon: 'objet/divers', label: 'Provisions', value: `${rationsDeCale(vessel.provisions)} j-homme` });
     pushCargoTile(tiles, party, possessions); // chargement porté par les bêtes/véhicules embarqués (#327)
     return tiles;
   }
