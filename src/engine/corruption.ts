@@ -56,8 +56,8 @@ export function corruptionEaseSteps(c: Combatant): number {
  *  décide. `toute` = Chaos non aligné (table EDOC élargie). */
 export type ChaosAlign = 'toute' | 'khorne' | 'nurgle' | 'slaanesh' | 'tzeentch';
 
-/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 l.112/140). */
-export interface Mutation {
+/** Une mutation au CATALOGUE (`mutations.json`) : identité et effets, sans rien de l'instance subie. */
+export interface MutationDeCatalogue {
   /** `id` STABLE (slug) — clé de résolution runtime/données (registre, table de Corruption, rendu).
    *  « On ne se base plus sur le label » : le `label` ne sert qu'à l'affichage. */
   id: string;
@@ -66,17 +66,12 @@ export interface Mutation {
    *  Les mutations n'ont pas de flavor en source : c'est donc le texte d'effet littéral du livre. */
   desc: string;
   kind: 'physique' | 'mentale';
-  /** Jet d100 sur le tableau (traçabilité). */
-  roll: number;
   /** TOUTE la mécanique de la mutation en `GameOp[]` — MÊME vocabulaire/éditeur (GameOpEditor) que
    *  traits et sorts : charMod/moveMod/skillMod/testMod (collecteur passif unifié engine/trauma) ;
    *  `ap` (armure naturelle, loc absent = toutes — lue par mutationArmourBonus) ; `grantNaturalWeapon`
    *  (arme de créature, lue par recomputeLoadout) ; `grantTrait` / `grantPsychTrait` (traits de créature
    *  et psychologiques conférés, posés par attachMutation). Plus aucun champ ad hoc. */
   passive?: OpPassive[];
-  /** PA de mutation perdus par Localisation (Dégâts subis), compteur d'état à part du `passive` authoré, comme
-   *  `damageTaken` d'une pièce d'armure. Lu par `mutationArmourBonus`. LDB 63 l.19 */
-  usure?: Partial<Record<HitLocation, number>>;
   /** Effets DÉCLENCHÉS de la mutation — MÊME vocabulaire que `TraitData.effects`/`SymptomData.effects`,
    *  dispatchés par l'unique `fireTriggers` (aucun chemin par KIND). Sert les mutations à cadence :
    *  Haine sporadique re-tire sa Cible à chaque `onDayStart` (EDOC 12 l.217). */
@@ -88,10 +83,22 @@ export interface Mutation {
   /** Pointeur de SOUS-TABLE (ex. « Tête bestiale » EDOC → re-tirer sur la sous-table Tête Bestiale) :
    *  `rollMutation` re-tire sur `${subTable}-${alignement}` (suffixe hérité de la table courante). */
   subTable?: string;
+}
+
+/** L'ÉTAT d'exécution d'une mutation SUBIE, que l'instance porte en plus de son entrée de catalogue. */
+export interface EtatDeMutation {
+  /** Jet d100 sur le tableau (traçabilité). */
+  roll: number;
+  /** PA de mutation perdus par Localisation (Dégâts subis), compteur d'état à part du `passive` authoré, comme
+   *  `damageTaken` d'une pièce d'armure. Lu par `mutationArmourBonus`. LDB 63 l.19 */
+  usure?: Partial<Record<HitLocation, number>>;
   /** PROVENANCE, posée par `attachMutation` sur l'instance ATTACHÉE : les niveaux de Talent que son
    *  attache a effectivement acquis (`acquerirTalent` rendu `true`). `detachMutation` ne retire qu'eux. */
   talentsAcquis?: RefDesignee[];
 }
+
+/** Mutation subie (donnée persistée ; cf. Tableaux LDB 19 l.112/140) : son entrée de catalogue et son état. */
+export interface Mutation extends MutationDeCatalogue, EtatDeMutation {}
 
 // ---------------------------------------------------------------------------
 // Gains de Corruption (l.30-75)

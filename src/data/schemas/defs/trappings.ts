@@ -51,7 +51,7 @@ const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({
 const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);
 
 /** `ItemCapabilities` (`src/data/index.ts`) — sac de drapeaux IRRÉDUCTIBLES, tous optionnels. */
-const itemCapabilitiesSchema = nommerChamps(z.strictObject({
+export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   preventForcedDrop: z.boolean().optional(),
   weatherProtection: z.boolean().optional(),
   isShelter: z.boolean().optional(),

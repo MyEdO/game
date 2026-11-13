@@ -7,7 +7,7 @@
 import { terrainEntree } from '../terrain';
 import { matieresDe } from '../../../data';
 import { hash32 } from '../../../data/hash';
-import type { TerrainDef } from '../../../data/terrains.types';
+import type { TerrainDef } from '../../../data';
 import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef, RoofMaterialDef } from '../../../data/materials.types';
 import type { EntreeVivante } from '../../../data/datasets';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from './missing';
@@ -18,7 +18,7 @@ import type { WallPart } from '../../../data/structureAppearance.types';
  *  `stops` VIDE : le dégradé peint du repli est `MISSING_GRADIENT`, émis par `defsGlobaux()` — une
  *  rampe recopiée ici en serait une seconde définition. Infranchissable et de priorité nulle : le repli ne déborde sur
  *  aucun voisin et n'ouvre aucun passage que la donnée n'a pas authorisé. */
-const TERRAIN_MANQUANT: TerrainDef = {
+const TERRAIN_MANQUANT: EntreeVivante<TerrainDef> = {
   id: MISSING_ID,
   type: 'terrains',
   label: MISSING_LABEL,
@@ -31,7 +31,7 @@ const TERRAIN_MANQUANT: TerrainDef = {
 
 /** Terrain par id ; id absent du dataset → repli VISIBLE + avertissement DEV. Le seul accès du rendu
  *  au dataset : `swatch`, `detail` et `gradient` en sortent tous, donc du MÊME repli. */
-export function terrainDef(id: string): TerrainDef {
+export function terrainDef(id: string): EntreeVivante<TerrainDef> {
   return catalogEntry(terrainEntree, id, 'terrain', TERRAIN_MANQUANT);
 }
 

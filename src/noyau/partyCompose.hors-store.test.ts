@@ -5,7 +5,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { idDuPretire, richesseDuPretire, type PregenDef } from '../data/pregens';
+import { idDuPretire, richesseDuPretire } from '../data/pregens';
+import type { PregenDef } from '../data';
+import type { EntreeVivante } from '../data/datasets';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { makeRNG, rollDice } from '../engine/dice';
 import { battleRng, seedBattleRng } from './battleRng';
@@ -28,7 +30,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Un prétiré de fixture dont une possession du catalogue est imprimée à 1d10. */
-const AUX_DES: PregenDef = { ...PRETIRE_DE_TEST, trappings: [{ id: 'chiffons', count: { roll: { n: 1, sides: 10 } } }] };
+const AUX_DES: EntreeVivante<PregenDef> = { ...PRETIRE_DE_TEST, trappings: [{ id: 'chiffons', count: { roll: { n: 1, sides: 10 } } }] };
 
 const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'heros' });
 
@@ -59,9 +61,9 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   });
 
   it('pretiresOfferts : chaque pré-tiré de la donnée, son nom, son espèce, sa carrière, et le refus de son recrutement', () => {
-    const autre: PregenDef = { ...PRETIRE_DE_TEST, id: 'autre-pretire-de-test', label: 'Autre prétiré de test', sex: 'F' };
+    const autre: EntreeVivante<PregenDef> = { ...PRETIRE_DE_TEST, id: 'autre-pretire-de-test', label: 'Autre prétiré de test', sex: 'F' };
     poserLesPretires([PRETIRE_DE_TEST, autre]);
-    const offre = (def: PregenDef, refus: string | null) => ({ id: def.id, nom: def.label, espece: findSpeciesById(def.species.id)!.label, carriere: careerLabelFor({ career: 'herboriste', appearance: { sex: def.sex } }), recrutement: { type: 'recruterLeHeros', args: [{ pretire: def.id }] }, refus });
+    const offre = (def: EntreeVivante<PregenDef>, refus: string | null) => ({ id: def.id, nom: def.label, espece: findSpeciesById(def.species.id)!.label, carriere: careerLabelFor({ career: 'herboriste', appearance: { sex: def.sex } }), recrutement: { type: 'recruterLeHeros', args: [{ pretire: def.id }] }, refus });
     expect(pretiresOfferts(banc.getState())).toEqual([offre(PRETIRE_DE_TEST, null), offre(autre, null)]);
     banc.getState().recruterLeHeros({ pretire: PRETIRE_DE_TEST.id });
     expect(pretiresOfferts(banc.getState()), 'le pré-tiré au groupe se refuse, du verdict du verbe').toEqual([

@@ -7,23 +7,22 @@ import type { IconId } from './icons/types';
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, MatiereDArmure } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { VOCABULAIRES, type IdDeColonneDuMarchand } from './schemas/grammaire/vocabulaires';
+import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDeMention, DotationDePossession, Somme } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema } from './schemas/grammaire/valeurs';
+import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema, type specsSourceSchema } from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { z } from 'zod';
 import type { traitCapabilitiesSchema } from './schemas/defs/traits';
-import type { GateDAction, IdDeModeDeCiblage, PorteeDIntention, RunDAction, SelecteurDAction } from './schemas/defs/actions';
 import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
@@ -34,7 +33,6 @@ import { tableTotale } from '../lib/tableTotale';
 import { garanti } from '../lib/garanti';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type EffectSource } from '../engine/types';
-import type { PairedSense } from '../engine/ops';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
 import speciesRaceJson from './speciesRace.json';
@@ -104,7 +102,7 @@ import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
 import { datasetDe, type DatasetDe, type EntreeDe } from './datasets';
 import type { PropData } from './props.types';
-import type { PregenDef } from './pregens'; // type-only (pregens.ts importe la donnée d'ici)
+import type * as pregensDef from './schemas/defs/pregens';
 import type { MerchantArchetypeDef } from './merchants.types';
 import type * as criticalsDef from './schemas/defs/criticals';
 import type * as miscastDef from './schemas/defs/miscast';
@@ -129,13 +127,17 @@ import vehiclesJson from './vehicles.json';
 import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
 import structureAppearanceJson from './structureAppearance.json';
+import type * as structureAppearanceDef from './schemas/defs/structureAppearance';
 import materialsJson from './materials.json';
 import type { MaterialDomain, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet, CouleurNommee } from './materials.types';
 import type * as materialsDef from './schemas/defs/materials';
 import terrainsJson from './terrains.json';
-import type { TerrainDef } from './terrains.types';
+import type * as terrainsDef from './schemas/defs/terrains';
 import buildingsJson from './buildings.json';
 import ambianceJson from './ambiance.json';
+import localisationJson from './localisation.json';
+import type * as localisationDef from './schemas/defs/localisation';
+import type * as ambianceDef from './schemas/defs/ambiance';
 import teintesJeuJson from './teintesJeu.json';
 import navalTraitsJson from './naval-traits.json';
 import navalPortsJson from './naval-ports.json';
@@ -179,12 +181,11 @@ import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import planDeBestiaireJson from './planDeBestiaire.json';
 import type * as gabaritsDef from './schemas/defs/gabarits';
-import type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
 import { cleDHabille, type EmplacementId, type HabilleDEnsemble, type PieceId } from './schemas/defs/garde-robe';
 import type * as gardeRobeDef from './schemas/defs/garde-robe';
 import presetsDePersonnageJson from './presets-de-personnage.json';
-import type { PresetDePersonnage } from './schemas/defs/presets-de-personnage';
+import type * as presetsDePersonnageDef from './schemas/defs/presets-de-personnage';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -204,6 +205,11 @@ import waterExposureJson from './water-exposure.json';
 import stakesJson from './stakes.json';
 import activitiesStakeJson from './activities.json';
 import actionsJson from './actions.json';
+import type * as classesDef from './schemas/defs/classes';
+import type * as skillsDef from './schemas/defs/skills';
+import type * as merchantFamiliesDef from './schemas/defs/merchantFamilies';
+import type * as raceAppearanceDef from './schemas/defs/raceAppearance';
+import type * as actionsDef from './schemas/defs/actions';
 import axesJson from './axes.json';
 import seaNavigationJson from './sea-navigation.json';
 import seaPerilsJson from './sea-perils.json';
@@ -220,7 +226,7 @@ import { type DiceSpec, formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
 import { sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
 import type { VarianteDeCible } from './schemas/grammaire/valeurs';
-import type { SeaNavigationData } from './schemas/defs/sea-navigation';
+import type * as seaNavigationDef from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type * as seaCargoDef from './schemas/defs/sea-cargo';
 import type * as landCargoDef from './schemas/defs/land-cargo';
@@ -307,43 +313,8 @@ export const ACTIVITY_STAKES = datasetDe<typeof activitiesDef>(activitiesStakeJs
  *  offert au joueur, avec son identité STABLE, son affichage, sa règle Codex, son coût et les IDS
  *  de code qui l'exécutent. Le CODE derrière ces ids vit dans `src/noyau/actionRegistry.ts` —
  *  `src/data` n'en dépend jamais. */
-export interface ActionDef {
-  id: ActionId;
-  label: string;
-  icon: IconId;
-  surface:
-    | 'deduite-du-set' | 'geste-d-etat' | 'grille' | 'gouttiere-arche' | 'selecteur-de-sets'
-    | 'coin-de-tour' | 'bandeau-de-phase' | 'interlude' | 'pastille-etat' | 'pastille-entite' | 'frise'
-    | 'geste-secondaire';
-  /** Un id de prédicat, ou plusieurs — composés par l'ET séquentiel d'`actionGate`. */
-  gate: GateDAction | GateDAction[];
-  candidates?: SelecteurDAction;
-  run?: RunDAction;
-  mode?: IdDeModeDeCiblage;
-  intent?: PorteeDIntention;
-  /** L'action ARME son `mode` dans `battle.action` (mode à bouton). */
-  armed?: true;
-  /** Champ de POSTURE pré-armée basculé par l'action (`BattleState.stances`, spec HUD §1a G5). */
-  stance?: 'tirImmobile' | 'dansLeTas';
-  coutAction: 'action' | 'mouvement' | 'gratuit' | 'aucun';
-  /** Arbitrage NON-verbatim du coût — la RAISON en clair (même patron que `TraitData.maison`). */
-  maison?: string;
-  source?: SourceRef;
-  rule?: FoyerDeRegle;
-  keys?: string[];
-  blocked?: { ticket: string; raison: string };
-  /** Sortie d'interlude atteignable à la touche d'annulation (`surface: 'interlude'`) — `false` :
-   *  le dispatcher commet une perte, seul le clic explicite le déclenche. */
-  exitSafe?: boolean;
-  /** RÔLE sémantique de la sortie d'interlude : `valide` mène le geste à son terme, `renonce`
-   *  abandonne/revient. La proéminence du bouton s'en DÉDUIT au rendu — ce n'est pas un style. */
-  role?: 'valide' | 'renonce';
-  /** L'action fait naître un panneau-paramètre de SON alvéole : la surface y pose l'ancre. */
-  panneau?: boolean;
-  /** Entrée HÔTE d'un `surface: 'geste-secondaire'` : l'alvéole de CETTE action porte le geste. */
-  hote?: { id: ActionId };
-}
-export const ACTIONS = actionsJson as ActionDef[];
+export type ActionDef = EntreeDe<typeof actionsDef>;
+export const ACTIONS = datasetDe<typeof actionsDef>(actionsJson);
 /** Id d'une action du registre : l'union GÉNÉRÉE des ids de `actions.json` (`scripts/gen-espaces.mts`). */
 export type ActionId = IdsParEspace['actions.json'];
 /** Action par id STABLE (jamais par libellé). */
@@ -778,19 +749,7 @@ export function resolveStake(ref: StakeRef): ResolvedStake {
 /** Une espèce jouable, au type de son schéma (`schemas/defs/species.ts`) : `id` STABLE (cible de `Combatant.species`,
  *  pregens, draft), le `label` ne sert qu'à l'affichage. */
 export type SpeciesData = EntreeDe<typeof speciesDef>;
-export interface ClassData {
-  /** id STABLE (slug du libellé) — cible de `CareerData.class`. */
-  id: string;
-  type: 'classes';
-  label: string;
-  /** Ids de `groups.json` accordés à tout titulaire d'une carrière de cette Classe (`groupesDe`) —
-   *  ex. la classe des Roublards ouvre le Groupe « Criminel ». Absent = aucun Groupe. */
-  grantGroups?: string[];
-  /** Possessions de départ (`dotationSansTexteSchema`). LDB 05 l.552 */
-  trappings: TrappingRef[];
-  desc: string;
-  source: SourceRef;
-}
+export type ClassData = EntreeDe<typeof classesDef>;
 export type CareerData = EntreeDe<typeof careersDef>;
 /** Un Niveau de Carrière, au type de son schéma (`schemas/defs/careerLevels.ts`). LDB 7 */
 export type CareerLevelData = EntreeDe<typeof careerLevelsDef>;
@@ -800,7 +759,7 @@ export type CareerLevelData = EntreeDe<typeof careerLevelsDef>;
  *  `pool: false` — l'entrée est VALIDE (résolution, `testValue`, bonus de règle) mais n'est pas
  *  PROPOSÉE d'office par le créateur/l'avancement (`LDB 09 l.40`) ; les écrans de RÉFÉRENCE
  *  l'impriment (`specCatalogOf`). Absente = dans le pool. CATALOGUE ⊇ POOL (`specAuCatalogue`, `grammaire/ref.ts`). */
-export type SpecEntry = { id: string; label: string; source?: SourceRef; alsoIn?: SecondaryRef[]; pool?: false };
+export type SpecEntry = NonNullable<SkillData['specs']>[number];
 /** id d'une entrée `specs[]`. */
 export function specEntryId(e: SpecEntry): string {
   return e.id;
@@ -827,90 +786,8 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  filtrée par `type`, `specsOpen` car ces traits acceptent aussi une attaque naturelle/générique hors
  *  catalogue), `exposureLevels` (Degré de Corruption — vocabulaire `ExposureLevel`), `difficulties`
  *  (Difficulté du Venin — vocabulaire `Difficulty`). Absent = specs inline (`SpecEntry[]`). */
-export type SpecsSource =
-  | 'weaponGroupsMelee'
-  | 'weaponGroupsRanged'
-  | 'winds'
-  | 'arcaneDomains'
-  | 'cultBlessings'
-  | 'cultMiracles'
-  | 'cultChaos'
-  | 'seaShanties'
-  | 'ciblesPsy'
-  | 'groupesDAppartenance'
-  | 'diseases'
-  | 'sizes'
-  | 'mutations'
-  | 'breathTypes'
-  | 'damageTypes'
-  | 'weaponsMelee'
-  | 'weaponsRanged'
-  | 'exposureLevels'
-  | 'difficulties';
-export interface SkillData {
-  /** Identifiant STABLE (slug du libellé d'origine) — cible des références structurées, robuste au
-   *  renommage du `label`. Source unique pour la porte `byId('skill', …)`. */
-  id: string;
-  type: 'skills';
-  label: string;
-  characteristic: import('../engine/types').CharKey;
-  /** ACCÈS (`LDB 09 l.25/l.30`) : `base` (testable sans formation) / `avancee` (exige une Augmentation). */
-  acces: 'base' | 'avancee';
-  /** Spécialisations inline (`SpecEntry[]`) — ABSENT quand `specsSource` est présent (le pool DÉRIVE
-   *  alors du registre partagé, cf. `specPoolOf` : aucune liste tenue à la main). */
-  specs?: SpecEntry[];
-  /** Source du pool de spéc (via `SPEC_SOURCES`/`specPoolOf`/`specLabel`) : FERMÉE. Si présent, les `spec`
-   *  des instances de cette Compétence sont des ids résolus via ce registre partagé — `weaponGroupsMelee`/
-   *  `weaponGroupsRanged` (Corps à corps / Projectiles → ids de `weaponGroups.json` filtrés par `combat`)
-   *  ou `winds` (Focalisation → Domaines à Vent de `domains.json`, AFFICHE le Vent) — et `specs[]` est
-   *  ABSENT. Sans `specsSource` = specs inline (`SpecEntry[]`). */
-  specsSource?: SpecsSource;
-  /** Le domaine accepte-t-il un TEXTE LIBRE hors `specs[]` (Métier, Savoir-région) ? `true` = OUVERT —
-   *  `specs[]` n'est qu'un historique/suggestions, pas une liste fermée. Absent/`false` = FERMÉ — la
-   *  valeur `spec` d'une instance DOIT être un id de `specs[]` (`refusDeSpec`, `schemas/grammaire/ref.ts`). */
-  specsOpen?: boolean;
-  /** Posséder une Spécialisation rend les autres de Base (`possesses`). LDB 09 l.571. */
-  specsSoeursDeBase?: boolean;
-  desc: string;
-  source: SourceRef;
-  /** Test « impliquant un déplacement » (LDB 16 l.35/64) : ciblé par les pénalités d'État À Terre /
-   *  Empêtré (`movementOnly`). Classification de COMPÉTENCE portée par la DONNÉE (éditable au Codex),
-   *  lue par `engine/conditions.testStatePenalty`, jamais par une liste d'ids en dur. */
-  movement?: boolean;
-  /** Sens qu'implique un Test de cette Compétence (LDB 16 l.29, l.45 ; LDB 18 l.273) : ciblé par les
-   *  pénalités restreintes à un sens (`testMod.sense`). Classification portée par la DONNÉE, lue par
-   *  `engine/conditions`. LDB 18 l.273 « et autres » : seules les Compétences qu'il nomme sont classées. */
-  senses?: PairedSense[];
-  /** Caractéristique ALTERNATIVE de cette Compétence sous RÈGLE OPTIONNELLE (Métier comme Savoir → Int,
-   *  `LDB 09 l.358` ; Intimidation → FM/Int, `LDB 09 l.294`) : `gatedByRule` = la règle optionnelle
-   *  (`ref('regleOptionnelle')`, `schemas/defs/skills.ts`), `from` = Caractéristique de base à laquelle la
-   *  substitution s'applique (absente = toutes), `chars` = Caractéristique à utiliser PAR VALEUR de la
-   *  règle (clé = valeur rendue par `rule()` convertie en chaîne — `"true"` pour un interrupteur ; une
-   *  LISTE = la MEILLEURE des Caractéristiques citées chez le porteur). Lu par `altCharKey`
-   *  (`engine/skills`), POINT UNIQUE : le moteur ne nomme plus aucune compétence. */
-  altChar?: {
-    gatedByRule: { id: IdsParEspace['reglesOptionnelles.json'] };
-    from?: CharKey;
-    chars: Record<string, CharKey | CharKey[]>;
-  };
-  /** Application de COMBAT « cumuler l'Avantage » (LDB 09 l.60/305-308) : passer son tour à réussir un Test
-   *  de cette Compétence donne +1 Avantage, jusqu'à un maximum égal au Bonus de la Caractéristique `cap`
-   *  (Intuition/Savoir/Survie → Int ; Prière → Soc). Lu par `engine/skillCombatApps.skillAdvantageCap`. */
-  combatAdvantage?: { cap: CharKey };
-  /** Substitution en COMBAT d'une Compétence sociale à la Compétence de combat (LDB 09) : Intimidation
-   *  « à la place de Corps à corps … face à ceux qui ont peur de vous » (l.287), Dressage « au lieu de
-   *  Corps à corps » après avoir instillé la peur (l.207). `role` = défense / attaque / les deux ; `gate`
-   *  = condition d'accès (`peur` : l'adversaire est sous une Peur/intimidation SOURCÉE par ce personnage).
-   *  Lu par `engine/skillCombatApps`. */
-  combatSubstitute?: { role: 'defense' | 'attaque' | 'lesDeux'; gate: 'peur' };
-  /** OUTIL requis par la Compétence (Crochetage → outils de crochetage, LDB 09 l.168 : « Les Niveaux de
-   *  Difficulté supposent l'utilisation d'outils de crochetage. Des crochets improvisés… peuvent être
-   *  utilisés avec une pénalité de -10 ») : `capability` = clé `ItemCapabilities` que doit porter un
-   *  objet POSSÉDÉ de l'acteur (lecture NON gatée sur le port, comme `isRations`) ; sans un tel objet,
-   *  `withoutMod` s'applique au Test (`testValue`). GÉNÉRIQUE — toute compétence-à-outil se déclare en
-   *  donnée (skills.json), zéro code par objet. */
-  tool?: { capability: keyof ItemCapabilities; withoutMod: number };
-}
+export type SpecsSource = z.output<typeof specsSourceSchema>;
+export type SkillData = EntreeDe<typeof skillsDef>;
 /** UN « matcher » de Test (recodage de la ligne « Tests : » du livre, cf. `TalentTest`) : à quel(s)
  *  Test(s) le talent se rapporte. `skill` (référence de Compétence `{id, spec?}`, XOR `characteristic`) OU `characteristic`
  *  (Caractéristique nue). La `spec` de la référence est la spécialisation FIXE ; `specFromInstance` =
@@ -947,10 +824,6 @@ export interface TalentData {
    *  talent ne se rapporte à aucun Test. */
   test: TalentTest | null;
   desc: string;
-  /** Lecture ALTERNATIVE « Avantage de groupe » (Aux Armes, Annexe III — l.4347-4442), verbatim. Affichée
-   *  à la place de `desc` quand la règle `combat-aa-avantage-groupe` est active (Compendium/Codex). Le champ
-   *  MÉCANIQUE correspondant est `combat.aa`. Absent = le Talent ne change pas en mode groupe. */
-  descAA?: string;
   specs?: SpecEntry[];
   /** Catégorie de Taille CONFÉRÉE par le talent (Massif → `grande`, Petit → `petite`, LDB 85 l.344-354) —
    *  lue par `createHero` (#572), même vocabulaire que la Taille de créature (`SizeCategory`). */
@@ -1251,14 +1124,8 @@ export type GroupData = EntreeDe<typeof groupsDef>;
 /** Famille de PRÉSENTATION du stock marchand (`MerchantPanel`, ordre d'affichage = ordre du tableau).
  *  `match` = règle de classement d'une ligne de stock (priorité unit > shield > categorie > fallback
  *  au `match` vide) ; `columns` = ids de colonnes de stats à afficher (vocabulaire `colonnesDuMarchand`). */
-export interface MerchantFamilyData {
-  id: string;
-  type: 'merchantFamilies';
-  label: string;
-  match: { categorie?: TrappingTypeId; shield?: boolean; unit?: boolean };
-  columns: IdDeColonneDuMarchand[];
-}
-export const merchantFamilies = merchantFamiliesJson as MerchantFamilyData[];
+export type MerchantFamilyData = EntreeDe<typeof merchantFamiliesDef>;
+export const merchantFamilies = datasetDe<typeof merchantFamiliesDef>(merchantFamiliesJson);
 /** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'unique'` (pièce de bestiaire singulière). */
 export type HarvestRarity = z.infer<typeof harvestRaritySchema>;
 export type HarvestDanger = z.infer<typeof harvestDangerSchema>;
@@ -1998,12 +1865,7 @@ export type LocationData = EntreeDe<typeof locationsDef>;
 export type BookData = EntreeDe<typeof booksDef>;
 /** Apparence de base d'une espèce (Humain, Ogre, Skaven…) — éditable dans le Compendium. PAR
  *  RÉFÉRENCE : id de gabarit (`gabarits.json`). */
-export interface RaceAppearanceData {
-  id: string;
-  label: string;
-  gabarit: { id: GabaritId };
-  gabaritOverride?: SurchargeDeGabarit;
-}
+export type RaceAppearanceData = EntreeDe<typeof raceAppearanceDef>;
 /** Une espèce du plan de bestiaire (`planDeBestiaire.json`, #2993) : la base humanoïde à sa race de rendu, un corps
  *  de générateur, ou omise et son motif ; l'échelle d'art de qui porte un corps. */
 export type PlanDEspece = EntreeDe<typeof planDeBestiaireDef>;
@@ -2026,10 +1888,10 @@ export const charAbr = (k: CharKey): PlayerText => dataLabel(charARoulerParId(k)
 export const caracDuSigle = (sigle: string): CharKey | undefined =>
   characteristics.find((c) => c.nature === 'roll' && c.abr != null && norm(c.abr) === norm(sigle))?.id as CharKey | undefined;
 export const species = datasetDe<typeof speciesDef>(speciesJson);
-export const classes = classesJson as ClassData[];
+export const classes = datasetDe<typeof classesDef>(classesJson);
 export const careers = datasetDe<typeof careersDef>(careersJson);
 export const careerLevels = datasetDe<typeof careerLevelsDef>(careerLevelsJson);
-export const skills = skillsJson as SkillData[];
+export const skills = datasetDe<typeof skillsDef>(skillsJson);
 export const talents = talentsJson as TalentData[];
 export const etats = etatsJson as EtatData[];
 /** Procédures / options de jeu (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation
@@ -2183,7 +2045,11 @@ export const structures = datasetDe<typeof structuresDef>(structuresJson);
 const structureParId = indexParId('structures', structures);
 export const findStructureById: (id: string) => StructureData | undefined = structureParId;
 /** Apparence de RENDU des structures (murs/portes) — donnée pure, découplée des règles ci-dessus. */
-export const structureAppearances = structureAppearanceJson as import('./structureAppearance.types').StructureAppearanceDef[];
+export const structureAppearances = datasetDe<typeof structureAppearanceDef>(structureAppearanceJson);
+/** Apparence PARTAGÉE d'une structure d'arête (mur/porte), au type de son schéma (`schemas/defs/structureAppearance.ts`). */
+export type StructureAppearanceDef = EntreeDe<typeof structureAppearanceDef>;
+/** Les familles de pièces du kit 3D des arêtes (`hotes/godot/asset/kit.ts`). */
+export type FamilleDuKit = StructureAppearanceDef['kit'];
 
 /** Combat de masse / Puissance de Bataille (ADE II 8, l.13-321) — 5 tables verbatim NICHÉES dans
  *  UN seul fichier (`mass-battle.json`, pas un tableau plat par table) : exposées ICI (facade) pour que
@@ -2206,7 +2072,9 @@ export const materials = datasetDe<typeof materialsDef>(materialsJson);
 /** LES terrains du monde (#1690) — règle (franchissabilité, raccord, opacité, bâti) ET rendu (teinte,
  *  rampe, recette, décor posé, bloc plein) dans UNE entrée. Binding muté EN PLACE par `setDataset`
  *  (`data/overrides.ts`) : la façade `src/noyau/monde/terrain` et le catalogue de rendu le lisent VIVANT. */
-export const terrains = terrainsJson as unknown as TerrainDef[];
+export const terrains = datasetDe<typeof terrainsDef>(terrainsJson);
+/** Un terrain, au type de son schéma (`schemas/defs/terrains.ts`). */
+export type TerrainDef = EntreeDe<typeof terrainsDef>;
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
@@ -2244,7 +2112,21 @@ export const matierePlan = (): RoofMaterialDef => {
 };
 
 /** AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/filtre d'étage) — donnée pure. */
-export const ambiance = ambianceJson as import('./ambiance.types').AmbianceDef;
+/** Les tables de Localisation des coups (`localisation.json`) : personnage par forme de corps, navire, navire fluvial. */
+export const tablesDeLocalisation = datasetDe<typeof localisationDef>(localisationJson);
+export const ambiance = datasetDe<typeof ambianceDef>(ambianceJson);
+/** L'ambiance de rendu partagée iso ⇄ POV, au type de son schéma (`schemas/defs/ambiance.ts`). */
+export type AmbianceDef = DatasetDe<typeof ambianceDef>;
+/** Halo radial (voile chaud / vignette). */
+export type RadialVeilDef = AmbianceDef['iso']['warm'];
+/** Les types de météo authorée de scène que l'ambiance habille (`scene.weather`, #239). */
+export type WeatherFxId = keyof AmbianceDef['iso']['weather'];
+/** L'habillage d'un type de météo (#239). */
+export type WeatherFxDef = NonNullable<AmbianceDef['iso']['weather'][WeatherFxId]>;
+/** La précipitation monde d'un type de météo (#1176 P2-6). */
+export type WeatherPrecipDef = NonNullable<WeatherFxDef['precip']>;
+/** La brume monde d'un type de météo (#1247). */
+export type WeatherBrumeDef = NonNullable<WeatherFxDef['brume']>;
 
 /** TEINTES DE JEU du terrain (surbrillances tactiques + identité d'unité), `id → #rrggbb` — donnée
  *  pure, servie aux peintres (schéma et invariants : `schemas/defs/teintesJeu.ts`). */
@@ -2337,7 +2219,7 @@ export function findNavalPortById(id: string): NavalPortData | undefined {
  *  de référence LIVE (singleton ESM, même fichier physique relu par `engine/seaNavigation.ts`,
  *  `engine/seaPerils.ts`, `engine/seaWeather.ts`, `engine/shipBuild.ts`) que `WATER_EXPOSURE` ci-dessus. Types réutilisés DEPUIS le schéma zod (`schemas/defs/*`, porte
  *  `datasetDe`) — pas de redéclaration divergente. */
-export const seaNavigation = seaNavigationJson as SeaNavigationData;
+export const seaNavigation = datasetDe<typeof seaNavigationDef>(seaNavigationJson);
 export const seaPerils = seaPerilsJson as SeaPerilsData;
 export type SeaWeatherData = DatasetDe<typeof seaWeatherDef>;
 export const seaWeather = datasetDe<typeof seaWeatherDef>(seaWeatherJson);
@@ -2557,7 +2439,7 @@ export const starSubDie = (): DeDeTable => deDeLaTableTiree(starsJson.sub);
 export const celestialHouses = datasetDe<typeof astrologyDef>(astrologyJson);
 /** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`noyau/codex/registry.ts`), la
  *  composition (`noyau/apparence/composition.ts`) et `scripts/personnage-3d/base/`. */
-export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
+export const raceAppearance = datasetDe<typeof raceAppearanceDef>(raceAppearanceJson);
 /** Le plan de bestiaire (`planDeBestiaire.json`, #2993) : lu par la composition d'un combattant
  *  (`noyau/apparence/combattant.ts`) et par `scripts/personnage-3d/base/`. */
 export const planDeBestiaire = datasetDe<typeof planDeBestiaireDef>(planDeBestiaireJson);
@@ -2601,7 +2483,9 @@ export function piecesDeLObjet(trappingId: string | undefined, locs?: readonly H
 export const findTenueDeCarriere = (carriere: string | null | undefined): LigneDeGardeRobe<'tenue'> | undefined =>
   gardeRobe.find((e): e is LigneDeGardeRobe<'tenue'> => e.kind === 'tenue' && carriere != null && (e.carrieres ?? []).some((c) => c === carriere));
 /** Presets de personnage entier (`presets-de-personnage.json`, #3086). */
-export const presetsDePersonnage = presetsDePersonnageJson as unknown as PresetDePersonnage[];
+export const presetsDePersonnage = datasetDe<typeof presetsDePersonnageDef>(presetsDePersonnageJson);
+/** Un preset de personnage entier, au type de son schéma (`schemas/defs/presets-de-personnage.ts`). */
+export type PresetDePersonnage = EntreeDe<typeof presetsDePersonnageDef>;
 export const findPresetDePersonnageById = indexParId('presetsDePersonnage', presetsDePersonnage);
 export const locations = datasetDe<typeof locationsDef>(locationsJson);
 const lieuParId = indexParId('locations', locations);
@@ -2638,7 +2522,9 @@ export const gods = datasetDe<typeof godsDef>(godsJson);
 export const names = datasetDe<typeof namesDef>(namesJson);
 /** Prétirés officiels (fiches imprimées) — éditables au Codex ; la FABRIQUE (`heroDeFiche`)
  *  vit dans `pregens.ts`, qui consomme CE tableau (même référence → mutation live de l'éditeur). */
-export const pregens = pregensJson as unknown as PregenDef[];
+export const pregens = datasetDe<typeof pregensDef>(pregensJson);
+/** Une entrée de `pregens.json` : la fiche imprimée d'un prétiré officiel, au type de son schéma (`schemas/defs/pregens.ts`). */
+export type PregenDef = EntreeDe<typeof pregensDef>;
 /** Tableau des Oups ! (LDB Maladresses) — app-owned éditable ; consommé par `oups.ts` (même référence). */
 export const oups = rangeesDe<typeof tableauDesOups>(oupsJson);
 /** Les documents du Tableau des Talents aléatoires (LDB 05 l.514-531), patron `mutationTables` : le dé est

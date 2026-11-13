@@ -3,7 +3,9 @@
  * qui ceinture une zone crénelée (`Layer.crenellated`), en faces du pivot, que le builder des murs
  * et le volume du monde (`./volume`) dessinent.
  */
-import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../../data';
+import type { EntreeVivante } from '../../../data/datasets';
 import { DIR4_ORDER, DIR8_DELTA } from '../../../geometry/dir8';
 import { isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../relief';
@@ -17,7 +19,7 @@ type GXY = { x: number; y: number };
  *  le long de l'arête A→B. SOURCE UNIQUE : (a) le sommet d'une fortification (baseH = haut de la face pleine) ET
  *  (b) la crête de PÉRIMÈTRE d'une zone crénelée (baseH = surface de la zone). Merlons = 1 tronçon / `merlonStep`
  *  (fraction 0..1 de CETTE arête → motif périodique par case). */
-export function crownFaces(app: StructureAppearanceDef, A: GXY, B: GXY, baseH: number): Face[] {
+export function crownFaces(app: EntreeVivante<StructureAppearanceDef>, A: GXY, B: GXY, baseH: number): Face[] {
   const par = app.parapet;
   if (!par) return [];
   const at = (t: number): GXY => ({ x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t });
@@ -45,7 +47,7 @@ export interface CreteDePerimetre {
   case: { x: number; y: number; z: number };
   /** L'arête où elle se dresse (`edgeOf`), à la couche de la case. */
   arete: { x: number; y: number; side: WallSide; z: number };
-  apparence: StructureAppearanceDef;
+  apparence: EntreeVivante<StructureAppearanceDef>;
   /** Ses extrémités, à la surface de la case (`wallEnds`, `heightAt`). */
   ends: [GP, GP];
   faces: Face[];

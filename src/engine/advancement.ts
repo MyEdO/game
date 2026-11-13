@@ -8,6 +8,8 @@
 import { Combatant, CharKey } from './types';
 import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
+import type * as advancementCostsDef from '../data/schemas/defs/advancementCosts';
+import { datasetDe, type EntreeDe } from '../data/datasets';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
@@ -33,9 +35,9 @@ export function inCareerChar(careerChars: CharKey[], char: CharKey): boolean {
  * donc OUVERTE en donnée (JSON n'a pas d'Infinity) et ne s'ouvre qu'au lookup.
  * La donnée vit dans `src/data/advancementCosts.json` — ne pas éditer ici.
  */
-export interface AdvanceCostBand { min: number; max: number | null; coutCarac: number; coutCompetence: number }
+export type AdvanceCostBand = EntreeDe<typeof advancementCostsDef>;
 
-const ADVANCE_COST_TABLE: AdvanceCostBand[] = advancementCostsJson as AdvanceCostBand[];
+const ADVANCE_COST_TABLE = datasetDe<typeof advancementCostsDef>(advancementCostsJson);
 
 /** La table telle que `findTableEntry` la lit : la borne OUVERTE de la dernière bande devient son
  *  infini. Aucun plafond n'est écrit en donnée — c'est le lookup qui ouvre, pas la source, et il est

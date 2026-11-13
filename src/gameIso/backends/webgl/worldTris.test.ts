@@ -30,7 +30,9 @@ import {
 import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { wallPartRelief } from '../../../noyau/monde/volume/structures';
 import { uprightCrossM, UPRIGHT_OVERHANG_M, UPRIGHT_WIDTH_M, WALL_MATTER_M, wallMatterM } from '../../../noyau/monde/volume/montants';
-import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../../data';
+import type { EntreeVivante } from '../../../data/datasets';
 import { buildFloors } from '../../../noyau/monde/volume/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs } from '../../../noyau/monde/volume/toits';
@@ -466,7 +468,7 @@ describe('ÉPAISSEUR de mur — un plan d’épaisseur nulle n’a AUCUNE surfac
     expect(WALL_MATTER_M).toBeGreaterThan(0.15);
     expect(WALL_MATTER_M).toBeLessThan(0.2);
     // Elle est SURCHARGEABLE par apparence, comme toute autre épaisseur du catalogue.
-    expect(wallMatterM({ relief: { wallM: 0.4 } } as StructureAppearanceDef)).toBe(0.4);
+    expect(wallMatterM({ relief: { wallM: 0.4 } } as EntreeVivante<StructureAppearanceDef>)).toBe(0.4);
     expect(wallMatterM(undefined)).toBe(WALL_MATTER_M);
   });
 
