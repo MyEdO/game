@@ -22,6 +22,7 @@ import { resolveSequencePotTurn, sequenceAbandonEtatOf, sequenceAbandonOf, seque
 import { tavernParams, potProchain } from './tavernFlow';
 import type { Combatant } from '../engine/types';
 import { avanceEtapeCascade } from './cascade.testkit';
+import { tableSpec, tableStepNaturalRange } from './cascade';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -416,6 +417,20 @@ describe('Al-zahr — la partie au store', () => {
     get().jetValider('cascade');
     expect(get().journal.concat(get().pendingCascade?.participants.flatMap((s) => s.outcome?.map((o) => o.text) ?? []) ?? [])
       .some((l) => typeof l === 'string' && l.includes('la manche est remportée, le pot est raflé'))).toBe(true);
+  });
+
+  it('le tour se tire au dé de la donnée, 2d10 : naturels de 2 à 20, porté par la seule table (NADJ 16 l.17 ; #1667)', () => {
+    const a = tableDeJeu();
+    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    const cibleStep = get().pendingCascade!.participants[get().pendingCascade!.cursor];
+    get().jetRegler('cascade', 'choix', '7', cibleStep.id);
+    get().jetValider('cascade');
+    const tour = get().pendingCascade!.participants[get().pendingCascade!.cursor];
+    expect(tour.kind).toBe('tavernePotTour');
+    expect(formatDice(tableSpec(tour.table!))).toBe('2d10');
+    expect(tableStepNaturalRange(tour.table!)).toEqual({ min: 2, max: 20 });
+    get().jetImposerLeResultat('cascadeTirage', 20, tour.id);
+    expect(get().pendingCascade!.participants[get().pendingCascade!.cursor].table!.result!.roll, 'un 20 se pose : il rafle le pot').toBe(20);
   });
 
   it('un lancer qui PASSE la cible n’annonce pas une victoire (même plage, autre issue)', () => {

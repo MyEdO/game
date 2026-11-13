@@ -6,7 +6,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf, etapeDEquipage, SEA_BOARD_EVENT_TABLE, type SeaVoyageState,
+  buildOverspeedSteps, engineerOf, etapeDEquipage, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -34,7 +34,7 @@ import { imposerLesD100 } from './battleRng.testkit';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { applierDe, runCascadeImmediate, tableStepDef } from './cascade';
+import { applierDe, runCascadeImmediate, tableSpec } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
@@ -1353,8 +1353,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
       runSeaDay(get, set);
       const etape = get().pendingCascade!.participants.find((s) => s.kind === 'mer-evenement-de-bord')!;
-      expect(formatDice(etape.table!.spec!)).toBe('1d10');
-      expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.die, 'la table tirable suit le dé écrit').toBe(10);
+      expect(formatDice(tableSpec(etape.table!))).toBe('1d10');
     });
   });
 

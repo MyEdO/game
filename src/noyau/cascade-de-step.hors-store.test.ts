@@ -4,13 +4,14 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makeRNG, roll as rollDes, type DiceSpec } from '../engine/dice';
 import {
   startCascade, runCascadeImmediate, stepInteraction, stepReady, roulerDe, lireEnTable, plageNaturelle,
-  specDeEtape, tableSpec, rollTableStep, tableStepNaturalRange,
+  tableSpec, rollTableStep, tableStepNaturalRange,
 } from './cascade';
 import { dieStep, pushDie } from './rollSeam';
 import { spyApplier } from './cascade.testkit';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { WORLD_STEP_OWNER } from './pendings';
 import type { CascadeStep } from './pendings';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -95,9 +96,8 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     // Un plancher (`Math.max(1, n)`) rendrait un dé que personne n'a déclaré — le socle LÈVE.
     expect(() => roulerDe({}, { n: 0, sides: 10 }, makeRNG(1))).toThrow(/dés non tirables \(0d10\)/);
     expect(() => roulerDe({}, { n: 2, sides: 0 }, makeRNG(1))).toThrow(/dés non tirables \(2d0\)/);
-    // Un DÉ NU n'a aucune table où prendre ses dés : pas de repli d100 (une TABLE, elle, a le sien).
-    expect(() => specDeEtape({})).toThrow(/dé NU sans `spec`/);
-    expect(tableSpec({ tableId: 'test-invariance-table' }), 'la table, elle, donne son défaut').toBeTruthy();
+    // Une table introuvable n'a aucun dé à donner : le refus est NOMMÉ, jamais un d100 deviné (#1667).
+    expect(() => tableSpec({ tableId: 'table-jamais-declaree' })).toThrow(/« table-jamais-declaree ».*introuvable/);
   });
 
   it('(iv) `runCascadeImmediate` résout un `de` d’office ET le JOURNALISE (dé + total avec son unité)', () => {
@@ -156,42 +156,47 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
  */
 describe('INVARIANCE — une table rend le même dé après la séparation tirage / lecture', () => {
   const T = 'test-invariance-table';
+  const T2D10 = 'test-invariance-table-2d10';
   beforeEach(() => {
     avecLesTables({ tablesTirables: { [T]: {
       label: 'Table d’invariance',
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       // La table COUVRE au-delà de 100 : les déclarations à `mod` positif doivent RESTER résolubles,
       // sinon la mesure d'invariance testerait le fail-fast de plage au lieu du dé (patron
       // `miscast-colere`, dont les Points de Péché poussent le dé effectif au-dessus de 100).
       rows: [{ min: 1, max: 30, id: 'a' }, { min: 31, max: 70, id: 'b' }, { min: 71, max: 120, id: 'c' }],
       lines: (die) => [`ligne ${die}`],
+    }, [T2D10]: {
+      label: 'Table d’invariance à 2d10',
+      die: deDeLaTableTiree({ die: '2d10' }),
+      rows: [{ min: 1, max: 12, id: 'a' }, { min: 13, max: 30, id: 'b' }],
+      lines: (die) => [`ligne ${die}`],
     } } });
   });
 
-  /** LA RÉFÉRENCE — l'algorithme d'origine, écrit ici et nulle part ailleurs. */
-  const reference = (decl: { spec?: DiceSpec; mod?: number; clamp?: boolean }, seed: number) => {
-    const rng = makeRNG(seed);
-    const n = decl.spec?.n ?? 1;
-    const sides = decl.spec?.sides ?? 100;
-    const naturel = rollDes(n, sides, rng);
+  /** LA RÉFÉRENCE — l'algorithme d'origine, écrit ici et nulle part ailleurs : `des` sont les dés
+   *  ATTENDUS de la table, écrits par le cas. */
+  const reference = (des: DiceSpec, decl: { mod?: number; clamp?: boolean }, seed: number) => {
+    const naturel = rollDes(des.n, des.sides, makeRNG(seed));
     const brut = naturel + (decl.mod ?? 0);
     return { roll: naturel, die: decl.clamp ? Math.max(brut, 1) : brut };
   };
 
   it('80 graines × 4 déclarations : 0 divergence entre le résolveur et la référence', () => {
-    const decls = [
-      {},
-      { mod: 10 },
-      { mod: -20, clamp: true },
-      { spec: { n: 2, sides: 10 } as DiceSpec, mod: 5 },
+    const D100: DiceSpec = { n: 1, sides: 100 };
+    const cas = [
+      { des: D100, decl: { tableId: T } },
+      { des: D100, decl: { tableId: T, mod: 10 } },
+      { des: D100, decl: { tableId: T, mod: -20, clamp: true } },
+      { des: { n: 2, sides: 10 }, decl: { tableId: T2D10, mod: 5 } },
     ];
     const divergences: string[] = [];
-    for (const d of decls) {
+    for (const { des, decl } of cas) {
       for (let seed = 1; seed <= 80; seed++) {
-        const attendu = reference(d, seed);
-        const obtenu = rollTableStep({ tableId: T, ...d }, makeRNG(seed));
+        const attendu = reference(des, decl, seed);
+        const obtenu = rollTableStep(decl, makeRNG(seed));
         if (obtenu.roll !== attendu.roll || obtenu.die !== attendu.die) {
-          divergences.push(`seed ${seed} ${JSON.stringify(d)} : obtenu ${obtenu.roll}/${obtenu.die}, attendu ${attendu.roll}/${attendu.die}`);
+          divergences.push(`seed ${seed} ${JSON.stringify(decl)} : obtenu ${obtenu.roll}/${obtenu.die}, attendu ${attendu.roll}/${attendu.die}`);
         }
       }
     }
@@ -206,11 +211,10 @@ describe('INVARIANCE — une table rend le même dé après la séparation tirag
     }
   });
 
-  it('les DÉS d’une table se résolvent au même endroit que ceux d’un dé nu (`tableSpec` / `specDeEtape`)', () => {
-    expect(tableSpec({ tableId: T }), 'la table donne son défaut').toEqual({ n: 1, sides: 100 });
-    expect(tableSpec({ tableId: T, spec: { n: 2, sides: 10 } }), 'la déclaration l’emporte').toEqual({ n: 2, sides: 10 });
-    expect(tableStepNaturalRange({ tableId: T, spec: { n: 2, sides: 10 } })).toEqual({ min: 2, max: 20 });
-    expect(specDeEtape({ spec: { n: 3, sides: 6 } })).toEqual({ n: 3, sides: 6 });
+  it('les DÉS d’une table sont ceux de SA table, seul porteur (#1667)', () => {
+    expect(tableSpec({ tableId: T })).toEqual({ n: 1, sides: 100 });
+    expect(tableSpec({ tableId: T2D10 })).toEqual({ n: 2, sides: 10 });
+    expect(tableStepNaturalRange({ tableId: T2D10 })).toEqual({ min: 2, max: 20 });
   });
 });
 

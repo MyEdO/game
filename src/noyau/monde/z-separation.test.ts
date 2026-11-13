@@ -2,14 +2,14 @@
  * Garde structurel ANTI-RÉGRESSION « z-aveugle » (#807) — verrouille que la SÉPARATION D'ÉTAGE tient
  * PARTOUT où deux entités/zones peuvent partager le même (x,y) sur des couches différentes. Racine
  * commune : `tileKey(x,y,z)` (path.ts, z=0 omis / z>0 suffixé) pour les grilles de blocage, et
- * `combatDistance` (footprint.ts:99-104, `verticalTiles` sur la hauteur RÉELLE `pos.h`) pour le
+ * `distanceDeCombat` (footprint.ts:99-104, `verticalTiles` sur la hauteur RÉELLE `pos.h`) pour le
  * mono-cible/aura. Chaque site est verrouillé en DEUX sens : POSITIF (même étage → actif, inchangé)
  * et NÉGATIF (autre étage, même (x,y) → inerte).
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { entityBlockedAt } from './sceneRules';
-import { combatDistance } from './footprint';
+import { distanceDeCombat } from './footprint';
 import { combatantsWithinRadius, combatantAtTile, occupied } from './combatGeometry';
 import { zoneCovers, crossZones, zonesRoundTick, sceneZonesToBattle, type BattleZone } from './zones';
 import { applyTriggeredEffects } from '../triggeredEffects';
@@ -58,16 +58,16 @@ describe('z-blindness #807 — entityBlockedAt (décor multi-cases/interactif)',
   });
 });
 
-describe('z-blindness #807 — combatDistance (mono-cible, hauteur réelle)', () => {
+describe('z-blindness #807 — distanceDeCombat (mono-cible, hauteur réelle)', () => {
   it('POSITIF — même étage (h identique) : distance = Chebyshev horizontal pur', () => {
     const a = mk('a', 0, 0, 0, 0);
     const b = mk('b', 3, 0, 0, 0);
-    expect(combatDistance(a, b)).toBe(3);
+    expect(distanceDeCombat(a, b)).toBe(3);
   });
   it("NÉGATIF — même (x,y), étage supérieur (Δh=4m=2 cases) : distance DOMINÉE par la verticale", () => {
     const sol = mk('sol', 5, 5, 0, 0);
     const etage = mk('etage', 5, 5, 1, 4);
-    expect(combatDistance(sol, etage)).toBe(2); // horizontal 0, vertical = 4/2 = 2 cases
+    expect(distanceDeCombat(sol, etage)).toBe(2); // horizontal 0, vertical = 4/2 = 2 cases
   });
 });
 
@@ -81,12 +81,12 @@ describe('z-blindness #807 — combatantsWithinRadius (aire/orchestrateur partag
     const c = mk('c', 6, 5, 1);
     expect(combatantsWithinRadius(center, 2, [c])).toEqual([]);
   });
-  it('NÉGATIF (dist=combatDistance, empreinte) — même (x,y), étage supérieur réel : hors rayon', () => {
+  it('NÉGATIF (dist=distanceDeCombat, empreinte) — même (x,y), étage supérieur réel : hors rayon', () => {
     const src = mk('src', 5, 5, 0, 0);
     const above = mk('above', 5, 5, 1, 4); // 2 cases de vertical
-    const withinFloor = combatantsWithinRadius(src.pos!, 1, [above], undefined, (_c, x) => combatDistance(src, x));
+    const withinFloor = combatantsWithinRadius(src.pos!, 1, [above], undefined, (_c, x) => distanceDeCombat(src, x));
     expect(withinFloor).toEqual([]);
-    const withinRadius2 = combatantsWithinRadius(src.pos!, 2, [above], undefined, (_c, x) => combatDistance(src, x));
+    const withinRadius2 = combatantsWithinRadius(src.pos!, 2, [above], undefined, (_c, x) => distanceDeCombat(src, x));
     expect(withinRadius2).toEqual([above]); // au rayon exact (2 cases), inclus — contrôle POSITIF de la formule
   });
 });

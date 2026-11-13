@@ -125,7 +125,7 @@ describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l
       reload: 2, loaded: false, reloadProgress: 0, qualities: [{ id: 'recharge', value: 2 }] } as unknown as Weapon;
     const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'heros', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur], order: ['t'], turn: 0, round: 1, acted: false, log: [] } as never, party: [tireur], scene: null as never,
-      pendingReload: { actorId: 't', actorName: 'Tireur', weaponUid: 'arb', reload: 2, progressBefore: 0, skillValue: 50, difficulty: 'intermediaire', ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' }, roll: 45, target: 50, sl: 0, success: true } });
+      pendingReload: { actorId: 't', weaponUid: 'arb', reload: 2, progressBefore: 0, skillValue: 50, difficulty: 'intermediaire', ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' }, roll: 45, target: 50, sl: 0, success: true } });
     banc.getState().jetValider('rechargement');
     const w = banc.getState().battle!.combatants[0].weapons.find((x) => x.uid === 'arb')!;
     expect(w.reloadProgress).toBe(1);

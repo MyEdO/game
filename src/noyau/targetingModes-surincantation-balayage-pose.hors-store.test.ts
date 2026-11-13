@@ -44,7 +44,7 @@ describe('Surincantation +Cible — LDB 47 l.28', () => {
     const eligibles = mode.candidates!(banc.getState, hero).map((c) => c.id);
     expect(eligibles, 'fixture : e2 est une cible supplémentaire').toContain('e2');
     const vise = mode.affordance!(banc.getState, hero, e2);
-    expect(vise).toMatchObject({ kind: 'ok', targetName: e2.label });
+    expect(vise.kind).toBe('ok');
     expect(mode.affordance!(banc.getState, hero, e1).kind).toBe('none');
     expect(mode.affordance!(banc.getState, hero, ally).kind).toBe('none');
   });

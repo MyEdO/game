@@ -120,6 +120,7 @@ import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoir
 import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-aleatoires';
 import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
 import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
+import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-nature';
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
@@ -191,6 +192,7 @@ import oupsJson from './oups.json';
 import talentsAleatoiresJson from './talents-aleatoires.json';
 import carrieresAleatoiresJson from './carrieres-aleatoires.json';
 import especesAleatoiresJson from './especes-aleatoires.json';
+import mutationNatureJson from './mutation-nature.json';
 import cargaisonsAleatoiresJson from './cargaisons-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
@@ -2686,6 +2688,17 @@ export function tableDesRacesAleatoires(races: ReadonlySet<RaceKey>): (typeof es
   });
   return garanti(tables.length === 1 ? tables[0] : undefined, [...races].join(', '), `table unique du Tableau des Races aléatoires (${tables.length} trouvée(s)) pour les races`);
 }
+/** Les documents du tableau corps ou esprit de la mutation, un par race (LDB 19 l.76-81 ; ADE II 02 l.172-177 ;
+ *  NADJ 15 l.173) — app-owned éditable au Codex (`setDataset`), même référence ; chaque rangée tire l'une des deux
+ *  natures (`affinerDataset` de `schemas/defs/mutation-nature.ts`). */
+export const mutationNature = datasetDe<typeof tableauDeLaNatureDeMutation>(mutationNatureJson);
+/** Le document de la race d'une espèce (`id` STABLE, ou clé de race d'apparence que porte un PNJ), lu à
+ *  l'appel ; sans race couverte, celui de la race `humain`. LDB 19 l.76-81 */
+export function natureDeMutationDe(speciesId: string | undefined): (typeof mutationNature)[number] {
+  const race = findSpeciesById(speciesId)?.refChar ?? speciesId;
+  const doc = mutationNature.find((d) => d.race === race) ?? mutationNature.find((d) => d.race === 'humain');
+  return garanti(doc, race ?? 'humain', 'document de la nature de la mutation pour la race');
+}
 /** Les documents du Tableau des cargaisons, un par voie et colonne saisonnière (MDG 15 l.404-418 ; MSRC 13
  *  l.69-78) — app-owned éditable au Codex (`setDataset`), même référence. */
 export const cargaisonsAleatoires = datasetDe<typeof tableauDesCargaisons>(cargaisonsAleatoiresJson);
@@ -2805,12 +2818,6 @@ export const DEFAULT_RACE_ID: string = datasetDe<typeof speciesRaceDef>(speciesR
  *  Pont UNIQUE règles→apparence (pregens/draft/creator/defaultAppearance). */
 export function especeDApparence(rulesId: string | undefined): EspeceDApparence {
   return (rulesId ?? DEFAULT_RACE_ID) as EspeceDApparence;
-}
-/** Seuil d100 de mutation PHYSIQUE d'une espèce par `id` (LDB 19 l.78-81). Défaut **50** = colonne
- *  Humain (LDB) — couvre aussi le Gnome (NADJ « Gnomes et Corruption » : « mutent comme les humains »)
- *  et toute espèce hors Tableau. Les valeurs ≠ 50 (Elfe 0, Nain 5, Halfling 10, Ogre 10) sont en donnée. */
-export function mutationBodyMaxForSpecies(id: string | undefined): number {
-  return findSpeciesById(id)?.mutationBodyMax ?? 50;
 }
 
 /** Affichage SINGULIER de l'espèce d'un INDIVIDU (« Humain (Reiklander) ») : les `label` du catalogue

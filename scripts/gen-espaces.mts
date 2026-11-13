@@ -141,10 +141,13 @@ const litteralDePas = (pas: PasResolu): string =>
 /** Catégories à dataset dont la collection n'est pas une liste d'entrées `{ id, label }`, et pourquoi :
  *  hors de la porte `entreeDeCategorie`. */
 const HORS_DE_LA_PORTE: Readonly<Record<string, string>> = {
+  dispersion: 'rangées sans `label` : une face du dé, que son décalage désigne (LDB 14 l.146-149)',
   navalProgression: 'entrées sans `label`',
   obsessions: 'rangées sans `label` : leur `id` est un Groupe (`groups.json`), qui porte le libellé',
+  reactionAuStatut: 'rangées sans `label` : leur `issue` (`issueDeReactionSchema`) porte le libellé (LDB 08 l.43-45)',
   shipConstructionTraits: 'entrées sans `label`',
   shipHullSizes: 'entrées sans `label`',
+  tableauCapricieux: 'rangées sans `label` : une fourchette du dé, que son modificateur de DR désigne (MSRC 15 l.153-159)',
 };
 
 /** `suite` résolue contre `schema` en pas lisibles sans lui (`suivreLeChemin`) : un pas `[clé]` y porte

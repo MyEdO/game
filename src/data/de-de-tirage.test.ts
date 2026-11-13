@@ -22,6 +22,9 @@ import type * as miscast from './schemas/defs/miscast';
 /** Le dé IMPRIMÉ par le livre pour chaque document-table, à sa réf. */
 const LIVRE: Record<string, { die: string; ref: string }> = {
   'artillery-misfire': { die: '1d10', ref: 'AA 10 l.272' },
+  dispersion: { die: '1d10', ref: 'LDB 14 l.144' },
+  'reaction-au-statut': { die: '1d10', ref: 'LDB 08 l.40' },
+  'tableau-capricieux': { die: '1d10', ref: 'MSRC 15 l.151' },
   'incidents-monte': { die: '1d100', ref: 'EDOC 07 l.150' },
   'problemes-vehicule': { die: '1d100', ref: 'EDOC 07 l.259' },
   'structure-criticals': { die: '1d100', ref: 'AA 10 l.118' },
@@ -31,6 +34,13 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'races-gnome': { die: '1d100', ref: 'NADJ 14 l.68' },
   'races-ogre': { die: '1d100', ref: 'ADE II 02 l.110' },
   'races-gnome-et-ogre': { die: '1d100', ref: 'maison, NADJ 14 l.68, ADE II 02 l.110' },
+  'mutation-nature-humain': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-halfling': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-nain': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-haut-elfe': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-elfe-sylvain': { die: '1d100', ref: 'LDB 19 l.76' },
+  'mutation-nature-ogre': { die: '1d100', ref: 'ADE II 02 l.172, LDB 19 l.76' },
+  'mutation-nature-gnome': { die: '1d100', ref: 'NADJ 15 l.173, LDB 19 l.76' },
   'cargaisons-mer-printemps': { die: '1d100', ref: 'MDG 15 l.404, l.406' },
   'cargaisons-mer-ete': { die: '1d100', ref: 'MDG 15 l.404, l.406' },
   'cargaisons-mer-automne': { die: '1d100', ref: 'MDG 15 l.404, l.406' },
