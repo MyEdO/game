@@ -51,7 +51,7 @@ const PORTES_JOUEUR: [string, unknown][] = [
  */
 const REFS_EN_LIBELLE: string[] = [];
 
-const DEF_BY_ID = new Map(DEFS.map((d) => [d.id, d]));
+const DEF_BY_ID = new Map<string, (typeof DEFS)[number]>(DEFS.map((d) => [d.id, d]));
 /** Ids de COMPÉTENCE — le concept dont la sentinelle est ÉTEINTE (L2 #1548). */
 const EST_COMPETENCE = new Set<string>(skills.map((s) => s.id));
 /** La spéc `spec` est-elle au catalogue de la def `def` (`specAuCatalogue`) ? Son type se lit à

@@ -38,7 +38,7 @@ import type { GameOp } from '../engine/ops';
 import { t } from '../i18n';
 import crits from '../data/criticals.json';
 import etats from '../data/etats.json';
-import talents from '../data/talents.json';
+import { findTalentById } from '../data';
 import spells from '../data/spells.json';
 import shipCrits from '../data/ship-criticals.json';
 import { desDuTest } from '../engine/dice.testkit';
@@ -97,9 +97,11 @@ const noeudDEtat = (id: string): NoeudTest =>
     .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
 
 /** Le nœud `test` d'un talent (Mâchoires d'acier : branche `on:'caster'`, auto-portée). */
-const noeudDeTalent = (id: string): NoeudTest =>
-  (talents as { id: string; effects?: { flow: Flow }[] }[]).find((t) => t.id === id)!
-    .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
+const noeudDeTalent = (id: string): NoeudTest => {
+  const noeud = findTalentById(id)?.effects?.find((x) => x.flow.kind === 'test')?.flow;
+  if (noeud?.kind !== 'test') throw new Error(`aucun nœud \`test\` aux effets du talent « ${id} »`);
+  return noeud;
+};
 
 /** Feuilles `ops` d'un Flow (branches comprises) — sert à CHOISIR un nœud par sa forme. */
 function feuilles(f: Flow | undefined): { on?: string; ops: GameOp[] }[] {

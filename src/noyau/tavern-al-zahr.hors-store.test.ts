@@ -173,8 +173,8 @@ describe('Al-zahr — les effets de pot (famille 5, socle)', () => {
       'quitte-la-manche', 'remise-ou-abandon', 'cible-ou-passe', 'reprend-mise', 'rafle-le-pot',
     ]);
     // La règle est recopiée SANS coupe : la dernière phrase du RAW (l.17) est là.
-    expect(jeu.desc.startsWith('chaque joueur ajoute une mise égale au pot.')).toBe(true);
-    expect(jeu.desc.endsWith('la possibilité de lancer les dés en premier.')).toBe(true);
+    expect(jeu.desc?.startsWith('chaque joueur ajoute une mise égale au pot.')).toBe(true);
+    expect(jeu.desc?.endsWith('la possibilité de lancer les dés en premier.')).toBe(true);
   });
 });
 
