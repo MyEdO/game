@@ -296,7 +296,7 @@ for (const rel of depot ? MANUSCRITS : []) {
 const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
 /** Le lieu où la recette se joue, choisi une fois : la page de l'export (`--web`), ou le jeu lancé sans export
  *  (`--natif`). Les deux portent les mêmes noms. */
-const lieu = await import(o.natif ? './pilotage/natif.mjs' : './pilotage/page.mjs')
+const lieu = o.natif ? await import('./pilotage/natif.mjs') : await import('./pilotage/page.mjs')
 const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
 const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu })
 const noter = (t) => console.log('·', t)
