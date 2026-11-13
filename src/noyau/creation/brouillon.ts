@@ -64,7 +64,7 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, findTalentById, specPoolOf, careersForSpecies, carrieresTirables, offreDuJet, varianteDe, portionDeLaColonne, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef, type CareerData, type JetDeCarriere } from '../../data';
+import { findSpeciesById, findCareerById, findTalentById, specPoolOf, careersForSpecies, carrieresTirables, offreDuJet, varianteDe, portionDeLaColonne, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef, type CareerData, type JetDeCarriere } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
@@ -344,7 +344,13 @@ export function careerXp(d: CreatorDraft): number {
   const sp = draftSpecies(d);
   const n = d.careerRolls.length;
   if (!sp || n > JETS_DE_CARRIERE_A_BONUS) return 0;
-  const offert = d.careerRolls.some((r) => offreDuJet(sp, r).includes(d.careerId));
+  // AA 05 l.137
+  const borne = findCareerById(d.careerId)?.talentALaPlaceDe;
+  const borneTenue = !borne || d.careerTalent?.id !== borne.id || poolDuJoker('talent', borne).includes(d.careerTalent.spec ?? '');
+  const offert = d.careerRolls.some((r) => {
+    const offre = offreDuJet(sp, r);
+    return offre[0] === d.careerId || (borneTenue && offre.includes(d.careerId));
+  });
   if (n === 1 && offert) return XP_CAREER_FIRST;
   if (n === JETS_DE_CARRIERE_A_BONUS && offert) return XP_CAREER_TOP3;
   return 0;

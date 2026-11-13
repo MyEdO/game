@@ -21,6 +21,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { tableTotale } from '../../src/lib/tableTotale.ts';
 import { porteLaTranche } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -49,10 +50,10 @@ const POSEES = {
   'cavalier-leger': { aLaPlaceDe: { id: 'cavalier' }, ...TILEENS },
   'piquier': { aLaPlaceDe: { id: 'soldat' }, ...TILEENS },
   'pretre-de-myrmidia': { aLaPlaceDe: { id: 'pretre-guerrier' }, ...TILEENS },
-  ...Object.fromEntries(COLLEGES.map((c) => [c, { aLaPlaceDe: { id: 'sorcier' } }])),
+  ...tableTotale(COLLEGES, () => ({ aLaPlaceDe: { id: 'sorcier' } })),
 };
 /** La forme d'avant d'un geste : les clés qu'il pose, absentes ; `aLaPlaceDe` en chaîne pour l'ADE I. */
-const avantDe = (apres, aLaPlaceDe) => ({ ...Object.fromEntries(Object.keys(apres).map((k) => [k, undefined])), aLaPlaceDe });
+const avantDe = (apres, aLaPlaceDe) => ({ ...tableTotale(Object.keys(apres), () => undefined), aLaPlaceDe });
 
 const brut = readFileSync(CAREERS, 'utf8');
 const careers = JSON.parse(brut);

@@ -713,6 +713,16 @@
     "especesALaPlaceDe": [
       "humains-tileens"
     ],
+    "talentALaPlaceDe": {
+      "id": "beni",
+      "choix": [
+        "myrmidia",
+        "morr",
+        "verena",
+        "shallya",
+        "ranald"
+      ]
+    },
     "desc": "*Vous êtes au service de votre divinité, ayant fait vœu d'une vie pieuse.*\n\nLes Nonnes font partie d'ordres religieux et sont en temps normal cloîtrées au sein d'une abbaye, d'un couvent ou d'un monastère. La plupart se lèvent avant le soleil pour effectuer leurs Prières du matin avant d'effectuer leur labeur dans les champs, de soigner les malades ou de travailler à la préservation de manuscrits importants. Les serments de pèlerinage en contraignent certaines à voyager à travers l'Empire alors que d'autres ont fait vœu d'aider la communauté, marchant aux côtés du peuple et répondant à ses besoins spirituels. Certains ermites, tout comme ceux qui prennent soin des sanctuaires, sont souvent appelés Nonnes ou Moines par les habitants de l'Empire. De nombreuses Nonnes apprennent les métiers, indispensables de vignerons, de brasseurs ou de cartographes. Les Abbesses mettent ces activités en avant afin d'attirer les dons de la noblesse locale. Les chefs d'ordres militaires, ou très rassembleurs, bénéficient d'une influence importante au sein de leur propre culte ainsi qu'avec la classe dirigeante d'une province. Pour en savoir plus sur les différentes religions et les différents ordres, référez-vous au Chapitre 7 : Religions et Croyances.\n\n« Ils sont arrivés en imaginant qu'il était simple de massacrer quelques pauvres frères malchanceux et de s'emparer de nos reliques. Je demande à Morr de ne pas juger avec trop de sévérité les sept bandits que nous enterrons ce jour, car frère Hild les a déjà suffisamment punis. »\n\n– Abbé Ernst Halfhauser\n\n« Vite ! Dépêche-toi ! Les Sœurs de la Foi et de la Chasteté vont défiler dans les rues. Je suis curieux de voir si je parviens à coincer quelques pièces de cuivre entre leurs épines. Ça porte chance pour une année entière ! »\n\n– Bengt, vagabond d'Altdorf\n\nLorsqu'un ordre religieux découvre de terribles secrets ou une partie d'une prophétie, ses dirigeants ressentent souvent la nécessité d'agir en envoyant frères et sœurs de par le monde. Les abbayes sises le long des routes de pèlerinage vont régulièrement envoyer leurs membres pour protéger les nombreux pèlerins qui parcourent les longues routes sacrées de l'Empire. De même, il y aura toujours des religieux itinérants parcourant le monde et partant à l'aventure dans chaque nouveau territoire qu'ils découvrent.",
     "source": {
       "book": "livre-de-base",
@@ -740,6 +750,16 @@
     "especesALaPlaceDe": [
       "humains-tileens"
     ],
+    "talentALaPlaceDe": {
+      "id": "beni",
+      "choix": [
+        "myrmidia",
+        "morr",
+        "verena",
+        "shallya",
+        "ranald"
+      ]
+    },
     "desc": "*Vous portez la parole de votre dieu et assouvissez les besoins spirituels des masses.*\n\nLes Prêtres s'occupent de tous les fidèles du Vieux Monde. Même si la plupart sont affectés à des temples spécifiques, d'autres préfèrent une vie d'errance afin de toucher les fidèles qui ne peuvent, ou ne veulent pas se rendre dans les temples. On attend d'eux qu'ils incarnent les croyances de leur religion – ce qui va dépendre de la divinité qu'ils servent. Les Grands Prêtres sont responsables d'un temple, et de tous ses membres du culte et laïcs. Souvent, ils sont appelés, aux côtés des Lecteurs, afin de porter conseil aux classes dirigeantes, et nombreux sont ceux qui tiennent une place active dans la politique d'une région. Les Prêtres ont de nombreuses obligations relatives à leur dieu, comme le devoir de consécration des nouveaux navires des Prêtres de Manann ou la responsabilité de ceux de Shallya envers les malades et les blessés. Ils interviennent donc dans tous les aspects de la vie de l'Empire. Pour en apprendre plus sur la religion et les différents ordres, voir le Chapitre 7 : Religions et Croyances.\n\n« Lorsque j'ai besoin d'un conseil sensé, je me tourne vers un Prêtre de Verena. Pour tout le reste, je cherche un Prêtre de Ranald. »\n\n– Wermer Losch, Marchand\n\n« La prêtresse de Shallya, juste une gamine, a posé sa main sur le front de mon petit Anton en murmurant et il s'est tout de suite arrêté de crier. Il m'a souri pour la première fois depuis des jours. Je n'oublierai jamais. Oh, il est mort quelques jours plus tard, mais il n'a pas souffert. Non, il n'a pas souffert. »\n\n– Sabine Schmidt, Poissonnière\n\n« Écoutez, il n'y a rien à craindre. La Nuit des Sorcières, l'Hexensnacht a lieu tous les ans. Nous devons juste demander au Seigneur de la Mort de veiller sur nous. Et, lorsque minuit sonnera, nous appellerons MORR ! MORR ! MORR ! »\n\n– Père Wilhelm Abgott, Prêtre de Morr\n\nCertains Prêtres, qui doivent normalement rester en service dans des temples, cherchent des prétextes afin de séjourner à l'extérieur. Lorsqu'ils ont vent de problèmes étranges rapportés par leur congrégation, ils peuvent partir en quête de réponses. Certains Grands Prêtres trouvent les obligations administratives tellement éloignées de ce qu'ils avaient imaginé, lorsqu'ils ont rejoint le culte, qu'ils partent pour de longs pèlerinages loin de leur temple.",
     "source": {
       "book": "livre-de-base",

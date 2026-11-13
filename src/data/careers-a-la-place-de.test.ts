@@ -5,13 +5,14 @@
  * l.27 ; ADE I 07 l.9-11 ; LDB 08 l.1676, l.2292, l.2357.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { findSpeciesById, offreDuJet, substitutionsDe, varianteDe } from '.';
+import { findCareerById, findSpeciesById, offreDuJet, substitutionsDe, varianteDe } from '.';
 import { resetRule, setRule } from '../engine/policy';
 import { schema } from './schemas/defs/careers';
 import careersJson from './careers.json';
 
 const CHEVAUCHEUR = 'creation-chevaucheur-de-blaireau';
 const espece = (id: string) => findSpeciesById(id)!;
+const BENI_TILEEN = { id: 'beni', choix: ['myrmidia', 'morr', 'verena', 'shallya', 'ranald'] };
 const COLLEGES = ['hierophante', 'alchimiste', 'druide', 'astromancien', 'spirite', 'pyromancien', 'chamane', 'umbramancien'];
 
 afterEach(() => resetRule(CHEVAUCHEUR));
@@ -40,6 +41,11 @@ describe('substitutions du tirage de carrière, par espèce', () => {
     expect(substitutionsDe('soldat', espece('humains-reiklander'))).toEqual([]);
   });
 
+  it('Nonne et Prêtre pris à la place de Flagellant bornent le Talent de carrière Béni aux cinq dieux d’AA 05 l.137', () => {
+    expect(findCareerById('nonne')?.talentALaPlaceDe).toEqual(BENI_TILEEN);
+    expect(findCareerById('pretre')?.talentALaPlaceDe).toEqual(BENI_TILEEN);
+  });
+
   it('Cavalier léger et Prêtre de Myrmidia pour le Tiléen (AA 05 l.138, l.140)', () => {
     expect(substitutionsDe('cavalier', espece('humains-tileens'))).toEqual(['cavalier-leger']);
     expect(substitutionsDe('pretre-guerrier', espece('humains-tileens'))).toEqual(['pretre-de-myrmidia']);
@@ -65,9 +71,18 @@ describe('schéma de `aLaPlaceDe` et `especesALaPlaceDe`', () => {
     expect(schema.safeParse(avec({ especesALaPlaceDe: ['tileens'] })).success).toBe(false);
   });
 
-  it('refuse `especesALaPlaceDe` sans `aLaPlaceDe`, et nomme le champ manquant', () => {
+  it('refuse `especesALaPlaceDe` et `talentALaPlaceDe` sans `aLaPlaceDe`, et nomme le champ', () => {
     const r = schema.safeParse(sans('aLaPlaceDe'));
     expect(r.success).toBe(false);
     expect(r.error?.issues.map((i) => i.message)).toContainEqual(expect.stringContaining('« piquier » porte `especesALaPlaceDe` sans `aLaPlaceDe`'));
+    const sansSubstitution = careersJson.map((c) => (c.id === 'soldat' ? { ...c, talentALaPlaceDe: BENI_TILEEN } : c));
+    const t = schema.safeParse(sansSubstitution);
+    expect(t.success).toBe(false);
+    expect(t.error?.issues.map((i) => i.message)).toContainEqual(expect.stringContaining('« soldat » porte `talentALaPlaceDe` sans `aLaPlaceDe`'));
+  });
+
+  it('refuse un dieu hors du catalogue de Béni dans `talentALaPlaceDe`', () => {
+    expect(schema.safeParse(avec({ talentALaPlaceDe: { id: 'beni', choix: ['myrmidia', 'dieu-inconnu'] } })).success).toBe(false);
+    expect(schema.safeParse(avec({ talentALaPlaceDe: BENI_TILEEN })).success).toBe(true);
   });
 });

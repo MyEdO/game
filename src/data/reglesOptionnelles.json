@@ -614,8 +614,7 @@
     "group": "Création",
     "kind": "flag",
     "default": false,
-    "hint": "Ouvre la Carrière Chevaucheur de blaireau (Archives de l’Empire I) au halfling : il la prend à la place de Soldat tiré au Tableau des Carrières aléatoires. Désactivé par défaut.",
-    "maison": "ADE I 07 l.9 subordonne la Carrière à une condition laissée au MJ (« il doit d’abord convaincre le MJ que cette Carrière existe bel et bien ») : sans MJ, la condition devient cette règle, désactivée par défaut ; valeur d’adaptation du ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)"
+    "hint": "Ouvre la Carrière Chevaucheur de blaireau (Archives de l’Empire I) au halfling : il la prend à la place de Soldat tiré au Tableau des Carrières aléatoires. Désactivé par défaut."
   },
   {
     "id": "creation-signes-astraux",

@@ -42,6 +42,7 @@ import {
   rerollDraftTalent,
   withRandomTalentSpec,
   withSpeciesTalentChoice,
+  withCareerTalent,
 } from './brouillon';
 import { CHAR_KEYS } from '../../engine/types';
 import { especeDApparence, trappingRefLabel, type TrappingRef } from '../../data';
@@ -412,6 +413,36 @@ describe('second lancer sur la variante de la carrière tirée (AA 02 l.109-113 
     expect(charsXp({ ...d, charMode: 'reassigne' })).toBe(25);
     expect(charsXp({ ...d, charRerolls: 1 })).toBe(0);
     expect(charsXp({ ...d, charMode: 'repartition' })).toBe(0);
+  });
+});
+
+describe('culte du Tiléen qui prend Nonne ou Prêtre à la place de Flagellant (AA 05 l.137 ; LDB 05 l.208-212)', () => {
+  const tileen = withSpecies(newDraft(1), 'humains-tileens');
+  const FLAGELLANT = [{ roll: 39, id: 'flagellant' }];
+  const xp = (base: CreatorDraft, careerRolls: CreatorDraft['careerRolls'], carriere: string, talent: RefDesignee) =>
+    careerXp(withCareerTalent(withCareer({ ...base, careerRolls }, carriere), talent));
+
+  for (const carriere of ['nonne', 'pretre']) {
+    it(`${carriere} : Béni d’un dieu tiléen garde le bonus, Béni d’un autre dieu le perd, un autre Talent de carrière le garde`, () => {
+      for (const dieu of ['myrmidia', 'morr', 'verena', 'shallya', 'ranald'])
+        expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni', spec: dieu }), `Béni (${dieu})`).toBe(50);
+      for (const dieu of ['sigmar', 'ulric'])
+        expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni', spec: dieu }), `Béni (${dieu})`).toBe(0);
+      expect(xp(tileen, FLAGELLANT, carriere, { id: 'lire-ecrire' })).toBe(50);
+    });
+  }
+
+  it('trois jets, Nonne prise à la place de Flagellant avec Béni (Sigmar) : aucun bonus', () => {
+    const jets = [...FLAGELLANT, { roll: 1, id: 'agitateur' }, { roll: 2, id: 'artisan' }];
+    expect(xp(tileen, jets, 'nonne', { id: 'beni', spec: 'sigmar' })).toBe(0);
+  });
+
+  it('Nonne tirée directement : le culte est libre, Béni (Sigmar) garde le bonus', () => {
+    expect(xp(tileen, [{ roll: 52, id: 'nonne' }], 'nonne', { id: 'beni', spec: 'sigmar' })).toBe(50);
+  });
+
+  it('un Reiklander qui tire Flagellant ne prend pas Nonne à sa place : aucun bonus', () => {
+    expect(xp(withSpecies(newDraft(1), 'humains-reiklander'), FLAGELLANT, 'nonne', { id: 'beni', spec: 'myrmidia' })).toBe(0);
   });
 });
 

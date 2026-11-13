@@ -833,6 +833,8 @@ export interface CareerData {
   /** Les espèces auxquelles s'ouvre ce choix à la place de `aLaPlaceDe` ; absentes = toutes celles de `races`
    *  (Middenheim 09 l.57 ; AA 05 l.135 ; ADE I 07 l.11). */
   especesALaPlaceDe?: string[];
+  /** Le Talent de carrière qui borne ce choix à la place de `aLaPlaceDe` (AA 05 l.137). */
+  talentALaPlaceDe?: RefASpecialisation;
   /** La règle optionnelle dont l'activation ouvre la carrière (ADE I 07 l.9) ; absente = carrière ouverte. */
   gatedByRule?: { id: IdsParEspace['reglesOptionnelles.json'] };
   desc: string;
