@@ -15,7 +15,7 @@
  * de cases et d'un curseur. Chaque vue porte
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`). Chaque vue qu'une partie montre
- * a sa planche (`Planche`, #3935), que `etalons.mjs --enregistrer` écrit sous `hotes/godot/etalons/`.
+ * a sa planche (`Planche`, #3935), que `construire.mjs --export` dépose dans l'export (`deposerLesPlanches`).
  */
 /**
  * La recette native `projet/recettes/ecran.gd` montre les vues que la sonde fige (`hotes/godot/recettes/ecran.ts`, sous
@@ -58,29 +58,45 @@ export interface VueFigee {
 
 /**
  * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
- * (`projet/scripts/pont_de_planche.gd`). `nom` la nomme dans l'adresse (`?planche=<nom>`) et dans son fichier
- * (`hotes/godot/etalons/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
- * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `retrait`, `aretes` et `vision` les réponses du
- * pont à ces quatre méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous
- * `journal.lignes`, le masque du regard, les arêtes de sa scène et ce que le groupe en connaît ; `monde`, le monde de sa
- * scène (`MondeDeLaPlanche`).
+ * (`projet/scripts/pont_de_planche.gd`). Ses réponses, propres (`reponses`) et communes (`communes`), sont tout ce
+ * que le pont de la planche sert : chaque méthode que l'écran demande en la montrant y a la sienne, par son nom.
  */
 export interface Planche {
+  /** La planche dans l'adresse (`?planche=<nom>`) et dans son fichier (`<export>/planches/<nom>.json`). */
   nom: string;
+  /** Ce qu'elle montre. */
   titre: string;
+  /** Le scénario de sa partie, que l'adresse d'une partie nomme (`?scenario=`). */
   parametres: { scenario: string };
-  demarrer: { ok: true } & Suite;
-  monde: MondeDeLaPlanche;
-  retrait: unknown;
-  aretes: unknown;
-  vision: unknown;
+  /** Les réponses du pont propres à cet état. */
+  reponses: ReponsesDeLaPlanche;
+  /** Les réponses du pont que partagent les planches de son scénario. */
+  communes: ReponsesCommunes;
 }
 
-/** Le monde d'une planche, que `pont_de_planche.gd` sert : la réponse de `monde` et celle de `morceaux` à toutes ses
- *  clés (`toutesLesCles`). */
-export interface MondeDeLaPlanche {
+/** Les réponses du pont propres à l'état d'une planche, par méthode. */
+export interface ReponsesDeLaPlanche {
+  /** La suite de l'état, sans effet ni jeton, le journal de la partie entier sous `journal.lignes`. */
+  demarrer: { ok: true } & Suite;
+  /** Le masque du regard. */
+  retrait: unknown;
+  /** Ce que le groupe connaît de sa scène. */
+  vision: unknown;
+  /** Les arêtes de sa scène. */
+  aretes: unknown;
+}
+
+/** Les réponses du pont que partagent les planches d'un scénario, par méthode, déposées une fois
+ *  (`<export>/planches/communes/<scenario>.json`). */
+export interface ReponsesCommunes {
+  /** Le manifeste du monde de sa scène. */
   monde: unknown;
+  /** La géométrie de toutes ses clés (`toutesLesCles`), rendue à toute entrée. */
   morceaux: unknown;
+  /** L'index des modèles du listage de l'export, rendu à toute entrée. */
+  modeles: unknown;
+  /** Les préférences de confort par défaut. */
+  preferences: unknown;
 }
 
 /** L'entrée de `morceaux` qui demande à la partie chaque clé du manifeste `monde` (la réponse de `monde`). */
@@ -180,19 +196,22 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       if (methode === 'demarrer') scenario = (entree as { scenario: string }).scenario;
       return r;
     };
-    if (listage) appeler('modeles', { manifestes: listage.manifestes, osDesRigides: listage.osDesRigides });
-    const mondeDeLaPlanche = (): MondeDeLaPlanche => {
-      const monde = JSON.parse(pont.appeler('monde', null)) as MondeDuPont;
-      return { monde, morceaux: JSON.parse(pont.appeler('morceaux', JSON.stringify(toutesLesCles(monde)))) };
+    const modeles: unknown = listage ? appeler('modeles', { manifestes: listage.manifestes, osDesRigides: listage.osDesRigides }) : null;
+    const reponse = (methode: string, entree: unknown = null): unknown => JSON.parse(pont.appeler(methode, entree === null ? null : JSON.stringify(entree)));
+    const communes = (): ReponsesCommunes => {
+      const monde = reponse('monde') as MondeDuPont;
+      return { monde, morceaux: reponse('morceaux', toutesLesCles(monde)), modeles, preferences: reponse('preferences') };
     };
     const planche = (nom: string, titre: string, s: Suite): Planche => ({
       nom, titre,
       parametres: { scenario },
-      demarrer: { ok: true, vue: s.vue, programmes: [], journal: [], zones: { 'journal.lignes': [...journal] }, effets: [] },
-      monde: mondeDeLaPlanche(),
-      retrait: JSON.parse(pont.appeler('retrait', null)),
-      aretes: JSON.parse(pont.appeler('aretes', null)),
-      vision: JSON.parse(pont.appeler('vision', null)),
+      reponses: {
+        demarrer: { ok: true, vue: s.vue, programmes: [], journal: [], zones: { 'journal.lignes': [...journal] }, effets: [] },
+        retrait: reponse('retrait'),
+        vision: reponse('vision'),
+        aretes: reponse('aretes'),
+      },
+      communes: communes(),
     });
     const jouer = (methode: string, entree: unknown): Suite => {
       let s = appeler(methode, entree);
