@@ -4,7 +4,19 @@ import { garanti } from '../lib/garanti';
 import { buildScene } from './mapSpec';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { reachedFloors, unreachableDescriptiveZones, zoneWalkableCells } from './mapQC';
-import { areteOcculteEntre, edgeOf, heightAt, isDescriptiveZone, isWalkable, porteAuteur, sceneMetresPerTile, tileAt, wallBetween, type Scene, type SceneEntity } from './monde/scene';
+import {
+  areteOcculteEntre,
+  edgeOf,
+  heightAt,
+  isDescriptiveZone,
+  isWalkable,
+  porteAuteur,
+  sceneMetresPerTile,
+  tileAt,
+  wallBetween,
+  type Scene,
+  type SceneEntity,
+} from './monde/scene';
 import { estAbsent } from './monde/terrain';
 import { reachable, tileKey } from './monde/path';
 import { planClimb } from './monde/climbMove';

@@ -64,7 +64,28 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, findCareerById, findTalentById, specPoolOf, careersForSpecies, carrieresTirables, offreDuJet, varianteDe, portionDeLaColonne, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef, type CareerData, type JetDeCarriere } from '../../data';
+import {
+  findSpeciesById,
+  findCareerById,
+  findTalentById,
+  specPoolOf,
+  careersForSpecies,
+  carrieresTirables,
+  offreDuJet,
+  varianteDe,
+  portionDeLaColonne,
+  levelsForCareer,
+  advancementLabel,
+  refLabel,
+  findStarById,
+  celestialHouses,
+  SpeciesData,
+  CareerLevelData,
+  trappingRefLabel,
+  type AdvancementRef,
+  type CareerData,
+  type JetDeCarriere,
+} from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';

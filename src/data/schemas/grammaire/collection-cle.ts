@@ -28,7 +28,23 @@ import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { estObjet } from '../../../lib/objet.mjs';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
-import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, retenuParFiltre, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
+import {
+  baseDe,
+  champsDiscriminants,
+  cleDesLibelles,
+  cleDesSpecs,
+  cleDuVocabulaire,
+  cleNichee,
+  estPrefixeDeSuite,
+  idsDeCollection,
+  libellesDeCollection,
+  lireCleDEspace,
+  pasDeLaSuite,
+  retenuParFiltre,
+  suiteAvecPas,
+  type CleLue,
+  type FiltreDEspace,
+} from './cle-d-espace';
 import { estFeuilleDId, jugerRefLocale, porteeDeLaFeuille, type PorteeLocale } from './ref';
 import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
 

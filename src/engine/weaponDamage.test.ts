@@ -1,6 +1,16 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
+import {
+  effectiveWeaponDamage,
+  effectiveRange,
+  applyAmmoMod,
+  effectiveWeaponRange,
+  isImprovised,
+  damageWeapon,
+  effectiveWeapon,
+  improvisedProfile,
+  solideSaveThreshold,
+} from './weaponDamage';
 import { recomputeLoadout, damageString, itemFromTrappingById, weaponFromItem } from './items';
 import type { Weapon, Combatant } from './types';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';

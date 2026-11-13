@@ -11,7 +11,14 @@ import type { Get, Set } from './flowTypes';
 import type { IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison } from './designations';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import { acheterAuPort, devisDAchatEnPort, jeterAuPort, refusDeBradageEnPort, vendreAuPort } from './portFlow';
-import { acheterALaHalle, devisDAchatDeCargaison, jeterALaHalle, raisonDuRefusDAchatDeCargaison, refusDeBradageALaHalle, vendreALaHalle } from './landMarketFlow';
+import {
+  acheterALaHalle,
+  devisDAchatDeCargaison,
+  jeterALaHalle,
+  raisonDuRefusDAchatDeCargaison,
+  refusDeBradageALaHalle,
+  vendreALaHalle,
+} from './landMarketFlow';
 import { bulkCarriers, CAMPAIGN_VESSEL_CARRIER_ID, primaryCargoCarrier } from './carriers';
 import type { CargoCarrier } from '../engine/cargo';
 import { refusDeGesteSurLeGroupe } from './bourseFlow';

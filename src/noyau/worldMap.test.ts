@@ -5,7 +5,17 @@
  * silence ni migré (#2404).
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, produitsDuProfil, type RenderPoint, type MapPlace } from './worldMap';
+import {
+  parseProject,
+  parseSceneDeProjet,
+  declutterPositions,
+  resolvePortRef,
+  portVersDepot,
+  placeServices,
+  produitsDuProfil,
+  type RenderPoint,
+  type MapPlace,
+} from './worldMap';
 import { findCargoEntryById } from '../engine/cargo';
 import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';

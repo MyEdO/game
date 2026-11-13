@@ -3,7 +3,16 @@ import type { Characteristics, Combatant, ItemInstance } from '../engine/types';
 import type { CargoLot } from '../engine/cargo';
 import { carrierUsedEnc } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
-import { partyCarriers, carrierById, primaryCargoCarrier, bulkCargoRefs, partyCargoTotalEnc, persistCarriersCargo, CAMPAIGN_VESSEL_CARRIER_ID, type CarrierStateSlice } from './carriers';
+import {
+  partyCarriers,
+  carrierById,
+  primaryCargoCarrier,
+  bulkCargoRefs,
+  partyCargoTotalEnc,
+  persistCarriersCargo,
+  CAMPAIGN_VESSEL_CARRIER_ID,
+  type CarrierStateSlice,
+} from './carriers';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 const chars = (F = 30, E = 30): Characteristics => ({

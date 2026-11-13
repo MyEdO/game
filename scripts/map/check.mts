@@ -11,7 +11,18 @@
  *                                                           (projet exporté par l'éditeur : COORDONNÉES de case,
  *                                                            aucune grille ASCII n'existant derrière)
  */
-import { auditStairwells, builtTerrains, floorPairs, PLAN_DEFECT_FAMILIES, scenePlanDefects, scenesZ, terrainAt, type PlanDefect, type PlanDefectFamily, type PlanDefectFamilyDef } from '../../src/noyau/planDefects';
+import {
+  auditStairwells,
+  builtTerrains,
+  floorPairs,
+  PLAN_DEFECT_FAMILIES,
+  scenePlanDefects,
+  scenesZ,
+  terrainAt,
+  type PlanDefect,
+  type PlanDefectFamily,
+  type PlanDefectFamilyDef,
+} from '../../src/noyau/planDefects';
 import { estAbsent } from '../../src/noyau/monde/terrain';
 import { codedSites, coord, projectSites, type Site } from './sites';
 import { findMaps, MAP_REGISTRY, type MapEntry } from './registry';

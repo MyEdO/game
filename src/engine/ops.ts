@@ -18,7 +18,19 @@ import type { FabriqueDId } from './fabriqueDId';
 import { RNG, roll, type DiceSpec, type EffetSigne, type Tirage, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
+import {
+  addCondition,
+  addTimedCondition,
+  addClockCondition,
+  removeCondition,
+  loseWounds,
+  hasCondition,
+  releaseConditionLocks,
+  aUnVerrouLevePar,
+  syncDerivedConditions,
+  removeActiveEffects,
+  pionsRetirables,
+} from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY } from './clock';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
@@ -42,15 +54,47 @@ import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { deDeTirageDe } from '../data/rangees';
-import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+// cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+import {
+  peutEtreEmpoigne,
+  setGrapple,
+} from './grapple';
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
-import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, estPlaieAmputation, plaieDAmputation, avecSequelles, type SequelleNeuve } from './trauma';
+import {
+  cureCriticalWounds,
+  receiveMedicalAid,
+  traumaPassiveMods,
+  permanentAmputations,
+  consolidateAmputations,
+  estPlaieAmputation,
+  plaieDAmputation,
+  avecSequelles,
+  type SequelleNeuve,
+} from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, laisserTomber, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
+import {
+  contexteDeNaissanceDObjet,
+  damageLeatherArmour,
+  endommagerLEquipementPorte,
+  itemFromGive,
+  giveTrappingLabel,
+  recomputeLoadout,
+  weaponItem,
+  activeLoadout,
+  damageString,
+  autoStowNewItem,
+  lacherLArme,
+  laisserTomber,
+  armeNaturelleAccordee,
+  estUneVraieArme,
+  objetDeSlot,
+  isWeaponActive,
+  uidDArme,
+} from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';

@@ -4,7 +4,17 @@
  */
 import type { IconId } from '../data/icons';
 import type { FabriqueDId } from './fabriqueDId';
-import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty, type Main } from './types';
+import {
+  Combatant,
+  ActiveEffect,
+  ConditionInstance,
+  effectRef,
+  type ModLine,
+  type ConditionEmit,
+  type ConditionLocks,
+  type Difficulty,
+  type Main,
+} from './types';
 import { evalCondition, walkFlow } from './flowCore';
 import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
@@ -33,7 +43,10 @@ import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
-import { isInanimate } from './structures'; // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
+// cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
+import {
+  isInanimate,
+} from './structures';
 import { hasTalent } from './magic'; // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
 

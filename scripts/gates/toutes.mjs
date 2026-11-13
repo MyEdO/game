@@ -127,7 +127,7 @@ export const ECRIT_LU = {
     },
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', ...DOSSIERS_DES_ZONES, 'Source/',
-      'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+      'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'oxlint.noms-par-ligne.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts', 'vitest.noyau.config.ts', '.mcp.json',
     ],
     raison: RETRAIT_WORKTREE_FERME +
@@ -146,6 +146,7 @@ export const ECRIT_LU = {
       'les autres fixtures vivent sous os.tmpdir() ; le banc de configuration de lancerLint copie le fichier jugé dans sa fixture temporaire, ' +
       'y écrit .lint-PID-aléatoire.config.mjs et y mesure cette écriture avec le collecteur de lectures, puis exige la suppression de la configuration ; ' +
       'fichiersLus (scripts/test/lib/bancLister.mjs) copie les fichiers armés et les fichiers d’ignore suivis sous mkdtempSync de os.tmpdir(), y lance la commande du lint, puis rmSync en finally ; ' +
+      'nomsParLigneLint.test.mjs (#3821) pose ses fixtures sous mkdtempSync de os.tmpdir(), y lance oxlint --fix sous oxlint.noms-par-ligne.config.mjs, puis rmSync en finally ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
       'ces variables sont absentes du banc lintStage : installer rend un collecteur sur la fixture temporaire, restauré en finally avant son retrait ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
