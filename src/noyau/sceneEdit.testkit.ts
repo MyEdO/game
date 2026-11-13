@@ -4,13 +4,13 @@
  * en avaient besoin (dérivation de masses, compilation `MapSpec`, toitures dérivées, affordances de
  * l'éditeur) composent d'ici, chacune dans sa forme de sortie.
  *
- * Il vit à côté des primitives qu'il compose (`sceneEditLecture.ts` : `canonEdge` ; `sceneEdit.ts` : `setEdgeWall`) parce que
+ * Il vit à côté des primitives qu'il compose (`monde/scene.ts` : `canonEdge` ; `sceneEdit.ts` : `setEdgeWall`) parce que
  * ses consommateurs s'étalent sur le noyau, le rendu et l'éditeur : un kit hébergé chez l'un
  * d'eux redeviendrait le helper local d'un seul. La CANONICALISATION N/E n'est jamais réencodée ici :
  * elle passe par `canonEdge`/`setEdgeWall`.
  */
-import type { Scene, WallSeg } from './monde/scene';
-import { canonEdge, type Layers } from './sceneEditLecture';
+import { canonEdge, type Scene, type WallSeg } from './monde/scene';
+import type { Layers } from './sceneEditLecture';
 import { setEdgeWall } from './sceneEdit';
 import type { CellSide } from './monde/scene';
 

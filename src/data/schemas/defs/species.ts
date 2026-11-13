@@ -4,8 +4,7 @@ import { nommerChamps } from '../grammaire/meta';
  * `SpeciesData` (`src/data/index.ts`). `skills`/`talents` = emplacements d'avancement
  * (`grammaire/avancement.ts`), `baseChar` = une valeur par `CharKey`. Mêmes petites formes
  * partagées que `careerLevels.ts`, PROMUES dans `grammaire/avancement.ts`, `grammaire/reference.ts`
- * (Ref/TraitPose) et `grammaire/valeurs.ts` (CharKey). `mutationBodyMax` est ABSENT sur une partie des
- * entrées : optionnel, conforme à l'interface.
+ * (Ref/TraitPose) et `grammaire/valeurs.ts` (CharKey).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -45,8 +44,6 @@ const doc = document(
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }),
     /** LDB 77 l.7 */
     profilStandard: ref('creature').optional(),
-    /** LDB 19 l.78-81 */
-    mutationBodyMax: z.number().optional(),
     /** Trait RACIAL de l'espèce (#572) — MÊME `TraitPose` que le bestiaire (Ogre `{id:'ogre'}`,
      *  encombrance/consommation ×2 ; la Taille est portée par le TALENT Massif/Petit, pas ici).
      *  Absent (26/27 observées) = aucun trait racial mécanique. */
@@ -74,7 +71,6 @@ const doc = document(
       label: 'Profil standard',
       hint: 'LDB 77 l.7 — fiche du bestiaire d’un PNJ ordinaire de l’espèce',
     },
-    mutationBodyMax: { label: 'Seuil de mutation physique' },
     traits: { label: 'Traits raciaux' },
     arcaneDomainsBonusOf: { label: 'Bonus de Domaines arcaniques', hint: 'Relève le plafond de Domaines tenus' },
     gatedByRule: {

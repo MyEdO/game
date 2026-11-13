@@ -25,8 +25,8 @@ import type { TestScenario } from './_shared';
  *    on le rejoint par UNE RAMPE au FLANC GAUCHE (cols 3-4, montant ≤1 m/case — le moteur en fait une pente,
  *    plus aucun escalier), DÉPORTÉE de la porte pour dégager la cour DERRIÈRE la porte (zone de mort) ;
  *  - au SUD, une COUR pavée MODESTE où démarre le groupe.
- * Combat VERTICAL : les défenseurs (couche z1, 4 m) pilonnent en contrebas et la mêlée est refusée à travers le
- * vide (`combatDistance` ajoute la séparation métrique) ; la crénelure (rendu, PAS un WallSeg) ne coupe pas la
+ * Combat VERTICAL : les défenseurs (couche z1, 4 m) tirent en contrebas ; contact et portée se mesurent par
+ * `distanceDeContact` et `distanceDeCombat` (footprint.ts) ; la crénelure (rendu, PAS un WallSeg) ne coupe pas la
  * LdV plongeante.
  *
  * TOUT est dans le `MapSpec` ci-dessous (grilles ASCII des 2 étages, recette `cells`, relief de rampe, binds de

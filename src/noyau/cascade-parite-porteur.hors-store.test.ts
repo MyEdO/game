@@ -39,6 +39,7 @@ import { startCascade, pushStep, suspendActiveCascade, resumeSuspendedCascade, s
 import { fermeturesDuFlux } from './verbesOuverts';
 import { seedBattleRng, battleRng } from './battleRng';
 import { avecLesTables, cleDeFixture, type FixtureDeTables } from './noyau.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 beforeEach(() => {
@@ -189,7 +190,7 @@ const FIXTURE: FixtureDeTables = {
   tablesTirables: {
     [TABLE]: {
       label: fixtureText('Table de parité'),
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
       lines: () => ['ligne de parité'],
     },
@@ -205,7 +206,7 @@ const FIXTURE: FixtureDeTables = {
 function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeStep {
   const commun = {
     id, kind: cleDeFixture('parite-table'), label: fixtureText('Table de parité'),
-    table: { tableId: TABLE, spec: { n: 1, sides: 100 } },
+    table: { tableId: TABLE },
     stake: { key: { dataset: 'combat' as const, kind: 'mutation' } },
   };
   return (porteur === 'heros' ? tableStep({ ...commun, actorId: heroId }) : tableStep({ ...commun, worldOwner: true }))!;

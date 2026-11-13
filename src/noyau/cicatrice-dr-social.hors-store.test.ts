@@ -35,7 +35,7 @@ function rollIntimidation(c: Combatant, seed: number) {
   banc.setState({ party: [c] });
   banc.setState({
     pendingTest: {
-      actorId: c.id, actorName: c.label, label: 'Test d’Intimidation', sujet: { skill: { id: 'intimidation' } },
+      actorId: c.id, label: 'Test d’Intimidation', sujet: { skill: { id: 'intimidation' } },
       skillValue: testValue(c, { skill: { id: 'intimidation' } }), difficulty: 'intermediaire', requireSL: 0,
       target: testValue(c, { skill: { id: 'intimidation' } }), roll: null, success: false, sl: 0,
       onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,

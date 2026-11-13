@@ -1454,6 +1454,16 @@ export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: numbe
 /** Un document d'un fichier de tables tirées : son dé et ses rangées. */
 type TableTiree = { readonly id: string; readonly die: string; readonly entries: readonly { min?: number | null; max?: number | null }[] };
 
+/** Le refus nominatif d'un document `t` dont les rangées ne couvrent pas le dé, posé sur `chemin`. */
+function refuserLaCouverture<T extends TableTiree>(
+  fichier: string, t: T, nom: (r: T['entries'][number], t: T) => string, ctx: z.RefinementCtx, chemin: (string | number)[],
+): void {
+  const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
+  if (ecarts.length) {
+    ctx.addIssue({ code: 'custom', path: chemin, message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
+  }
+}
+
 /**
  * L'`affinerDataset` d'un fichier de tables tirées : chaque document que `tiree` retient couvre son dé
  * (`ecartsDuDeDeLaTable`), refusé nominativement sur ses `entries`, ses rangées nommées par `nom`.
@@ -1466,13 +1476,18 @@ export function couvertureDuDeParDocument<T extends TableTiree>(
   return (dataset) =>
     dataset.superRefine((v, ctx) => {
       for (const [i, t] of (v as T[]).entries()) {
-        if (!tiree(t)) continue;
-        const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
-        if (ecarts.length) {
-          ctx.addIssue({ code: 'custom', path: [i, 'entries'], message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
-        }
+        if (tiree(t)) refuserLaCouverture(fichier, t, nom, ctx, [i, 'entries']);
       }
     });
+}
+
+/** L'`affinerDataset` d'un fichier qui EST une table tirée (famille `config`) : même refus que
+ *  `couvertureDuDeParDocument`, sur ses `entries`. */
+export function couvertureDuDeDuDocument<T extends TableTiree>(
+  fichier: string,
+  nom: (r: T['entries'][number], t: T) => string,
+): (dataset: z.ZodType<unknown>) => z.ZodType<unknown> {
+  return (dataset) => dataset.superRefine((v, ctx) => refuserLaCouverture(fichier, v as T, nom, ctx, ['entries']));
 }
 
 /**

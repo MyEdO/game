@@ -6,7 +6,7 @@
  *          3) Dégâts = Dégâts d'arme + DR
  *          4) Application = Dégâts − (Bonus d'Endurance + PA de la localisation)
  */
-import { RNG } from './dice';
+import { d100, RNG } from './dice';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { nomDe } from './nom';
@@ -38,22 +38,28 @@ import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, q
 import { RULE_REF, RANGEES_DE_REGLE } from './ruleRefs';
 import { ligneDeRegle, ligneParSeuil, modDeRegle, modDeRangee, rangeesDeRegle, refDeRegle } from './reglesChiffrees';
 import { spellEffectOps } from './flowCore';
-import { findPsychologyById, tablesDeLocalisation, testSkillLabel, type RangeeDeRegleData } from '../data';
+import { findPsychologyById, groupeDeLArme, tablesDeLocalisation, testSkillLabel, type RangeeDeRegleData } from '../data';
 import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, ignoresCalledShotPenalty, ignoresSizeRangedMods, sniperRangeAdjust } from './combatFeatures/dispatch';
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
+import { lancerDuTableau, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
-/** Jet de la seconde frappe du Maniement de deux armes. LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544. */
+/** Jet de la seconde frappe du Maniement de deux armes : le lancer du tableau des Critiques au dé de sa table
+ *  (`lancerDuTableau`) ; sans Localisation (objet inanimé, `isInanimate`), le dé du Test. LDB 10 l.773 ; LDB 18 l.53 ;
+ *  LDB 41 l.170 ; #1595 c.6229550544 ; #1667. */
 export function lancerDeLaSecondeMain(
-  touche: Pick<AttackResult, 'critical' | 'lancerDuTableau'>,
+  touche: Pick<AttackResult, 'critical' | 'lancerDuTableau' | 'critLocation' | 'location'>,
   mainRoll: number,
   rng: RNG,
   twice: boolean,
 ): number {
-  return touche.critical ? (touche.lancerDuTableau ?? lancerDuTableau(rng, twice)) : reverseRoll(mainRoll);
+  if (!touche.critical) return reverseRoll(mainRoll);
+  if (touche.lancerDuTableau != null) return touche.lancerDuTableau;
+  const lieu = touche.critLocation ?? touche.location;
+  if (lieu) return lancerDuTableau(jeuDeCritique(twice), lieu, rng, twice);
+  return twice ? Math.max(d100(rng), d100(rng)) : d100(rng);
 }
 
 // ── Localisation des coups — FOYER UNIQUE data-driven (`src/data/localisation.json`) ──────────────
@@ -140,11 +146,7 @@ const ANY_RANGED_SPEC = '*';
 function acceptableSpecs(c: Combatant, weapon: Weapon, kind: 'melee' | 'distance'): SpecAcceptance[] {
   const maniement = kind === 'melee' ? maniementRetenu(c, weapon, weapon.hands) : undefined;
   if (maniement) return [{ spec: maniement.groupe, mode: 'complet' }];
-  // `weaponGroup` PRIME sur `subType` : une arme de siège porte sa catégorie de catalogue (« armes-de-siege »)
-  // en `subType` mais son vrai Groupe de Projectiles (Arbalète/Catapulte/Ingénierie/Poudre noire,
-  // AA 10 l.178-193) en `weaponGroup` → c'est lui qui pilote la Spé de tir ET le décompte d'équipage. Pour toute
-  // arme normale, `weaponGroup` est absent → `subType` EST le Groupe (comportement inchangé).
-  const gid = weapon.weaponGroup ?? weapon.subType ?? ''; // id de Groupe d'arme (`WeaponGroupData.id`)
+  const gid = groupeDeLArme(weapon) ?? ''; // id de Groupe d'arme (`WeaponGroupData.id`). AA 10 l.178-193 ; AA 10 l.230
   if (!gid) return [];
   if (gid === 'poudre-noire' || gid === 'poudre-noire-et-ingenierie')
     return [{ spec: 'poudre-noire', mode: 'complet' }, { spec: 'ingenierie', mode: 'complet' }]; // LDB 62 l.192
@@ -511,8 +513,8 @@ export interface AttackResult {
   /** Blessures critiques INFLIGÉES par CE coup, écrites à l'application (`appliquerLesCritiques`). LDB 18
    *  l.17 ; AA 07 l.42 ; LDB 63 l.30. */
   critiques?: number;
-  /** d100 nu du tableau des Critiques du Coup Critique de CE coup, quand une table l'a tiré. LDB 10 l.773 ;
-   *  LDB 18 l.53. */
+  /** Dé nu du tableau des Critiques du Coup Critique de CE coup (`critiqueDie`), quand une table l'a tiré.
+   *  LDB 10 l.773 ; LDB 18 l.53. */
   lancerDuTableau?: number;
   /** #1595 c.6221792068 Q2. */
   sansPrise?: SansPrise;

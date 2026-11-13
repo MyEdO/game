@@ -15,6 +15,7 @@ import { spellOps, type Flow, type FlowTestNode } from './flowCore';
 import { setRule, resetRule } from './policy';
 import { CRITIQUE_DOCS, critiqueTable, type JeuDeCritique } from '../data/criticals';
 import { findTableEntryIndex } from './tables';
+import { setEnTete, resetData } from '../data/overrides';
 import locJson from '../data/localisation.json';
 import type { Combatant, HitLocation } from './types';
 import { desDuTest, desEnSuite } from './dice.testkit';
@@ -674,7 +675,27 @@ describe('critWoundLocation — règle UNIQUE de localisation du Coup Critique (
   });
 });
 
-describe('CriticalResolved.naturel : le d100 du tableau, avant le modificateur de sévérité (LDB 10 l.773 ; #1595 c.6227274650 Q3)', () => {
+describe('CriticalResolved.naturel : le dé du tableau, avant le modificateur de sévérité (LDB 10 l.773 ; #1595 c.6227274650 Q3)', () => {
+  it('le naturel se tire au dé que porte le tableau de la localisation (LDB 18 l.53 ; AA 07 l.32 ; #1667)', () => {
+    setEnTete('aaCriticalsCorps', [{ ancetre: '[criticals-aa-corps]', champ: 'die', valeur: 'd10' }]);
+    try {
+      const naturels = Array.from({ length: 50 }, (_, s) => resolveCritique('aa', cible(), 'corps', makeRNG(s + 1)).naturel);
+      expect(Math.max(...naturels)).toBeLessThanOrEqual(10);
+      expect(Math.min(...naturels)).toBeGreaterThanOrEqual(1);
+    } finally {
+      resetData();
+    }
+  });
+  it('sous `twice`, les deux lancers se tirent au dé du tableau (LDB 41 l.170 ; LDB 18 l.53 ; #1667)', () => {
+    setEnTete('aaCriticalsCorps', [{ ancetre: '[criticals-aa-corps]', champ: 'die', valeur: 'd10' }]);
+    try {
+      const doubles = Array.from({ length: 50 }, (_, s) => resolveCritique('aa', cible(), 'corps', makeRNG(s + 1), { twice: true }).naturel);
+      expect(Math.max(...doubles)).toBeLessThanOrEqual(10);
+      expect(Math.min(...doubles)).toBeGreaterThanOrEqual(1);
+    } finally {
+      resetData();
+    }
+  });
   it('aa, 8 Blessures au-delà de 0 : roll 128, naturel 48 (AA 07 l.36)', () => {
     const r = resolveCritique('aa', cible(), 'corps', makeRNG(1), { overkill: 8, forcedRoll: 48 });
     expect(r.roll).toBe(128);

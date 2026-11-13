@@ -6341,6 +6341,32 @@
     }
   },
   {
+    "id": "meche",
+    "type": "trappings",
+    "label": "Mèche",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": "limitee",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 0,
+      "silver": 0,
+      "brass": 3
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 88,
+      "note": "AA 08 l.34"
+    }
+  },
+  {
     "id": "longue-vue",
     "type": "trappings",
     "label": "Longue-vue",
@@ -17423,7 +17449,6 @@
             "ops": [
               {
                 "op": "rollTable",
-                "die": "d10",
                 "tableId": "vdm-maladie-coups-de-poing-maudits"
               }
             ]

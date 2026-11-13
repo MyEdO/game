@@ -145,17 +145,20 @@ export function positionsDeNappe(runs: readonly OpenRun[], mpt: number, yM: numb
 }
 
 /**
- * La météo de la scène sous le regard `regard` (`REGARDS`), `null` sans météo à montrer (`sceneWeatherFx`). Ce qui tombe
- * ne tombe qu'au-dessus des bandes à ciel ouvert, sauf au plateau, où une particule vue dans l'axe de sa chute n'est
- * qu'un point. La brume se pose en nappes en tactique ; au plateau, l'empilement vu d'en haut dégénérerait en voile plein
- * écran ; en immersion, elle resserre la brume de profondeur depuis l'œil (`lumiereDeLaScene`).
+ * Ce que la météo du catalogue `fx` montre sous le regard `regard` (`REGARDS`) au-dessus des bandes à ciel ouvert `runs`
+ * de cases de `mpt` mètres, entre les cotes `sol` du sol : la part de `meteoDuRegard` qui ne lit aucune `Scene`, que
+ * compose aussi la vitrine des effets (#4081). Ce qui tombe ne tombe qu'au-dessus des bandes, sauf au plateau, où une
+ * particule vue dans l'axe de sa chute n'est qu'un point. La brume se pose en nappes en tactique ; au plateau,
+ * l'empilement vu d'en haut dégénérerait en voile plein écran ; en immersion, elle resserre la brume de profondeur depuis
+ * l'œil (`lumiereDeLaScene`).
  */
-export function meteoDuRegard(scene: Scene, regard: Regard): MeteoDuRegard | null {
-  const fx = sceneWeatherFx(scene);
-  if (!fx) return null;
-  const mpt = sceneMetresPerTile(scene);
-  const runs = openSkyRuns(scene);
-  const { groundM, topGroundM } = sceneGroundSpan(scene);
+export function meteoSurLesBandes(
+  fx: WeatherFxDef,
+  runs: readonly OpenRun[],
+  mpt: number,
+  { groundM, topGroundM }: { groundM: number; topGroundM: number },
+  regard: Regard,
+): MeteoDuRegard {
   const precip = regard === 'plateau' ? null : fx.precip ?? null;
   const brume = fx.brume ?? null;
   return {
@@ -174,4 +177,11 @@ export function meteoDuRegard(scene: Scene, regard: Regard): MeteoDuRegard | nul
       : [],
     son: fx.son ? sonDEffet(fx.son.id) : null,
   };
+}
+
+/** La météo de la scène sous le regard `regard` (`meteoSurLesBandes`), au-dessus de ses bandes à ciel ouvert
+ *  (`openSkyRuns`), entre les cotes de son sol (`sceneGroundSpan`), `null` sans météo à montrer (`sceneWeatherFx`). */
+export function meteoDuRegard(scene: Scene, regard: Regard): MeteoDuRegard | null {
+  const fx = sceneWeatherFx(scene);
+  return fx && meteoSurLesBandes(fx, openSkyRuns(scene), sceneMetresPerTile(scene), sceneGroundSpan(scene), regard);
 }

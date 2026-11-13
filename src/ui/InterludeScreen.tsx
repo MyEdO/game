@@ -430,7 +430,7 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
           const ev = interludeEventFor(st.eventRoll);
           const chips = fxChips(etat, st, h);
           return (
-            <ParchmentCard key={h.id} seal={{ label: 'd100', roll: st.eventRoll }} title={ev.label}>
+            <ParchmentCard key={h.id} seal={{ label: formatDice(interludeEventDie()), roll: st.eventRoll }} title={ev.label}>
               <header className="interlude-chronicle-head">
                 <CharFrame c={h} variant="identity" size="sm" />
               </header>

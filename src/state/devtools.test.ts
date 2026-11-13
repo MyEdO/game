@@ -360,7 +360,7 @@ describe('__wfrp — autres commandes de recette', () => {
     const hero = useGame.getState().party[0];
     useGame.setState({
       pendingTest: {
-        actorId: hero.id, actorName: hero.label, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+        actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 42, success: true, sl: 1,
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },

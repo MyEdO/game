@@ -45,7 +45,7 @@ import type {
   WallOverlay,
   WallSeg,
 } from './monde/scene';
-import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
+import { DEFAULT_TERRAIN, canonEdge, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
@@ -71,7 +71,7 @@ import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
 import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
-import { canonEdge, edgeWallState } from './sceneEditLecture';
+import { edgeWallState } from './sceneEditLecture';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
  *  « niveau » de relief, cf. `METRES_PER_LEVEL`). */

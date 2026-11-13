@@ -12,11 +12,14 @@ import { describeReload } from '../noyau/flowOutcomes';
 import { progresDeRecharge } from '../noyau/progresEtendu';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Vue pure de la modale de rechargement (testable sans store). */
 export function ReloadModalView({
   pr,
+  nom,
   actor,
   fortune,
   onRoll,
@@ -26,6 +29,8 @@ export function ReloadModalView({
   onConfirm,
   onCancel,
 }: {
+  /** le nom de l'acteur tel que le groupe le connaît (`nomEnVue`). */
+  nom: string;
   pr: PendingReload;
   /** Tireur (jet mono-acteur) → portrait dans la ligne de jet. */
   actor?: Combatant;
@@ -76,7 +81,7 @@ export function ReloadModalView({
       /* QUI recharge → portrait dans la ligne de jet ; Projectiles/cible vivent dans le cadre, le cumul dans la rangée. */
       rows={[actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('rechargement', describeReload(pr, after, weaponName), pr.actorId))] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('rechargement', describeReload(pr, nom, after, weaponName), pr.actorId))] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : onCancel}
     />
@@ -91,6 +96,7 @@ export function ReloadModalView({
  */
 export function ReloadModal() {
   const pr = useGame((s) => s.pendingReload);
+  const nom = useGame((s) => (s.pendingReload ? nomEnVue(s, s.pendingReload.actorId) : null));
   const battle = useGame((s) => s.battle);
   const roll = useGesteDeJet('jetLancer', 'rechargement');
   const reroll = useGesteDeJet('jetRelancer', 'rechargement');
@@ -101,6 +107,6 @@ export function ReloadModal() {
   if (!pr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pr.actorId);
   return (
-    <ReloadModalView pr={pr} actor={actor} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} />
+    <ReloadModalView pr={pr} nom={garanti(nom, pr.actorId, 'tireur')} actor={actor} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} />
   );
 }

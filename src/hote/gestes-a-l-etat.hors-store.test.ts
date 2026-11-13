@@ -7,6 +7,7 @@
  * (`proprietaireDeLaFenetre`), en mots à l'hôte texte. Un verbe de jet que son flux ferme se dessine fermé, avec ce qui
  * le ferme (`fermeturesDeLaFenetre`, #2936).
  */
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, vi } from 'vitest';
 import { DESIGNATIONS, creerPartie, etatInitialDuJeu, type Designation, type EntreesDeLaPartie, type Jeu, type Partie } from '../noyau/index';
 import { auContact, heroDuDuel } from '../noyau/combatDeTest.testkit';
@@ -133,7 +134,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const rangee = (id: string, result: unknown = null) => ({ id, interactive: true, base: 50, target: 50, result });
       const bande = (rangees: unknown[]): Jeu => ({ ...sansPoint, pendingRoundStart: null, pendingCascade: { title: 'Peur', cursor: 0, seq: 1, log: [], purpose: 'test', participants: [{
         id: 'bande-peur', kind: 'psychologieDeCombat', label: 'Peur', aggregate: 'none', groupOwner: true, result: null, participants: rangees,
-        psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+        psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: fixtureText('Bête'), indice: 2, round: 1 },
       }] } } as never);
       const porteur = argumentDe(bande([rangee(h1.id), rangee(h2.id)]), 'depenserLaDetermination', 'combattantId');
       expect(porteur.valeurs!.map((v) => [v.valeur, v.libelle, v.refus])).toEqual([[h1.id, h1.label, null], [h2.id, h2.label, t('agate.noResolve')]]);
