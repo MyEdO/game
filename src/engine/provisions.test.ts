@@ -33,6 +33,10 @@ function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; tr
 const fixed = (roll: number): RNG => deSelonLaPlage((_min, max) => (max === 100 ? roll : max));
 
 describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () => {
+  it('la ration du catalogue porte le libellé du livre (LDB 66 l.20)', () => {
+    expect(ration('r').label).toBe('Vivres, 1 jour');
+  });
+
   it('consomme 1 ration/jour ; nourri = pas de faim', () => {
     const c = hero({ rations: 2 });
     const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));

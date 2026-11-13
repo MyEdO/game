@@ -21,6 +21,7 @@ import { refusDEntrerAuPort } from './portFlow';
 import { plafondDePlanque } from './seaActivities';
 import { installCost } from '../engine/shipBuild';
 import { shipboardSouls } from './shipCrew';
+import { refusDeGesteSurLeGroupe } from './bourseFlow';
 import { t } from '../i18n';
 
 const COGUE = findVehicleById('cogue')!;
@@ -151,8 +152,8 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
   });
 });
 
-describe('#3059 — siège invité : les dépenses du chantier disent le refus de dépense du groupe', () => {
-  it('réparation, carénage, Amélioration et embauche refusés, rien de débité ni posé', () => {
+describe('#3059 — siège invité : les dépenses du chantier sont à l’hôte', () => {
+  it('réparation, carénage, Amélioration et embauche envoyés se refusent (`coop.hoteSeul`), rien de débité ni posé ; l’écran dit le refus de groupe', () => {
     const trait = NAVAL_TRAITS.find((tr) => tr.kind === 'amelioration' && tr.install && (installCost(tr.install, COGUE.ship!.lengthM, 1).gold ?? 0) > 0)!;
     const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), { gold: 10000, silver: 0, brass: 0 }, 'invite');
     try {
@@ -167,7 +168,8 @@ describe('#3059 — siège invité : les dépenses du chantier disent le refus d
       expect(v.fouling!.level).toBe(2);
       expect(v.upgrades ?? []).toEqual([]);
       expect(v.crew ?? []).toEqual([]);
-      expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length).toBe(4);
+      expect(partie.etat().journal.filter((l) => l === t('coop.hoteSeul')).length).toBe(4);
+      expect(refusDeGesteSurLeGroupe(partie.etat())).toBe(t('groupe.hoteSeul'));
     } finally {
       partie.fermer();
     }

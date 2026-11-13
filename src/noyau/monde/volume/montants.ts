@@ -3,7 +3,8 @@
  * reçoit par `FaceDepth` (`./worldTris`) — la croix d'un montant (poteau, jambage, pilier de surplomb) et la matière
  * pleine qu'il encadre.
  */
-import type { StructureAppearanceDef } from '../../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../../data';
+import type { EntreeVivante } from '../../../data/datasets';
 import type { Face } from './types';
 
 /** ÉPAISSEUR MONDE (m) de la MATIÈRE PLEINE d'un mur — AUTHORÉE EN MÈTRES, comme toute autre épaisseur
@@ -15,7 +16,7 @@ import type { Face } from './types';
 export const WALL_MATTER_M = 0.168;
 
 /** Épaisseur de la matière pleine pour une apparence donnée. */
-export function wallMatterM(app?: StructureAppearanceDef): number {
+export function wallMatterM(app?: EntreeVivante<StructureAppearanceDef>): number {
   return app?.relief?.wallM ?? WALL_MATTER_M;
 }
 

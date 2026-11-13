@@ -9,56 +9,30 @@
  */
 import type { FabriqueDId } from './fabriqueDId';
 import cargoesJson from '../data/cargoes.json';
+import { datasetDe, type EntreeDe } from '../data/datasets';
+import type * as cargoesDef from '../data/schemas/defs/cargoes';
 import { memoParVersion } from '../data/versionDataset';
 import { cargaisonsAleatoires, landCargo, seaCargo } from '../data';
 import { garanti } from '../lib/garanti';
-import { rollDice, type DiceSpec, type RNG } from './dice';
+import { rollDice, type RNG } from './dice';
 import { deDeLaTableTiree, findTableEntry } from './tables';
 import type { Season } from './travelStages';
 import type { PossessionLocation } from './possession';
 import { PA_PER_CO } from './money';
 
-/** La VOIE d'une cargaison : la table du livre qui la porte — maritime (MDG 15), terrestre et fluviale
- *  (MSRC 13). */
-export type Voie = 'mer' | 'terre';
+/** Une entrée de catalogue de cargaison, au type de son schéma (`schemas/defs/cargoes.ts`) : une marchandise, ou un
+ *  MARQUEUR de la colonne Production/Produits de l'Index (« Commerce », « Minimum vital », « Subsistance »,
+ *  `echangeable: false`), qui partage le vocabulaire des cargaisons sans disponibilité ni prix. MSRC 13 l.24-28 ;
+ *  MSRC 13 l.80-91 ; MDG 15 l.321 ; MDG 15 l.420-436 */
+export type CargoEntry = EntreeDe<typeof cargoesDef>;
 
 /** Un type de cargaison (bien volumineux) : prix du livre par saison, ou un jet de dés (`{dice}`), dans l'unité
- *  de sa voie (`prixParPointDEnc`). MSRC 13 l.80-91, MDG 15 l.420-436 */
-export interface CargoDef {
-  id: string;
-  label: string;
-  voie: Voie;
-  /** Absent sur une cargaison marchande — présent et `false` sur un MARQUEUR (`CargoMarkerDef`). */
-  echangeable?: true;
-  price: Record<Season, number> | { dice: DiceSpec };
-  /** MSRC 13 l.93-104 */
-  wine?: boolean;
-}
+ *  de sa voie (`prixParPointDEnc`). */
+export type CargoDef = Exclude<CargoEntry, { echangeable: false }>;
 
-/** Un MARQUEUR de la colonne Production/Produits de l'Index (« Commerce », « Minimum vital »,
- *  « Subsistance ») : il partage le vocabulaire des cargaisons — une colonne d'Index le cite comme une
- *  marchandise — sans en être une, donc sans disponibilité ni prix. Il vit dans le MÊME catalogue
- *  (`cargoes.json`) pour que son libellé joueur ait une source unique.
- *
- *  Ce qui est PASSÉ EN DONNÉE sur le marqueur : l'EXCLUSION du négoce (`echangeable`), le LIBELLÉ
- *  (`label` + `hint`) et la qualité de PLAQUE TOURNANTE (`tradeHub`, lue par `isTradeHubEntry`). */
-export interface CargoMarkerDef {
-  id: string;
-  label: string;
-  voie: Voie;
-  echangeable: false;
-  /** Qualificatif d'AFFICHAGE du marqueur, ÉDITABLE en donnée : il reprend la forme des verbatims
-   *  MSRC 13 — « plaque tournante » (l.28) vs « rien à échanger » (l.119). Deux sens DISTINCTS qu'un
-   *  suffixe unique codé en dur écrasait ; l'écran l'affiche entre parenthèses après le `label`. */
-  hint?: string;
-  /** Le Lieu qui porte ce marqueur est une PLAQUE TOURNANTE du commerce : variété de biens disponibles
-   *  (MSRC 13 l.24-28), cargaison aléatoire à l'escale (MDG 15 l.321). Absent = marqueur ordinaire
-   *  (« Subsistance » / « Minimum vital »). */
-  tradeHub?: true;
-}
-
-/** Une entrée de catalogue de cargaison : marchandise ou marqueur. */
-export type CargoEntry = CargoDef | CargoMarkerDef;
+/** La VOIE d'une cargaison : la table du livre qui la porte — maritime (MDG 15), terrestre et fluviale
+ *  (MSRC 13). */
+export type Voie = CargoEntry['voie'];
 
 /** L'entrée est-elle une marchandise (achetable/vendable) ? Lit le CHAMP d'exclusion. PUR. */
 export function isEchangeable(entry: CargoEntry): entry is CargoDef {
@@ -67,7 +41,7 @@ export function isEchangeable(entry: CargoEntry): entry is CargoDef {
 
 /** Le catalogue COMPLET tel qu'il est authoré, marchandises ET marqueurs des deux voies : le dataset
  *  éditable (`src/data/overrides.ts`). */
-export const CARGO_ENTRIES: readonly CargoEntry[] = cargoesJson as unknown as CargoEntry[];
+export const CARGO_ENTRIES = datasetDe<typeof cargoesDef>(cargoesJson);
 
 /** Résout une entrée QUELCONQUE du catalogue, marqueur compris (libellé d'affichage) : un id y est
  *  unique, quelle que soit sa voie. */

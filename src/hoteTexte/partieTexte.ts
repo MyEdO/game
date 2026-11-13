@@ -131,9 +131,9 @@ export function empreinte(etat: object): string {
   return h.toString(16).padStart(8, '0');
 }
 
-/** Les champs qui DISENT sans être un fait de jeu : le journal de la partie et le refus opposé au geste
- *  (`refusVisible.ts`). Un geste qui ne change qu'eux n'a rien changé à la partie. */
-const PAROLE = ['journal', 'refus'] as const satisfies readonly (keyof Jeu)[];
+/** Les champs qui DISENT sans être un fait de jeu : le journal de la partie, son compte (`lignesAuJournal`), et le refus
+ *  opposé au geste (`refusVisible.ts`). Un geste qui ne change qu'eux n'a rien changé à la partie. */
+const PAROLE = ['journal', 'lignesAuJournal', 'refus'] as const satisfies readonly (keyof Jeu)[];
 
 /** L'empreinte des FAITS de l'état : l'état sans sa parole (`PAROLE`). */
 const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...tableTotale(PAROLE, () => null) });

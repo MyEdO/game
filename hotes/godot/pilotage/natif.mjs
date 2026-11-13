@@ -40,7 +40,7 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     entries.push({ type, text: format(...args) })
     ecrire(...args)
   }
-  const { code } = await empaqueter(null)
+  const { code } = await empaqueter(null, 'development')
   const consoleRelevee = Object.assign(Object.create(console), { error: relever('error', console.error), warn: relever('warning', console.warn) })
   const stockage = stockageDuProcessus(null)
   /** Les noms que Godot a publiés en global depuis le dernier lancement. */
@@ -80,7 +80,8 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     return 'null'
   }
   /** Le canal d'un jeu, en congé dès qu'il relève l'ordre de quitter : sa fermeture n'est plus une panne, et ce qu'il
-   *  publie encore ne compte plus. */
+   *  publie encore ne compte plus. Il se ferme à la fin de son entrée, ou coupé : Godot tue son relais en quittant
+   *  (`transport_du_processus.gd`), ce que Windows rend ici en `ECONNRESET`. */
   const ecoute = createServer((canal) => {
     let conge = false
     const methodes = {
@@ -91,7 +92,8 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
         return JSON.stringify({ ok: true, commandes: relevees })
       },
     }
-    servirLeCanal(pont, { url: srv.url, fermer: () => conge || mourir('le pont de Godot s’est fermé') }, { entree: canal, sortie: canal }, methodes)
+    const fermer = (cause) => conge || mourir(`le pont de Godot s’est fermé${cause}`)
+    servirLeCanal(pont, { url: srv.url, fermer: () => fermer('') }, { entree: canal, sortie: canal }, methodes).catch((erreur) => fermer(` : ${erreur.message}`))
   })
   await new Promise((pret) => ecoute.listen(0, '127.0.0.1', pret))
   const quitter = () => file.push({ id: ++dernier, quitter: 0 })

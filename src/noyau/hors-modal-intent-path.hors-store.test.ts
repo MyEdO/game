@@ -62,7 +62,7 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   return { h2, h3, e1, e2 };
 }
 
-/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle le salon (`hote/coop/salon.ts`). */
 const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(banc.getState, seat, action, args);
 
 let banc: Banc;

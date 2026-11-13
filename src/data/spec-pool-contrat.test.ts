@@ -53,7 +53,7 @@ const REFS_EN_LIBELLE: string[] = [];
 
 const DEF_BY_ID = new Map(DEFS.map((d) => [d.id, d]));
 /** Ids de COMPÉTENCE — le concept dont la sentinelle est ÉTEINTE (L2 #1548). */
-const EST_COMPETENCE = new Set(skills.map((s) => s.id));
+const EST_COMPETENCE = new Set<string>(skills.map((s) => s.id));
 /** La spéc `spec` est-elle au catalogue de la def `def` (`specAuCatalogue`) ? Son type se lit à
  *  l'IDENTITÉ de la def : un id peut nommer une Compétence ET un Talent. */
 const auCatalogue = (def: (typeof DEFS)[number], spec: string): boolean =>

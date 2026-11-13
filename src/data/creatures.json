@@ -618,16 +618,19 @@
         "id": "grimoire"
       },
       {
-        "text": "Habit de cour"
+        "id": "costume-de-cour"
       },
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
-        "text": "Robes de sorcier"
+        "id": "robe-de-sorcier-ordinaire"
       },
       {
-        "text": "1 CO"
+        "monnaie": "gold",
+        "count": {
+          "fixed": 1
+        }
       }
     ],
     "spells": [
@@ -7308,10 +7311,17 @@
         "spec": "grosse chope lourdement renforcée"
       },
       {
-        "text": "assortiment de pièces de toutes origines d'une valeur de 6d10 pistoles"
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 6,
+            "sides": 10
+          }
+        }
       },
       {
-        "text": "collection d'alcool sans pareille"
+        "id": "alcool",
+        "spec": "collection sans pareille"
       }
     ],
     "spells": [],
@@ -9818,7 +9828,8 @@
         "spec": "à l'aspect sinistre"
       },
       {
-        "text": "tatouage de Morrslieb"
+        "id": "tatouage",
+        "spec": "de Morrslieb"
       }
     ],
     "spells": [],
@@ -12428,7 +12439,13 @@
         "id": "coup-de-poing"
       },
       {
-        "text": "2d10 pistoles d'argent"
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 2,
+            "sides": 10
+          }
+        }
       }
     ],
     "spells": [],
@@ -12615,7 +12632,13 @@
         }
       },
       {
-        "text": "2d10 sous de cuivre"
+        "monnaie": "brass",
+        "count": {
+          "roll": {
+            "n": 2,
+            "sides": 10
+          }
+        }
       }
     ],
     "spells": [],
@@ -12901,7 +12924,7 @@
         "id": "justaucorps-de-cuir"
       },
       {
-        "text": "Repas"
+        "id": "dejeuner"
       },
       {
         "id": "bourse"
@@ -14872,10 +14895,11 @@
         "id": "grimoire"
       },
       {
-        "text": "licence magique"
+        "id": "licence-magique"
       },
       {
-        "text": "Morg, le crâne de rat qui parle"
+        "id": "crane",
+        "spec": "Morg, le crâne de rat qui parle"
       }
     ],
     "spells": [],
@@ -18598,7 +18622,7 @@
     ],
     "trappings": [
       {
-        "text": "couronne de Triton"
+        "id": "couronne-de-triton"
       },
       {
         "text": "trident de Triton"
@@ -18896,16 +18920,23 @@
     ],
     "trappings": [
       {
-        "text": "cadran lunaire et longue-vue enchantés"
+        "id": "cadran-lunaire",
+        "spec": "enchanté"
       },
       {
-        "text": "carte punaisée sur une carapace de tortue"
+        "id": "longue-vue",
+        "spec": "enchantée"
+      },
+      {
+        "id": "carte",
+        "spec": "punaisée sur une carapace de tortue"
       },
       {
         "id": "crochet"
       },
       {
-        "text": "outils de cartographe"
+        "id": "outils-professionnels",
+        "spec": "Cartographe"
       },
       {
         "id": "pistolet"
@@ -19200,7 +19231,8 @@
     ],
     "trappings": [
       {
-        "text": "bandoulière"
+        "id": "cartouchiere",
+        "spec": "bandoulière"
       },
       {
         "id": "pistolet",
@@ -19219,10 +19251,12 @@
         "id": "arme-simple"
       },
       {
-        "text": "jambe de bois"
+        "id": "fausse-jambe",
+        "spec": "jambe de bois"
       },
       {
-        "text": "perroquet (Pièce)"
+        "label": "Perroquet (Pièce)",
+        "nature": "bete"
       },
       {
         "id": "balle-et-poudre",
@@ -19231,7 +19265,8 @@
         }
       },
       {
-        "text": "rhum tord-boyaux"
+        "id": "alcool",
+        "spec": "rhum tord-boyaux"
       }
     ],
     "spells": [],
@@ -19525,7 +19560,11 @@
         "id": "bouclier"
       },
       {
-        "text": "crânes trophées"
+        "id": "trophee",
+        "spec": "crânes",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "epee-batarde"
@@ -19835,7 +19874,13 @@
         "text": "armure de malepierre complète"
       },
       {
-        "text": "bourse contenant 425 grammes de malepierre raffinée"
+        "id": "bourse"
+      },
+      {
+        "id": "malepierre-raffinee",
+        "count": {
+          "fixed": 15
+        }
       },
       {
         "text": "pistolet patte d'oie à malepierre"
@@ -20053,7 +20098,8 @@
         "spec": "rouillé"
       },
       {
-        "text": "chemise de mailles rouillée"
+        "id": "chemise-de-mailles",
+        "spec": "rouillée"
       },
       {
         "id": "dague",
@@ -20063,7 +20109,7 @@
         "id": "arme-simple"
       },
       {
-        "text": "jambières de cuir"
+        "id": "jambieres-en-cuir"
       },
       {
         "id": "veste-de-cuir"
@@ -21990,16 +22036,23 @@
     "talents": [],
     "trappings": [
       {
-        "text": "une gamme d'encriers"
+        "id": "encre",
+        "spec": "une gamme d'encriers"
       },
       {
-        "text": "des plumes"
+        "id": "plume-d-oie",
+        "count": {
+          "fixed": 2
+        }
       },
       {
-        "text": "du sable pour sécher l'encre"
+        "id": "sable-a-secher-l-encre"
       },
       {
-        "text": "des parchemins"
+        "id": "parchemin",
+        "count": {
+          "fixed": 2
+        }
       }
     ],
     "spells": [],
@@ -35826,7 +35879,8 @@
     ],
     "trappings": [
       {
-        "text": "Crochet / Grappin"
+        "id": "arme-simple",
+        "spec": "crochet / grappin"
       }
     ],
     "spells": [],
@@ -36009,7 +36063,8 @@
     ],
     "trappings": [
       {
-        "text": "Crochet / Grappin"
+        "id": "arme-simple",
+        "spec": "crochet / grappin"
       }
     ],
     "spells": [],
@@ -38713,7 +38768,8 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Épieu"
+        "id": "lance",
+        "spec": "épieu"
       },
       {
         "id": "arc"
@@ -38891,7 +38947,8 @@
         "id": "jambieres-en-cuir"
       },
       {
-        "text": "Épieu"
+        "id": "lance",
+        "spec": "épieu"
       },
       {
         "id": "arc"
@@ -49397,7 +49454,8 @@
         "id": "heaume"
       },
       {
-        "text": "Grand Tranchoir à Deux Mains"
+        "id": "grande-hache",
+        "spec": "grand tranchoir à deux mains"
       }
     ],
     "spells": [],
@@ -49602,7 +49660,8 @@
         "id": "heaume"
       },
       {
-        "text": "Grand Tranchoir à Deux Mains"
+        "id": "grande-hache",
+        "spec": "grand tranchoir à deux mains"
       }
     ],
     "spells": [],
@@ -49812,7 +49871,8 @@
         "text": "armure du chaos"
       },
       {
-        "text": "Grand Tranchoir à Deux Mains"
+        "id": "grande-hache",
+        "spec": "grand tranchoir à deux mains"
       }
     ],
     "spells": [],
@@ -53936,7 +53996,8 @@
     ],
     "trappings": [
       {
-        "text": "Sceptre Ailé"
+        "id": "arme-simple",
+        "spec": "sceptre ailé"
       }
     ],
     "spells": [
@@ -54089,7 +54150,8 @@
     ],
     "trappings": [
       {
-        "text": "Sceptre Ailé"
+        "id": "arme-simple",
+        "spec": "sceptre ailé"
       }
     ],
     "spells": [
@@ -61229,7 +61291,8 @@
     ],
     "trappings": [
       {
-        "text": "Projectile Improvisé"
+        "id": "rocher",
+        "spec": "projectile improvisé"
       }
     ],
     "spells": [],
@@ -61393,7 +61456,8 @@
     ],
     "trappings": [
       {
-        "text": "Projectile Improvisé"
+        "id": "rocher",
+        "spec": "projectile improvisé"
       }
     ],
     "spells": [],
@@ -63731,7 +63795,8 @@
         "id": "arme-improvisee"
       },
       {
-        "text": "Projectile Improvisé"
+        "id": "rocher",
+        "spec": "projectile improvisé"
       }
     ],
     "spells": [],
@@ -63880,7 +63945,8 @@
     ],
     "trappings": [
       {
-        "text": "Projectile Improvisé"
+        "id": "rocher",
+        "spec": "projectile improvisé"
       }
     ],
     "spells": [],
@@ -64635,7 +64701,8 @@
         "id": "bouclier"
       },
       {
-        "text": "Tranchoir"
+        "id": "arme-simple",
+        "spec": "tranchoir"
       }
     ],
     "spells": [],
@@ -64892,7 +64959,8 @@
         "id": "bouclier"
       },
       {
-        "text": "Tranchoir"
+        "id": "arme-simple",
+        "spec": "tranchoir"
       }
     ],
     "spells": [],

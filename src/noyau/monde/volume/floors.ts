@@ -353,7 +353,7 @@ function floorGeometry(scene: Scene, view: FloorView | undefined): Viewed<FloorE
  *  mémoïsée (`viewedBuilder`) : un pas qui ne change que le brouillard ne re-dérive AUCUNE face — il ne
  *  bascule que la vérité de vue des sols concernés, et rend le TABLEAU PRÉCÉDENT si aucun n'a bougé. */
 export const buildFloors: (scene: Scene, visible?: ReadonlySet<string>, view?: FloorView) => FloorEl[] =
-  viewedBuilder<FloorEl, FloorView>({
+  viewedBuilder<Scene, FloorEl, FloorView>({
     derive: floorGeometry,
     key: (view) => `${view?.activeZ ?? 0}|${view?.viewZ ?? null}`,
     // Vérité VRAIE = dessiné AU-DESSUS du voile ; sur un FANTÔME c'est le surplomb PLEIN (opaque, il ne

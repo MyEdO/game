@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deflateB64, inflateB64 } from './compress';
+import { deflateB64, inflateB64 } from './compression';
 
 describe('compress (deflate-raw + base64url)', () => {
   it('round-trip : texte → compressé → texte identique', async () => {

@@ -398,11 +398,11 @@ export function rechargeDuTour(
  *  d'équipe : on peut être plusieurs à servir) — `serveAtPoste` décide ensuite chef-vs-support. KIND-AGNOSTIQUE
  *  (héros/PNJ/ennemi) — SOURCE UNIQUE de la disponibilité « Servir cette pièce », consommée par l'affordance
  *  JOUEUR ET l'énumération IA. PUR. */
-export function servablePostes(actor: Combatant, combatants: Combatant[]): { hull: Combatant; poste: ShipPoste }[] {
+export function servablePostes(scene: Scene | null, actor: Combatant, combatants: Combatant[]): { hull: Combatant; poste: ShipPoste }[] {
   if (!actor.pos || isOutOfAction(actor)) return [];
   const out: { hull: Combatant; poste: ShipPoste }[] = [];
   for (const hull of combatants) {
-    if (!hull.postes?.length || !hull.pos || distanceDeContact(actor, hull) > 1) continue;
+    if (!hull.postes?.length || !hull.pos || distanceDeContact(scene, actor, hull) > 1) continue;
     for (const poste of hull.postes) if (!(poste.crewIds ?? []).includes(actor.id)) out.push({ hull, poste });
   }
   return out;
@@ -412,9 +412,9 @@ export function servablePostes(actor: Combatant, combatants: Combatant[]): { hul
  *  1er poste servable de `hull` pour `actor`. `undefined` si `actor` sert déjà une pièce (parité hotbar
  *  `!mannedPoste`) ou si `hull` n'offre aucun poste servable. SOURCE UNIQUE consommée par l'affordance de
  *  survol, le commit de clic et le tooltip d'équipe. PUR. */
-export function serveTargetPoste(actor: Combatant, hull: Combatant, combatants: Combatant[]): ShipPoste | undefined {
+export function serveTargetPoste(scene: Scene | null, actor: Combatant, hull: Combatant, combatants: Combatant[]): ShipPoste | undefined {
   if (actor.mannedPoste) return undefined;
-  return servablePostes(actor, combatants).find((sp) => sp.hull.id === hull.id)?.poste;
+  return servablePostes(scene, actor, combatants).find((sp) => sp.hull.id === hull.id)?.poste;
 }
 
 /**

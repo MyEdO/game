@@ -25,8 +25,8 @@ export function buildDeLaCoop(): string {
 export const LOCALES_AU_CLIENT = ['localIntent', 'dispelCarrierId', 'refus'] as const satisfies readonly (keyof EtatDeJeu)[];
 
 /** L'instantané coop de `etat` (spec coop §3, spec v2 §5) : les clés de la sauvegarde (`snapshotSave`), le paquet de
- *  campagne réduit à son stub (ses scènes voyagent une fois au join, message `paquetDeCampagne`), sans `LOCALES_AU_CLIENT`,
- *  les règles maison de l'hôte jointes (`packHouseRules`). Sa forme est datée par `FORMAT_SAVE` (`buildDeLaCoop`). */
+ *  campagne réduit à son stub (les scènes d'une campagne lancée voyagent dans `campaignDoc`, `appliquerLInstantane`), sans
+ *  `LOCALES_AU_CLIENT`, les règles maison de l'hôte jointes (`packHouseRules`). Sa forme est datée par `FORMAT_SAVE` (`buildDeLaCoop`). */
 export function instantaneDeLaCoop(etat: EtatDeJeu): Record<string, unknown> {
   const data = snapshotSave(etat, 'net').data as unknown as Record<string, unknown>;
   const pc = data.pendingCampaign as EtatDeJeu['pendingCampaign'];

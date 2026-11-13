@@ -72,3 +72,15 @@ export interface FauxData { capabilities?: FauxCapabilities }
   const { typesDrapeaux } = mesurerCanaux([entite, schema])
   assert.deepEqual(typesDrapeaux.map((t) => [t.nom, t.fichier, t.champs]), [['FauxCapabilities', entite, ['fumbleOn9', 'crewedTeam']]])
 })
+
+test('un type de drapeaux en SORTIE de schéma (`z.output<typeof S>`) prend les champs de son objet zod, même sous `z.lazy`', () => {
+  const schema = forger('schema-sortie.ts', `
+export const fauxFeatureSchema = z.lazy(() => nommerChamps(z.strictObject({ offHand: nommerChamps(z.strictObject({ perLevel: z.number() }), {}).optional(), slayer: z.boolean().optional() }), {}));
+`)
+  const entite = forger('entite-sortie.ts', `
+export type CombatFeature = z.output<typeof fauxFeatureSchema>;
+export interface FauxTalent { combat?: CombatFeature }
+`)
+  const { typesDrapeaux } = mesurerCanaux([entite, schema])
+  assert.deepEqual(typesDrapeaux.map((t) => [t.nom, t.fichier, t.champs]), [['CombatFeature', entite, ['offHand', 'slayer']]])
+})

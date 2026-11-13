@@ -1,6 +1,6 @@
 /**
  * Schéma de `cargoes.json` — LE catalogue des cargaisons (#1684), consommé comme `CargoEntry[]`
- * (`src/engine/cargo.ts`) : les cargaisons maritimes (MDG 15 l.420-434) et terrestres/fluviales
+ * (`src/engine/cargo.ts`, porte `datasetDe`) : les cargaisons maritimes (MDG 15 l.420-434) et terrestres/fluviales
  * (MSRC 13 l.80-90), chaque entrée PORTANT sa voie. Leur disponibilité saisonnière vit dans les documents
  * de `cargaisons-aleatoires.json`, un par colonne imprimée. Les règles de négoce de chaque livre restent dans
  * leur document (`sea-cargo.json`, `land-cargo.json`) : deux livres, deux barèmes.
@@ -16,6 +16,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme, prixSaisonnierSchema, tirageSchema } from '../grammaire/valeurs';
+import { estObjet } from '../../../lib/objet.mjs';
 
 export const file = 'cargoes.json';
 export const famille = 'entite';
@@ -29,23 +30,31 @@ const LIBELLES_DE_VOIE = {
 /** La VOIE d'une cargaison, vocabulaire nommé du champ discriminant. */
 export const voieSchema = enumNomme(LIBELLES_DE_VOIE);
 
-/** Clés propres à une MARCHANDISE, refusées sur un marqueur ; `price` y est exigée. */
-const CLES_DE_MARCHANDISE = ['price', 'wine'] as const;
-const EXIGEES_DE_MARCHANDISE = ['price'] as const;
-/** Clés propres à un MARQUEUR, refusées sur une marchandise. */
-const CLES_DE_MARQUEUR = ['hint', 'tradeHub'] as const;
+/** Une MARCHANDISE : toute cargaison qui n'est pas un marqueur (`echangeable: false`). */
+type Marchandise = { echangeable?: true };
+/** Un MARQUEUR de colonne Production/Produits. */
+type Marqueur = { echangeable: false };
+
+/** La cargaison lue est-elle un marqueur ? */
+const estMarqueur = (e: Record<string, unknown>): boolean => e.echangeable === false;
+
+/** Le verdict sur `cle` d'une cargaison de la nature `nature`, au nom de l'entrée lue. */
+const verdict = (cle: string, nature: 'marqueur' | 'marchandise', dit: 'refusée' | 'exigée') => ({
+  path: [cle],
+  error: (iss: { input?: unknown }) => `cargoes : « ${String(estObjet(iss.input) ? iss.input.id : iss.input)} » (${nature}) : « ${cle} » ${dit}.`,
+});
 
 const doc = document(
   'cargoes',
   famille,
   {
     voie: voieSchema,
-    /** Discriminant marchandise/marqueur : `CargoDef.echangeable` (`src/engine/cargo.ts`). */
+    /** Discriminant marchandise/marqueur (`isEchangeable`, `src/engine/cargo.ts`). */
     echangeable: z.boolean().optional(),
     price: z.union([prixSaisonnierSchema, tirageSchema]).optional(),
     /** MSRC 13 l.93-104 */
     wine: z.boolean().optional(),
-    /** Qualificatif d'affichage ÉDITABLE (« plaque tournante » / « rien à échanger ») — cf. `CargoMarkerDef`. */
+    /** Qualificatif d'affichage ÉDITABLE d'un marqueur, entre parenthèses après son `label`. MSRC 13 l.28 ; MSRC 13 l.119 */
     hint: z.string().optional(),
     /** MDG 15 l.321 ; MSRC 13 l.24-28 */
     tradeHub: z.literal(true).optional(),
@@ -66,16 +75,12 @@ const doc = document(
     exiges: ['source'],
     espace: { discriminant: 'voie', chargeParDiscriminant: { mer: [], terre: ['wine'] }, requisesParDiscriminant: { terre: [] }, marqueurs: ['price'] },
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const e = v as Record<string, unknown>;
-        const marqueur = e.echangeable === false;
-        const nom = `cargoes : « ${String(e.id)} » (${marqueur ? 'marqueur' : 'marchandise'})`;
-        for (const cle of marqueur ? CLES_DE_MARCHANDISE : CLES_DE_MARQUEUR)
-          if (e[cle] !== undefined) ctx.addIssue({ code: 'custom', path: [cle], message: `${nom} : « ${cle} » refusée.` });
-        if (!marqueur)
-          for (const cle of EXIGEES_DE_MARCHANDISE)
-            if (e[cle] === undefined) ctx.addIssue({ code: 'custom', path: [cle], message: `${nom} : « ${cle} » exigée.` });
-      }),
+      entree
+        .refine((e): e is Marchandise | (Marqueur & { price?: undefined }) => !estMarqueur(e) || e.price === undefined, verdict('price', 'marqueur', 'refusée'))
+        .refine((e): e is Marchandise | (Marqueur & { wine?: undefined }) => !estMarqueur(e) || e.wine === undefined, verdict('wine', 'marqueur', 'refusée'))
+        .refine((e): e is Marqueur | (Marchandise & { hint?: undefined }) => estMarqueur(e) || e.hint === undefined, verdict('hint', 'marchandise', 'refusée'))
+        .refine((e): e is Marqueur | (Marchandise & { tradeHub?: undefined }) => estMarqueur(e) || e.tradeHub === undefined, verdict('tradeHub', 'marchandise', 'refusée'))
+        .refine((e): e is Marqueur | (Marchandise & { price: object }) => estMarqueur(e) || e.price !== undefined, verdict('price', 'marchandise', 'exigée')),
   },
 );
 

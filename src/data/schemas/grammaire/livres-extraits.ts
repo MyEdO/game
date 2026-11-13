@@ -7,18 +7,12 @@
  * Consommé par le verrou de RÉSOLUBILITÉ de `grammaire/prose.ts` : une adresse dans un livre sans
  * extraction est irrésoluble, et se refuse au PARSE plutôt qu'à la lecture.
  */
-import booksJson from '../../books.json';
 import { memoParVersion } from '../../versionDataset';
 import { estLivreExtrait } from '../../source/livre-extrait';
-import { datasetDe } from '../../datasets';
-import type * as booksDef from '../defs/books';
+import { books } from '../../livres';
 
 /** Ids des livres EXTRAITS du registre vivant. */
-export const extraits = memoParVersion('books', (): ReadonlySet<string> => new Set(
-  datasetDe<typeof booksDef>(booksJson)
-    .filter(estLivreExtrait)
-    .map((b) => b.id),
-));
+export const extraits = memoParVersion('books', (): ReadonlySet<string> => new Set(books.filter(estLivreExtrait).map((b) => b.id)));
 
 /** Ce livre a-t-il une extraction sur disque ? (`undefined` — pas de livre — n'en est pas une.) */
 export function estExtrait(bookId: string | undefined): boolean {

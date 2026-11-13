@@ -19,6 +19,7 @@ import { spawnEnemy } from '../monde/spawn';
 import { ficheDEntite } from '../monde/sceneNpc';
 import type { Combatant, FireArc, ItemInstance } from '../../engine/types';
 import { couleursSchema } from '../../data/schemas/grammaire/valeurs';
+import { ref } from '../../data/schemas/grammaire/ref';
 
 const REIKLANDER = 'humains-reiklander';
 
@@ -55,9 +56,12 @@ const equipe = (trappingId: string): ItemInstance => ({ ...objet(trappingId), eq
 const pieces = (c: Combatant) =>
   porteeDuCombattant(c)!.portees.flatMap((p) => (p.cle.champ === 'piece' ? [{ piece: p.cle.id, par: p.par?.id, ...(p.teinte ? { teinte: p.teinte } : {}) }] : []));
 
+/** La référence à la teinte d'objet `id`, frappée au schéma de la référence. */
+const teinteDObjet = ref('material', undefined, 'objet');
+
 /** `weaponGroups.json` où chaque Groupe d'armure a pour teinte `teintes[id]`. */
 const teindreLesGroupes = (teintes: Record<string, string>) =>
-  setDataset('weaponGroups', weaponGroups.map((g) => (g.kind === 'armour' && teintes[g.id] ? { ...g, teinte: { id: teintes[g.id] } } : g)));
+  setDataset('weaponGroups', weaponGroups.map((g) => (g.kind === 'armour' && teintes[g.id] ? { ...g, teinte: teinteDObjet.parse({ id: teintes[g.id] }) } : g)));
 
 afterEach(() => resetData());
 

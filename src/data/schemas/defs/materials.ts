@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couleurHexSchema, detailRecipeSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
 import { type MaterialDomain } from '../../materials.types';
+import { estObjet } from '../../../lib/objet.mjs';
 
 export const file = 'materials.json';
 export const famille = 'entite';
@@ -42,36 +43,28 @@ const LIBELLES_DE_DOMAINE = {
 } as const satisfies Record<MaterialDomain, string>;
 
 /**
- * Clés de CHARGE par domaine — la déclaration dont `document()` tire ses DEUX verdicts au parse (requis
- * manquant, clé étrangère : `refusDeCharge`, `grammaire/collection-cle.ts`). `requises` ⊆ `cles` ; ce
- * qui n'est pas requis est optionnel dans ce domaine.
+ * Clés de CHARGE par domaine (`espace.chargeParDiscriminant`) — la déclaration dont `document()` tire ses DEUX verdicts
+ * au parse (requis manquant, clé étrangère : `refusDeCharge`, `grammaire/collection-cle.ts`) et le type de chaque
+ * domaine : une entrée de matière ne porte et n'édite que les champs de SON domaine.
  */
-const CHARGE_PAR_DOMAINE = {
-  objet: { cles: ['palette'], requises: ['palette'] },
-  couleur: { cles: ['color'], requises: ['color'] },
-  prop: { cles: ['color', 'roughness', 'metalness'], requises: ['color', 'roughness', 'metalness'] },
-  roof: {
-    cles: [
-      'couverture', 'vueDeDessus', 'detail', 'N', 'E', 'S', 'O', 'line',
-      'planBody', 'planEdge', 'planInner', 'planText',
-      'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap',
-    ],
-    requises: [],
-  },
-  relief: { cles: ['built', 'detail', 'face', 'foot', 'slopeTop', 'shadeDark'], requises: ['face'] },
-} as const satisfies Record<MaterialDomain, { cles: readonly string[]; requises: readonly string[] }>;
+const chargeParDiscriminant = {
+  objet: ['palette'],
+  couleur: ['color'],
+  prop: ['color', 'roughness', 'metalness'],
+  roof: [
+    'couverture', 'vueDeDessus', 'detail', 'N', 'E', 'S', 'O', 'line',
+    'planBody', 'planEdge', 'planInner', 'planText',
+    'eaveOverhangM', 'soffite', 'fasciaDropM', 'fasciaThickM', 'fascia', 'ridgeCap',
+  ],
+  relief: ['built', 'detail', 'face', 'foot', 'slopeTop', 'shadeDark'],
+} as const satisfies Record<MaterialDomain, readonly string[]>;
 
-/**
- * CHARGE et EXIGENCES par valeur du DISCRIMINANT (`espace.chargeParDiscriminant`,
- * `espace.requisesParDiscriminant`), dérivées de la table ci-dessus : une entrée de matière ne porte et
- * n'édite que les champs de SON domaine.
- */
-const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  Object.entries(CHARGE_PAR_DOMAINE).map(([domaine, charge]) => [domaine, charge.cles as readonly string[]]),
-);
-const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  Object.entries(CHARGE_PAR_DOMAINE).map(([domaine, charge]) => [domaine, charge.requises as readonly string[]]),
-);
+/** Clés EXIGÉES d'un domaine qui n'exige pas toute sa charge (`espace.requisesParDiscriminant`) ; le reste de sa charge
+ *  y est optionnel. */
+const requisesParDiscriminant = {
+  roof: [],
+  relief: ['face'],
+} as const satisfies { readonly [D in MaterialDomain]?: readonly (typeof chargeParDiscriminant)[D][number][] };
 
 const doc = document(
   'materials',
@@ -158,17 +151,12 @@ const doc = document(
   },
   {
     espace: { discriminant: 'domain', chargeParDiscriminant, requisesParDiscriminant },
+    // Une matière de toiture COUVRE un pan, ou elle EST le plan vu du dessus (#1691) — jamais les deux : le plan n'a ni
+    // pente ni égout, la couverture n'est pas une convention de plan.
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const e = v as Record<string, unknown>;
-        // Une matière de toiture COUVRE un pan, ou elle EST le plan vu du dessus (#1691) — jamais les
-        // deux : le plan n'a ni pente ni égout, la couverture n'est pas une convention de plan.
-        if (e.couverture !== undefined && e.vueDeDessus !== undefined)
-          ctx.addIssue({
-            code: 'custom',
-            path: ['vueDeDessus'],
-            message: `materials : « ${String(e.id)} » ne peut pas être à la fois une couverture de pan et le plan vu du dessus.`,
-          });
+      entree.refine((e): e is { couverture?: undefined } | { vueDeDessus?: undefined } => e.couverture === undefined || e.vueDeDessus === undefined, {
+        path: ['vueDeDessus'],
+        error: (iss) => `materials : « ${String(estObjet(iss.input) ? iss.input.id : iss.input)} » ne peut pas être à la fois une couverture de pan et le plan vu du dessus.`,
       }),
     // Le PLAN vu du dessus est une entrée NOMMÉE par sa donnée, pas par un id littéral au call-site
     // (lue via `matierePlan()`) : le dataset en porte EXACTEMENT une.

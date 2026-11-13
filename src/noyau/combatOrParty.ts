@@ -107,7 +107,7 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
 
 /** Le clic du champ sur le combattant `id` : `cliquerLaCase` sur sa case, le combattant désigné, et `true` ; rien sans
  *  case au combat, `false`. Le verbe se lit dans l'état AU MOMENT du clic (chez l'invité coop, il porte l'enrobage
- *  d'intention, `hote/coop/salon.ts`). */
+ *  d'intention, `reseau.ts`). */
 export function cliquerSurLeCombattant(get: Get, id: string, opts?: OptionsDuClic): boolean {
   const pos = inBattleId(get().battle, id)?.pos;
   if (!pos) return false;

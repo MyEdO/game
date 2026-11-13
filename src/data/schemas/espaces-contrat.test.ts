@@ -8,14 +8,14 @@
  * référence LOCALE l'objet qui ouvre sa portée.
  */
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { AMORCAGE_EN_DEUX_TEMPS, indexChargeable, TABLE_VIDE } from '../../../scripts/gen-espaces.mjs';
+import { AMORCAGE_EN_DEUX_TEMPS, indexChargeable, moduleChargeable, TABLE_VIDE } from '../../../scripts/gen-espaces.mjs';
 import { z } from 'zod';
 import { IDS_PAR_ESPACE } from './_ids.generated';
 import { SCHEMA_DEFS } from './_registry.generated';
@@ -205,6 +205,16 @@ describe('AMORÇAGE — `npm run gen` répare un index illisible', () => {
     const courant = readFileSync(new URL('./_ids.generated.ts', import.meta.url), 'utf8');
     const conflit = `<<<<<<< HEAD\n${courant}=======\n${courant}>>>>>>> autre\n`;
     expect([conflit, '', 'export const IDS_PAR_DATASET = {};\n', TABLE_VIDE, courant].map(indexChargeable)).toEqual([false, false, false, true, true]);
+  });
+
+  it('un module de la phase 2 qui importe un document supprimé, ou sans un export de son amorce, n’est pas chargeable ; son amorce et le module courant le sont (#4161)', () => {
+    const courant = readFileSync(new URL('./_racines-vivantes.generated.ts', import.meta.url), 'utf8');
+    const amorce = 'export const RACINES_VIVANTES = {};\n';
+    const surDisque = (relatif: string) => existsSync(fileURLToPath(new URL(relatif, import.meta.url)));
+    const importMort = courant.replace("from '../stakes.json';", "from '../dataset-supprime.json';");
+    const sansExport = courant.replace('export const RACINES_VIVANTES', 'export const AUTRE');
+    expect([importMort, sansExport].map((texte) => texte === courant)).toEqual([false, false]);
+    expect([courant, amorce, importMort, sansExport].map((texte) => moduleChargeable(texte, amorce, surDisque))).toEqual([true, true, false, false]);
   });
 
   it('la phase 2 sur une table VIDE rend le même index que sur la table courante', () => {

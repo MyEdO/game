@@ -42,7 +42,7 @@ export function roomTiles(zone: SceneEffectZone): Pt[] {
 }
 
 /** Index case (`tileKey`) → pièces qui la couvrent, dans l'ordre de `scene.effectZones`. */
-export const roomsByTile = memoByRef((scene: Scene): ReadonlyMap<string, RoomTile> => {
+export const roomsByTile = memoByRef((scene: Pick<Scene, 'effectZones'>): ReadonlyMap<string, RoomTile> => {
   const indexed = new Map<string, RoomTile>();
   for (const zone of scene.effectZones ?? []) {
     if (!isRoomZone(zone)) continue;
@@ -57,7 +57,7 @@ export const roomsByTile = memoByRef((scene: Scene): ReadonlyMap<string, RoomTil
 });
 
 /** Cases de chaque pièce, par id, en clés d'espace `x,y,z`. */
-export const roomTilesById = memoByRef((scene: Scene): ReadonlyMap<string, ReadonlySet<string>> => {
+export const roomTilesById = memoByRef((scene: Pick<Scene, 'effectZones'>): ReadonlyMap<string, ReadonlySet<string>> => {
   const zones = new Map<string, ReadonlySet<string>>();
   for (const zone of scene.effectZones ?? []) {
     if (!isRoomZone(zone)) continue;
@@ -66,11 +66,11 @@ export const roomTilesById = memoByRef((scene: Scene): ReadonlyMap<string, Reado
   return zones;
 });
 
-const roomIdsAt = (scene: Scene, x: number, y: number, z: number): readonly string[] =>
+const roomIdsAt = (scene: Pick<Scene, 'effectZones'>, x: number, y: number, z: number): readonly string[] =>
   roomsByTile(scene).get(tileKey(x, y, z))?.zoneIds ?? [];
 
 /** Pièces occupées par au moins un héros, chacun à sa case visuelle arrondie et à son étage. */
-export function occupiedRoomIds(scene: Scene, heroPositions: readonly Pt[]): Set<string> {
+export function occupiedRoomIds(scene: Pick<Scene, 'effectZones'>, heroPositions: readonly Pt[]): Set<string> {
   const occupied = new Set<string>();
   for (const hero of heroPositions)
     for (const id of roomIdsAt(scene, Math.round(hero.x), Math.round(hero.y), hero.z ?? 0)) occupied.add(id);

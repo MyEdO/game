@@ -6,7 +6,7 @@
  * de scène se fusionnant par `withGiveQualities`.
  *
  * PORTÉE — deux signaux, tous deux tirés de la DONNÉE du catalogue (aucune liste de mots écrite ici) :
- *  1. HOMONYMIE de `label` (« Ration (1 jour) » ⇄ `ration`) ;
+ *  1. HOMONYMIE de `label` (« Vivres, 1 jour » ⇄ `ration`) ;
  *  2. FORME de famille : le libellé matche une entrée de `formChoices` d'un objet générique
  *     (« Épée » ⇄ `arme-simple`, dont les formes sont epee/hache/masse/marteau_guerre/demi_lance —
  *     LDB 62 l.125-127 : l'Arme simple couvre « les épées, les haches, les marteaux… »).
@@ -31,7 +31,7 @@ const DATA_DIR = __dirname;
 const SCENES_DIR = join(DATA_DIR, '..', 'scenes');
 
 /** Clé de rapprochement d'un libellé : `replier`, sans suffixe entre parenthèses
- *  (« Ration (1 jour) » ⇄ « Ration »), espaces normalisés. */
+ *  (« Bouclier (Grand) » ⇄ « Bouclier »), espaces normalisés. */
 function key(label: string): string {
   return replier(label).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
 }

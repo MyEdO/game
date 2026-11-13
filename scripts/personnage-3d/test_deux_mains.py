@@ -14,6 +14,7 @@ import sys
 import unittest
 from pathlib import Path
 
+import bpy
 import numpy
 from mathutils import Matrix, Vector
 

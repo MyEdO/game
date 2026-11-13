@@ -135,7 +135,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const cible = inBattleId(battle, pa.targetId);
   if (!attaquant || !cible) return null;
   const get = () => s;
-  const arme = attackWeaponOf(battle, attaquant, cible, pa);
+  const arme = attackWeaponOf(s.scene, battle, attaquant, cible, pa);
   const armeTenue = !pa.freeKind;
   const intitule = armeTenue ? libelleDuJet('attaque') : arme.label;
   const res = pa.result;
@@ -153,14 +153,14 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     && attaquant.weapons.some((w) => w.hand === 'secondaire' && w.type === 'melee' && (w.hands ?? 1) === 1)
     && !pa.cleave && !pa.dualSecond;
   // LDB 14 l.106
-  const auContact = !res && tir ? crowdEligible(battle, attaquant, cible) : [];
+  const auContact = !res && tir ? crowdEligible(s.scene, battle, attaquant, cible) : [];
   const bonusDuTas = crowdMod(auContact.length);
   // LDB 14 l.70 ; l.106 ; l.116
   const immobileALaConsole = !!battle.stances?.[attaquant.id]?.tirImmobile;
   const raisonImmobile = !res && tir ? heldGroundStanceBlock(battle, attaquant, arme) : null;
   const immobileSansObjet = !pa.tirImmobile && immobileALaConsole && !!raisonImmobile;
   const tasALaConsole = !!battle.stances?.[attaquant.id]?.dansLeTas;
-  const raisonTas = !res && tir ? intoCrowdStanceBlock(battle, attaquant, arme, cible) : null;
+  const raisonTas = !res && tir ? intoCrowdStanceBlock(s.scene, battle, attaquant, arme, cible) : null;
   const tasSansObjet = !pa.dansLeTas && tasALaConsole && !!raisonTas;
   // ADE II 02 l.677
   const objetSource = objetSourceDeLArme(attaquant, arme);

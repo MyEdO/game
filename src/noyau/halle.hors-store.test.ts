@@ -13,6 +13,7 @@ import type { Possession } from '../engine/possession';
 import type { WorldMap } from './worldMap';
 import { carrierById } from './carriers';
 import { devisDAchatDeCargaison } from './landMarketFlow';
+import { refusDeGesteSurLeGroupe } from './bourseFlow';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import type { CargoLot } from '../engine/cargo';
@@ -126,8 +127,8 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
   });
 });
 
-describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale disent le refus de groupe', () => {
-  it('vente, bradage, évaluation du vin et transfert refusés, cargaison intacte', () => {
+describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale sont à l’hôte', () => {
+  it('vente et bradage refusés par la fenêtre, évaluation du vin et transfert envoyés refusés (`coop.hoteSeul`), cargaison intacte', () => {
     const lot: CargoLot = { uid: 'lot-1', cargoId: 'metal', enc: 12, basePriceGold: 10 };
     const partie = halleFixee('invite', [lot]);
     try {
@@ -137,7 +138,8 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
       partie.envoyer({ type: 'deplacerLaCargaison', args: ['lot-1', 'convoi', 5] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
       expect(partie.etat().journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'vente et bradage').toBe(2);
-      expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length, 'évaluation et transfert').toBe(2);
+      expect(partie.etat().journal.filter((l) => l === t('coop.hoteSeul')).length, 'évaluation et transfert').toBe(2);
+      expect(refusDeGesteSurLeGroupe(partie.etat()), 'le refus de groupe que lit l’écran').toBe(t('groupe.hoteSeul'));
     } finally {
       partie.fermer();
     }

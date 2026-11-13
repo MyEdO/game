@@ -5,11 +5,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import { emplacementDePiece, pieceOuVariante, pieceRacine, piecesDEnsemble } from './gardeRobe';
-import { findPieceById, gardeRobe } from '../../data';
-import type { EnsembleDef, VarianteDef } from '../../data/schemas/defs/garde-robe';
+import { findPieceById, gardeRobe, type LigneDeGardeRobe } from '../../data';
 
-const ensembles = gardeRobe.filter((e): e is EnsembleDef => e.kind === 'ensemble');
-const variantes = gardeRobe.filter((e): e is VarianteDef => e.kind === 'variante');
+const ensembles = gardeRobe.filter((e): e is LigneDeGardeRobe<'ensemble'> => e.kind === 'ensemble');
+const variantes = gardeRobe.filter((e): e is LigneDeGardeRobe<'variante'> => e.kind === 'variante');
 
 describe('piecesDEnsemble (#3116)', () => {
   it('chaque ensemble de la garde-robe rend ses pièces par son `habille`', () => {

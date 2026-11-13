@@ -7,7 +7,10 @@ import { volumeDuMonde } from './volume/volume';
 import { casesMontrees } from './volume/volume.testkit';
 import { depuisBase64 } from '../../lib/base64';
 import { METRES_PER_LEVEL } from './relief';
-import { structureAppearances } from '../../data';
+import { structureAppearances, terrains } from '../../data';
+import { datasetArray, setDataset } from '../../data/overrides';
+import { garanti } from '../../lib/garanti';
+import { terrainAbsent } from './terrain';
 
 /** Une scène dont `walls` sont les murs, et dont un corps de bâtiment porte une façade d'auberge sur l'arête nord de (1, 1). */
 function scene(walls: WallSeg[]): Scene {
@@ -245,5 +248,33 @@ describe('plateauDeLaScene — ce que chaque regard retire (#3476)', () => {
     expect(regardDuJeu('immersion', true)).toBe('tactique');
     expect(regardDuJeu('immersion', false)).toBe('immersion');
     expect(regardDuJeu('plateau', true)).toBe('plateau');
+  });
+});
+
+describe('les arêtes dessinées suivent le catalogue des terrains édité (#4040)', () => {
+  it('une case de face devenue absente ne porte plus le pied de l’arête : la clé des arêtes change, puis revient', () => {
+    const base = emptyScene('pied', 4, 4);
+    const sol = base.layers[0].tiles[0];
+    const autre = garanti(terrains.find((t) => t.id !== sol && !t.absence && !t.bordDuMonde), 'terrain', 'autre que la semence').id;
+    const bas = 2 * 4 + 1;
+    const s: Scene = {
+      ...base,
+      layers: [{ ...base.layers[0], tiles: base.layers[0].tiles.map((t, i) => (i === bas ? autre : t)), height: base.layers[0].tiles.map((_, i) => (i === bas ? 0 : 2)) }],
+      walls: [{ x: 1, y: 2, side: 'N' }],
+    };
+    const lu = () => plateauDeLaScene(s, [{ x: 3, y: 3, z: 0 }], 'tactique');
+    expect(s.layers[0].tiles.filter((t) => t === autre), `seule la case (1, 2) porte « ${autre} »`).toHaveLength(1);
+    const avant = lu();
+    expect(areteDessinee(s, { x: 1, y: 2, side: 'N' }).pied, `la case (1, 2) de « ${autre} », au sol 0, porte le pied`).toBe(0);
+    const catalogue = [...datasetArray('terrains')];
+    const vide = terrainAbsent();
+    try {
+      setDataset('terrains', catalogue.map((t) => (t.id === autre ? { ...t, absence: true } : t.id === vide ? { ...t, absence: undefined } : t)));
+      expect(lu().cleDesAretes, `« ${autre} » absent : la clé des arêtes change`).not.toBe(avant.cleDesAretes);
+      expect(aretesDeLaScene(s).map((a) => a.pied), `« ${autre} » absent : le pied passe à la case (1, 1), au sol 2`).toEqual([2]);
+    } finally {
+      setDataset('terrains', catalogue);
+    }
+    expect(lu().cleDesAretes, 'catalogue restauré : la clé des arêtes d’avant').toBe(avant.cleDesAretes);
   });
 });

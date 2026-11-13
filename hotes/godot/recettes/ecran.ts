@@ -175,7 +175,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
    *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. `planche` rend la planche
    *  de la suite `s` de sa partie. */
   const unPont = (journal: Ligne[]) => {
-    const pont = creerPont(null);
+    const pont = creerPont(null, null);
     let scenario = '';
     const appeler = (methode: string, entree: unknown): Suite => {
       const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
@@ -417,6 +417,11 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   s = atelier.appeler('creation', deLaCreation('creation.corps', 'methode', 'Répartir 100 points'));
   figer(atelier, 'creation-caracteristiques', 'création, les Caractéristiques en 100 points', s);
   atelier.fermer();
+  const variante = unPont([]);
+  s = viderLesFenetres(variante.jouer, variante.jouer('demarrer', { scenario: 'marche-equipement', graine: 3 }));
+  for (const [zone, id] of [['groupe.gestes', 'creation'], ['creation.corps', 'tirage'], ['creation.gestes', 'suivante'], ['creation.corps', 'tirage']] as const) s = variante.appeler('creation', deLaCreation(zone, id));
+  figer(variante, 'creation-carriere-second-lancer', 'création, la carrière tirée et son second lancer', s);
+  variante.fermer();
 
   vues.push({
     nom: 'formulaire de chaque saisie',

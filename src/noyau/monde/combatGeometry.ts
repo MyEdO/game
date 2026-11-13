@@ -8,12 +8,11 @@ import type { Combatant } from '../../engine/types';
 import type { Dir8 } from '../../geometry/dir8';
 import { Scene, isWalkable } from './scene';
 import { Pt, MoveEnv, tileKey, climbTraverseFor, walkComponentsFrom, walkComponentAt } from './path';
-import { footprintTiles, footprintN, occupiesTile, distanceDeContact } from './footprint';
+import { footprintTiles, footprintN, occupiesTile, distanceDeContact, porteParLaScene } from './footprint';
 import { inBattleId } from './combatants';
 import { sizeGap } from '../../engine/size';
 import { requiredTerrains } from '../../engine/ops';
 import { isOutOfAction } from '../../engine/conditions';
-import { isStructure } from '../../engine/structures';
 import { traitSeesInDark } from '../../engine/traits/dispatch';
 import { losBlockingTiles, barrierTilesFor } from './zones';
 import { chebyshev } from '../../engine/grid';
@@ -71,9 +70,6 @@ export function cannotStopOn(battle: BattleState, mover: Combatant): Set<string>
  * portent le blocage) ; un navire sur ses ponts (`surSesPonts`, #3686) est ses ponts, où l'on marche (leurs
  * cloisons portent le blocage). Socle de `occupied`, `cannotStopOn` et `translaterFormation`.
  */
-/** Le corps de `c` est-il porté par la scène : une structure de siège (ses arêtes), un navire sur ses ponts ? */
-const porteParLaScene = (c: Combatant): boolean => isStructure(c) || !!c.surSesPonts;
-
 export function casesTenues(combatants: readonly Combatant[], retenu: (c: Combatant) => boolean): Set<string> {
   const s = new Set<string>();
   for (const c of combatants) {
@@ -84,8 +80,8 @@ export function casesTenues(combatants: readonly Combatant[], retenu: (c: Combat
 }
 
 /** Le camp de `active` à son contact (`distanceDeContact` ≤ 1), lui compris. LDB 15 l.12. */
-export function campAuContact(battle: BattleState, active: Combatant): Combatant[] {
-  return battle.combatants.filter((c) => c.kind === active.kind && (c.id === active.id || distanceDeContact(active, c) <= 1));
+export function campAuContact(scene: Scene | null, battle: BattleState, active: Combatant): Combatant[] {
+  return battle.combatants.filter((c) => c.kind === active.kind && (c.id === active.id || distanceDeContact(scene, active, c) <= 1));
 }
 
 /**

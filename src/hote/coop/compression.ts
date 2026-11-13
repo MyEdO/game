@@ -3,7 +3,7 @@
  * + base64url. Les snapshots/campagne (~10:1 sur du JSON d'état) voyagent en champ `z` des
  * enveloppes relay — l'enveloppe elle-même reste en clair pour le routage par le DO.
  */
-import { depuisBase64, enBase64 } from '../lib/base64';
+import { depuisBase64, enBase64 } from '../../lib/base64';
 
 async function pipeThrough(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
   const blob = new Blob([bytes as BlobPart]);

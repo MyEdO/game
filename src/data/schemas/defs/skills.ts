@@ -9,6 +9,7 @@ import { charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../gra
 import { document } from '../grammaire/document';
 import { senseSchema } from '../grammaire/mecanique';
 import { ref } from '../grammaire/ref';
+import { capaciteDObjetSchema } from './trappings';
 
 export const file = 'skills.json';
 export const famille = 'entite';
@@ -46,10 +47,8 @@ const doc = document(
       role: z.enum(['defense', 'attaque', 'lesDeux']),
       gate: z.literal('peur'),
     }), { role: { label: 'Rôle' }, gate: { label: 'Condition d’accès' } }).optional(),
-    /** `capability` = clé de `ItemCapabilities` (`src/data/index.ts`) — sac de flags fermé côté TS ;
-     *  laissé en `z.string()` ici (référence croisée hors périmètre d'un seul dataset, cf. `tool.json`
-     *  n'existe pas comme catalogue séparé — c'est un type TS, pas une donnée). */
-    tool: nommerChamps(z.strictObject({ capability: z.string(), withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
+    /** `capability` = une clé des capacités d'objet (`capabilities`, `schemas/defs/trappings.ts`). */
+    tool: nommerChamps(z.strictObject({ capability: capaciteDObjetSchema, withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
   },
   {
     characteristic: { label: 'Caractéristique' },

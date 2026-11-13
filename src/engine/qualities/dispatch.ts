@@ -11,11 +11,11 @@
 import type { Weapon, QualityInstance, ArmourBypass } from '../types';
 import type { QualityId } from './ids';
 import type { QualityDef } from './types';
-import { findQualityById, findWeaponGroupById, qualityInstance, type QualityCapabilities, type QualityData } from '../../data';
+import { findQualityById, findWeaponGroupById, groupeDeLArme, qualityInstance, type QualityCapabilities, type QualityData } from '../../data';
 import type { GameOp, OpPassive } from '../ops';
 
 /** Tout porteur de qualités (Weapon ou ItemInstance) — seul `qualities` est requis ; `weaponGroup`/
- *  `subType` (`weaponGroup ?? subType` = Groupe d'objet) donnent accès aux qualités de FAMILLE.
+ *  `subType` (`groupeDeLArme` = Groupe d'objet) donnent accès aux qualités de FAMILLE.
  *  `noFamilyQualities` bloque cette fusion SANS effacer `subType`/`weaponGroup` (cf. `Weapon.noFamilyQualities` —
  *  la compétence/talent lus par `subType` restent intacts pour un profil qui remplace la liste de qualités).
  *  `removedQualities`/`removedTypes` : qualités NEUTRALISÉES par une altération (op `augmentWeapon`,
@@ -57,7 +57,7 @@ export function resolveQualities(w: QualityCarrier | undefined): ResolvedQuality
   if (!w) return [];
   const own = w.qualities ?? [];
   const ownIds = new Set(own.map((q) => q.id));
-  const familyQualities = w.noFamilyQualities ? [] : (findWeaponGroupById(w.weaponGroup ?? w.subType)?.qualities ?? []);
+  const familyQualities = w.noFamilyQualities ? [] : (findWeaponGroupById(groupeDeLArme(w))?.qualities ?? []);
   const merged = [...own, ...familyQualities.filter((q) => !ownIds.has(q.id)).map(qualityInstance)];
   const out: ResolvedQuality[] = [];
   for (const q of merged) {

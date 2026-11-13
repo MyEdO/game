@@ -39,7 +39,7 @@ const actionDe = (o: Offre) => o.actionId;
 /** Les PASTILLES D'ENTITÉ de l'instant : les offres de l'actif à la surface du champ, par entité qui les porte. */
 const entityGestes = (st: Jeu) => {
   const battle = st.battle!;
-  return offresParPorteur(offresDeLActif({ active: activeCombatant(battle)!, battle, netMode: st.net.mode, gameTime: st.gameTime, state: st }), 'pastille-entite');
+  return offresParPorteur(offresDeLActif({ scene: st.scene, active: activeCombatant(battle)!, battle, netMode: st.net.mode, gameTime: st.gameTime, state: st }), 'pastille-entite');
 };
 
 describe('Scénario « Pastilles d’entité » — le banc de recette de la zone 4', () => {

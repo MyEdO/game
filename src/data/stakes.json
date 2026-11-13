@@ -2079,7 +2079,7 @@
     "type": "stakes",
     "label": "Escalade d’une paroi",
     "cascade": "combat",
-    "template": "Réussite : vous prenez pied en haut. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
+    "template": "Réussite : vous franchissez la paroi. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
     "rule": {
       "id": "chute",

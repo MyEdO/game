@@ -4,6 +4,7 @@ import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { makeRNG, roll } from './dice';
 import { findTableEntry } from './tables';
 import { setRule } from './policy';
+import type { EntreeVivante } from '../data/datasets';
 import { CHAR_KEYS, CharKey } from './types';
 import {
   randomSpeciesTable,
@@ -26,7 +27,7 @@ import {
   XP_CHARS_REASSIGNED,
   XP_STAR_ROLLED,
 } from './creation';
-import { careersForSpecies, findSpeciesById, species, stars, type SpeciesData } from '../data';
+import { careersForSpecies, findSpeciesById, offreDuJet, species, stars, type SpeciesData } from '../data';
 import { setDataset } from '../data/overrides';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 
@@ -169,7 +170,7 @@ describe('Tableau des Races aléatoires (LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE
 
   it('le gate porte sur l’ESPÈCE (`gatedByRule`), pas sur son livre : une espèce NADJ sans le champ est ouverte dans sa race', () => {
     const gnome = findSpeciesById('gnomes')!;
-    const fictive: SpeciesData = { ...gnome, id: 'sonde-espece-nadj', label: 'Sonde NADJ', refChar: 'halfling' };
+    const fictive: EntreeVivante<SpeciesData> = { ...gnome, id: 'sonde-espece-nadj', label: 'Sonde NADJ', refChar: 'halfling' };
     delete fictive.gatedByRule;
     setDataset('species', [...species, fictive]);
     try {
@@ -188,8 +189,7 @@ describe('Tableau des Classes et Carrières aléatoires (LDB 05 l.214+)', () => 
     const accessibles = new Set(careersForSpecies(sylvain).map((c) => c.id));
     for (let seed = 1; seed <= 20; seed++) {
       const r = rollCareer(sylvain, false, makeRNG(seed));
-      expect(r.ids.length).toBeGreaterThan(0);
-      for (const id of r.ids) expect(accessibles, id).toContain(id);
+      for (const id of offreDuJet(sylvain, r)) expect(accessibles, id).toContain(id);
     }
   });
 });

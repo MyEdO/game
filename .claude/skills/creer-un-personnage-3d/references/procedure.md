@@ -597,7 +597,9 @@ ne franchissent ni mur ni porte, et reposent sur un plancher. Une garde qui refu
 d'une case ou en la tournant, jamais en la retirant ni en vidant une cabine dessinée : le nombre de pièces par bord est
 celui de l'illustration qui les place (MDG 12 pour la caraque). Dans le jeu, la route à bord
 (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`, une par scénario `a-bord-de-*`) prouve que chaque case
-s'atteint depuis le départ par les échelles, et la rejoue au clic dans l'export Web :
+s'atteint depuis le départ par les échelles et qu'au regard `plateau` chacune est la plus haute que le monde montre à
+la verticale de son point (aucun décor du pont du dessous ne la traverse : `src/noyau/planDeNavire.test.ts`), et la
+rejoue au clic dans l'export Web, au regard `plateau` :
 
 ```sh
 ROUTE=/atelier/routes npx vitest run --config vitest.noyau.config.ts hotes/godot/recettes/route-a-bord.hors-store.test.ts
