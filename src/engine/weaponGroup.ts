@@ -44,7 +44,7 @@ export function maniementRetenu(
 ): ManiementRetenu | undefined {
   const sonGroupe = groupeDeLArme(weapon);
   const famille = findWeaponGroupById(sonGroupe);
-  const declares = { ...(famille?.kind === 'weapon' ? famille.manieAussi : undefined), ...weapon.manieAussi };
+  const declares: Readonly<Record<string, ManiementAlternatif>> = { ...(famille?.kind === 'weapon' ? famille.manieAussi : undefined), ...weapon.manieAussi };
   const ouverts = Object.entries(declares)
     .filter(([groupe, m]) => !(m.aPied && c.mountId) && speDeCorpsACorps(c, groupe))
     .map(([groupe, m]): ManiementRetenu => ({ groupe, ...m }));

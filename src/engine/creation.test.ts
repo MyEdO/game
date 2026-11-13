@@ -4,6 +4,7 @@ import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { makeRNG, roll } from './dice';
 import { findTableEntry } from './tables';
 import { setRule } from './policy';
+import type { EntreeVivante } from '../data/datasets';
 import { CHAR_KEYS, CharKey } from './types';
 import {
   randomSpeciesTable,
@@ -169,7 +170,7 @@ describe('Tableau des Races aléatoires (LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE
 
   it('le gate porte sur l’ESPÈCE (`gatedByRule`), pas sur son livre : une espèce NADJ sans le champ est ouverte dans sa race', () => {
     const gnome = findSpeciesById('gnomes')!;
-    const fictive: SpeciesData = { ...gnome, id: 'sonde-espece-nadj', label: 'Sonde NADJ', refChar: 'halfling' };
+    const fictive: EntreeVivante<SpeciesData> = { ...gnome, id: 'sonde-espece-nadj', label: 'Sonde NADJ', refChar: 'halfling' };
     delete fictive.gatedByRule;
     setDataset('species', [...species, fictive]);
     try {

@@ -1165,10 +1165,21 @@
     ],
     "trappings": [
       {
-        "text": "Bateau de transport fluvial ou Chariot",
-        "count": {
-          "fixed": 2
-        }
+        "pick": 1,
+        "of": [
+          {
+            "id": "barge-fluviale",
+            "type": "vehicle",
+            "label": "Bateau de transport fluvial"
+          },
+          {
+            "id": "chariot-leger",
+            "type": "vehicle",
+            "count": {
+              "fixed": 2
+            }
+          }
+        ]
       },
       {
         "id": "licence-de-guilde"
@@ -1292,10 +1303,24 @@
     ],
     "trappings": [
       {
-        "text": "Bateau de transport fluvial (2) ou Chariot",
-        "count": {
-          "fixed": 4
-        }
+        "pick": 1,
+        "of": [
+          {
+            "id": "barge-fluviale",
+            "type": "vehicle",
+            "count": {
+              "fixed": 2
+            },
+            "label": "Bateau de transport fluvial"
+          },
+          {
+            "id": "chariot-leger",
+            "type": "vehicle",
+            "count": {
+              "fixed": 4
+            }
+          }
+        ]
       },
       {
         "label": "Grand domaine",
@@ -3022,7 +3047,7 @@
         "id": "encre"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "fixed": 10
         }
@@ -3358,7 +3383,8 @@
         "nature": "personne"
       },
       {
-        "text": "Piegons voyageurs"
+        "label": "Pigeons voyageurs",
+        "nature": "bete"
       },
       {
         "id": "plume-d-oie"
@@ -5662,7 +5688,7 @@
         "spec": "éprouvée au combat"
       },
       {
-        "text": "Contrat de mercenaire"
+        "id": "contrat-de-mercenaire"
       }
     ],
     "characteristics": [
@@ -6155,7 +6181,7 @@
     ],
     "trappings": [
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -6168,7 +6194,7 @@
         "id": "carte"
       },
       {
-        "text": "Ordres de mission"
+        "id": "ordres-de-mission"
       },
       {
         "label": "Unité de Soldats",
@@ -7823,7 +7849,8 @@
     ],
     "trappings": [
       {
-        "text": "Parc de diligences et de chevaux"
+        "label": "Parc de diligences et de chevaux",
+        "nature": "vehicule"
       },
       {
         "id": "carte"
@@ -10182,7 +10209,8 @@
     ],
     "trappings": [
       {
-        "text": "Animal dressé"
+        "label": "Animal dressé",
+        "nature": "bete"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -10499,7 +10527,7 @@
     ],
     "trappings": [
       {
-        "text": "Bon de commande"
+        "id": "bon-de-commande"
       },
       {
         "id": "atelier",
@@ -10927,7 +10955,7 @@
         "nature": "titre"
       },
       {
-        "text": "Diplôme"
+        "id": "diplome"
       }
     ],
     "characteristics": [
@@ -10982,7 +11010,7 @@
     ],
     "trappings": [
       {
-        "id": "mortier"
+        "id": "mortier-universitaire"
       },
       {
         "id": "robes"
@@ -11782,7 +11810,7 @@
         "spec": "tenue d'apparat"
       },
       {
-        "text": "Lettre d'engagement"
+        "id": "lettre-d-engagement"
       }
     ],
     "characteristics": [
@@ -12419,7 +12447,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       }
     ],
     "characteristics": [
@@ -13057,7 +13085,8 @@
         "id": "necessaire-de-deguisement"
       },
       {
-        "text": "Flotille de bateaux de transport fluvial"
+        "label": "Flottille de bateaux de transport fluvial",
+        "nature": "vehicule"
       }
     ],
     "characteristics": [
@@ -13558,7 +13587,18 @@
     ],
     "trappings": [
       {
-        "text": "Cabane ou Bateau de transport fluvial"
+        "pick": 1,
+        "of": [
+          {
+            "label": "Cabane",
+            "nature": "immeuble"
+          },
+          {
+            "id": "barge-fluviale",
+            "type": "vehicle",
+            "label": "Bateau de transport fluvial"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -13794,7 +13834,9 @@
         "spec": "maritimes"
       },
       {
-        "text": "Voilier"
+        "id": "cogue",
+        "type": "vehicle",
+        "label": "Voilier"
       },
       {
         "label": "Équipage",
@@ -14056,7 +14098,8 @@
     ],
     "trappings": [
       {
-        "text": "Flotille de bateaux de transport fluvial"
+        "label": "Flottille de bateaux de transport fluvial",
+        "nature": "vehicule"
       },
       {
         "label": "Équipage de Naufrageurs",
@@ -17170,7 +17213,8 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Chenil avec chiens de chasse"
+        "label": "Chenil avec chiens de chasse",
+        "nature": "bete"
       }
     ],
     "characteristics": [
@@ -17718,7 +17762,8 @@
         ]
       },
       {
-        "text": "Troupeau de rhinox ou d'autres Grandes bêtes"
+        "label": "Troupeau de rhinox ou d'autres grandes bêtes",
+        "nature": "bete"
       }
     ],
     "characteristics": [
@@ -21020,7 +21065,8 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettres de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -21286,7 +21332,8 @@
         "qualityChoice": true
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -21543,7 +21590,8 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -21816,7 +21864,8 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
         "id": "selle-et-harnais"
@@ -23168,10 +23217,12 @@
         "type": "creature"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination",
+        "spec": "lettre de marque"
       },
       {
-        "text": "Affût"
+        "label": "Affût",
+        "nature": "vehicule"
       },
       {
         "id": "selle-et-harnais"
@@ -24181,7 +24232,12 @@
     ],
     "trappings": [
       {
-        "text": "Flottille de bateaux de transport avec un équipage de Naufrageurs"
+        "label": "Flottille de bateaux de transport",
+        "nature": "vehicule"
+      },
+      {
+        "label": "Équipage de Naufrageurs",
+        "nature": "personne"
       },
       {
         "id": "menottes"
@@ -24686,7 +24742,8 @@
     ],
     "trappings": [
       {
-        "text": "Flotte de navires"
+        "label": "Flotte de navires",
+        "nature": "vehicule"
       }
     ],
     "characteristics": [
@@ -24950,7 +25007,8 @@
     ],
     "trappings": [
       {
-        "text": "Flottille de bateaux"
+        "label": "Flottille de bateaux",
+        "nature": "vehicule"
       },
       {
         "id": "relique",
@@ -25719,7 +25777,7 @@
         "spec": "Alchimie"
       },
       {
-        "text": "Laboratoire"
+        "id": "laboratoire-alchimique"
       }
     ],
     "characteristics": [
@@ -25769,10 +25827,11 @@
     ],
     "trappings": [
       {
-        "text": "Laboratoire de bonne qualité"
+        "id": "laboratoire-alchimique",
+        "spec": "de bonne qualité"
       },
       {
-        "text": "Lettre de nomination"
+        "id": "lettre-de-nomination"
       }
     ],
     "characteristics": [
@@ -26440,7 +26499,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -26708,7 +26767,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "laboratoire-alchimique-portatif"
@@ -26998,7 +27057,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -27267,7 +27326,7 @@
         "spec": "cérémoniel"
       },
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -27542,7 +27601,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -27817,7 +27876,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -28102,7 +28161,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -28353,7 +28412,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       }
     ],
     "characteristics": [
@@ -28595,7 +28654,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"

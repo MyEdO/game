@@ -55,6 +55,19 @@ ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un
 de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, utilisée par le pilote. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
 mesure>`.
 
+**Fusion des imports** (`.gitattributes`, `merge=imports` sur `.ts`, `.tsx`, `.mts`, `.mjs`, pilote
+`scripts/git-hooks/merge-imports.mjs` déclaré par `npm run postinstall`, #4178) : la fusion 3-voies
+ordinaire d'abord, rendue telle quelle quand elle est propre. En conflit, chaque suite de lignes faite
+seulement de déclarations `import` / `export` de premier niveau entières (`declarationsDImport`,
+`scripts/guards/lib/declarationsDImport.mjs`, sur l'arbre syntaxique de `dialecte.mjs`) est fusionnée par
+ensemble : chaque liaison, sous le nom qu'elle lie, prend la valeur du côté qui l'a changée depuis
+l'ancêtre. Une liaison changée des deux côtés, un nom que le module lie déjà ailleurs, deux imports d'effet
+ajoutés chacun d'un côté, un commentaire dans la région, une version qui ne se parse pas laissent le
+conflit ordinaire, comme tout conflit hors des imports. La sortie de `merge-file --diff3`
+se lit par `segmentsDeFusion` (`scripts/guards/lib/blocsDeFusion.mjs`), partagé avec
+`scripts/ops/synchroniser.mjs`. GitHub n'exécute aucun pilote : le gain est à la fusion locale et dans le
+train.
+
 ## Frontière orchestrateur · machinerie · data-driven
 
 Un Trigger doit fonctionner pour TOUT kind d'entité (maladie, talent, trait, sort, état, mutation)
@@ -523,10 +536,12 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
-  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 35 types exportés,
-                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 11
+  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 37 types exportés,
+                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 13
                             MANUSCRITS : `Scene`, `SceneEntity`, `SceneDuVolume` (la scène vue par son
-                            volume, tirée de `CHAMPS_DU_VOLUME`),
+                            volume, tirée de `CHAMPS_DU_VOLUME`), `SceneDesToits` et `SceneDesCouronnes`
+                            (la scène vue par ses nappes de toit et ses couronnes, tirées de
+                            `CHAMPS_DES_TOITS` et `CHAMPS_DES_COURONNES`),
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `Layer` (l'infer du schéma dont `tiles`

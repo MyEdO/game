@@ -26,9 +26,14 @@ import { marquerProduit, produitDe } from './interne/produits';
 import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuilleDId as feuilleLue, typeDeFeuilleDId as typeLu } from './interne/feuilles';
 import { enfantsDe } from './descente';
 
-declare const marqueDeType: unique symbol;
-/** Id BRANDÉ par son type — frappé à la porte zod, jamais par un `as` d'appelant. */
-export type Id<T extends string> = string & { readonly [marqueDeType]: T };
+/** Clé générée (`IdsParEspace`) de la sous-liste DISCRIMINÉE `S` de l'espace de `T` (`<espace>?<champ>=<S>`), `never` pour
+ *  une sous-liste que le type ne connaît pas (une chaîne non littérale, une `SousListeMarquee`). */
+type CleDeLaSousListe<T extends TypeEntite, S> = S extends string ? (string extends S ? never : Extract<keyof IdsParEspace, `${(typeof TYPES)[T]['espace']}?${string}=${S}`>) : never;
+
+/** Id d'une référence de `type` : l'union GÉNÉRÉE (`IdsParEspace`), instantané au commit, de l'espace qui fait autorité
+ *  sur son type (`TYPES`), de sa sous-liste discriminée `S` quand elle est nommée — un id absent ne compile pas. Un id
+ *  frappé à l'exécution passe par la porte zod (`idDe`). */
+export type Id<T extends TypeEntite, S = undefined> = IdsParEspace[[CleDeLaSousListe<T, S>] extends [never] ? (typeof TYPES)[T]['espace'] : CleDeLaSousListe<T, S>];
 
 /** Ce qu'un type d'entité déclare : son espace de noms et le nom de son catalogue. */
 export interface DeclarationDeType {
@@ -421,7 +426,7 @@ export function espacesDesignes(): string[] {
 }
 
 /**
- * Schéma d'un id NU de `type` : refiné contre le registre, brandé `Id<type>` à la sortie. C'est la
+ * Schéma d'un id NU de `type` : refiné contre le registre, typé `Id<type, sousListe>` à la sortie, l'union générée de son espace. C'est la
  * FEUILLE porteuse de la référence, et la SEULE vérification d'un id contre le registre sous
  * `src/data/schemas` : au parse de mesure (`mesureDuParse`), chaque validation réussie y émet un
  * REPÈRE, que le volet SLOTS de `docs/structures-donnees.md` lit comme le côté DÉCLARÉ.
@@ -439,19 +444,19 @@ export function espacesDesignes(): string[] {
  * PRÉSENT reste jugé par la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence
  * du type.
  *
- * `nue` : la sortie reste un `string` sans marque — la réf que le moteur et ses appelants construisent
+ * `nue` : la sortie reste un `string` ouvert — la réf que le moteur et ses appelants construisent
  * nue partout (`SourceRef.book`, `grammaire/valeurs.ts`). Le jugement au parse est le même.
  */
 export function idDe<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, options: { readonly ouverte?: boolean; readonly nue: true }): z.ZodType<string, string>;
-export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string>;
-export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean; readonly nue?: true }): z.ZodType<Id<T>, string> {
+export function idDe<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, sousListe?: S, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T, S>, string>;
+export function idDe<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, sousListe?: S, options?: { readonly ouverte?: boolean; readonly nue?: true }): z.ZodType<Id<T, S>, string> {
   return feuilleDId(type, sousListe, options?.ouverte === true, true);
 }
 
 /** Le corps de `idDe`. `avecRepere` : la feuille émet son repère au parse de mesure ; sans repère, le
  *  porteur l'émet lui-même (`recordDIds`, dont la clé ne doit porter aucune issue pour que zod en parse
  *  la valeur). */
-function feuilleDId<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, ouverte: boolean, avecRepere: boolean): z.ZodType<Id<T>, string> {
+function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type: T, sousListe: S | undefined, ouverte: boolean, avecRepere: boolean): z.ZodType<Id<T, S>, string> {
   const site =
     (sousListe === undefined
       ? `idDe('${type}'`
@@ -469,7 +474,7 @@ function feuilleDId<T extends TypeEntite>(type: T, sousListe: SousListe | undefi
       }
       ctx.addIssue({ code: 'custom', message: refus });
     })
-    .transform((v) => v as Id<T>);
+    .transform((v) => v as Id<T, S>);
   const declaration: FeuilleDId = sousListe === undefined ? { type, ouverte } : { type, sousListe, ouverte };
   declarerFeuilleDId(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
@@ -619,19 +624,19 @@ export function reperesDuParse(schema: z.ZodType, donnee: unknown): readonly Rep
  * l'appel, et le site le réécrirait à la main. Sur une PORTÉE LOCALE, des ids d'entrées de sa collection.
  */
 export function refs(portee: PorteeLocale): z.ZodArray<z.ZodString>;
-export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousListe?: SousListe }): z.ZodArray<z.ZodType<Id<T>, string>>;
+export function refs<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, opts?: { min?: number; sousListe?: S }): z.ZodArray<z.ZodType<Id<T, S>, string>>;
 export function refs(cible: TypeEntite | PorteeLocale, opts?: { min?: number; sousListe?: SousListe }) {
   const liste = z.array(typeof cible === 'string' ? idDe(cible, opts?.sousListe) : feuilleLocale(cible));
   return opts?.min === undefined ? liste : liste.min(opts.min);
 }
 
-/** Record keyé par les ids de `type` : une clé refusée porte le message de sa feuille `idDe`, qui nomme le
+/** Record PARTIEL keyé par les ids de `type` (aucune donnée n'y couvre tout l'espace) : une clé refusée porte le message de sa feuille `idDe`, qui nomme le
  *  catalogue, jamais la « clé invalide » générique de zod. `sousListe` restreint chaque clé comme `idDe`.
  *  Au parse de mesure, la clé n'émet pas son repère (zod ne parserait plus la valeur) : le record le pose
  *  sur chaque clé, en `invalid_key`, après le parse de la valeur. */
-export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, valeur: V, sousListe?: SousListe) {
+export function recordDIds<T extends TypeEntite, V extends z.ZodType, S extends SousListe | undefined = undefined>(type: T, valeur: V, sousListe?: S) {
   return z
-    .record(feuilleDId(type, sousListe, false, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
+    .partialRecord(feuilleDId(type, sousListe, false, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
     .superRefine((v, ctx) => {
       if (!parseDeMesure) return;
       for (const cle of Object.keys(v)) {
@@ -673,8 +678,8 @@ type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id
  *  `{ id }` d'une entrée du catalogue ou d'une valeur réservée. */
 export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
 export function ref<T extends TypeEntite>(feuille: FeuilleOuReservee<T>): ReturnType<typeof objetDeRef<FeuilleOuReservee<T>, Record<never, never>>>;
-export function ref<T extends TypeEntite>(type: T, extra?: undefined, sousListe?: SousListe): ReturnType<typeof objetDeRef<z.ZodType<Id<T>, string>, Record<never, never>>>;
-export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, sousListe?: SousListe): ReturnType<typeof objetDeRef<z.ZodType<Id<T>, string>, E>>;
+export function ref<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, extra?: undefined, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, Record<never, never>>>;
+export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>, S extends SousListe | undefined = undefined>(type: T, extra: E, sousListe?: S): ReturnType<typeof objetDeRef<z.ZodType<Id<T, S>, string>, E>>;
 export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
   const extraDuPorteur = extra ?? {};
   const feuille = typeof cible === 'string' ? idDe(cible, sousListe) : '_zod' in cible ? cible : feuilleLocale(cible);
@@ -1025,7 +1030,7 @@ export const aLaFormeDe = (noeud: unknown, valeur: unknown): boolean =>
  * la forme (aucune issue de type ni de clé) — celui d'`idDe` nomme l'id et son catalogue —, jamais par
  * l'« Entrée invalide » générique d'une union.
  */
-export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
+export function unionDeFormes<const B extends readonly [z.ZodType, ...z.ZodType[]]>(branches: B): z.ZodUnion<B> {
   return z.union(branches, { error: messageDeFormes });
 }
 
@@ -1057,8 +1062,8 @@ export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur:
  * nœud ; il n'ajoute aucune option (cf. `pick`, `formesDeDotation` de `reference.ts`).
  */
 export function parmi<O, N extends number>(options: readonly z.ZodType<O>[], nombre: z.ZodType<N>): z.ZodType<Parmi<N, O>> {
-  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([noeud, ...options]));
-  const noeud = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of') as z.ZodType<Parmi<N, O>>;
+  const option: z.ZodType<O | Parmi<N, O>> = z.lazy(() => unionDeFormes([noeud, ...options]));
+  const noeud: z.ZodType<Parmi<N, O>> = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }
 

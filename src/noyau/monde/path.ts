@@ -2,8 +2,7 @@
 import { Scene, isWalkable, edgeOf, surfaceLink, climbEdgeBetween, wallIsOpen } from './scene';
 import { hasTrait, hasAutoClimb, hasClimbFullSpeed } from '../../engine/traits/dispatch';
 import type { Combatant } from '../../engine/types';
-import { memoByRef, memoByRefDeps } from './sceneMemo';
-import { versionDesDatasets } from '../../data/versionDataset';
+import { memoByRef } from './sceneMemo';
 import { chebyshev } from '../../engine/grid';
 
 export interface Pt {
@@ -175,9 +174,7 @@ function walkComponentsUncached(scene: Scene): Map<string, number> {
   }
   return label;
 }
-const composantesRetenues = memoByRefDeps<Scene, Map<string, number>>();
-const walkComponentsOf = (scene: Scene): Map<string, number> =>
-  composantesRetenues(scene, [versionDesDatasets()], () => walkComponentsUncached(scene));
+const walkComponentsOf = memoByRef(walkComponentsUncached);
 
 /** Numéro de composante marchable de la case (`walkComponentsUncached`), ou `null` si elle n'est pas
  *  marchable. Deux cases de même numéro sont reliées à pied, deux numéros distincts ne le sont pas. */
