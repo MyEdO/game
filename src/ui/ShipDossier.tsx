@@ -2,12 +2,15 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
-import { findVehicleById } from '../data';
+import { findVehicleById, refLabel } from '../data';
+import { VIVRES_DE_CALE } from '../engine/seaNavigation';
+import { rationsDeCale } from '../engine/provisions';
 import { findManannFactor } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
 import { dossierDuNavire } from '../noyau/seaVoyageFlow';
 import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
 import { fromBrass } from '../engine/money';
+import { formatEffetSigne } from '../engine/dice';
 import { bulkCarriers, nomDuNavire } from '../noyau/carriers';
 import { Coins } from './Coins';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -159,13 +162,18 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
               {vessel.saboteurDR ? <p className="port-hint">Sabotage actif : <b>{vessel.saboteurDR} DR</b> aux Tests d’équipage.</p> : null}
               <p className="port-hint">À bord : <b>{vue.heroes} héros + {crewCount} d’équipage</b>.</p>
               <p className="port-hint">
-                Eau douce : <b>{vessel.waterLitres != null ? `${vessel.waterLitres} L` : 'ravitaillement réputé assuré'}</b>
+                Eau douce : <b>{vessel.waterLitres != null ? `${vessel.waterLitres} L` : 'non suivie'}</b>
                 {autonomyDays != null ? ` · autonomie ~${autonomyDays} jour(s)` : ''}
               </p>
               <p className="port-hint">
-                Vivres d’équipage : <b>{vessel.provisions != null ? `${vessel.provisions} jour(s)-homme` : 'ravitaillement réputé assuré'}</b>
+                Vivres d’équipage : <b>{vessel.provisions != null ? `${rationsDeCale(vessel.provisions)} jour(s)-homme` : 'non suivis'}</b>
                 {provisionDays != null ? ` · autonomie ~${provisionDays} jour(s)` : ''}
               </p>
+              {vessel.provisions != null && (
+                <ul className="ship-dossier-list" aria-label="Vivres de la cale">
+                  {VIVRES_DE_CALE.vivres.map((id) => <li key={id}>{refLabel('trappings', { id })} : <b>{vessel.provisions?.[id] ?? 0}</b> ration(s)-jour</li>)}
+                </ul>
+              )}
               <p className="port-hint">Dernière traversée : <b>{vessel.lastVoyageMilles != null ? `${vessel.lastVoyageMilles} milles` : 'à quai depuis la mise à l’eau'}</b></p>
             </section>
 
@@ -251,7 +259,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
                 <ul className="ship-dossier-list">
                   {vessel.morale.factors.map((id) => {
                     const f = findMoraleFactor(id);
-                    return <li key={id}>{f?.label ?? id}{f ? ` (${f.effect})` : ''}</li>;
+                    return <li key={id}>{f?.label ?? id}{f ? ` (${formatEffetSigne(f.effect)})` : ''}</li>;
                   })}
                 </ul>
               ) : (
