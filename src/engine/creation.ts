@@ -18,7 +18,7 @@ import { RNG, roll, rollDice } from './dice';
 import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
-import { SpeciesData, findSpeciesById, tableDesRacesAleatoires, tableDeCarrieres, type carrieresAleatoires, species as allSpecies, eyes as eyesTable, hairs as hairsTable, eyesDie, hairsDie, type DetailColorData, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
+import { SpeciesData, findSpeciesById, tableDesRacesAleatoires, tableDeCarrieres, type varianteDe, species as allSpecies, eyes as eyesTable, hairs as hairsTable, eyesDie, hairsDie, type DetailColorData, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
@@ -78,7 +78,7 @@ export function rollCareer(sp: SpeciesData, avecPortion: boolean, rng: RNG): { r
 
 /** Le second lancer d'une carrière tirée, au dé de sa table de variante (`varianteDe`), puis la rangée atteinte.
  *  AA 02 l.109-113 ; VDM 03 l.17-19 */
-export function rollVariante(variante: (typeof carrieresAleatoires)[number], rng: RNG): { roll: number; id: string } {
+export function rollVariante(variante: NonNullable<ReturnType<typeof varianteDe>>, rng: RNG): { roll: number; id: string } {
   const r = rollDice(deDeLaTableTiree(variante), rng);
   return { roll: r, id: findTableEntry(variante.entries, r).id };
 }

@@ -621,7 +621,7 @@
         "text": "Habit de cour"
       },
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "text": "Robes de sorcier"
@@ -14872,7 +14872,7 @@
         "id": "grimoire"
       },
       {
-        "text": "licence magique"
+        "id": "licence-magique"
       },
       {
         "text": "Morg, le crâne de rat qui parle"
