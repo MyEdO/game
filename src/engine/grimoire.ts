@@ -97,7 +97,7 @@ export function arcaneDomainsOf(spell: SpellData): string[] | null {
 
 /** Le sort est-il un Sort d'Arcanes du Chaos : de la Magie du Chaos, d'aucun Dieu Sombre (`gods.json`). EDOC 13 l.264-266 */
 function estArcaneDuChaos(spell: SpellData): boolean {
-  return spell.family === 'chaos' && !gods.some((g) => g.chaosSpells?.includes(spell.id));
+  return spell.family === 'chaos' && !gods.some((g) => g.chaosSpells?.some((id) => id === spell.id));
 }
 
 /** Le sort `spell` est-il d'une liste qu'ouvre le Talent de lanceur `t` ? Spec absente (« Au choix » non assigné) :

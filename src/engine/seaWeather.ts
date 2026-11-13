@@ -27,8 +27,7 @@
  *    + eau à boire), Visibilité (l.227-243 : −DR aux Tests de Projectiles/Orientation/Perception
  *    basés sur la vue au-delà d'une distance).
  */
-import seaWeatherJson from '../data/sea-weather.json';
-import type { SeaWeatherData } from '../data/schemas/defs/sea-weather';
+import { seaWeather, type SeaWeatherData } from '../data';
 import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
@@ -65,7 +64,7 @@ interface VisibilityDef { id: string; label: string; drPenalty?: number; beyondM
 /** Cellule du tableau EFFET DU VENT : % voiles / % autres, ou Encalminé / Affaler / Virement de bord. */
 export interface WindEffectCell { pctSail?: number; pctOther?: number; encalmine?: boolean; affaler?: boolean; virement?: boolean }
 
-const DATA = seaWeatherJson as unknown as SeaWeatherData;
+const DATA: SeaWeatherData = seaWeather;
 
 /** Ordre croissant des forces de vent (pour le cran ±1 de la mise à jour, l.272). */
 export const windForces = memoParVersion('seaWeather', (): SeaWindForceId[] => DATA.vents.map((v) => v.id as SeaWindForceId));

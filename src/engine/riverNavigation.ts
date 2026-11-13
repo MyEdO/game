@@ -25,8 +25,7 @@
  *    E minutes, −10 Nav/tour, −1 % vitesse/tour, l.101-105).
  *  - **Dangers** (l.119-166) : Débris, Barrage, Rochers, Eaux peu profondes — cf. `river-perils.json`.
  */
-import riverNavJson from '../data/river-navigation.json';
-import type { RiverNavigationData } from '../data/schemas/defs/river-navigation';
+import { riverNavigation, type RiverNavigationData } from '../data';
 import riverPerilsJson from '../data/river-perils.json';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { deDeLaTableTiree, findTableEntry } from './tables';
@@ -62,7 +61,7 @@ export interface RiverWindEffect {
 
 interface CritDef { driftUntilRepair?: boolean; hole?: boolean }
 
-const DATA = riverNavJson as unknown as RiverNavigationData;
+const DATA: RiverNavigationData = riverNavigation;
 
 export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceId[] => DATA.windForces.entries.map((f) => f.id as RiverWindForceId));
 export const navBaseDifficulty = (): Difficulty => DATA.navBaseDifficulty;

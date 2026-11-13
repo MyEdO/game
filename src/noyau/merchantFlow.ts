@@ -292,7 +292,7 @@ function computeFreshStockLines(
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
   const cat: CatalogItem[] = trappingsInstanciables()
-    .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType !== null && arch.category.subTypes.includes(t.subType.id))))
+    .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType !== null && arch.category.subTypes.some((id) => id === t.subType?.id))))
     .map((t) => {
       const base: CatalogItem['availability'] = isTradable(t.availability) ? t.availability : null;
       const av = guild && base ? shiftAvailability(base, { qualities: t.qualities }, { guild: true }) : base;
