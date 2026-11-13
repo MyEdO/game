@@ -5,7 +5,7 @@
  * contexte. Le pair joué par `FakeSocket`, les minuteurs factices.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { erreurDe, suiteDe, table, type Reponse } from './pont.testkit';
+import { drainer, erreurDe, suiteDe, table, type Reponse } from './pont.testkit';
 import type { ReseauDuPont } from './pont';
 import { FakeSocket, compressionFactice, minuterieDuTest, roomOuverte, stockageEnMap, instantanesAuSiege1 } from '../../../src/hote/coop/relay.testkit';
 import { PROTOCOL_VERSION, serializeMessage } from '../../../src/hote/coop/protocol';
@@ -14,7 +14,7 @@ import { appliquerLInstantane } from '../../../src/noyau/coop';
 import { AUTO_SLOT, cleDEmplacement } from '../../../src/hote/sauvegardes';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import type { ZonesDuSalon } from '../../../src/hote/salon';
-import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
+import type { Bouton, Element, Entite, Ligne } from '../../../src/hote/elements';
 import { t } from '../../../src/i18n';
 
 type Appel = ReturnType<typeof table>['appel'];
@@ -61,15 +61,14 @@ const bouton = (entites: Entite[], id: string, prefixe: string): Bouton =>
 const message = (m: Parameters<typeof serializeMessage>[0]) => JSON.stringify({ data: serializeMessage(m) });
 const HELLO = message({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Hôte' });
 
-/** Les trames d'un hôte qui a lancé `la-diligence` (règle maison PLAFOND à 12), Anna assise au siège 1 : chaque
- *  instantané envoyé au siège 1, et la scène et la case du groupe de sa vue à ce moment. L'hôte quitté ensuite. */
-async function tramesDeLHote() {
-  const { appel } = table(stockageEnMemoire(), reseau());
-  appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] });
-  let s = suiteDe(appel('ouvrir', { graine: 7 }));
-  s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/harbull-piedvelu', 'recruter').jeu));
-  s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/werner-murrmann', 'recruter').jeu));
-  suiteDe(appel('lancer', bouton(s.vue.zones['groupe.campagnes'], 'campagne/la-diligence', 'lancer').jeu));
+/** La scène et la case du groupe de la projection de la vue de `appel`. */
+const sceneEtGroupe = (appel: Appel) => {
+  const { projection } = (appel('vue') as unknown as { vue: { projection: { scene: { id: string } | null; exploration: { groupe: unknown } | null } } }).vue;
+  return [projection.scene?.id, projection.exploration?.groupe];
+};
+
+/** `appel` héberge la room `ABC234`, Anna assise au siège 1 ; la socket de l'hôte. */
+async function hebergerAnna(appel: Appel) {
   appel('salon', { type: 'heberger', args: ['Hôte'] });
   await vi.advanceTimersByTimeAsync(0);
   const ws = FakeSocket.last!;
@@ -77,17 +76,57 @@ async function tramesDeLHote() {
   ws.receive(JSON.stringify({ evt: 'join', seat: 1, name: 'Anna' }));
   ws.receive(JSON.stringify({ from: 1, data: serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Anna' }) }));
   await vi.advanceTimersByTimeAsync(200);
-  const vueDeLHote = () => {
-    const { projection } = (appel('vue') as unknown as { vue: { projection: { scene: { id: string } | null; exploration: { groupe: unknown } | null } } }).vue;
-    return [projection.scene?.id, projection.exploration?.groupe];
-  };
-  const vues = [vueDeLHote()];
-  const instantanes = instantanesAuSiege1(ws);
-  expect(instantanes.length, 'aucun instantané au siège 1').toBeGreaterThan(0);
+  return ws;
+}
+
+/** L'hôte `appel` quitté, sans socket ni règle maison. */
+function quitterLHote(appel: Appel) {
   expect(appel('quitter')).toEqual({ ok: true });
   FakeSocket.instances = [];
   poserLesReglesMaisonPersistees({});
+}
+
+/** Les trames d'un hôte qui a lancé `la-diligence` (règle maison PLAFOND à 12), Anna assise au siège 1, puis validé
+ *  l'ouverture et déplacé le groupe : chaque instantané envoyé au siège 1, et la scène et la case du groupe de sa vue
+ *  au départ de chacun. L'hôte quitté ensuite. */
+async function tramesDeLHote() {
+  const { appel } = table(stockageEnMemoire(), reseau());
+  appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] });
+  let s = suiteDe(appel('ouvrir', { graine: 7 }));
+  s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/harbull-piedvelu', 'recruter').jeu));
+  s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/werner-murrmann', 'recruter').jeu));
+  suiteDe(appel('lancer', bouton(s.vue.zones['groupe.campagnes'], 'campagne/la-diligence', 'lancer').jeu));
+  const ws = await hebergerAnna(appel);
+  const vues: unknown[][] = [];
+  const noter = () => {
+    while (vues.length < instantanesAuSiege1(ws).length) vues.push(sceneEtGroupe(appel));
+  };
+  noter();
+  drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['ouverture'] }));
+  await vi.advanceTimersByTimeAsync(200);
+  noter();
+  const [x, y] = sceneEtGroupe(appel)[1] as number[];
+  drainer(appel, appel('jouer', { type: 'cliquerLaCase', args: [{ x, y: y + 2 }] }));
+  await vi.advanceTimersByTimeAsync(200);
+  noter();
+  const instantanes = instantanesAuSiege1(ws);
+  expect(new Set(vues.map((v) => JSON.stringify(v))).size, 'témoin : la vue de l’hôte n’a pas changé d’un instantané à l’autre').toBeGreaterThan(1);
+  quitterLHote(appel);
   return { instantanes, vues, dernier: JSON.parse(instantanes[instantanes.length - 1]).data as Record<string, unknown> };
+}
+
+/** Le dernier instantané envoyé au siège 1 par un hôte qui a démarré le dôme et ouvert son premier round, puis
+ *  affecté ses deux héros au siège 1 d'Anna : au tour de la sorcière, à elle. L'hôte quitté ensuite. */
+async function combatDeLHote() {
+  const { appel } = table(stockageEnMemoire(), reseau());
+  appel('demarrer', { scenario: 'dome', graine: 7 });
+  drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['debutDuRound'] }));
+  const ws = await hebergerAnna(appel);
+  for (const id of ['heros/sorciere/1', 'heros/protegee/1']) appel('salon', zonesDe(appel)['salon.sieges'].flatMap((c) => c.valeurs).find((v) => v.id === id)!.jeu);
+  await vi.advanceTimersByTimeAsync(200);
+  const instantanes = instantanesAuSiege1(ws);
+  quitterLHote(appel);
+  return instantanes[instantanes.length - 1];
 }
 
 /** Un pont invité sur un stockage où le joueur a écrit son emplacement automatique et PLAFOND à 8. */
@@ -118,18 +157,55 @@ async function recevoir(ws: FakeSocket, texte: string) {
   await vi.advanceTimersByTimeAsync(0);
 }
 
+/** Les intentions `[action, args]` que la socket `ws` de l'invité a envoyées, la chaîne d'envoi vidée d'abord. */
+async function intentionsParties(ws: FakeSocket): Promise<[string, unknown[]][]> {
+  await vi.advanceTimersByTimeAsync(0);
+  return ws.sent.flatMap((raw) => {
+    if (raw === 'ping') return [];
+    const m = JSON.parse((JSON.parse(raw) as { data: string }).data) as { kind: string; action?: string; args?: unknown[] };
+    return m.kind === 'intent' ? [[m.action!, m.args!] as [string, unknown[]]] : [];
+  });
+}
+
+/** La valeur `id` d'un choix de `combat.offres`. */
+const offre = (s: { vue: { zones: { 'combat.offres': Element[] } } }, id: string) =>
+  s.vue.zones['combat.offres'].flatMap((c) => (c.type === 'choix' ? c.valeurs : [])).find((v) => v.id === id);
+
 describe('le pont rejoint un salon', () => {
-  it('M1, M2 — assis, la vue suit celle de l’hôte ; le journal de l’hôte arrive une fois', async () => {
+  it('M1, M2 — assis, après chaque instantané sa vue est celle de l’hôte, ses gestes émettent des intentions ; le journal de l’hôte arrive une fois', async () => {
     const { instantanes, vues } = await tramesDeLHote();
     const { appel } = invite();
     const ws = await assis(appel);
     suiteDe(appel('nouvelles'));
-    await recevoir(ws, instantanes[instantanes.length - 1]);
-    const s = suiteDe(appel('nouvelles'));
-    expect([s.vue.projection.scene?.id, s.vue.projection.exploration?.groupe], 'la vue de l’invité n’est pas celle de l’hôte').toEqual(vues[0]);
+    for (const [i, texte] of instantanes.entries()) {
+      await recevoir(ws, texte);
+      expect(sceneEtGroupe(appel), `la vue de l’invité n’est pas celle de l’hôte à l’instantané ${i}`).toEqual(vues[i]);
+    }
     expect(ruleOverrides()[PLAFOND.id], 'témoin : les règles de l’hôte reçues').toBe(12);
+    const [x, y] = vues[vues.length - 1][1] as number[];
+    suiteDe(appel('jouer', { type: 'cliquerLaCase', args: [{ x, y: y + 1 }] }));
+    expect(await intentionsParties(ws), 'le geste de l’invité n’est pas parti').toEqual([['cliquerLaCase', [{ x, y: y + 1 }]]]);
     await recevoir(ws, instantanes[instantanes.length - 1]);
     expect(textesDuJournal(suiteDe(appel('nouvelles')).journal), 'le même instantané redit le journal').toEqual([]);
+  });
+
+  it('M3 (a, b, c) — en combat, au tour du héros de son siège : l’attaque armée chez lui puis le clic du champ partent, un verbe `local` ne part pas, un verbe de l’hôte en `regle`', async () => {
+    const instantane = await combatDeLHote();
+    const { battle, net } = JSON.parse(instantane).data as { battle: { combatants: { id: string; pos: { x: number; y: number } }[] }; net: { ownership: Record<string, number> } };
+    const ennemi = battle.combatants.find((c) => net.ownership[c.id] === undefined)!;
+    const { appel } = invite();
+    const ws = await assis(appel);
+    await recevoir(ws, instantane);
+    expect(suiteDe(appel('nouvelles')).vue.zones['combat.actif'].map((e) => e.id), 'témoin : le tour n’est pas au héros de l’invité').toEqual(['sorciere']);
+    const armee = suiteDe(appel('jouer', { type: 'armerLAttaque', args: ['arme'] }));
+    expect(offre(armee, 'attaque'), 'l’attaque ne s’est pas armée chez l’invité').toMatchObject({ presse: true });
+    suiteDe(appel('jouer', { type: 'cliquerLaCase', args: [ennemi.pos, ennemi.id, { confirm: true }] }));
+    const partiesEnA = [['armerLAttaque', ['arme']], ['cliquerLaCase', [ennemi.pos, ennemi.id, { confirm: true }]]];
+    expect(await intentionsParties(ws), '(a)').toEqual(partiesEnA);
+    expect(offre(suiteDe(appel('jouer', { type: 'armerLIntention', args: ['course'] })), 'course'), 'la course ne s’est pas armée chez l’invité').toMatchObject({ presse: true });
+    expect(await intentionsParties(ws), '(b) le verbe `local` est parti').toEqual(partiesEnA);
+    expect(erreurDe(appel('jouer', { type: 'ouvrirLaCarte', args: [] }))).toEqual({ categorie: 'regle', message: `ouvrirLaCarte : ${t('coop.hoteSeul')}` });
+    expect(await intentionsParties(ws), '(c) le verbe de l’hôte est parti').toEqual(partiesEnA);
   });
 
   it('M3 (d, e) — un invité : `lancer` en règle, un geste qui porte `siege` ne part pas', async () => {
@@ -251,6 +327,21 @@ describe('M6, M7, M8 — chez un invité', () => {
     expect((appel('erreursGlobales') as unknown as { erreurs: { source: string }[] }).erreurs.map((e) => e.source)).toEqual(['reseau']);
     await recevoir(ws, instantanes[instantanes.length - 1]);
     expect(suiteDe(appel('nouvelles')).vue.projection.scene, 'l’instantané suivant n’est pas appliqué').not.toBeNull();
+  });
+
+  it('M7 — un miroir clos qui a programmé un jeton : la partie que `ouvrir` ouvre numérote ses jetons à la suite', async () => {
+    const instantane = await combatDeLHote();
+    const { appel } = invite();
+    appel('reglages', { type: 'preference', args: ['combat-cadence', 'auto'] });
+    const ws = await assis(appel);
+    await recevoir(ws, instantane);
+    const programmes = suiteDe(appel('nouvelles')).programmes.map((j) => j.id);
+    expect(programmes.length, 'témoin : l’auto-cadence du miroir n’a rien programmé').toBeGreaterThan(0);
+    appel('salon', { salon: 'quitter' });
+    quitteeDe(appel('nouvelles'));
+    const ouverte = suiteDe(appel('ouvrir', { graine: 7 }));
+    const recrue = suiteDe(appel('jouer', bouton(ouverte.vue.zones['groupe.pretires'], 'pretire/wanda-weltschmertz', 'recruter').jeu));
+    expect(recrue.programmes.map((j) => j.id)[0]).toBe(Math.max(...programmes) + 1);
   });
 
   it('M7 — un second `rejoindre` ouvre un miroir neuf : son premier instantané ne dit aucune ligne', async () => {

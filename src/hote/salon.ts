@@ -6,6 +6,7 @@
 import { siegesDeLaTable, siegesOfferts, type Jeu as Partie } from '../noyau/index';
 import { t } from '../i18n';
 import { estObjet } from '../lib/objet.mjs';
+import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { ligne, type Appel, type Bouton, type Choix, type Formulaire, type Jeu, type Ligne, type Saisie } from './elements';
 import { ErreurDeGeste } from './partie';
 
@@ -83,14 +84,6 @@ export function zonesDuSalon(etat: Pick<Partie, 'net' | 'party'> | null, ouvertu
  *  l'intention de siège d'une valeur de `salon.sieges`, telle que la valeur la porte. */
 export type GesteDuSalon = { sorte: 'heberger'; nom: string } | { sorte: 'rejoindre'; code: string; nom: string } | { sorte: 'quitter' } | { sorte: 'siege'; intention: Appel };
 
-/** `a` et `b` sont-elles la même valeur JSON ? */
-const memeValeur = (a: unknown, b: unknown): boolean => {
-  if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((x, i) => memeValeur(x, b[i]));
-  if (!estObjet(a) || !estObjet(b)) return a === b;
-  const cles = Object.keys(a);
-  return cles.length === Object.keys(b).length && cles.every((k) => Object.prototype.hasOwnProperty.call(b, k) && memeValeur(a[k], b[k]));
-};
-
 /** Lit l'entrée `entree` comme un geste que les zones `zones` (celles d'avant le geste) offrent : le formulaire dont le
  *  `verbe` est son `type`, ses `args` une chaîne par champ, ou le bouton ou la valeur de choix dont le `jeu` est
  *  `entree`. Lève l'erreur de validation d'un geste que les zones n'offrent pas ou que la lecture ne connaît pas,
@@ -108,7 +101,8 @@ export function lireUnGesteDuSalon(zones: ZonesDuSalon, entree: unknown): GesteD
     return formulaire.verbe === 'rejoindre' ? { sorte: 'rejoindre', code: args[0], nom: args[1] } : { sorte: 'heberger', nom: args[0] };
   }
   const boutons = [...zones['salon.gestes'], ...zones['salon.sieges'].flatMap((c) => c.valeurs)].filter((g): g is Bouton => g.type === 'bouton');
-  const jeu: Jeu | undefined = boutons.find((b) => memeValeur(b.jeu, entree))?.jeu;
+  const cle = jsonCanonique(entree);
+  const jeu: Jeu | undefined = boutons.find((b) => jsonCanonique(b.jeu) === cle)?.jeu;
   if (jeu === undefined) return refuser('validation', `geste non offert : ${JSON.stringify(entree)}`);
   if ('salon' in jeu) return { sorte: 'quitter' };
   if ('type' in jeu) return { sorte: 'siege', intention: jeu };

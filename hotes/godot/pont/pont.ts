@@ -716,7 +716,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     };
   };
 
-  const vueDe = (o: NonNullable<typeof ouverte>): VueDuPont => {
+  const vueDe = (o: Tenue): VueDuPont => {
     const etat = o.partie.etat();
     const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     const combat = projection.combat;
@@ -740,7 +740,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   };
 
   /** La création que le panneau ouvert tient, `null` sous un autre panneau ou sans panneau. */
-  const creationOuverte = (o: NonNullable<typeof ouverte>): CreationOuverte | null => (o.panneau && 'creation' in o.panneau ? o.panneau.creation : null);
+  const creationOuverte = (o: Tenue): CreationOuverte | null => (o.panneau && 'creation' in o.panneau ? o.panneau.creation : null);
 
   /**
    * @contrat Méthodes
@@ -750,7 +750,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
    * possession, eux, sont des verbes de la partie, joués par `jouer`.
    */
   /** Le panneau `cle` fermé : sans panneau s'il est celui ouvert, l'autre panneau laissé ouvert sinon. */
-  const fermerLePanneau = (o: NonNullable<typeof ouverte>, cle: 'fiche' | 'creation'): void => {
+  const fermerLePanneau = (o: Tenue, cle: 'fiche' | 'creation'): void => {
     if (o.panneau && cle in o.panneau) o.panneau = null;
   };
 
@@ -771,17 +771,17 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
    * la partie.
    */
   /** Ouvre la création sur un brouillon neuf, à sa première page, à la place du panneau ouvert. */
-  const ouvrirLaCreation = (o: NonNullable<typeof ouverte>): void => {
+  const ouvrirLaCreation = (o: Tenue): void => {
     o.panneau = { creation: { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] } };
   };
 
   /** La partie `o` écrite à l'emplacement `slot` du stockage, datée de l'heure réelle, ses règles maison en vigueur
    *  comprises ; si sa relecture la confirme. */
-  const sauver = (o: NonNullable<typeof ouverte>, slot: AnySlot): boolean => ecrireLaSauvegarde(stockage, slot, snapshotSave(o.partie.etat(), new Date().toISOString(), ruleOverrides()));
+  const sauver = (o: Tenue, slot: AnySlot): boolean => ecrireLaSauvegarde(stockage, slot, snapshotSave(o.partie.etat(), new Date().toISOString(), ruleOverrides()));
 
   /** Le point de reprise de `o` gardé à l'emplacement automatique, quand le noyau le dit à garder
    *  (`pointDeRepriseAGarder`). */
-  const garderLePointDeReprise = (o: NonNullable<typeof ouverte>): void => {
+  const garderLePointDeReprise = (o: Tenue): void => {
     const etat = o.partie.etat();
     if (pointDeRepriseAGarder(etat, etat.net.mySeat)) sauver(o, AUTO_SLOT);
   };
@@ -791,7 +791,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
    *  événements et son journal joints dans l'ordre de la file ; un héros neuf demandé (`demandeUnHeros`) ouvre la
    *  création, sauf déjà ouverte ; un point de reprise posé (`estUnPointDeReprise`, surface du noyau) se garde
    *  (`garderLePointDeReprise`). Seul constructeur d'une `Suite`. */
-  const suite = (o: NonNullable<typeof ouverte>): Suite => {
+  const suite = (o: Tenue): Suite => {
     o.partie.relever();
     const resultats = o.file.splice(0);
     const programmes = resultats.flatMap((r) => o.jetons.programmes(r));
@@ -809,7 +809,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   };
 
   /** La partie `o` fermée, ni ouverte ni en jonction : le numéro du prochain jeton gardé. */
-  const fermerLaPartie = (o: NonNullable<typeof ouverte>): void => {
+  const fermerLaPartie = (o: Tenue): void => {
     premierJeton = o.jetons.suivant();
     o.partie.fermer();
     if (ouverte === o) ouverte = null;
@@ -819,7 +819,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
   /** La clôture du miroir ou de la jonction `o`, son salon quitté : la partie fermée (`fermerLaPartie`), les réglages
    *  du joueur reposés ; dite (`dite`), la partie relevée d'abord, ce que sa file tenait en lignes du journal
    *  (`lignesDuJournal`) s'ajoute à `quittee`. Rien ne se sauvegarde. */
-  const clore = (o: NonNullable<typeof ouverte>, dite: boolean): void => {
+  const clore = (o: Tenue, dite: boolean): void => {
     if (dite) {
       o.partie.relever();
       const journal = o.file.splice(0).flatMap((r) => r.journal);
@@ -831,7 +831,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
 
   /** Un geste joué : un verbe et ses arguments, celui qu'une offre déclare compris. Le refus que le verbe dit (`refus`,
    *  celui de son geste, `refusDuGeste` pour un verbe de la barre) est une erreur de règle, avec sa raison. */
-  const jouerUnGeste = (o: NonNullable<typeof ouverte>, e: Record<string, unknown>): void => {
+  const jouerUnGeste = (o: Tenue, e: Record<string, unknown>): void => {
     const etat = o.partie.etat();
     const intention = intentionDuGeste(etat, gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE));
     const refusAvant = etat.refus;
@@ -849,7 +849,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
    * jusqu'au lancement. En partie, le héros du roster que le noyau persiste (`persisterLeHeros`) y est mis à jour.
    */
   /** Le roster que `o` montre, relu du stockage tant que son groupe se compose ; aucun, la partie en cours. */
-  const relireLeRoster = (o: NonNullable<typeof ouverte>): NonNullable<typeof ouverte> => {
+  const relireLeRoster = (o: Tenue): Tenue => {
     o.roster = partieEnCours(o.partie.etat()) ? SANS_ROSTER : rosterAMontrer(stockage, o.roster.avis);
     return o;
   };
@@ -860,14 +860,14 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
    *  leur départ ; sa file tient son lancement, quand elle en a un, puis chaque résultat que sa partie (`enFile`) ou la
    *  reprise d'un jeton rend et qui porte un événement ou une ligne ; son drapeau `aDire` se lève à chaque écriture de
    *  son état. L'appelant la pose (`ouverte`, `jonction`). */
-  const tenir = (o: PartieAuGroupe & { lancement?: ResultatDeLAppel }, graine: number): NonNullable<typeof ouverte> => {
+  const tenir = (o: PartieAuGroupe & { lancement?: ResultatDeLAppel }, graine: number): Tenue => {
     const file: ResultatDeLAppel[] = o.lancement ? [o.lancement] : [];
     const verser = (resultat: ResultatDeLAppel): ResultatDeLAppel => {
       if (resultat.evenements.length || resultat.journal.length) file.push(resultat);
       return resultat;
     };
     const jetons = { ...o.jetons, reprendre: (id: number) => verser(o.jetons.reprendre(id)) };
-    const tenue: NonNullable<typeof ouverte> = { partie: enFile(o.partie, verser), jetons, file, aDire: false, miroir: false, graine, pas: 0, lignes: 0, jour: null, panneau: null, roster: SANS_ROSTER, brouillons: 0, regard: 'tactique' };
+    const tenue: Tenue = { partie: enFile(o.partie, verser), jetons, file, aDire: false, miroir: false, graine, pas: 0, lignes: 0, jour: null, panneau: null, roster: SANS_ROSTER, brouillons: 0, regard: 'tactique' };
     tenue.partie.abonner(() => { tenue.aDire = true; });
     return relireLeRoster(tenue);
   };

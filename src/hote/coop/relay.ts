@@ -12,6 +12,7 @@
  */
 import type { Transport } from './transport';
 import type { VerrouDesMots } from '../../noyau/index';
+import { estObjet } from '../../lib/objet.mjs';
 
 /** L'URL WebSocket de la room `code` sur le relay d'URL HTTP `base`. */
 export function roomWsUrl(base: string, code: string, params: Record<string, string>): string {
@@ -131,8 +132,8 @@ export class RelayClient {
       } catch {
         return;
       }
-      if (typeof env !== 'object' || env === null || Array.isArray(env)) return;
-      this.opts.onEnvelope(env as Record<string, unknown>);
+      if (!estObjet(env)) return;
+      this.opts.onEnvelope(env);
     };
     ws.onclose = (e) => {
       this.stopPing();
