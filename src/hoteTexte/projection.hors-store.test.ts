@@ -197,14 +197,23 @@ describe('projection des positions', () => {
   });
 });
 
-describe('ce que le groupe ne voit pas (#3950, `embuscade-fluviale` : 5 ennemis hors de vue au départ)', () => {
+describe('ce que le groupe ne voit pas (#3950, `siege-enceinte` : 8 ennemis derrière la muraille au départ)', () => {
   it('`carte` liste les seuls combattants en vue ; la `fiche` d’un ennemi hors de vue se refuse en mots du joueur', { timeout: 120_000 }, () => {
-    const table = partie('embuscade-fluviale', verbe('fenetreValider', 'debutDuRound'));
+    const table = partie('siege-enceinte', verbe('fenetreValider', 'debutDuRound'));
     try {
-      const listes = table.lire('carte').lignes.map((l) => l.slice(2).split(' ')[0]).sort();
-      expect(listes, 'la carte : les quatre héros et la barge alliée').toEqual(['chasseur-de-test', 'enemy-enc-fluvial-5', 'soldat-de-test', 'sorcier-de-test', 'tueur-de-test']);
-      const fiche = table.lire('fiche', { id: 'enemy-enc-fluvial-1' });
-      expect([fiche.erreur, fiche.texte], 'la fiche d’un pirate hors de vue').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
+      const lignes: string[] = [];
+      for (let depuis: number | undefined = 0; depuis !== undefined;) {
+        const page = table.lire('carte', { depuis }).lignes;
+        const suite = /"depuis":(\d+)\}`$/.exec(page[page.length - 1]);
+        lignes.push(...(suite ? page.slice(0, -1) : page));
+        depuis = suite ? Number(suite[1]) : undefined;
+      }
+      const listes = lignes.map((l) => l.slice(2).split(' ')[0]).sort();
+      expect(listes, 'la carte, page après page : les héros, les défenseurs du chemin de ronde, la porte, et les deux ennemis en vue').toEqual([
+        'chasseur-de-test', 'crew-baliste', 'crew-canon', 'personnage-0', 'personnage-4', 'personnage-8', 'personnage-9', 'personnage-a', 'personnage-b', 'personnage-c', 'personnage-d', 'personnage-e', 'soldat-de-test', 'sorcier-de-test', 'structure-14-37-N-0', 'structure-15-37-N-0', 'tueur-de-test',
+      ]);
+      const fiche = table.lire('fiche', { id: 'personnage-7' });
+      expect([fiche.erreur, fiche.texte], 'la fiche d’un gobelin derrière la muraille').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
     } finally {
       fermerLaTable();
     }
