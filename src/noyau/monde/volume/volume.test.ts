@@ -465,17 +465,27 @@ describe('toits et couronnes retenus sur ce qu’ils lisent (#4044)', () => {
 
 describe('une écriture au catalogue, sur la même scène : volume, nappes, couronnes, couvert, dégagement, navires et opacité datés (#4044)', () => {
   type Entree<K extends DatasetKey> = ReturnType<typeof datasetArray<K>>[number];
-  /** Joue `f` sous le dataset `cle` réécrit par `reecrire` (`setDataset`, l'écrivain réel), puis le restaure. */
-  const sousLe = <K extends DatasetKey, T>(cle: K, reecrire: (e: Entree<K>) => Entree<K>, f: () => T): T => {
-    const avant = [...datasetArray(cle)];
+  /** Joue `f` entre l'écriture d'un dataset et sa restauration (`setDataset`, l'écrivain réel). */
+  const entre = <T,>(ecrire: () => void, restaurer: () => void, f: () => T): T => {
     try {
-      setDataset(cle, avant.map(reecrire));
+      ecrire();
       return f();
     } finally {
-      setDataset(cle, avant);
+      restaurer();
     }
   };
-  const sousLesTerrains = <T,>(reecrire: (t: Entree<'terrains'>) => Entree<'terrains'>, f: () => T): T => sousLe('terrains', reecrire, f);
+  const sousLesTerrains = <T,>(reecrire: (t: Entree<'terrains'>) => Entree<'terrains'>, f: () => T): T => {
+    const avant = [...datasetArray('terrains')];
+    return entre(() => setDataset('terrains', avant.map(reecrire)), () => setDataset('terrains', avant), f);
+  };
+  const sousLesMatieres = <T,>(reecrire: (m: Entree<'materials'>) => Entree<'materials'>, f: () => T): T => {
+    const avant = [...datasetArray('materials')];
+    return entre(() => setDataset('materials', avant.map(reecrire)), () => setDataset('materials', avant), f);
+  };
+  const sousLesVehicules = <T,>(reecrire: (v: Entree<'vehicles'>) => Entree<'vehicles'>, f: () => T): T => {
+    const avant = [...datasetArray('vehicles')];
+    return entre(() => setDataset('vehicles', avant.map(reecrire)), () => setDataset('vehicles', avant), f);
+  };
   const absent = (id: string) => (t: Entree<'terrains'>): Entree<'terrains'> => ({ ...t, absence: t.id === id ? true : t.absence });
   const MAISON = { x: 2, y: 2, w: 4, h: 3 };
   /** La maison `MAISON` murée, d'un corps sans masse authorée, à l'étage de planches : sa masse se dérive
@@ -510,7 +520,7 @@ describe('une écriture au catalogue, sur la même scène : volume, nappes, cour
       architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' } }] }],
     };
     const depart = empreintesDe(toitsDuMonde(s));
-    const sous = sousLe('materials', (m) => (m.id === 'tuile' && m.domain === 'roof' ? { ...m, N: '#000000' } : m), () => empreintesDe(toitsDuMonde(s)));
+    const sous = sousLesMatieres((m) => (m.id === 'tuile' && m.domain === 'roof' ? { ...m, N: '#000000' } : m), () => empreintesDe(toitsDuMonde(s)));
     expect(sous.get(nappeKey('bourg', 'maison'))).not.toBe(depart.get(nappeKey('bourg', 'maison')));
     expect(empreintesDe(toitsDuMonde(s))).toEqual(depart);
   });
@@ -547,7 +557,7 @@ describe('une écriture au catalogue, sur la même scène : volume, nappes, cour
     const s = buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'O' }] });
     const ponts = () => JSON.stringify(poserLesNavires(s).entities.filter((e) => e.id.startsWith('c1-')).map((e) => e.pos));
     const depart = ponts();
-    const elargie = sousLe('vehicles', (v) => (v.id === 'caraque' && v.ship && v.ship.footprint !== undefined ? { ...v, ship: { ...v.ship, footprint: v.ship.footprint + 2 } } : v), ponts);
+    const elargie = sousLesVehicules((v) => (v.id === 'caraque' && v.ship && v.ship.footprint !== undefined ? { ...v, ship: { ...v.ship, footprint: v.ship.footprint + 2 } } : v), ponts);
     expect(elargie).not.toBe(depart);
     expect(ponts()).toBe(depart);
   });

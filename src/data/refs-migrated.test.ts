@@ -212,8 +212,8 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   describe('sanité de catalogue — specsSource déclaré, specs[] bien formées (Phase 3)', () => {
     it('skills.json/talents.json : specsSource migré → pool DÉRIVÉ (aucun specs[] inline), ids connus du registre', () => {
       const WEAPON_GROUP_IDS = new Set(weaponGroups.map((g) => g.id));
-      const DOMAIN_IDS = new Set(domains.map((d) => d.id));
-      const GOD_IDS = new Set(gods.map((g) => g.id));
+      const DOMAIN_IDS = new Set<string>(domains.map((d) => d.id));
+      const GOD_IDS = new Set<string>(gods.map((g) => g.id));
       const cases: [ 'skills' | 'talents', string, SpecsSource, (id: string) => boolean ][] = [
         ['skills', 'corps-a-corps', 'weaponGroupsMelee', (id) => WEAPON_GROUP_IDS.has(id)],
         ['skills', 'projectiles', 'weaponGroupsRanged', (id) => WEAPON_GROUP_IDS.has(id)],
@@ -535,7 +535,7 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
         for (const n of items) {
           if (!isObj(n)) continue;
           if ('text' in n) sites.push(siteIntegrite('dotation-texte', 'src/data/careerLevels.json', niveau.id, 'trappings.text', '', String(n.text)));
-          if (Array.isArray(n.choice)) walk(n.choice);
+          if (Array.isArray(n.of)) walk(n.of);
         }
       };
       walk(niveau.trappings);

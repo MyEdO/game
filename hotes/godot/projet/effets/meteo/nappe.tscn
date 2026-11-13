@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gyv3u"]
+resource_local_to_scene = true
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+disable_fog = true
+
+[node name="Nappe" type="MeshInstance3D" unique_id=1361014351]
+material_override = SubResource("StandardMaterial3D_gyv3u")
+cast_shadow = 0

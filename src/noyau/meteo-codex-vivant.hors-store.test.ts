@@ -20,7 +20,7 @@ import { tableStepDef } from './cascade';
 // qu'on en LIT (le gabarit des rangées d'une saison), jamais par un import d'effet de bord.
 import { stageWeatherRows } from './travelFlow';
 
-type Range = { min: number; max: number; weather: string };
+type Range = Saison['entries'][number];
 type Saison = (typeof weather)[number];
 
 const SAISONS_LIVREES = [...weather];

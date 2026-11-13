@@ -73,7 +73,6 @@ import { aiDriven } from '../noyau/netOwnership';
 import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
-import { canonEdge } from '../noyau/sceneEditLecture';
 import type { CellSide } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
@@ -107,8 +106,9 @@ import { hoverTargeting } from '../noyau/targeting';
 import { maneuverShip } from '../noyau/shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from '../noyau/visionState';
-import { doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
-import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
+import { canonEdge, doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
+import { rule, surchargerUneSaisie, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
+import type { FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 import { remettreUneRegleMaisonWeb } from './reglesMaison';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { cadence } from '../engine/cadence';
@@ -508,10 +508,10 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
 }
 
 /** Réglage auto-rendu par le harnais : une RÈGLE optionnelle (`policy`) ou une PRÉFÉRENCE (`preferences`). */
-type SettingDef = { id: string; label: string; kind: string; options?: readonly string[]; min?: number; max?: number; default: RuleValue };
+type SettingDef = FormeDeControle & { id: string; label: string; default: RuleValue };
 
-const settingShape = (d: { kind: string; options?: readonly string[]; min?: number; max?: number }) =>
-  d.kind === 'mode' ? `{${d.options?.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
+const settingShape = (d: FormeDeControle) =>
+  d.kind === 'mode' ? `{${d.options.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
 const settingUnknown = (id: string, api: 'rules' | 'prefs') => `réglage inconnu : ${id} — voir __wfrp.${api}()`;
 const settingDetail = (d: SettingDef, val: RuleValue | undefined) =>
   `${d.id} = ${JSON.stringify(val)} · ${d.label} (défaut ${JSON.stringify(d.default)} · ${settingShape(d)})`;
@@ -522,8 +522,8 @@ const settingDone = (id: string, v: RuleValue) => `✓ ${id} → ${JSON.stringif
 function coerceSetting(d: SettingDef, value: RuleValue): { v: RuleValue } | { err: string } {
   if (d.kind === 'flag') return { v: value === true || value === 'true' || value === 'on' };
   if (d.kind === 'param') return { v: Number(value) };
-  if (!d.options?.includes(String(value))) {
-    return { err: `${d.id} : valeur invalide « ${value} » — options : ${d.options?.join(' | ')}` };
+  if (!d.options.includes(String(value))) {
+    return { err: `${d.id} : valeur invalide « ${value} » — options : ${d.options.join(' | ')}` };
   }
   return { v: value };
 }
@@ -2114,7 +2114,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const c = coerceSetting(def, value);
       if ('err' in c) return c.err;
-      setRule(def.id, c.v);
+      surchargerUneSaisie(def.id, c.v);
       return settingDone(id, c.v);
     },
 

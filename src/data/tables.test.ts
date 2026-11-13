@@ -11,7 +11,7 @@ import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
  */
 const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
-const effectIds = new Set(effectTables.map((t) => t.id));
+const effectIds = new Set<string>(effectTables.map((t) => t.id));
 
 /** Collecte toutes les ops d'un `op` donné, en profondeur, de tous les datasets. */
 function collectOps(op: string): Record<string, unknown>[] {

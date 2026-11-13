@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 
 import { z } from 'zod';
-import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { refs } from '../grammaire/ref';
 import {
   difficultySchema,
@@ -123,4 +123,3 @@ export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
-export type LandCargoData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

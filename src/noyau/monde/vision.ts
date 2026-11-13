@@ -197,9 +197,12 @@ export function baseSightTiles(scene: Scene, gameTime: number): number {
  */
 export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;
 
+const lumieresPosees = memoByRefDeps<SceneDuVolume, readonly LightSource[]>();
+
 /** Sources de lumière POSÉES sur la carte : props dont le TYPE (`props.json` `light`) émet, ou
- *  override d'instance `SceneEntity.light`. PUR. */
-export function mapLights(scene: SceneDuVolume): LightSource[] {
+ *  override d'instance `SceneEntity.light`. Retenues par `scene` et la version des datasets qu'elles lisent
+ *  (`memoByRefDeps`, `versionDesDatasets`). PUR. */
+export const mapLights = (scene: SceneDuVolume): readonly LightSource[] => lumieresPosees(scene, [versionDesDatasets()], () => {
   const out: LightSource[] = [];
   const mpt = sceneMetresPerTile(scene);
   for (const e of scene.entities) {
@@ -213,7 +216,7 @@ export function mapLights(scene: SceneDuVolume): LightSource[] {
     if (rM && rM > 0) out.push({ pos: e.pos, z: e.z, radiusTiles: rayonEnCases(rM, mpt), srcId: e.id, tone: inst?.tone ?? type?.tone, ...foyerDe(scene, e, prop, mpt) });
   }
   return out;
-}
+});
 
 /** Hauteur (m) par DÉFAUT d'une flamme au-dessus du sol de sa case — le foyer d'un émetteur qui n'a
  *  AUCUNE primitive déclarée : un billboard (dont le dessin n'a pas de volume monde où pointer) ou une
@@ -323,7 +326,7 @@ function falloff(d: number, radius: number): number {
  * (dégradé `falloff`, combinaison par max) — une source n'éclaire une case que si la Ligne de Vue
  * source→case est dégagée (la lumière ne traverse pas les murs). PUR.
  */
-export function computeLightField(scene: Scene, ambient: number, sources: LightSource[], smoke: Pt[] = [], occ: Occ = buildOpaque(scene)): LightField {
+export function computeLightField(scene: Scene, ambient: number, sources: readonly LightSource[], smoke: Pt[] = [], occ: Occ = buildOpaque(scene)): LightField {
   const { w, h } = scene.dimensions;
   const smokeSet = new Set(smoke.map((s) => `${s.x},${s.y}`));
   const grid = new Map<string, number>(); // "x,y,z" → contribution des sources (> ambient seulement)
