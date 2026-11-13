@@ -5,7 +5,7 @@
  * n'est épinglé ici.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { OPTIONAL_RULES, rule, setRule, resetRule, loadRuleOverrides, refusDesSurcharges, ruleOverrides, type RegleOptionnelleId } from './policy';
+import { OPTIONAL_RULES, rule, setRule, surchargerUneSaisie, resetRule, loadRuleOverrides, refusDesSurcharges, ruleOverrides, type RegleOptionnelleId } from './policy';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, hasCondition, stacks, derivedStacks, etatNonCumulable, soinDeDetermination, etatsPortesInconnus } from './conditions';
 import { conditionIds } from '../data';
 import { t } from '../i18n';
@@ -30,26 +30,26 @@ describe('policy — un id de règle hors du registre lève', () => {
   });
 
   it('un id du registre se lit, se surcharge et revient au défaut', () => {
-    setRule(connue.id, connue.default);
+    surchargerUneSaisie(connue.id, connue.default);
     expect(rule(connue.id)).toBe(connue.default);
     resetRule(connue.id);
     expect(ruleOverrides()).toEqual({});
   });
 
   it('loadRuleOverrides lève sur un jeu refusé, sans toucher aux surcharges en place', () => {
-    setRule(connue.id, connue.default);
+    surchargerUneSaisie(connue.id, connue.default);
     expect(refusDesSurcharges({ [INCONNU]: true })).toEqual([{ id: INCONNU, raison: REGLE_INCONNUE }]);
     expect(() => loadRuleOverrides({ [INCONNU]: true })).toThrow(REGLE_INCONNUE);
     expect(ruleOverrides()).toEqual({ [connue.id]: connue.default });
   });
 
-  it('refusDesSurcharges et setRule refusent une valeur non conforme à la forme de sa règle', () => {
+  it('refusDesSurcharges et surchargerUneSaisie refusent une valeur non conforme à la forme de sa règle', () => {
     for (const r of OPTIONAL_RULES) {
       const nonConforme = r.kind === 'flag' ? 'texte' : r.kind === 'param' ? 'texte' : 42;
       const raison = t('houseRules.refus.valeur', { valeur: JSON.stringify(nonConforme), id: r.id });
       expect(refusDesSurcharges({ [r.id]: nonConforme }), r.id).toEqual([{ id: r.id, raison }]);
       expect(refusDesSurcharges({ [r.id]: r.default }), r.id).toEqual([]);
-      expect(() => setRule(r.id, nonConforme as never), r.id).toThrow(raison);
+      expect(() => surchargerUneSaisie(r.id, nonConforme), r.id).toThrow(raison);
       expect(ruleOverrides(), r.id).toEqual({});
     }
   });
