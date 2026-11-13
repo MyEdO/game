@@ -113,6 +113,7 @@ import { actorIn, inBattleId, porteurParId } from './monde/combatants';
 import { refusDImmunite } from './determinationDuJet';
 import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
@@ -2738,9 +2739,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ pendingApproach: null });
       if (!c) return;
       const ok = lance.success;
+      const nomDeLaSource = garanti(nomEnVue(get(), pa.sourceId), pa.sourceId, 'source de l’Approche');
       const log = [...battle.log, ev('peur', ok
-        ? t('cs.courageYes', { name: c.label, src: pa.sourceName })
-        : t('cs.courageNo', { name: c.label, src: pa.sourceName }), c.id, src?.id)];
+        ? t('cs.courageYes', { name: c.label, src: nomDeLaSource })
+        : t('cs.courageNo', { name: c.label, src: nomDeLaSource }), c.id, src?.id)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
         // Relance le geste différé (le gate est 'passed') AVEC l'intention de son clic d'origine, que ce clic a dissoute.

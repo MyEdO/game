@@ -1,6 +1,6 @@
 /**
  * LA LIGNE DE TRACE NE NOMME PAS UN COMBATTANT HORS DE VUE (#4017) : `TraceRow.who` et `TraceSide.who` s'écrivent par
- * `nomDe`. `siege-enceinte` pose au départ des assaillants que la muraille cache au groupe, d'autres qu'il voit.
+ * `nomDe`, comme `OpposedFreeze.attackerName` ; l'issue d'une Approche nomme sa source par `nomEnVue`. `siege-enceinte` pose au départ des assaillants que la muraille cache au groupe, d'autres qu'il voit.
  */
 import { describe, expect, it } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
@@ -8,6 +8,8 @@ import { lancerLeScenario } from './lancementDeScenario';
 import { combattantEnVue } from './visionDuGroupe';
 import { resolveActGates } from './combat/turnHooks';
 import { resolveFlowTest } from './combat/triggeredTest';
+import { jetsEnVue } from './jetsEnVue';
+import { testDeRegle } from '../engine/reglesChiffrees';
 import { EMPTY_FLOW, type Flow } from '../engine/flowCore';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios/index';
@@ -62,5 +64,53 @@ describe('TraceSide.who — la ligne d’un Test opposé jeté sans fenêtre', (
     expect(ligne, lignes.join('\n')).toBeDefined();
     expect(ligne!.startsWith(`${INCONNU} `), ligne).toBe(true);
     expect(lignes.some((l) => l.includes(cache.label)), lignes.join('\n')).toBe(false);
+  });
+});
+
+describe('OpposedFreeze.attackerName — la ligne du jet figé d’un Test opposé en fenêtre', () => {
+  /** Les libellés des lignes de jet de la fenêtre ouverte quand `attaquant` oppose sa Force à un héros. */
+  function lignesDeLaFenetre(attaquant: 'cache' | 'vu'): { tests: string[]; nom: string } {
+    const s = siege();
+    const etat = s.banc.getState() as unknown as Jeu;
+    const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const noeud = { kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' }, stake: { key: { dataset: 'combat', kind: 'mutation' } } }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } as Extract<Flow, { kind: 'test' }>;
+    resolveFlowTest({ get: s.banc.getState, set: s.banc.setState, target: heros, caster: s[attaquant], label: 'Test opposé' }, noeud, EMPTY_FLOW);
+    const tests = jetsEnVue(s.banc.getState() as unknown as Jeu).flatMap((j) => j.lignes).flatMap((l) => (l.genre === 'test' ? [l.test] : []));
+    return { tests, nom: s[attaquant].label };
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { tests, nom } = lignesDeLaFenetre('cache');
+    expect(tests.some((l) => l.startsWith(`${INCONNU} — `)), tests.join('\n')).toBe(true);
+    expect(tests.some((l) => l.includes(nom)), tests.join('\n')).toBe(false);
+  });
+
+  it('en vue : son nom', () => {
+    const { tests, nom } = lignesDeLaFenetre('vu');
+    expect(tests.some((l) => l.startsWith(`${nom} — `)), tests.join('\n')).toBe(true);
+  });
+});
+
+describe('PendingApproach — l’issue d’une Approche nomme sa source par `nomEnVue`', () => {
+  /** La ligne de journal de l'Approche ratée d'un héros vers `source`. */
+  function ligneDeLApproche(source: 'cache' | 'vu'): { ligne: string; nom: string } {
+    const s = siege();
+    const etat = s.banc.getState() as unknown as Jeu;
+    const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
+    s.banc.setState({ pendingApproach: { combatantId: heros.id, test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: s[source].id, intent: { kind: 'tile', pt: { x: 0, y: 0 } }, result: { success: false, roll: 95, target: 30, sl: -6 } } });
+    s.banc.getState().jetValider('approche');
+    const log = (s.banc.getState() as unknown as Jeu).battle!.log;
+    return { ligne: log[log.length - 1].text, nom: s[source].label };
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { ligne, nom } = ligneDeLApproche('cache');
+    expect(ligne.includes(INCONNU), ligne).toBe(true);
+    expect(ligne.includes(nom), ligne).toBe(false);
+  });
+
+  it('en vue : son nom', () => {
+    const { ligne, nom } = ligneDeLApproche('vu');
+    expect(ligne.includes(nom), ligne).toBe(true);
   });
 });

@@ -24,6 +24,7 @@
  * Réservé aux tables qui activent l'option `jeux-de-taverne`.
  */
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import type { FlowTest } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
@@ -233,7 +234,7 @@ export interface TavernPayload {
   gameId: string;
   challengerId: string;
   opponentValue: number;
-  opponentName: string;
+  opponentName: PlayerText;
   opponentId?: string;
   stakeBrass: number;
   /** Scores de la manche close (lus par le dénouement d'une partie à manche unique). */
@@ -433,7 +434,7 @@ export function jouerALaTaverne(get: Get, set: Set, heroId: string, opts: Reglag
   const { game, challenger, opponentActor, allie, stakeBrass } = p;
   const opp = opts.opponent;
   const opponentValue = tavernGameValue(opponentActor, game);
-  const opponentName = opponentActor.label;
+  const opponentName = nomDe(opponentActor);
   // L'habitué n'a aucun banc (`tavernActor`) : ses lectures passent par `opponentValue`.
   const opponentId = opp.kind === 'profil' ? undefined : opponentActor.id;
 

@@ -17,6 +17,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
 import { facingToward } from '../geometry/dir8';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
@@ -588,7 +589,7 @@ function openManeuverDefenseCascade(
       label: attackerLabel,
       stake: combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
-        opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
+        opposed: { aT: atk, attackerId: attacker.id, attackerName: nomDe(attacker), attackerLabel },
         defenseDeManoeuvre: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
       },
     };

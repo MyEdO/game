@@ -200,7 +200,7 @@ export function describeAppraise(pa: PendingAppraise): string {
 }
 
 /** Approche d'une source de Peur (LDB 21 l.27) : issue du Test `calme-d-approche` (popin). Le fil journalise la
- *  conséquence (gate d'approche du Tour) à part. `name` = combattant ; `sourceName` = source de Peur. */
+ *  conséquence (gate d'approche du Tour) à part. */
 export function describeApproach(pa: PendingApproach): string {
   if (!pa.result) return '';
   return pa.result.success ? t('out.approachYes') : t('out.approachNo');

@@ -64,7 +64,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choix', atk: tr(20, 50), def: tr(70, 40), result: 'echec' } }, flux: ['auContact'], oppose: true },
   empoignade: { patch: { pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(35, 50), result: 'reussite' } }, flux: ['empoignade'], oppose: true },
   frenesie: { patch: { pendingFrenzy: { combatantId: H.id, result: jet(12, 30) } }, flux: ['frenesie'] },
-  approche: { patch: { pendingApproach: { combatantId: H.id, test: TEST, sourceId: E.id, sourceName: E.label, intent: { kind: 'entity', id: E.id }, result: jet(55, 30) } }, flux: ['approche'] },
+  approche: { patch: { pendingApproach: { combatantId: H.id, test: TEST, sourceId: E.id, intent: { kind: 'entity', id: E.id }, result: jet(55, 30) } }, flux: ['approche'] },
   protection: { patch: { pendingWard: { attackerId: H.id, targetId: E.id, targetName: E.label, result: jet(10, 50) } }, flux: ['protection'] },
   course: { patch: { pendingRun: { combatantId: H.id, test: TEST, result: { success: true, roll: 22, dr: 2, bonusCases: 1, target: 44 } } }, flux: ['course'] },
   chute: { patch: { pendingFall: { test: TEST, to: { x: 9, y: 10 }, metres: 3, initiateurId: H.id, participants: [{ id: H.id, attempt: true, result: { success: false, roll: 80, dr: -3, effectiveMetres: 3, target: 44 } }] } }, flux: ['chute'] },
@@ -187,13 +187,13 @@ const PART = { id: H.id, base: 40, target: 40, result: jet(25, 40) };
 const INTERACTIONS: Record<'jet' | 'jetOppose' | 'batch' | 'batchOppose' | 'table' | 'de' | 'bilan', Fixture> = {
   jet: { patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: jet(30, 45) }) }, flux: ['cascade'] },
   jetOppose: {
-    patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: { ...jet(30, 45), success: true }, meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: E.label } } }) },
+    patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: { ...jet(30, 45), success: true }, meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: fixtureText(E.label) } } }) },
     flux: ['cascade'],
     oppose: true,
   },
   batch: { patch: { pendingCascade: cascade({ id: 'b', kind: 'testDeclencheEnBande', groupOwner: true, aggregate: 'none', participants: [{ ...PART, label: 'Calme' }] }) }, flux: ['cascadeEnBande'] },
   batchOppose: {
-    patch: { pendingCascade: cascade({ id: 'b', kind: 'testDeclencheEnBande', groupOwner: true, aggregate: 'none', participants: [{ ...PART, label: 'Calme' }], meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: E.label } } }) },
+    patch: { pendingCascade: cascade({ id: 'b', kind: 'testDeclencheEnBande', groupOwner: true, aggregate: 'none', participants: [{ ...PART, label: 'Calme' }], meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: fixtureText(E.label) } } }) },
     flux: ['cascadeEnBande'],
     oppose: true,
   },

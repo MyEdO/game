@@ -1549,7 +1549,7 @@ export function retenuParLaPeur(get: Get, set: SetFn, active: Combatant, dest: P
   if (!feared) return false;
   if (battle.fearGate === 'failed') return refuserGeste(get, set, tr('cs.fearNoApproach', { name: active.label, feared: feared.label }));
   set({
-    pendingApproach: { combatantId: active.id, test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: feared.id, sourceName: feared.label, intent, result: null },
+    pendingApproach: { combatantId: active.id, test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: feared.id, intent, result: null },
     battle: { ...battle, preview: null },
   });
   bus.emit(EVT.SCENE_DIRTY);

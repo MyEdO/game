@@ -170,7 +170,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: trRead('pendingBargain'),
   },
   frenesie: { state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },
-  approche: { state: { pendingApproach: { combatantId: 'H', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'E', sourceName: 'E', result: rate } }, read: resultRead('pendingApproach') },
+  approche: { state: { pendingApproach: { combatantId: 'H', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'E', result: rate } }, read: resultRead('pendingApproach') },
   protection: { state: { pendingWard: { attackerId: 'H', targetId: 'E', targetName: 'E', result: rate } }, read: resultRead('pendingWard') },
   dissipation: { state: { pendingDispel: { casterId: 'H', value: T, spellId: 's', result: rate } }, read: resultRead('pendingDispel') },
   chansonDeMarin: { state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },

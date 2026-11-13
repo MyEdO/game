@@ -708,8 +708,6 @@ export interface PendingApproach {
   test: TestNomme;
   /** Source de Peur la plus proche dont le déplacement RAPPROCHE. */
   sourceId: string;
-  /** Son nom, FIGÉ au geste qui ouvre le Test. */
-  sourceName: string;
   /** Geste différé, relancé après un succès avec l'intention de son clic d'origine (`OptionsDuClic.intentionId`), que ce
    *  clic a dissoute. */
   intent: { kind: 'tile'; pt: Pt; intentionId?: IdDIntention } | { kind: 'entity'; id: string; intentionId?: IdDIntention };
@@ -1593,7 +1591,7 @@ export interface OpposedFreeze {
    *  Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
   attackerId?: string;
   /** Nom de l'attaquant (affichage de la ligne d'opposition) — tout producteur a un adversaire nommé. */
-  attackerName: string;
+  attackerName: PlayerText;
   /** CE QUE TESTE l'attaquant, en STRUCTURE (ids de Compétence/Caractéristique) : le libellé de sa
    *  ligne en est DÉRIVÉ par le rendu (`testSkillLabel`), jamais composé par le flux qui fige le jet —
    *  un flux déclare, le renderer écrit. */

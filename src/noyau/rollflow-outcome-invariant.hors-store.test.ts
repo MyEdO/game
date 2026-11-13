@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { evaluateTest } from '../engine/tests';
 import { seedBattleRng } from './battleRng';
@@ -182,7 +183,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
     battle: arena(),
     pendingCascade: cascadeDeTest([{
       id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
-      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: 'B' } },
+      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: fixtureText('B') } },
       participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: { roll: 8, target: 40, sl: win ? 9 : 1, success: win } }],
     }], { purpose: 'combat' }),
   }) },
