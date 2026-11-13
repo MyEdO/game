@@ -283,6 +283,9 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       //     reçu n'est pas une table de valeurs par entrée de registre.
       'const SK: Partial<Record<OsId, Bone>> = { tronc: b1, croupe: b2 };',
       'export function zOf(id: OsId) { return SK[id]!.z; }',
+      // (9) table TOTALE en type MAPPÉ : chaque clé fermée tient l'ENTRÉE qui porte cet id.
+      'const PAR_ID: { readonly [M in ModeId]: Mode & { readonly id: M } } = { attaque: ATTAQUE, soins: SOINS };',
+      'export function modeLabel(modeId: ModeId) { return PAR_ID[modeId].label; }',
     ].join('\n');
     expect(rules(sain, 'fixture.tsx')).toEqual([]);
   });

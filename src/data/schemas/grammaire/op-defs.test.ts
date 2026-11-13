@@ -146,8 +146,8 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('`skillDRBonus` : cible EXCLUSIVE — `skill` OU `testType`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
     expect(gameOpSchema.safeParse({ op: 'skillDRBonus', skill: { id: 'calme' }, bonus: 1 }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: 'progression-poursuite', bonus: 1 }).success).toBe(true);
-    for (const cible of [{ skill: { id: 'calme' }, testType: 'progression-poursuite' }, {}]) {
+    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: { id: 'progression-poursuite' }, bonus: 1 }).success).toBe(true);
+    for (const cible of [{ skill: { id: 'calme' }, testType: { id: 'progression-poursuite' } }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'skillDRBonus', ...cible, bonus: 1 });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);
@@ -225,7 +225,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       expect(champs.has(k), k).toBe(true);
     }
     // `entries`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
-    for (const k of ['rollTable.entries', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'skillDRBonus.testType']) {
+    for (const k of ['rollTable.entries', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive']) {
       expect(champs.has(k), k).toBe(false);
     }
   });

@@ -25,7 +25,7 @@ import { initialNet } from '../noyau/etat';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
-import type { BattleActionMode } from '../noyau/actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { GameState } from '../state/store';
 
 function Harness() {

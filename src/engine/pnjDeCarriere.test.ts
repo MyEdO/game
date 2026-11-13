@@ -183,3 +183,18 @@ describe('argentDuPnj — l’argent du PNJ qui n’en porte pas, dans sa Bourse
     expect([toBrass(bourseOf(c)), c.items!.filter((i) => i.trappingId === 'bourse').length]).toEqual([7, 1]);
   });
 });
+
+describe('porterAuParcours — l’argent et les mentions imprimés aux Niveaux atteints (EDO 11 l.19, l.44)', () => {
+  it('le Marchand de Niveau 2 porte les 3d10 pistoles du Niveau 1 et les 20 couronnes du Niveau 2, sans revenu de Statut', () => {
+    for (const id of ['a', 'b', 'c']) {
+      const c = porte({ carrieres: { marchand: 2 } }, id);
+      const avant = toBrass(bourseOf(c));
+      argentDuPnj(c);
+      const pistoles = (avant - 20 * 240) / 12;
+      expect([Number.isInteger(pistoles) && pistoles >= 3 && pistoles <= 30, toBrass(bourseOf(c))], String(pistoles)).toEqual([true, avant]);
+    }
+  });
+  it('le Tueur de Niveau 1 porte sa mention « Honte »', () => {
+    expect(porte({ carrieres: { tueur: 1 } }).mentions).toEqual([{ nature: 'intangible', label: 'Honte', nombre: 1 }]);
+  });
+});

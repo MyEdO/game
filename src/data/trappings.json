@@ -10336,6 +10336,29 @@
     }
   },
   {
+    "id": "marchandises",
+    "type": "trappings",
+    "label": "Marchandises",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3272) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la besace (l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 106,
+      "note": "LDB 08 l.3272"
+    }
+  },
+  {
     "id": "peau-de-grand-felin",
     "type": "trappings",
     "label": "Peau de grand félin",

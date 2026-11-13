@@ -3,6 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { refs } from '../grammaire/ref';
 
 export const file = 'qualities.json';
 export const famille = 'entite';
@@ -35,7 +36,7 @@ const qualityCapabilities = nommerChamps(z.strictObject({
   unbreakable: z.boolean().optional(),
   magic: z.boolean().optional(),
   withheldOnRestraint: z.boolean().optional(),
-  beats: z.array(z.string()).optional(),
+  beats: refs('quality').optional(),
 }), {
   fastStrike: { label: 'Frappe rapide' },
   slowStrike: { label: 'Frappe lente' },

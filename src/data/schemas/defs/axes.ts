@@ -13,8 +13,8 @@
  * l.30, Compétence Avancée sans Augmentation = Test impossible, cf. `docs/raw/4e/competences.md`).
  */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
-import { refOuSpec, type RefDesignee } from '../grammaire/ref';
+import { document } from '../grammaire/document';
+import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'axes.json';
 export const famille = 'entite';
@@ -48,6 +48,3 @@ export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
-/** VUE TS du dataset — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`), la vue
- *  se recompose donc depuis l'enveloppe et les champs déclarés, sans rouvrir aucun nœud. */
-export type AxesData = (EnveloppeDocument & Omit<z.infer<z.ZodObject<typeof champs>>, 'skills' | 'talents'> & { skills?: RefDesignee[]; talents?: RefDesignee[] })[];

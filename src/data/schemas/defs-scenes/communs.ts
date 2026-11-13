@@ -39,7 +39,7 @@ export type WallSide = z.infer<typeof wallSideSchema>;
 /** `SkillRef` (`src/data/index.ts`) — la réf de la grammaire au régime qui DÉSIGNE (`{ id }` ou
  *  `{ id, spec }`, `refOuSpec`) + la valeur de Test IMPRIMÉE ; le statbloc du bestiaire
  *  (`defs/creatures.ts`) porte, lui, des emplacements (`choix`). La FORME de sortie est
- *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte
+ *  ANNOTÉE : `refOuSpec` déclare `RefASpecialisation` et n'y porte
  *  pas l'`extra` du porteur — sans cette annotation, `value` disparaîtrait du type inferé de la scène. */
 export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }) as z.ZodType<SkillRef>;
 

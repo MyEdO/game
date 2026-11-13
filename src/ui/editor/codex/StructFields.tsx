@@ -509,7 +509,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
               <option value="creature">Bête (creatures.json)</option>
               <option value="text">Texte (narratif)</option>
             </select>
-            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) })} /></label>
+            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) } as TrappingRef)} /></label>
             <button className="btn small danger" title="Retirer la possession" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
           {isText(t)

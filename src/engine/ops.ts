@@ -1049,7 +1049,7 @@ export type GameOp =
    *  court à la Voile OU aux avirons) ; `testType` est lu par `navalTestTypeDR`, JAMAIS par `skillDRBonus`
    *  (personnage) ni `navalSkillTestDR` (coque). */
   | { op: 'skillDRBonus'; skill: RefDesignee; bonus: FormuleSansTirage; testType?: never }
-  | { op: 'skillDRBonus'; testType: string; bonus: FormuleSansTirage; skill?: never }
+  | { op: 'skillDRBonus'; testType: { id: string }; bonus: FormuleSansTirage; skill?: never }
   /** +N DR aux Tests d'une CARACTÉRISTIQUE (chanson « Camarades d'équipage » : +1 DR sur tout Test de
    *  Sociabilité, MDG 09 l.236) — variante par carac de `skillDRBonus`. Exécutée → `ActiveEffect.drBonus`
    *  temporisé ; lisible aussi en PASSIF (trait/aura). Consommée par `charDRBonusOf` sur un Test RÉUSSI. */
@@ -3156,7 +3156,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
           drBonus: [{ skill: o.skill ? structuredClone(o.skill) : undefined, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
-        lines.push(t('op.bonusDeDr', { name: target.label, what: o.skill?.id ?? o.testType ?? '', src: nomDeSource(ctx) }));
+        lines.push(t('op.bonusDeDr', { name: target.label, what: o.skill?.id ?? o.testType?.id ?? '', src: nomDeSource(ctx) }));
         break;
       }
       case 'charDRBonus': {

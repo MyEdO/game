@@ -27,7 +27,7 @@ const FOYER = [
 const SITES_ADMIS: readonly (SiteAdmis & { readonly raison: string })[] = [
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'collectionDuDataset', raison: 'observation DEV du catalogue par id, en copie détachée ; aucun objet instancié' },
   { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'datasetSerializeRoot', raison: 'lecture du schéma de la collection observée en copie détachée DEV ; aucune instanciation ni écriture' },
-  { rel: 'src/data/atelierDuCodex.ts', englobante: 'validateEntry', appele: 'datasetArray', raison: 'existence d’une référence dans le dataset de SON champ (`REF_LIST_DATASET`, `NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
+  { rel: 'src/data/atelierDuCodex.ts', englobante: 'validateEntry', appele: 'datasetArray', raison: 'existence d’une référence dans le dataset de SON champ niché (`NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
   { rel: 'src/data/atelierDuCodex.ts', englobante: 'editableEntries', appele: 'datasetArray', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
   { rel: 'src/data/atelierDuCodex.ts', englobante: 'enregistrerEntree', appele: 'datasetArray', raison: 'l’écriture au seam du dataset édité' },
   { rel: 'src/data/atelierDuCodex.ts', englobante: 'enregistrerEntree', appele: 'datasetSerializeRoot', raison: 'l’écriture au seam du dataset édité' },
