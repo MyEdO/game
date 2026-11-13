@@ -7,14 +7,15 @@ import { depuisBase64 } from '../../../lib/base64';
 
 type Geometrie = Pick<MorceauDuMonde, 'positions' | 'normales' | 'couleurs' | 'cases' | 'surfaces'>;
 
-/** Les triangles d'une géométrie du monde : les hauteurs et les abscisses de ses sommets, la normale et la couleur de
- *  son premier sommet, sa case, et la surface qui le porte. */
+/** Les triangles d'une géométrie du monde : les hauteurs, les abscisses et les profondeurs (Z, au sud) de ses sommets, la
+ *  normale et la couleur de son premier sommet, sa case, et la surface qui le porte. */
 export function triangles(g: Geometrie) {
   return Array.from({ length: g.positions.length / 9 }, (_, t) => {
     const surface = g.surfaces.find((m) => m.debut <= t * 3 && t * 3 < m.fin)!;
     return {
       ys: [1, 4, 7].map((k) => g.positions[t * 9 + k]),
       xs: [0, 3, 6].map((k) => g.positions[t * 9 + k]),
+      zs: [2, 5, 8].map((k) => g.positions[t * 9 + k]),
       normale: g.normales.slice(t * 9, t * 9 + 3),
       couleur: g.couleurs.slice(t * 12, t * 12 + 4),
       case: g.cases.slice(t * 3, t * 3 + 3),
