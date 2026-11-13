@@ -15,6 +15,7 @@
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
+import { nomDe } from '../engine/nom';
 import type { IconId } from '../data/icons';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
@@ -712,18 +713,21 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
     const refus = refusSansJet(row);
     if (refus != null) { out.push(refus); continue; }
     if (!estJete(row.result)) continue;
+    const porteur = actorIn(get(), row.id);
     out.push(traceLineOf({
-      who: actorIn(get(), row.id)?.label ?? row.id,
+      ...(porteur ? { who: nomDe(porteur) } : {}),
       label: row.label ?? step.rollLabel ?? undefined,
       ...row.result,
       ...lectureDeTrace(step, row.result),
     }));
   }
   const refusMono = refusSansJet(step);
+  const acteurDuPas = step.actorId ? actorIn(get(), step.actorId) : undefined;
+  const whoDuPas = acteurDuPas ? { who: nomDe(acteurDuPas) } : {};
   if (unwitnessed && !step.participants && refusMono != null) out.push(refusMono);
   if (unwitnessed && !step.participants && estJete(step.result) && stepInteraction(step) === 'jet') {
     out.push(traceLineOf({
-      ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
+      ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.result,
       ...lectureDeTrace(step, step.result),
@@ -733,7 +737,7 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
   // journal pour SEULE surface. Le total (et son unité) y figure : c'est lui qui fait la conséquence.
   if (unwitnessed && !step.participants && step.de?.result) {
     out.push(traceDieLineOf({
-      ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
+      ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.de.result,
       ...(step.de.unite ? { unite: step.de.unite } : {}),

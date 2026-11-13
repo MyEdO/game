@@ -20,6 +20,7 @@
  * coop) ; l'applier `testDeclenche` les rejoue (branche PUIS `after`) — l'`ExecCtx` est RECONSTRUIT
  * depuis `get()`/`hero`, jamais capturé (zéro closure dans le pending).
  */
+import { nomDe } from '../../engine/nom';
 import { rollTest, resolveOpposed, opposedBranchSuccess, type TestResult } from '../../engine/tests';
 import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
@@ -561,8 +562,8 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // le MÊME ordre : le libellé AUTHORÉ d'abord, la STRUCTURE au catalogue ensuite.
     const gel = opposedAttackerFreeze(opp);
     queueLines(ctx.get, ctx.set, [traceLineOf({
-      attacker: { who: attacker.label, label: opposedAttackerLabel(gel) ?? '', roll: aT.roll, target: aT.target, sl: aT.sl },
-      defender: { who: c.label, label: skillLabel, roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
+      attacker: { who: nomDe(attacker), label: opposedAttackerLabel(gel) ?? '', roll: aT.roll, target: aT.target, sl: aT.sl },
+      defender: { who: nomDe(c), label: skillLabel, roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
       winner: o.winner,
     })], c.id);
     const lines = applyTriggeredTestBranch(c, { success: branchSuccess, sl: t.sl }, { onSuccess: node.reussite, onFail: node.echec }, exec);
@@ -574,7 +575,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     playAfter(ctx.get, ctx.set, c, after, ctx.label, oc);
     return;
   }
-  queueLines(ctx.get, ctx.set, [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...t })], c.id);
+  queueLines(ctx.get, ctx.set, [traceLineOf({ who: nomDe(c), label: testTraceLabel(skillLabel, difficulty), ...t })], c.id);
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.reussite, onFail: node.echec }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
   if (!t.success) lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
