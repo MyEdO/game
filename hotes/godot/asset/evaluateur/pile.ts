@@ -22,9 +22,10 @@ function maillageDe(m: SkinnedMesh, repos: Float32Array): MaillageDePile {
 
 /** Résout la pile des `pieces` (les meshes de chacune) sur `fondue`, leurs positions monde au repos, formes posées, sans
  *  gabarit : ce que le montage fond. Rend à chaque mesh ses sommets reculés, ses poids, les os qu'il y gagne et ses
- *  triangles encore dessinés. `osDeChaine` nomme les os des chaînes de la base. */
+ *  triangles encore dessinés. `osDeChaine` nomme les os des chaînes de la base, `peaux` les meshes de la peau de la tenue
+ *  (`peauDeLaTenue`, `corps.ts`). */
 export function poserLaPile<P extends { readonly meshes: readonly SkinnedMesh[] }>(
-  pieces: readonly P[], couvre: (e: P, f: P) => boolean, fondue: ReadonlyMap<Mesh, Float32Array>, osDeChaine: ReadonlySet<string>,
+  pieces: readonly P[], couvre: (e: P, f: P) => boolean, fondue: ReadonlyMap<Mesh, Float32Array>, osDeChaine: ReadonlySet<string>, peaux: readonly Mesh[],
 ): BilanDePile {
   const maillages = new Map<SkinnedMesh, MaillageDePile>();
   const piles = pieces.map((de) => ({ de, maillages: de.meshes.map((m) => { const mm = maillageDe(m, fondue.get(m) as Float32Array); maillages.set(m, mm); return mm; }) }));
@@ -32,7 +33,7 @@ export function poserLaPile<P extends { readonly meshes: readonly SkinnedMesh[] 
   const os = new Map<string, readonly [Bone, SkinnedMesh, number]>();
   for (const m of maillages.keys()) m.skeleton.bones.forEach((b, i) => { if (!os.has(b.name)) os.set(b.name, [b, m, i]); });
   const parents = new Map([...os.values()].flatMap(([b]) => ((b.parent as Bone | null)?.isBone ? [[b.name, (b.parent as Bone).name] as const] : [])));
-  const bilan = resoudreLaPile(piles, (e, f) => couvre(e.de, f.de), { parents, osDeChaine });
+  const bilan = resoudreLaPile(piles, (e, f) => couvre(e.de, f.de), { parents, osDeChaine }, peaux.map((m) => fondue.get(m) as Float32Array));
   for (const [m, mm] of maillages) {
     const a = avant.get(m) as { positions: Float32Array; triangles: number };
     const n = mm.positions.length / 3;

@@ -32,13 +32,13 @@ import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from '.
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
 import { suivreLesAmplitudes } from './gardes/amplitude.ts';
-import { gardePercementAuRepos, gardeTraversee, indicesDe, lierLesCouches, mesurerTraversee, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
+import { gardePercementAuRepos, gardeTraversee, indicesDe, lierLesCouches, mesurerTraversee, positionsDe, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
 import { gardeMembreDansUnVetement, mesurerMembresDansUnVetement, pairesHorsDeZone, zonesVoisines, type MembreDUnEchantillon } from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
-import { meshesDuCorps, zoneDe } from './corps.ts';
+import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';
 import { poserLaPile } from './pile.ts';
-import { ordreDesCouches, type BilanDePile } from '../pile.ts';
+import { endroitDe, ordreDesCouches, type BilanDePile } from '../pile.ts';
 
 /** Ce qu'un élément déclare de sa place sur le corps : sa couche, et les zones du corps qu'il masque. */
 export interface CoucheDeLElement {
@@ -69,6 +69,8 @@ export interface EntreeDEvaluation {
   readonly plafond?: number;
   /** Les clips au sol (`gardePiedsAuSol`). */
   readonly clipsAuSol?: readonly string[];
+  /** Par clip de la base, le nombre d'écarts `membre-dans-un-vetement` que la tenue admet (`gardeMembreDansUnVetement`). */
+  readonly plafondsDesMembres?: Readonly<Record<string, number>>;
 }
 
 export interface MesuresDuClip {
@@ -191,7 +193,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   base.scene.updateMatrixWorld(true);
   const segments = pose && sansGabarit ? gardeSegments(sansGabarit, etendues(), pose) : null;
 
-  const inconnus = (entree.clips ?? []).filter((nom) => !base.clips.some((c) => c.name === nom));
+  const inconnus = [...(entree.clips ?? []), ...Object.keys(entree.plafondsDesMembres ?? {})].filter((nom) => !base.clips.some((c) => c.name === nom));
   if (inconnus.length) throw new Error(`évaluation : clip(s) absent(s) de la base : ${inconnus.join(', ')} ; clips : ${base.clips.map((c) => c.name).join(', ')}`);
   const clips = entree.clips ? base.clips.filter((c) => entree.clips?.includes(c.name)) : base.clips;
 
@@ -200,6 +202,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre, accessoire: c.categorie === 'accessoire' }] : [];
   });
   const montre = sansLesZonesMasquees(declarees, zone);
+  const peau = peauDeLaTenue(corps, declarees, zone);
   const corpsMontre = montre(corps, RANG_DU_CORPS);
   const pieceDe = (rang: number, montres: readonly SkinnedMesh[], accessoire: boolean) => ({
     rang, accessoire, meshes: montres,
@@ -212,8 +215,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const chaines = manifeste?.chaines ?? {};
   const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
-  const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>();
-  const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()));
+  const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>(peau.map((c) => neutre.get(c) as Float32Array));
+  const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), peau);
   base.scene.updateMatrixWorld(true);
   const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
@@ -241,16 +244,24 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(corpsSkinne, manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
-  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, couvre);
+  const peaux = peau.map((c) => positionsDe(repos, c));
+  const endroits = new Map<Mesh, Uint32Array>(declareesMontrees.flatMap((d) => d.meshes).map((m) => {
+    const positions = positionsDe(repos, m);
+    return [m, endroitDe({ positions, indices: indicesDe(m, positions.length / 3) }, peaux)];
+  }));
+  const endroit = (m: Mesh): Uint32Array => endroits.get(m) as Uint32Array;
+  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, couvre, endroit);
   const traversees: TraverseeDUnEchantillon[] = [];
-  const horsDeZone = pairesHorsDeZone(corpsMontre, declareesMontrees.flatMap((d) => d.meshes), zone, zonesVoisines(corps, zone, repos));
+  const voisines = zonesVoisines(corps, zone, repos);
+  const horsDeZone = pairesHorsDeZone(corpsMontre, declareesMontrees.flatMap((d) => d.meshes), zone, voisines, endroit);
+  const peauxHorsDeZone = pairesHorsDeZone(corpsMontre, corps, zone, voisines, (m) => indicesDe(m, positionsDe(repos, m).length / 3));
   const membresSousVetement: MembreDUnEchantillon[] = [];
   const dansLesZones = (noms: readonly string[]) => corps.filter((m) => noms.includes(zone(m) as string));
   const [membres, tronc] = [dansLesZones(ZONES_DES_MEMBRES), dansLesZones(ZONES_DU_TRONC)];
   const membresDansLeTronc: MembreDansLeTronc[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
     traversees.push(...mesurerTraversee(couches.liaisons, e));
-    membresSousVetement.push(...mesurerMembresDansUnVetement(horsDeZone, e));
+    membresSousVetement.push(...mesurerMembresDansUnVetement(horsDeZone, peauxHorsDeZone, e));
     membresDansLeTronc.push(...mesurerMembres(membres, tronc, e));
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
     etirements.push(mesurerEtirement(aretes, sansCles, e));
@@ -260,7 +271,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
-  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts());
+  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle, Object.fromEntries(clips.flatMap((c) => (entree.plafondsDesMembres?.[c.name] ? [[c.name, entree.plafondsDesMembres[c.name]]] : [])))), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts());
   if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));

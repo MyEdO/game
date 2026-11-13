@@ -7,6 +7,8 @@ import {
 } from 'three';
 import { ecrireGlb, lireConteneur, lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
+import { peauDeLaTenue } from './corps.ts';
+import { COUCHES, type Couche } from '../element.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
 import { appliquerGabarit, bindsAuGabarit, enfantsDuGabarit, jambesDuGabarit, poserEnfantsDuGabarit, poserFormes, poserLeGabarit, reposerGabarit } from './gabarit.ts';
@@ -152,6 +154,31 @@ const OS_DU_CYLINDRE = new Set(['racine', 'haut']);
 
 /** Un libellé de test, distinct du nom three du mesh. */
 const libelle = (m: Mesh): string => `«${m.name}»`;
+
+describe('peauDeLaTenue (#3842)', () => {
+  const nomme = (name: string) => Object.assign(new Mesh(), { name });
+  const [tete, cou] = [nomme('tete'), nomme('cou')];
+  const zones = new Map([[tete, 'tete'], [cou, 'cou']]);
+  const zone = (m: Mesh) => zones.get(m);
+  const rang = (couche: Couche) => COUCHES.indexOf(couche);
+
+  it('les pièces de la couche peau qui couvrent une zone remplacent le corps de cette zone ; ni la barbe ni la robe ne changent la peau', () => {
+    const [teteMontee, barbe, robe] = [nomme('tete montée'), nomme('barbe'), nomme('robe')];
+    const pieces = [
+      { rang: rang('peau'), couvre: ['tete'], meshes: [teteMontee] },
+      { rang: rang('peau'), couvre: [], meshes: [barbe] },
+      { rang: rang('tenue'), couvre: ['cou'], meshes: [robe] },
+    ];
+    expect(peauDeLaTenue([tete, cou], pieces, zone).map((m) => m.name)).toEqual(['cou', 'tete montée']);
+  });
+
+  it('sans pièce de la couche peau, la peau est le corps', () => {
+    const corps = [tete, cou];
+    const peau = peauDeLaTenue(corps, [{ rang: rang('tenue'), couvre: ['cou'], meshes: [nomme('robe')] }], zone);
+    expect(peau).toHaveLength(2);
+    corps.forEach((m, i) => expect(peau[i]).toBe(m));
+  });
+});
 
 describe('gardePoids', () => {
   it('VERT : poids à 4 influences, somme à 1, os de la base, jumeaux de couture identiques', () => {
@@ -1153,9 +1180,10 @@ describe('evaluer', () => {
     expect(positionsAnimees(fiche)).toEqual([]);
   });
 
-  it('refuse des facteurs de gabarit sans table de gabarit valide, et un clip absent', async () => {
+  it('refuse des facteurs de gabarit sans table de gabarit valide, et un clip absent, demandé ou plafonné', async () => {
     await expect(evaluer({ base: glbFabrique(), facteurs: { legs: 1.1 } })).rejects.toThrow(/sans table de gabarit/);
     await expect(evaluer({ base: glbFabrique(), clips: ['Absent'] })).rejects.toThrow(/Absent/);
+    await expect(evaluer({ base: glbFabrique(), plafondsDesMembres: { Absent: 1 } })).rejects.toThrow(/Absent/);
   });
 
   it('refuse une silhouette ou une carrure que la base ne porte pas', async () => {

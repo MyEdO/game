@@ -117,8 +117,8 @@ func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 ## Les volumes du joueur se posent sur les bus d'`AudioServer` (`projet/default_bus_layout.tres`) :
 ## `PontDuNoyau.regler_les_volumes` lit la méthode `preferences` et pose sur chaque bus dont la préférence
 ## `volume-<nom du bus>` existe sa valeur (de 0 à 1, `AudioServer.set_bus_volume_linear`) ; les bus `Master` et
-## `musique-jouee` n'en ont aucune. `rejoindre` l'appelle une fois le lieu du noyau ouvert. La recette
-## `projet/recettes/mixage.gd` le vérifie.
+## `musique-jouee` n'en ont aucune. `rejoindre` l'appelle une fois le lieu du noyau ouvert, le panneau des réglages
+## après chaque réglage (`projet/scripts/reglages.gd`). La recette `projet/recettes/mixage.gd` le vérifie.
 
 ## Le volume de chaque bus d'`AudioServer` dont la préférence `volume-<nom du bus>` existe (méthode `preferences`), posé
 ## à sa valeur ; rien si l'appel ne rend pas `ok`.

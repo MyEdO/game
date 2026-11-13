@@ -19,6 +19,7 @@ from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from pistes import sacs  # noqa: E402
 from script_node import lancer  # noqa: E402
 from chaines import ajouter_chaines, cuire_chaines  # noqa: E402
+from filets import draper  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
 from diagnostic_poids import imprimer_retournements  # noqa: E402
 from poids import (PASSES_MAX, SUITE_DE_CORRECTION, peau_lineaire, etats_ponderes, sommets_des_surfaces,  # noqa: E402
@@ -440,6 +441,7 @@ def construire(args):
         bpy.data.objects.remove(objet, do_unlink=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
+    nom_du_corps = corps.name
     chaines = ajouter_chaines(bpy, squelette, corps)
     cuire_chaines(bpy, squelette, clips, chaines)
     print('GABARIT_ANATOMIE_OK table disjointe ; head sans enfants', flush=True)
@@ -467,6 +469,9 @@ def construire(args):
                               export_morph_normal=True)
     print('NORMALES_DES_CIBLES soudées aux coutures, écart corrigé', round(souder_les_normales_des_cibles(args.sortie), 2),
           '°', flush=True)
+    filets = draper(args.sortie, nom_du_corps)
+    manifeste['os'] += [os_ for noms in filets.values() for os_ in noms]
+    manifeste['chaines'] = {**filets, **chaines}
     verifier_gabarit(args.sortie, reference)
     print('CLIPS', len(clips), 'OS', len(manifeste['os']), 'ZONES', len(manifeste['zones']),
           'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', formes, 'ST', bornes,

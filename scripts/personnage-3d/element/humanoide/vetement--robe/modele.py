@@ -3,20 +3,20 @@
 Trois nappes doubles jointes en une pièce :
 - `robe` (robe de dessus) : le corsage, anneaux horizontaux coupés dans les zones du tronc et du cou, ouverts devant en
   V au-dessus de la poitrine, fermés au-dessus des épaules jusqu'au cou ; la jupe, rangées ouvertes devant en V sous la
-  ceinture, cône évasé depuis la ligne des hanches, jamais à moins du dégagement des jambes ; chaque manche, anneaux
+  ceinture, posée au jeu sur le filet `jupe` de la base au repos, jamais à moins du dégagement des jambes ; chaque manche, anneaux
   perpendiculaires à `upperarm`, ajustée jusqu'au coude puis en cloche au-delà, un pan incliné sur l'axe du bras, fermée à l'épaule par un cône dans le corps ;
 - `dessous` (robe de dessous) : la jupe fermée, sous la robe de dessus, vue par l'ouverture et sous son ourlet, sur le
-  même cône ;
+  même filet ;
 - `poitrine` : la peau du V de l'encolure, au ras du torse, sous les bords du corsage.
 Poids : le corsage, la poitrine et le raccord des manches à l'épaule empruntent au corps, sommet par sommet ; au-delà,
 la manche entière suit `upperarm` d'un bloc, sans lissage, et l'avant-bras plié sort de la cloche ; les jupes passent, sous
-la tête des brins, du bassin aux brins de la chaîne `jupe` (secteurs angulaires de `donnees.py`), jamais aux cuisses.
+les racines du filet, du bassin aux os de ses deux brins voisins (`tissu.Filet`), jamais aux cuisses.
 Silhouettes et clés `gabarit_*` transférées.
 """
 import math
 
 import numpy as np
-from tissu import Maillage, anneau, centre_de, emprunter, joindre, lambeaux, lisser, repere_de_plan, voisinage
+from tissu import Maillage, anneau, centre_de, direction, emprunter, joindre, lambeaux, lisser, repere_de_plan, voisinage
 
 TRONC, COU = ['hanches', 'torse'], ['cou']
 BRAS = {c: [f'bras_haut_{c}', f'avant_bras_{c}'] for c in 'gd'}
@@ -28,12 +28,6 @@ OS_DES_JAMBES = ('thigh_l', 'thigh_r', 'calf_l', 'calf_r')
 
 def unitaire(x):
     return x / np.linalg.norm(x)
-
-
-def direction(theta):
-    """Direction horizontale (x, y) de l'angle `theta` (degrés, depuis l'avant -Y vers la gauche +X)."""
-    t = math.radians(theta)
-    return np.array([math.sin(t), -math.cos(t)])
 
 
 def colonnes_ouvertes(o, m):
@@ -117,54 +111,29 @@ def construire(D, materiaux, b):
     for (A, ca), (B, cb) in zip(encolure, encolure[1:]):
         relier(poitrine, A, B, D['COLONNES_POITRINE'], (ca + cb) / 2)
 
-    # Jupe : rayon par direction autour du centre des hanches.
+    # Jupe : sous la charnière, sur le filet `jupe` de la base.
     zones_jupe = TRONC + JAMBES
-    P = b.coupe(zones_jupe, (0.0, 0.0, D['Z_HANCHES']), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
-    centre_j = centre_de(P)
-    z_haut, z_brin = D['RANGEES_JUPE'][0], float(b.tete('jupe_avant_01').z)
-    tetes_des_os = [float(b.tete(f'jupe_avant_0{k}').z) for k in (1, 2, 3)]
+    filet = b.filet('jupe')
+    centre_j = filet.axe
+    z_haut = D['RANGEES_JUPE'][0]
 
     def rayon(z, theta):
         """Rayon de la robe de dessus à la hauteur `z`, direction `theta`."""
-        d = direction(theta)
         Pz = b.coupe(zones_jupe, (0.0, 0.0, max(z, D['OURLET_DESSOUS'])), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
-        appui = float(np.linalg.norm(anneau(Pz, centre_j, [d], [0.0], 0.0, au_plus_pres=True)[0] - centre_j))
+        appui = float(np.linalg.norm(anneau(Pz, centre_j, [direction(theta)], [0.0], 0.0, au_plus_pres=True)[0] - centre_j))
         jeu = D['DEGAGEMENT_MIN'] + D['ECART_DESSOUS'] + D['EPAISSEUR']
-        if z >= D['Z_HANCHES']:
-            return appui + max(D['AISANCE_HANCHES'], jeu)
-        hanches = float(np.linalg.norm(anneau(P, centre_j, [d], [D['AISANCE_HANCHES']], 0.0, au_plus_pres=True)[0] - centre_j))
-        t = (D['Z_HANCHES'] - z) / (D['Z_HANCHES'] - D['OURLET_DESSOUS'])
-        evasement = D['EVASEMENT_DEVANT'] + (D['EVASEMENT_ARRIERE'] - D['EVASEMENT_DEVANT']) * (1 - math.cos(math.radians(theta))) / 2
-        return max(hanches * (1 + (evasement - 1) * t), appui + jeu)
-
-    rayons_min = {}
-
-    def part_des_brins(z):
-        """Part des brins à la hauteur `z`, bornée sous le repli des arêtes (`donnees.py`, poids de la jupe)."""
-        if z >= z_brin:
-            return 0.0
-        if z not in rayons_min:
-            rayons_min[z] = min(rayon(z, t) for t in (0.0, 90.0, 180.0, 270.0))
-        c = 2 * math.sin(math.radians(D['ROTATION_RELATIVE_MAX']) / 2)
-        return min(1.0, D['MARGE_DE_PLI'] / c * min(1.0, math.pi * rayons_min[z] / (2 * (z_brin - z))))
+        part = filet.part(z)
+        return max((1 - part) * (appui + max(D['AISANCE_HANCHES'], jeu)) + part * (filet.point(z, theta)[0] + jeu), appui + jeu)
 
     def poids_de_jupe(p, z, theta):
-        part = part_des_brins(z)
-        w = np.zeros(len(b.os))
+        part = filet.part(z)
+        w = part * filet.poids(z, theta)
         if part < 1:
             corps_ = emprunter(np.array([p[0], p[1], max(z, D['Z_HANCHES'])]), porteurs['J'])[0]
             for os_ in OS_DES_JAMBES:
                 corps_[b.indice_os['pelvis']] += corps_[b.indice_os[os_]]
                 corps_[b.indice_os[os_]] = 0.0
             w += (1 - part) * corps_
-        k = 1 if z >= tetes_des_os[1] else 2 if z >= tetes_des_os[2] else 3
-        t = theta % 360.0
-        cote = 'g' if t < 180 else 'd'
-        avant = min(t, 360 - t)
-        parts = {'avant': max(0.0, 1 - avant / 90), cote: 1 - abs(avant - 90) / 90,
-                 'arriere': max(0.0, (avant - 90) / 90)}
-        for brin, v in parts.items():
-            w[b.indice_os[f'jupe_{brin}_0{k}']] += part * v
         return w
 
     def rangee(nappe_, zs, thetas_, ecart):

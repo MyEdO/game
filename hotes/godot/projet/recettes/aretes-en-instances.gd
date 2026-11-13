@@ -4,9 +4,11 @@ extends SceneTree
 ## ouverte du kit, boîte sans pièce au kit, dans les deux sens, à un pied et à une hauteur de mur quelconques, sur un
 ## volume déplacé et un plateau de 2 m par case, a, à l'instance de son arête dans `Vu_<maillage>` et dans
 ## `Ombre_<maillage>`, la transformation dans le monde, le maillage et les matières qu'il avait sous la pièce d'avant,
-## rebâtie ici en témoin hors du volume (une pièce par arête, `_piece_d_avant`). Le rang d'une arête est celui de
-## `VolumeDeScene.cacher` : les montrées puis les cachées, dans l'ordre reçu ; cachées, `Vu` ne montre que les
-## premières, `Ombre` les garde toutes. Plus de huit foyers : onze murs, un par bloc, chacun sous sa lampe, sont tous
+## rebâtie ici en témoin hors du volume (une pièce par arête, `_piece_d_avant`), `Vu` dans la copie de chacune qui prend
+## pour albédo la couleur de l'instance. Le rang d'une arête est celui de `VolumeDeScene.cacher` : les montrées puis les
+## cachées, dans l'ordre reçu ; cachées, `Vu` ne montre que les premières, `Ombre` les garde toutes. Sous une vision
+## (`VolumeDeScene.voir`), l'instance vue de chaque arête a, à son rang, la teinte sRGB de la part de lumière de la
+## meilleure des cases qu'elle sépare, encore après chaque `cacher`. Plus de huit foyers : onze murs, un par bloc, chacun sous sa lampe, sont tous
 ## éclairés, lus aux pixels de l'image rendue ; témoin : les mêmes murs dans un seul bloc, un seul groupe, n'en ont que
 ## huit sous le rendu de compatibilité, sa borne (`rendering/limits/opengl/max_lights_per_object`), et tous sous
 ## Forward+, qui n'en a pas.
@@ -23,6 +25,13 @@ const DECALAGE := Vector3(2.5, 0.0, -1.5)
 ## deux autres.
 const GROUPES := [["m1", "m2", "m3"], ["n1", "n2"], ["o1", "o2"], ["b1", "b2", "b3"], ["s1"]]
 const CACHEES := ["m2", "n1", "n2", "o1", "b3"]
+## La vision : une rangée d'une couche, la case de chaque arête à sa colonne (son rang dans `_aretes`), son état pris
+## à son tour dans `ETATS` ; `m1` sépare la sienne, inconnue, de la dernière, vue.
+const TEINTES := {visible = 1.0, explored = 0.42, unknown = 0.15}
+const ETATS := [0, 128, 255]
+const COLONNES := 12
+## L'écart d'une couleur d'instance relue à l'écrite : le rendu de compatibilité la range en demi-flottants.
+const DEMI_FLOTTANT := 1e-3
 ## Les murs sous les lampes : un toutes les quatre cases, une lampe à une unité du sol, en avant de chaque mur, de portée
 ## courte ; le fond d'un mur est lu à son haut, hors de portée de sa lampe.
 const MURS := 11
@@ -66,7 +75,15 @@ func _poses_d_avant(scene: Node3D) -> void:
 	volume.metres_par_case = METRES_PAR_CASE
 	var kit: Node3D = (load(VolumeDeScene.KIT) as PackedScene).instantiate()
 	var aretes := _aretes()
+	var rangee := []
+	rangee.resize(COLONNES)
+	rangee.fill(0.0)
+	volume.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = [rangee]}], morceaux = []}, toits = [], couronnes = []}, {volume = [], toits = [], couronnes = []})
 	volume.poser_les_aretes(aretes)
+	var octets := PackedByteArray()
+	for colonne in COLONNES:
+		octets.append(ETATS[colonne % ETATS.size()] if colonne < COLONNES - 1 else 255)
+	volume.voir({masque = Marshalls.raw_to_base64(octets), largeur = COLONNES, rangees = 1, rangeesParPlan = 1, teintes = TEINTES})
 	var temoin := Node3D.new()
 	var noeud_des_aretes: Node3D = volume.get_node("Aretes")
 	temoin.transform = noeud_des_aretes.transform
@@ -93,7 +110,20 @@ func _aretes() -> Array:
 	for k in 3:
 		aretes.append(_arete("b%d" % (k + 1), "0/1/0", null, "mur", Vector2(0, 1), 4.0, 2.0, Vector2(11.5, 2 + k)))
 	aretes.append(_arete("s1", "1/1/0", null, "porte-ouverte", Vector2(1, 0), 4.0, 0.0, Vector2(9, 3.5)))
+	for colonne in aretes.size():
+		aretes[colonne].cases = [{x = colonne, y = 0, z = 0}]
+	aretes[0].cases.append({x = COLONNES - 1, y = 0, z = 0})
 	return aretes
+
+
+## La teinte attendue de l'instance vue de l'arête `a` : celle de la teinte (`TEINTES`) de la meilleure de ses cases,
+## en sRGB.
+func _teinte_attendue(a: Dictionary) -> Color:
+	var meilleur := 0
+	for c: Dictionary in a.cases:
+		meilleur = maxi(meilleur, ETATS[c.x % ETATS.size()] if c.x < COLONNES - 1 else 255)
+	var teinte: float = {0: TEINTES.unknown, 128: TEINTES.explored, 255: TEINTES.visible}[meilleur]
+	return Color(teinte, teinte, teinte).linear_to_srgb()
 
 
 func _arete(cle: String, bloc: String, famille: Variant, piece: String, sens: Vector2, hauteur: float, pied: float, milieu: Vector2) -> Dictionary:
@@ -117,6 +147,10 @@ func _controler(etape: String, volume: VolumeDeScene, temoin: Node3D, kit: Node3
 		ordre.append_array(membres.filter(func(a: Dictionary) -> bool: return cachees.has(a.cle)))
 		var vus := groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false)
 		for vu: MultiMeshInstance3D in vus:
+			for rang in ordre.size():
+				var teinte := vu.multimesh.get_instance_color(rang)
+				if absf(teinte.r - _teinte_attendue(ordre[rang]).r) > DEMI_FLOTTANT or teinte.r != teinte.g or teinte.g != teinte.b:
+					_fautes.append("%s, %s, %s rang %d : teinte %s, attendu %s" % [etape, ordre[rang].cle, vu.name, rang, teinte, _teinte_attendue(ordre[rang])])
 			var ombre := groupe.find_child("Ombre_" + vu.name.trim_prefix("Vu_"), true, false) as MultiMeshInstance3D
 			if vu.multimesh.instance_count != membres.size() or vu.multimesh.visible_instance_count != montrees:
 				_fautes.append("%s, groupe %s, %s : %d instances dont %d montrées, attendu %d dont %d" % [etape, cles, vu.name, vu.multimesh.instance_count, vu.multimesh.visible_instance_count, membres.size(), montrees])
@@ -159,7 +193,8 @@ func _piece_d_avant(temoin: Node3D, kit: Node3D, volume: VolumeDeScene, a: Dicti
 
 
 ## L'instance `rang` de `instances` contre `maillage` de la pièce d'avant : transformation dans le monde (origine et
-## base à `EPSILON` près), maillage et matières.
+## base à `EPSILON` près), maillage et matières ; ceux d'une instance vue, une copie dont chaque matière prend pour
+## albédo la couleur de l'instance, le reste de la matière d'avant.
 func _comparer(lieu: String, maillage: MeshInstance3D, instances: MultiMeshInstance3D, rang: int) -> void:
 	var avant := maillage.global_transform
 	var apres := instances.global_transform * instances.multimesh.get_instance_transform(rang)
@@ -170,12 +205,16 @@ func _comparer(lieu: String, maillage: MeshInstance3D, instances: MultiMeshInsta
 	_ecart_base = maxf(_ecart_base, base)
 	if origine > EPSILON or base > EPSILON:
 		_fautes.append("%s : %s dans le monde, %s sous la pièce d'avant" % [lieu, apres, avant])
-	if instances.multimesh.mesh != maillage.mesh:
+	var vu := instances.name.begins_with("Vu_")
+	var mesh := instances.multimesh.mesh
+	if (mesh == maillage.mesh) == vu or mesh.get_faces() != maillage.mesh.get_faces():
 		_fautes.append("%s : un autre maillage que sous la pièce d'avant" % lieu)
 		return
 	for surface in maillage.mesh.get_surface_count():
-		var matiere := instances.material_override if instances.material_override != null else instances.multimesh.mesh.surface_get_material(surface)
-		if matiere != maillage.get_active_material(surface):
+		var matiere: BaseMaterial3D = instances.material_override if instances.material_override != null else mesh.surface_get_material(surface)
+		var d_avant: BaseMaterial3D = maillage.get_active_material(surface)
+		var teinte_comme_avant := matiere.vertex_color_use_as_albedo and not d_avant.vertex_color_use_as_albedo and matiere.albedo_color == d_avant.albedo_color and matiere.albedo_texture == d_avant.albedo_texture
+		if (vu and not teinte_comme_avant) or (not vu and matiere != d_avant):
 			_fautes.append("%s : surface %d dans une autre matière que sous la pièce d'avant" % [lieu, surface])
 
 
