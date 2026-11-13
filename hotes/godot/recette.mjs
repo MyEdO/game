@@ -101,7 +101,9 @@
 //   « Supprimer » l'en retire, page rechargée comprise.
 // - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; « Oui » des dés fixés pressé, le pont dit la
 //   préférence réglée ; la page rechargée, elle revient du stockage ; « Jouer », puis « Options » de la partie : le
-//   même panneau, « Non » la remet, « Fermer » rend la partie.
+//   même panneau, « Non » la remet, « Fermer » rend la partie. Le volume de la musique (#3949) réglé par le pont avant
+//   le rechargement : au lancement, un gain du graphe audio de la page le porte ; remis à 1 par le pont, le geste du
+//   panneau y remet ce gain.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -181,11 +183,18 @@
 //   droit de l'orbite) : ce que le jeu montrera d'un preset.
 // - `vision` (`--scenario grimpant`, #3950) : la fenêtre du round à l'Entrée, l'ennemi en vue a son corps posé et son
 //   rang dans l'ordre du tour ; sous chaque regard que la touche V offre au combat (tactique et plateau, `regardDuJeu`
-//   y rendant la tactique pour l'immersion), la caméra ramenée à l'actif par Origine, la luminance de chaque case libre du cadre
-//   lue sur la capture au point que `wfrpEcran` publie ; le pas du chasseur cliqué vers (5, 0) change `vue.vision` et
-//   sort l'ennemi de la vue : ni corps posé, ni rang dans l'ordre du tour, sa case gardée aux occupants ; le fondu fini,
-//   sous chaque regard, une case quittée s'assombrit et une case entrée en vue s'éclaire, chacune dans le rapport des
-//   teintes (`vision.teintes`) à `TOLERANCE_DU_VOILE` près.
+//   y rendant la tactique pour l'immersion), la caméra posée au même point par `wfrpCadrer` (`CADRAGES_DE_LA_VISION`),
+//   la luminance de chaque case libre du cadre lue sur la capture au point que `wfrpEcran` publie ; le pas du chasseur
+//   cliqué vers (5, 0) change `vue.vision` et sort l'ennemi de la vue : ni corps posé, ni rang dans l'ordre du tour, sa
+//   case gardée aux occupants ; le fondu fini, sous chaque regard, le même cadrage publie les mêmes points, une case
+//   quittée s'assombrit et une case entrée en vue s'éclaire, chacune dans le rapport des teintes (`vision.teintes`), au
+//   plus `TOLERANCE_DU_VOILE` au-dessus et, sous le soleil, `CREUX_DU_PILOTE` de plus au-dessous.
+// - `murs` (`--scenario zones-pieces`, #3950) : l'entrée de la scène poursuivie à l'Entrée, le groupe mené dans la Cave
+//   par la porte ouest, puis devant la porte de la Chambre, le toit levé aux deux ; à chaque fois, la tactique cadrée au
+//   même point par `wfrpCadrer` (`CADRAGE_DES_MURS`), la luminance de chaque mur plein lue sur la capture au-dessus de son
+//   pied, le milieu des points publiés de ses cases ; un mur resté en vue ne change pas, et chaque mur qui change d'état,
+//   lu sur sa face dont la case porte son état, le plus grand de ceux de ses cases (`aretes`), se rend dans le rapport
+//   des teintes à `TOLERANCE_DU_VOILE` près.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -196,6 +205,7 @@
 //   node hotes/godot/recette.mjs --scenario teinte-au-combat --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours relief --scenario grimpant --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours murs --scenario zones-pieces --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
@@ -747,8 +757,21 @@ const DEMI_COTE = 2
 /** L'écart toléré entre la part de lumière lue et la teinte attendue : celui de `projet/recettes/voile-de-la-vision.gd`
  *  (`TOLERANCE`). */
 const TOLERANCE_DU_VOILE = 0.04
-/** La luminance linéaire d'un canal sRGB 8 bits. */
-const lineaire = (c) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4)
+/** Ce dont la part lue d'un sol au soleil s'abaisse sous sa teinte : le pilote de compatibilité somme la passe du soleil
+ *  qui porte une ombre à l'autre après leur encodage sRGB, et la part décodée baisse avec la luminance du pixel. Mesuré
+ *  sur l'herbe de `grimpant` (médiane 0,326 pour 0,42, #3950) ; `projet/scripts/monde.gd`, `@contrat Monde`. */
+const CREUX_DU_PILOTE = 0.1
+/** La courbe filmique de Godot (`tonemap_filmic`, son biais d'exposition de 2 dans `A` et `B`), sans son blanc. */
+const FILMIQUE = { A: 0.88, B: 0.6, C: 0.1, D: 0.2, E: 0.01, F: 0.3 }
+const filmique = (x, { A, B, C, D, E, F } = FILMIQUE) => (x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F) - E / F
+/** La lumière linéaire d'un canal sRGB 8 bits de l'écran du jeu, avant la courbe filmique de son environnement
+ *  (`projet/scenes/Lumiere.tscn`, `tonemap_mode = 2`, blanc 1) : la teinte de la vision est une part de cette lumière,
+ *  que la courbe abaisse encore dans les tons sombres. */
+function lineaire(c, { A, B, C, D, E, F } = FILMIQUE) {
+  const affiche = c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4
+  const y = affiche * filmique(1) + E / F
+  return y >= 1 ? Infinity : (-B * (y - C) - Math.sqrt((B * (y - C)) ** 2 - 4 * A * (y - 1) * D * (y * F - E))) / (2 * A * (y - 1))
+}
 const mediane = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
 
 /** L'état de chaque case de la couche 0 dans la vision que le pont sert à Godot (`vision`), lue pour l'observer, par
@@ -756,7 +779,7 @@ const mediane = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
 async function etatsDesCases() {
   const { masque, largeur, rangees, teintes } = JSON.parse(await lire(`wfrpPont.appeler('vision')`))
   const couches = new Set(Object.keys((await ecran()).cases).map((k) => k.split(',')[2]))
-  assert.deepEqual([...couches], ['0'], 'le parcours `vision` lit une scène d’une couche')
+  assert.deepEqual([...couches], ['0'], 'la vision se lit sur une scène d’une couche')
   const octets = Buffer.from(masque, 'base64')
   const etat = Object.fromEntries(Object.entries(OCTET_DE).map(([nom, octet]) => [octet, nom]))
   const etats = {}
@@ -764,58 +787,70 @@ async function etatsDesCases() {
   return { etats, teintes }
 }
 
-/** La luminance linéaire lue à l'écran, sur une capture nommée `nom`, au point publié de chaque case du cadre du monde
- *  qu'aucun combattant n'occupe et que le champ ne peint pas (`vue.cases`) : la moyenne du carré de `DEMI_COTE`. Le
- *  point publié est le même avant et après la capture. */
-async function luminancesALEcran(nom) {
-  const v = await vue()
+/** La luminance linéaire d'une image décodée (`decodePng`) autour du point `point` : la moyenne du carré de
+ *  `DEMI_COTE`. */
+function luminanceDuCarre({ w, data }, point) {
+  const [px, py] = point.map(Math.round)
+  let somme = 0
+  for (let dy = -DEMI_COTE; dy <= DEMI_COTE; dy++) for (let dx = -DEMI_COTE; dx <= DEMI_COTE; dx++) {
+    const i = ((py + dy) * w + px + dx) * 4
+    somme += 0.2126 * lineaire(data[i]) + 0.7152 * lineaire(data[i + 1]) + 0.0722 * lineaire(data[i + 2])
+  }
+  return somme / (2 * DEMI_COTE + 1) ** 2
+}
+
+/** Le point publié de chaque case de l'écran `e` qu'aucun combattant n'occupe et que le champ ne peint pas
+ *  (`vue.cases`), par clé. */
+function pointsDesCasesLibres(e, v) {
   const peintes = new Set(v.cases.map(({ case: c }) => `${c.x},${c.y},${c.z ?? 0}`))
+  return Object.fromEntries(Object.entries(e.cases).filter(([cle]) => !(cle in v.occupants) && !peintes.has(cle)))
+}
+
+/** La luminance lue à l'écran, sur une capture nommée `nom`, à chaque point du cadre du monde que `points` tire de
+ *  l'écran publié et de la vue (par défaut, celui de chaque case libre, `pointsDesCasesLibres`) : `luminanceDuCarre`.
+ *  Le point publié est le même avant et après la capture. */
+async function luminancesALEcran(nom, points = pointsDesCasesLibres) {
+  const v = await vue()
   for (;;) {
     const avant = await ecran()
-    const { w, data } = decodePng(readFileSync(await shot(session, nom, o.captures)))
+    const image = decodePng(readFileSync(await shot(session, nom, o.captures)))
     const apres = await ecran()
     if (JSON.stringify(apres.cases) !== JSON.stringify(avant.cases)) continue
     const lum = {}
-    for (const [cle, point] of Object.entries(avant.cases)) {
-      if (cle in v.occupants || peintes.has(cle) || !dansLeCadre(avant, point)) continue
-      const [px, py] = point.map(Math.round)
-      let somme = 0
-      for (let dy = -DEMI_COTE; dy <= DEMI_COTE; dy++) for (let dx = -DEMI_COTE; dx <= DEMI_COTE; dx++) {
-        const i = ((py + dy) * w + px + dx) * 4
-        somme += 0.2126 * lineaire(data[i]) + 0.7152 * lineaire(data[i + 1]) + 0.0722 * lineaire(data[i + 2])
-      }
-      lum[cle] = somme / (2 * DEMI_COTE + 1) ** 2
-    }
+    for (const [cle, point] of Object.entries(points(avant, v))) if (dansLeCadre(avant, point)) lum[cle] = luminanceDuCarre(image, point)
     return lum
   }
 }
 
-/** La caméra ramenée à l'actif à la touche Origine, puis l'écran publié quand le point de ses cases ne bouge plus d'une
- *  lecture à la suivante, une demi-seconde après : le point publié au changement de regard n'est pas celui de la caméra
- *  posée, celui d'après le recentrage l'est. */
-async function recentrer() {
-  await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
-  for (let avant = await ecran(); ; ) {
-    await sleep(500)
-    const publie = await ecran()
-    if (JSON.stringify(publie.cases) === JSON.stringify(avant.cases)) return
-    avant = publie
-  }
+/** Le cadrage (`wfrpCadrer`) de chaque regard du combat de `grimpant` aux captures du parcours `vision` : la même
+ *  caméra avant et après le pas, donc le même pixel pour le même point d'une case, que la caméra qui suit l'actif
+ *  déplacerait ; au pied de la falaise, regardant au nord, d'où le plateau ne cache aucune case du sol, et les cases
+ *  du sol que le pas change à l'est des panneaux de l'interface, que l'écran publié ne borne pas. */
+const CADRAGES_DE_LA_VISION = {
+  tactique: { regard: 'tactique', case: { x: 5, y: 3 }, lacet: 0, zoom: 22 },
+  plateau: { regard: 'plateau', case: { x: 5, y: 3 }, lacet: 0, zoom: 22 },
 }
+/** Le cadrage de la tactique au clic du pas : au nord du chasseur, dont le corps cache `CASE_DU_PAS` vu du sud ; au
+ *  zoom des `CADRAGES_DE_LA_VISION`, un seul pour le parcours : `Monde._decaler` décale l'objectif d'un zoom neuf sans
+ *  republier l'écran. */
+const CADRAGE_DU_PAS = { regard: 'tactique', case: { x: 5, y: 2 }, lacet: 180, zoom: 22 }
 
-/** La luminance de chaque case sous chaque regard que la touche V offre, de la tactique à son retour (au combat,
- *  `regardDuJeu` rend la tactique pour l'immersion) ; chaque capture nommée `vision-<moment>-<regard>`. */
+/** La luminance de chaque case libre sous chaque regard que la touche V offre, de la tactique à son retour (au combat,
+ *  `regardDuJeu` rend la tactique pour l'immersion), la caméra posée au cadrage du regard (`CADRAGES_DE_LA_VISION`),
+ *  et les points publiés des cases sous ce cadrage (`luminancesCadrees`) ; chaque capture nommée
+ *  `vision-<moment>-<regard>`. Le pointeur posé au coin du cadre du monde, hors du plateau sous ces cadrages : la case
+ *  survolée se peint sans que `vue.cases` la nomme. */
 async function luminancesSousLesRegards(moment) {
+  const [x, y, l, h] = (await ecran()).cadre
+  await geste(session, { surface: 'canvas', x: x + l - 2, y: y + h - 2 }, { qui: 'le pointeur hors du plateau' }, (p, emettre) => emettre('souris', { type: 'mouseMoved', x: p.x, y: p.y }))
   const lues = {}
   for (let v = await vue(); !(v.plateau.regard in lues); v = await vue()) {
     const { regard } = v.plateau
-    await recentrer()
-    lues[regard] = await luminancesALEcran(`vision-${moment}-${regard}`)
-    noter(`${moment}, ${regard} : ${Object.keys(lues[regard]).length} cases lues`)
+    lues[regard] = await luminancesCadrees(`vision-${moment}-${regard}`, CADRAGES_DE_LA_VISION[regard], pointsDesCasesLibres)
+    noter(`${moment}, ${regard} : ${Object.keys(lues[regard].lues).length} cases lues`)
     await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
     await attendreLaVue(`v.plateau.regard !== '${regard}'`, 300000)
   }
-  await recentrer()
   return lues
 }
 
@@ -834,6 +869,7 @@ async function parcoursVision() {
   const avant = await etatsDesCases()
   const luesAvant = await luminancesSousLesRegards('avant')
   const cle = v.vision
+  await cadrer(CADRAGE_DU_PAS, 'cadrage du pas')
   await cliquerCase(CASE_DU_PAS)
   await attendreLaVue(`v.projection.combat.apercu?.case?.join() === '${CASE_DU_PAS.x},${CASE_DU_PAS.y},${CASE_DU_PAS.z}'`)
   await cliquerCase(CASE_DU_PAS)
@@ -850,7 +886,8 @@ async function parcoursVision() {
   const { teintes } = apres
   assert.deepEqual(Object.keys(luesApres), Object.keys(luesAvant), 'les mêmes regards avant et après le pas')
   for (const regard of Object.keys(luesAvant)) {
-    const [a, b] = [luesAvant[regard], luesApres[regard]]
+    assert.deepEqual(luesApres[regard].cases, luesAvant[regard].cases, `${regard} : le même cadrage publie les mêmes points avant et après le pas`)
+    const [a, b] = [luesAvant[regard].lues, luesApres[regard].lues]
     const memes = Object.keys(a).filter((k) => k in b)
     const quittees = memes.filter((k) => avant.etats[k] === 'visible' && apres.etats[k] === 'explored').map((k) => b[k] / a[k])
     const vues = memes.filter((k) => avant.etats[k] === 'explored' && apres.etats[k] === 'visible').map((k) => a[k] / b[k])
@@ -860,8 +897,141 @@ async function parcoursVision() {
     const attendue = teintes.explored / teintes.visible
     for (const [quoi, parts] of [['une case quittée s’assombrit', quittees], ['une case entrée en vue s’éclaire', vues]]) {
       assert.ok(parts.length > 0, `${regard} : ${quoi}, aucune à l’écran`)
-      assert.ok(Math.abs(mediane(parts) - attendue) <= TOLERANCE_DU_VOILE, `${regard} : ${quoi} dans le rapport ${attendue} des teintes, lu ${mediane(parts).toFixed(3)}`)
+      const ecart = mediane(parts) - attendue
+      assert.ok(ecart <= TOLERANCE_DU_VOILE && ecart >= -CREUX_DU_PILOTE - TOLERANCE_DU_VOILE, `${regard} : ${quoi} dans le rapport ${attendue} des teintes, au plus ${TOLERANCE_DU_VOILE} au-dessus et ${CREUX_DU_PILOTE + TOLERANCE_DU_VOILE} au-dessous, lu ${mediane(parts).toFixed(3)}`)
     }
+  }
+}
+
+/** Les cases de `zones-pieces` où le groupe se tient à chaque capture du parcours `murs` : dans la Cave, entrée par la
+ *  porte ouest, puis devant la porte de la Chambre ; le toit de la masure levé aux deux. */
+const CASES_DES_MURS = [{ x: 2, y: 2, z: 0 }, { x: 4, y: 2, z: 0 }]
+/** Le cadrage de la tactique (`wfrpCadrer`) des deux captures du parcours `murs` : la même caméra, donc le même pixel
+ *  pour le même point d'un mur, que la caméra qui suit le groupe déplacerait ; au nord-est de la masure, vers les faces
+ *  intérieures de ses murs, que le soleil ne sature pas comme les faces sud et est du cadrage par défaut. */
+const CADRAGE_DES_MURS = { regard: 'tactique', case: { x: 4, y: 4 }, lacet: 225, zoom: 14 }
+/** La hauteur, en pas de case à l'écran, du point lu au-dessus du pied d'un mur : sur sa face, sous son faîte. */
+const HAUSSE_DU_MUR = 0.3
+/** Les pièces d'arête qui dressent un plein à lire. */
+const PIECES_PLEINES = new Set(['mur', 'porte-fermee', 'fenetre', 'fenetre-close'])
+
+/** La clé de la voisine d'une arête `a` à une case `c`, à l'opposé du bord : `c - d`, `d` allant du centre de `c` au
+ *  milieu de l'arête, doublé, soit `3c - 2 milieu`. */
+const voisineOpposee = (a) => {
+  const [c] = a.cases
+  return `${3 * c.x - Math.round(2 * a.milieu.x)},${3 * c.y - Math.round(2 * a.milieu.y)},${c.z}`
+}
+
+/** Le point à lire sur chaque arête pleine de `aretes`, par clé : son pied à l'écran, le milieu des points publiés de
+ *  ses deux cases, ou, pour une arête à une case `c` (le bord de la carte), `c` décalée d'une demi-case vers le bord,
+ *  à l'opposé de sa voisine opposée (`voisineOpposee`) ; monté de `HAUSSE_DU_MUR` pas
+ *  de case le long de la verticale de l'écran. Hors des arêtes dégagées (`vue.plateau.aretesDegagees`) et de celles
+ *  dont une case porte un corps. */
+const pointsDesMurs = (aretes) => (e, v) => {
+  const degagees = new Set(v.plateau.aretesDegagees.map((a) => a.cle))
+  const x = v.projection.exploration
+  const corps = new Set([...Object.keys(v.occupants), `${x.groupe.join()},${x.etage ?? 0}`])
+  const points = {}
+  for (const a of aretes) {
+    const cles = a.cases.map((c) => `${c.x},${c.y},${c.z}`)
+    if (!PIECES_PLEINES.has(a.piece) || degagees.has(a.cle) || cles.some((k) => corps.has(k) || !e.cases[k])) continue
+    const [c] = a.cases
+    const ici = e.cases[cles[0]]
+    const voisine = e.cases[cles.length === 2 ? cles[1] : voisineOpposee(a)]
+    const proche = e.cases[`${c.x + 1},${c.y},${c.z}`] ?? e.cases[`${c.x - 1},${c.y},${c.z}`]
+    if (!voisine || !proche) continue
+    const pied = cles.length === 2 ? [0, 1].map((i) => (ici[i] + voisine[i]) / 2) : [0, 1].map((i) => ici[i] + (ici[i] - voisine[i]) / 2)
+    points[a.cle] = [pied[0], pied[1] - HAUSSE_DU_MUR * Math.hypot(ici[0] - proche[0], ici[1] - proche[1])]
+  }
+  return points
+}
+
+/** L'état de chaque arête de `aretes` dans `etats` (`etatsDesCases`) : le plus grand de ceux de ses cases, par clé. */
+const etatsDesAretes = (aretes, etats) => Object.fromEntries(aretes.map((a) => {
+  const octet = Math.max(...a.cases.map((c) => OCTET_DE[etats[`${c.x},${c.y},${c.z}`]]))
+  return [a.cle, Object.keys(OCTET_DE).find((nom) => OCTET_DE[nom] === octet)]
+}))
+
+/** La clé de la case de l'arête `a` du côté de l'œil sous l'écran `cases` : la plus basse à l'écran de ses deux cases ;
+ *  pour une arête à une case, cette case si sa voisine opposée (`voisineOpposee`) n'est pas plus basse qu'elle, sinon
+ *  `null` (l'œil au-delà du bord de la carte). */
+function caseDevant(a, cases) {
+  const cles = a.cases.map((c) => `${c.x},${c.y},${c.z}`)
+  if (cles.length === 2) return cases[cles[0]][1] >= cases[cles[1]][1] ? cles[0] : cles[1]
+  return cases[voisineOpposee(a)]?.[1] >= cases[cles[0]][1] ? cles[0] : null
+}
+
+/** Le groupe mené à la case `c` par un clic sur elle. */
+async function menerLeGroupe(c) {
+  await cliquerCase(c)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${c.x},${c.y}'`)
+}
+
+/** La caméra posée au cadrage `cadrage` par `wfrpCadrer`, nommé `nom` à son refus : la caméra posée. */
+async function cadrer(cadrage, nom) {
+  const reponse = JSON.parse(await lire(`new Promise((rendre) => wfrpCadrer(${JSON.stringify(JSON.stringify(cadrage))}, rendre))`))
+  assert.equal(reponse.ok, true, `${nom} : ${JSON.stringify(reponse.erreur)}`)
+  return reponse.camera
+}
+
+/** La caméra posée au cadrage `cadrage` (`cadrer`), puis la luminance lue sur la capture `nom` à chaque point que
+ *  `points` tire de l'écran (`luminancesALEcran`) quand elle ne change plus d'une capture à la suivante, une
+ *  demi-seconde après (la marche du groupe et le fondu de la vision finis), et les points publiés des cases sous ce
+ *  cadrage. */
+async function luminancesCadrees(nom, cadrage, points) {
+  await cadrer(cadrage, JSON.stringify(cadrage))
+  for (let avant = null; ; await sleep(500)) {
+    const lues = await luminancesALEcran(nom, points)
+    if (JSON.stringify(lues) === JSON.stringify(avant)) return { lues, cases: (await ecran()).cases }
+    avant = lues
+  }
+}
+
+/** `zones-pieces` : le voile des murs rendu par l'export (WebGL2), le groupe passé d'une pièce à l'autre. */
+async function parcoursMurs() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await fermerLesFenetres()
+  assert.ok(v.projection.exploration, 'hors combat, la vue est celle de l’exploration')
+  const { aretes } = JSON.parse(await lire(`wfrpPont.appeler('aretes')`))
+  const [dans, puis] = CASES_DES_MURS
+  await menerLeGroupe(dans)
+  v = await vue()
+  const toits = v.plateau.toitsLeves
+  assert.ok(toits.length > 0, `le groupe en ${dans.x},${dans.y} est sous un toit levé`)
+  const avant = await etatsDesCases()
+  const a = await luminancesCadrees('murs-avant-tactique', CADRAGE_DES_MURS, pointsDesMurs(aretes))
+  await menerLeGroupe(puis)
+  v = await vue()
+  noter(`clic sur ${puis.x},${puis.y} : le groupe passe de ${dans.x},${dans.y} à ${v.projection.exploration.groupe}, vision ${v.vision}`)
+  assert.deepEqual(v.plateau.toitsLeves, toits, 'aucun toit ne se lève ni ne se pose entre les deux captures')
+  const apres = await etatsDesCases()
+  const b = await luminancesCadrees('murs-apres-tactique', CADRAGE_DES_MURS, pointsDesMurs(aretes))
+  assert.deepEqual(b.cases, a.cases, 'le même cadrage publie les mêmes points avant et après le pas')
+  const [ea, eb] = [etatsDesAretes(aretes, avant.etats), etatsDesAretes(aretes, apres.etats)]
+  const parCle = Object.fromEntries(aretes.map((ar) => [ar.cle, ar]))
+  const deFace = (cle) => {
+    const devant = caseDevant(parCle[cle], a.cases)
+    return avant.etats[devant] === ea[cle] && apres.etats[devant] === eb[cle]
+  }
+  const lus = Object.keys(a.lues).filter((cle) => cle in b.lues && deFace(cle))
+  const parPaire = {}
+  for (const cle of lus.filter((k) => ea[k] !== eb[k])) {
+    const sAllume = OCTET_DE[ea[cle]] < OCTET_DE[eb[cle]]
+    const [sombre, clair] = sAllume ? [ea[cle], eb[cle]] : [eb[cle], ea[cle]]
+    const paire = `${sombre}/${clair}`
+    parPaire[paire] = { ...parPaire[paire], [cle]: sAllume ? a.lues[cle] / b.lues[cle] : b.lues[cle] / a.lues[cle] }
+  }
+  const restes = lus.filter((k) => ea[k] === 'visible' && eb[k] === 'visible').map((k) => b.lues[k] / a.lues[k])
+  noter(`${lus.length} murs lus aux deux captures ; restés en vue ${restes.map((r) => r.toFixed(3)).join(' ')}`)
+  for (const [paire, parts] of Object.entries(parPaire)) noter(`${paire} : ${Object.entries(parts).map(([cle, r]) => `${cle} ${r.toFixed(3)}`).join(', ')} ; médiane ${mediane(Object.values(parts)).toFixed(3)}`)
+  assert.ok(Object.keys(parPaire).length > 0, 'un mur à l’écran change d’état')
+  assert.ok(restes.length > 0, 'un mur à l’écran reste en vue')
+  assert.ok(Math.abs(mediane(restes) - 1) <= TOLERANCE_DU_VOILE, `un mur resté en vue ne change pas, lu ${mediane(restes).toFixed(3)}`)
+  for (const [paire, parts] of Object.entries(parPaire).map(([p, r]) => [p, Object.values(r)])) {
+    const [sombre, clair] = paire.split('/')
+    const attendue = apres.teintes[sombre] / apres.teintes[clair]
+    assert.ok(Math.abs(mediane(parts) - attendue) <= TOLERANCE_DU_VOILE, `un mur ${sombre} rendu à ${attendue.toFixed(3)} du mur ${clair} (rapport des teintes), lu ${mediane(parts).toFixed(3)}`)
   }
 }
 
@@ -992,9 +1162,7 @@ async function parcoursCadrages() {
       await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
       await attendreLaVue(`v.plateau.regard === '${suivant}'`, 300000)
     }
-    const reponse = JSON.parse(await lire(`new Promise((rendre) => wfrpCadrer(${JSON.stringify(JSON.stringify(cadrage))}, rendre))`))
-    assert.equal(reponse.ok, true, `${nom} : ${JSON.stringify(reponse.erreur)}`)
-    const { camera } = reponse
+    const camera = await cadrer(cadrage, nom)
     const plan = { z: cadrage.etage ?? 0, ...(camera.case && { oeil: { case: camera.case, lacet: camera.lacet } }) }
     noter(`${nom} : plan de la couche ${plan.z}\n${JSON.parse(await lire(`wfrpPont.appeler('plan', ${JSON.stringify(JSON.stringify(plan))})`)).plan}`)
     assert.deepEqual(camera.case, [cadrage.case.x, cadrage.case.y, cadrage.etage ?? 0], `${nom} : la caméra regarde depuis la case demandée (${JSON.stringify(camera)})`)
@@ -1529,9 +1697,14 @@ const preferences = async () => JSON.parse(await lire(`wfrpPont.appeler('prefere
 /** Attend que le pont dise la préférence `id` à `valeur`. */
 const attendreLaPreference = (id, valeur) =>
   waitFor(session, `JSON.parse(wfrpPont.appeler('preferences')).preferences[${JSON.stringify(id)}] === ${JSON.stringify(valeur)}`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+/** Règle par le pont la préférence de confort `id` à `valeur`. */
+const reglerLaPreference = (id, valeur) => lire(`wfrpPont.appeler('reglages', ${JSON.stringify(JSON.stringify({ type: 'preference', args: [id, valeur] }))})`)
+/** Les rangs de création des gains du graphe audio de la page (`wfrpGains`) qui valent `valeur`. */
+const gainsA = async (valeur) => JSON.parse(await lire(`JSON.stringify((globalThis.wfrpGains ?? []).flatMap((g, i) => Math.abs(g.gain.value - ${valeur}) < 1e-4 ? [i] : []))`))
 async function parcoursReglages() {
   const oui = { element: 'bouton/preference/des-fixes/true' }
   const non = { element: 'bouton/preference/des-fixes/false' }
+  const BAS = 0.35
   await cliquerBouton('Options')
   await attendreLeBouton(oui.element)
   assert.equal((await preferences())['des-fixes'], false, 'les dés fixés à leur défaut')
@@ -1539,15 +1712,25 @@ async function parcoursReglages() {
   await cliquerBouton(oui)
   await attendreLaPreference('des-fixes', true)
   noter('« Options » au menu : les dés fixés réglés au panneau')
+  await reglerLaPreference('volume-musique', BAS)
+  await session.rpc('Page.addScriptToEvaluateOnNewDocument', {
+    source: 'globalThis.wfrpGains = []; { const creer = BaseAudioContext.prototype.createGain; BaseAudioContext.prototype.createGain = function () { const gain = creer.call(this); wfrpGains.push(gain); return gain } }',
+  })
   await session.rpc('Page.reload')
   await attendreLeMenu()
   assert.equal((await preferences())['des-fixes'], true, 'la préférence réglée revient du stockage après le rechargement de la page')
+  assert.equal((await preferences())['volume-musique'], BAS, 'le volume de la musique aussi')
+  const [bus, ...autres] = await gainsA(BAS)
+  assert.ok(bus !== undefined && autres.length === 0, `au lancement, un seul gain du graphe audio de la page est au volume réglé (${[bus, ...autres]})`)
   await ouvrirAuGroupe()
   await cliquerBouton({ element: 'bouton/reglages' })
   await attendreLeBouton(non.element)
   await capturer('3009-reglages-2-en-partie')
+  await reglerLaPreference('volume-musique', 1)
   await cliquerBouton(non)
   await attendreLaPreference('des-fixes', false)
+  await waitFor(session, `Math.abs(wfrpGains[${bus}].gain.value - 1) < 1e-4`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  noter(`le bus de la musique (gain ${bus} de la page) : ${BAS} au lancement, 1 après le geste du panneau`)
   await cliquerBouton({ element: 'bouton/fermer' })
   await waitFor(session, `!wfrpEcran.boutons.some((b) => b.element === ${JSON.stringify(non.element)})`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
   noter('page rechargée : la préférence revenue du stockage ; « Options » de la partie la remet, « Fermer » rend la partie')
@@ -3391,7 +3574,7 @@ async function parcoursPreset() {
   }
 }
 
-const PARCOURS = { reglages: parcoursReglages, combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, roster: parcoursRoster, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision }
+const PARCOURS = { reglages: parcoursReglages, combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, roster: parcoursRoster, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision, murs: parcoursMurs }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_DU_PARCOURS)), [], 'chaque parcours déclare ses jeux au lot (`JEUX_DU_PARCOURS`)')
 

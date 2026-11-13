@@ -249,8 +249,9 @@ pour toute pièce : la couche du dessous reprend les poids de celle qui la couvr
 triangles entièrement couverts ne se dessinent plus. La pièce lui doit trois choses, et rien d'autre :
 
 - sa `couche` déclarée, qui dit ce qui la couvre ; à couche égale, un `accessoire` se porte par-dessus ;
-- au repos et sous chaque silhouette, rester derrière ce qui la couvre, ou le percer de moins de 1 cm : au-delà, le
-  montage la laisse dehors et la porte la nomme (`couche-percee-au-repos`) ;
+- au repos et sous chaque silhouette, rester derrière ce qui la couvre : le montage laisse dehors ce qui le perce de
+  plus de 1 cm, et la porte nomme (`couche-percee-au-repos`) l'arête qui traverse l'endroit de sa couverture et en sort
+  de plus de 5 mm ; longer sa couverture sans la traverser, comme un col sous une écharpe, n'est pas la percer ;
 - les mêmes poids, sommet pour sommet, sur les deux faces d'une épaisseur : le montage garde rigide ce que son auteur
   a lié pareil.
 
@@ -269,10 +270,16 @@ Pièges mesurés au Sorcier (#3743) : la nappe intérieure d'une double nappe es
 corps se vise sur elle ; une pièce qui couvre `cou` cache le cou sous l'hôte et doit couvrir la couture cou/torse de la
 base, en dents de scie ; sous le menton, des anneaux trop proches s'étirent en clip (écart vertical minimal entre
 anneaux) ; un vêtement de tête se pose par une marche du dehors vers le centre en distance aux surfaces contournées, les
-rayons depuis un centre glissant par les coutures ouvertes du cou. La chaîne `jupe` (`base/chaines.py`) est faite de
-quatre brins rigides pendus au bassin, dont seul l'os `_01` tourne : un pan se pondère par secteur angulaire autour du
-bassin, fondu du bassin vers son brin sous la tête des cuisses ; son étirement en clip suit le déplacement du brin et la
-pente du fondu entre brins, pas la finesse du maillage. Une doublure reprend les colonnes et les poids de la nappe
+rayons depuis un centre glissant par les coutures ouvertes du cou. Un tissu qui pend ne se pondère ni aux cuisses ni au
+dos : il se pose sur un filet de la base (`base/filets.py`), `jupe` (seize brins de trois os autour du bassin) ou `cape`
+(sept brins de quatre os dans le dos, par-dessus la jupe). La base drape ces filets image par image dans chaque clip
+(`base/tente.py`) : le brin passe par-dessus ce que le vêtement laisse voir et sous la main, cède à la main sur ce qu'il
+cache, et cède à tout plutôt que de s'étirer : dans une roulade, un pied traverse l'ourlet avant qu'une arête ne
+s'allonge. Une pièce lit le filet au repos par `Base.filet(nom)` (`tissu.Filet`) : elle pose sa nappe au jeu sur le
+rayon du filet (`Filet.point`) et la pondère aux os de ses deux brins voisins (`Filet.poids`), fondue du corps au filet
+sous ses racines (`Filet.part`). Elle ne dépasse pas le brin de bord d'un filet ouvert, au-delà duquel rien ne la
+porte, et déclare le filet dans `chaines`. Aucun réglage de pli ni d'évasement par pièce : la forme au repos et le
+mouvement viennent du filet. Une doublure reprend les colonnes et les poids de la nappe
 qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
 la porte est la matrice des cinq passes, jamais la passe neutre seule.
 
@@ -437,10 +444,17 @@ rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips faut
 Ne pas valider une matrice entière avec le seul cas neutre.
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
 rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
-La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant celle qui la couvre.
-`couche-percee-au-repos` : au repos neutre, une couche est déjà devant celle qui la couvre. `membre-dans-un-vetement` :
-en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
-manche de l'autre bras.
+La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
+la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
+`couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
+sort devant. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
+manche de l'autre bras. Le tissu pincé n'en est pas : là où le vêtement repose sur le corps d'une autre zone,
+le membre qui l'y presse ne le traverse pas. D'un vêtement à doublure, seul compte l'endroit : la main posée devant
+lui est derrière sa doublure sans l'avoir traversé.
+Ce qu'une tenue de preset garde de `membre-dans-un-vetement` après correction s'admet à sa mesure, par passe et par
+clip, dans `hotes/godot/asset/plafonds/<preset>.json`, et sa porte se joue avec `--plafonds <ce fichier>` : au-delà du
+plafond d'un clip elle rend tous ses écarts, en deçà elle demande de le baisser (`plafond-a-baisser`). Un plafond ne
+monte pas (#3842).
 
 ## 7. Deux validations distinctes
 

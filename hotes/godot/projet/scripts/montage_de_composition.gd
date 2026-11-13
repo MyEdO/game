@@ -29,6 +29,9 @@ const FORMES := &"formes"
 const POIDS := &"poids_des_formes"
 ## La métadonnée du mesh d'une pièce skinnée : par surface, son maillage de la demande de pile (`_maillage`).
 const MAILLAGES := &"maillages_de_pile"
+## Le rang de la couche `peau` dans `couches` de `modeles` (`COUCHES`, `asset/element.ts`) : ses éléments montés qui
+## couvrent une zone sont de la peau de la tenue (`_empiler`, #3842).
+const RANG_DE_LA_PEAU := 0
 ## Le calque des corps, la troisième couche de rendu (`VisualInstance3D.layers`) : celui d'une pièce dessinée seule et
 ## de la fusion ; une pièce fondue (`refondre`) n'est sur aucun. La lampe d'une source portée l'exclut de son ombre
 ## (`Foyer`).
@@ -1279,7 +1282,11 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## (`PontDuNoyau.resoudre_la_pile`, `wfrpPont.resoudreLaPile(demande, rendre)`), que le lieu du noyau résout sans tenir
 ## l'image par la fonction de l'évaluateur (`resoudreLaPile`, `asset/pile.ts`). Une pièce de la demande est le corps de
 ## la base, ou un élément monté qui déclare une couche (`couches` de `modeles`), par ses surfaces skinnées visibles et
-## fondues, dans l'ordre où Godot les fond ; une tenue d'une seule pièce ne demande rien. La fusion se dessine d'abord
+## fondues, dans l'ordre où Godot les fond ; la peau de la demande est la peau de la tenue (#3842) : chaque surface
+## skinnée de la base, visible ou non, dont la zone (`extras.zone`) n'est couverte par aucun élément monté de la
+## couche `peau` (`couvre` de sa couche), puis chaque surface skinnée, visible ou non, de chaque élément monté de la
+## couche `peau` qui couvre une zone, chacune par ses positions au repos et, si elle a des shape keys, ses positions
+## sans forme ; une tenue d'une seule pièce ne demande rien. La fusion se dessine d'abord
 ## telle que ses auteurs l'ont faite ; à la réponse, si ce qui est fondu n'a pas changé (même demande), elle se refond
 ## avec, pour chaque maillage, ses sommets reculés, ses triangles encore dessinés, ses os et ses poids, un os gagné lié
 ## au repère que lui donne la première pièce fondue qui le porte. La réponse est gardée tant que la demande ne change
@@ -1354,7 +1361,9 @@ func refondre() -> void:
 ## Par maillage que la pile des couches résout (`[pièce, surface]`), ses tableaux résolus, parmi les pièces `fondues` ;
 ## aucun tant que la pile de ce qui est fondu n'est pas reçue (`recevoir_la_pile`), demandée au pont si elle ne
 ## l'est pas déjà. Les pièces de la demande : les meshes de la base, puis ceux de chaque élément monté qui déclare une
-## couche (`couches` de `modeles`), chacun par ses surfaces skinnées fondues.
+## couche (`couches` de `modeles`), chacun par ses surfaces skinnées fondues ; sa peau, la peau de la tenue (#3842) :
+## chaque surface skinnée de la base, fondue ou non, hors des zones que couvre un élément monté de la couche `peau`
+## (`RANG_DE_LA_PEAU`), puis chaque surface skinnée de ces éléments, fondue ou non.
 func _empiler(fondues: Dictionary) -> Dictionary:
 	var couches: Dictionary = modeles.get("couches", {})
 	var porteurs: Array = [[_pieces_de_la_base, {rang = -1, accessoire = false}]]
@@ -1379,7 +1388,25 @@ func _empiler(fondues: Dictionary) -> Dictionary:
 	for os in squelette.get_bone_count():
 		if squelette.get_bone_parent(os) != -1:
 			parents[squelette.get_bone_name(os)] = squelette.get_bone_name(squelette.get_bone_parent(os))
-	var demande := JSON.stringify({pieces = demandees, parents = parents, osDeChaine = base.get("osDeChaine", [])})
+	var couvertes := []
+	var montees := []
+	for id in pieces:
+		var couche: Dictionary = couches.get(montes[id], {})
+		if couche.get("rang", -1) == RANG_DE_LA_PEAU and not couche.get("couvre", []).is_empty():
+			couvertes.append_array(couche.couvre)
+			montees.append_array(pieces[id])
+	var de_la_peau: Array = _pieces_de_la_base.filter(func(piece: MeshInstance3D) -> bool: return not couvertes.has(piece.get_meta("extras", {}).get("zone")))
+	de_la_peau.append_array(montees)
+	var peau := []
+	for piece: MeshInstance3D in de_la_peau:
+		if piece.skin != null and piece.mesh != null:
+			for surface in piece.mesh.get_surface_count():
+				var maillage := _maillage(piece, surface)
+				var surface_de_peau := {positions = maillage.positions}
+				if maillage.has("neutres"):
+					surface_de_peau.neutres = maillage.neutres
+				peau.append(surface_de_peau)
+	var demande := JSON.stringify({pieces = demandees, peau = peau, parents = parents, osDeChaine = base.get("osDeChaine", [])})
 	_pile_fondue = demande.sha256_text()
 	var resolus := {}
 	var pont := get_node_or_null("/root/Pont") as PontDuNoyau

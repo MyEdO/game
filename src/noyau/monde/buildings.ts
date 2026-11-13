@@ -24,7 +24,7 @@
  */
 import { buildings } from '../../data/index';
 import { memoParVersion } from '../../data/versionDataset';
-import type { BuildingDef, BuildingFeature } from '../../data/buildings.types';
+import type { BuildingDef, BuildingFeature } from '../../data/index';
 import type { ArchitectureRect } from './scene';
 
 

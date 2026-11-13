@@ -48,7 +48,7 @@ describe('navalPassiveOps — effets en GameOp (langue unique), répétés ×Ind
     ]);
     // ranked → le bloc `passive` est répété par `value` (« Peu maniable 3 » = 3× les deux ops).
     expect(navalPassiveOps([{ id: 'peu-maniable', value: 3 }])).toHaveLength(6);
-    expect(navalPassiveOps([{ id: 'robuste' }])).toEqual([{ op: 'skillDRBonus', testType: 'affaler', bonus: 2 }]);
+    expect(navalPassiveOps([{ id: 'robuste' }])).toEqual([{ op: 'skillDRBonus', testType: { id: 'affaler' }, bonus: 2 }]);
     expect(navalPassiveOps(undefined)).toEqual([]);
   });
 });
@@ -128,7 +128,7 @@ describe('Proue-idole de Stromfels (#221) — résout au catalogue, entrée mais
     expect(trait!.kind).toBe('amelioration');
     expect(trait!.maison).toBeTruthy();
     const op = trait!.passive![0];
-    const testTypeId = op.op === 'skillDRBonus' ? op.testType! : undefined;
+    const testTypeId = op.op === 'skillDRBonus' ? op.testType?.id : undefined;
     expect(testTypeId).toBe('progression-poursuite');
     expect(findCrewTestTypeById(testTypeId!)).toBeDefined();
   });

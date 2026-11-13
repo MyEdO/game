@@ -20,7 +20,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { roleAmbiantSchema } from '../grammaire/valeurs';
+import { ouReserve, roleAmbiantSchema } from '../grammaire/valeurs';
 import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, equipeSchema, idDIconeSchema, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema, variante } from '../grammaire/mecanique';
@@ -818,10 +818,10 @@ export const wallSegSchema = nommerChamps(z.strictObject({
   /** Porte FERMÉE par défaut à l'ouverture de la scène (bloque vue+passage tant qu'on ne l'ouvre pas).
    *  Absent = ouverte par défaut (comportement historique : une porte est une ouverture franchissable). */
   closed: z.boolean().optional(),
-  /** Structure destructible posée SUR l'arête (id de `structures.json`, ex. `porte-de-ville`). Tant
+  /** Structure destructible posée SUR l'arête. Tant
    *  qu'elle tient, l'arête bloque passage+vue comme un mur plein ; une fois ABATTUE (`structureIsDown`),
    *  l'arête devient une BRÈCHE franchissable et transparente. */
-  structure: z.string().optional(),
+  structure: idDe('structure', undefined, { nue: true }).optional(),
   /** Apparence de rendu (`structureAppearance.json`) indépendante de `structure`. N'affecte ni
    *  résistance, ni couvert, ni collision : absent = apparence dérivée de la structure/façade. */
   appearance: z.string().optional(),
@@ -918,8 +918,8 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
    *  combat et aucune ambiance de météo. Lue SANS REPLI par `noyau/monde/sceneRules.ts`
    *  (`sceneCombatModifiers`) et par l'ambiance de rendu. */
   weather: sceneWeatherSchema.optional(),
-  /** Id d'un `lightLevels`, ou `'auto'`/absent = suit l'horloge via `ambiance`. */
-  ambientLight: z.string().optional(),
+  /** `'auto'`/absent = suit l'horloge via `ambiance`. */
+  ambientLight: ouReserve(idDe('lightLevel', undefined, { nue: true }), 'auto').optional(),
   /** NORD de la carte — rotation horaire en degrés `[0,360[` du nord réel (posé par `setNorthDeg`). */
   northDeg: z.number().optional(),
   rest: nommerChamps(z
@@ -942,7 +942,7 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
     .optional(),
   effectZones: listeCle(sceneEffectZoneSchema, 'id').optional(),
   /** Ids de pistes du registre audio ; `null` = SILENCE forcé, absent = AUTOMATIQUE. */
-  music: nommerChamps(z.strictObject({ ambient: z.string().nullable().optional(), combat: z.string().nullable().optional() }), { ambient: { label: "ambiance sonore" , texte: { regime: "technique"} }, combat: { label: "combat" , texte: { regime: "technique"} } }).optional(),
+  music: nommerChamps(z.strictObject({ ambient: idDe('son', undefined, { nue: true }).nullable().optional(), combat: idDe('son', undefined, { nue: true }).nullable().optional() }), { ambient: { label: "ambiance sonore" , texte: { regime: "technique"} }, combat: { label: "combat" , texte: { regime: "technique"} } }).optional(),
   /** Matière de chaque PARTIE de relief (#1691) — EXIGÉE : c'est la donnée que le builder LIT. */
   reliefDefaults: reliefDefaultsSchema,
   /** Toiture par défaut de la scène (#1715) — EXIGÉE : c'est la donnée que la dérivation LIT. */

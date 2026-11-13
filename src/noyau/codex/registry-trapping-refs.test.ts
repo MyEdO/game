@@ -9,7 +9,7 @@ const levelRows = (item: CodexItem, levelPrefix: string): CodexRow[] => {
 };
 
 describe('Codex registry — Possessions de Niveau de Carrière : réf STRUCTURÉE, jamais un libellé re-résolu (#904)', () => {
-  it('Umbramancien N3 (Gardien Gris) : {id, type: creature} lie le bestiaire, {id} lie les Possessions, {text} reste une pastille NUE, jamais une réf', () => {
+  it('Umbramancien N3 (Gardien Gris) : {id, type: creature} lie le bestiaire, {id} lie les Possessions, la mention « Apprenti » suit les possessions sous sa nature, en pastille NUE', () => {
     const item = categoryByKey('careers')!.items.find((i) => i.id === 'umbramancien')!;
     const rows = levelRows(item, 'Niveau 3');
     expect(rows.length).toBeGreaterThan(0);
@@ -20,10 +20,11 @@ describe('Codex registry — Possessions de Niveau de Carrière : réf STRUCTUR�
     const trappingRow = rows.find((r) => r.t === 'ref' && r.category === 'trappings');
     expect(trappingRow).toMatchObject({ t: 'ref', category: 'trappings', id: 'robe-de-sorcier-ordinaire' });
 
-    // `{text}` = un nom d'objet authoré en clair : pastille NUE (`CodexRow` variante
-    // `{ t: 'chip'; label }`, rendue par `PlainChip`) — ni lien, ni popover.
-    const chipRow = rows.find((r) => r.t === 'chip' && r.label === 'Apprenti');
-    expect(chipRow).toBeTruthy();
+    // La mention se range sous le sous-titre de sa nature, après toutes les possessions.
+    const sousTitre = rows.findIndex((r) => r.t === 'sub' && r.label === 'Personnes');
+    const apprenti = rows.findIndex((r) => r.t === 'chip' && r.label === 'Apprenti');
+    expect(sousTitre).toBeGreaterThan(rows.findIndex((r) => r === trappingRow));
+    expect(apprenti).toBe(sousTitre + 1);
     // CONTRAT du titre : ce libellé n'est JAMAIS re-résolu en référence (#904).
     const refSurLibelle = rows.find((r) => r.t === 'ref' && (r.label === 'Apprenti' || r.show === 'Apprenti'));
     expect(refSurLibelle).toBeUndefined();

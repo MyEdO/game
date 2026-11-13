@@ -60,7 +60,9 @@
     "passive": [
       {
         "op": "skillDRBonus",
-        "testType": "affaler",
+        "testType": {
+          "id": "affaler"
+        },
         "bonus": 2
       }
     ],
@@ -747,7 +749,9 @@
     "passive": [
       {
         "op": "skillDRBonus",
-        "testType": "progression-poursuite",
+        "testType": {
+          "id": "progression-poursuite"
+        },
         "bonus": 1
       }
     ],

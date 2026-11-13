@@ -8,6 +8,7 @@ import { groupMatch, groupesDe } from './groups';
 import { sansPeurVs, sourceCombattant } from './psychology';
 import { groups, SPEC_SOURCES, talents, type GroupData } from '../data';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattantDeTest.testkit';
 
@@ -20,7 +21,7 @@ const mk = (o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
 }) as Combatant);
 
 const composites = groups.filter((g) => g.inclut?.length);
-const ordinaire = groups.find((g) => !g.inclut && !g.matchesAll && !g.relatif && !composites.some((c) => c.inclut!.includes(g.id)))!;
+const ordinaire = groups.find((g) => !g.inclut && !g.matchesAll && !g.relatif && !composites.some((c) => c.inclut!.some((id) => id === g.id)))!;
 const sansPeur = talents.find((t) => t.combat?.fearImmune && t.specsSource)!;
 const groupe = (id: string, o: Partial<GroupData> = {}): GroupData => ({ id, type: 'groups', label: id, ...o });
 
@@ -41,14 +42,14 @@ describe('Groupe composite (`inclut`)', () => {
 
   it('un composite d’un composite se résout ; un cycle d’`inclut` ne correspond pas et termine', () => {
     const [c] = composites;
-    setDataset('groups', [...datasetArray('groups'), groupe('sur-composite', { inclut: [c.id] }), groupe('cycle-a', { inclut: ['cycle-b'] }), groupe('cycle-b', { inclut: ['cycle-a'] })] as never);
+    setDataset('groups', [...datasetArray('groups'), groupe('sur-composite', { inclut: [idDeFixture('groupe', c.id)] }), groupe('cycle-a', { inclut: [idDeFixture('groupe', 'cycle-b')] }), groupe('cycle-b', { inclut: [idDeFixture('groupe', 'cycle-a')] })] as never);
     expect(groupMatch('sur-composite', [c.inclut![0]])).toBe(true);
     expect(groupMatch('cycle-a', [ordinaire.id])).toBe(false);
   });
 
   it('un joker qui retranche un composite retranche les membres des Groupes qu’il inclut', () => {
     const [c] = composites;
-    setDataset('groups', [...datasetArray('groups'), groupe('tout-sauf', { matchesAll: true, exceptGroups: [c.id] })] as never);
+    setDataset('groups', [...datasetArray('groups'), groupe('tout-sauf', { matchesAll: true, exceptGroups: [idDeFixture('groupe', c.id)] })] as never);
     expect(groupMatch('tout-sauf', [c.inclut![0]])).toBe(false);
     expect(groupMatch('tout-sauf', [ordinaire.id])).toBe(true);
   });
