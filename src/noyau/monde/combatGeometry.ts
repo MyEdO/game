@@ -8,7 +8,7 @@ import type { Combatant } from '../../engine/types';
 import type { Dir8 } from '../../geometry/dir8';
 import { Scene, isWalkable } from './scene';
 import { Pt, MoveEnv, tileKey, climbTraverseFor, walkComponentsFrom, walkComponentAt } from './path';
-import { footprintTiles, footprintN, occupiesTile } from './footprint';
+import { footprintTiles, footprintN, occupiesTile, distanceDeContact } from './footprint';
 import { inBattleId } from './combatants';
 import { sizeGap } from '../../engine/size';
 import { requiredTerrains } from '../../engine/ops';
@@ -81,6 +81,11 @@ export function casesTenues(combatants: readonly Combatant[], retenu: (c: Combat
     for (const t of footprintTiles(c.pos, footprintN(c))) s.add(tileKey(t.x, t.y, c.pos.z ?? 0));
   }
   return s;
+}
+
+/** Le camp de `active` à son contact (`distanceDeContact` ≤ 1), lui compris. LDB 15 l.12. */
+export function campAuContact(battle: BattleState, active: Combatant): Combatant[] {
+  return battle.combatants.filter((c) => c.kind === active.kind && (c.id === active.id || distanceDeContact(active, c) <= 1));
 }
 
 /**
@@ -202,13 +207,13 @@ export const porteeEnCases = (metres: number, mpt: number): number => Math.max(1
  *    Trait/Talent/Atout/État qui pose une zone SOURCE-AGNOSTIQUE → `GameOp[]` à chaque cible).
  * Le tri par distance sert le plafond « N plus proches » (Tir de zone) ; les autres applicateurs sont
  * insensibles à l'ordre (effet indépendant par cible). `dist` (défaut : Chebyshev centre-à-centre,
- * Z-AWARE #798) est surchargeable pour une distance d'EMPREINTE (footprint-aware, `combatDistance`)
+ * Z-AWARE #798) est surchargeable pour une distance d'EMPREINTE (footprint-aware, `distanceDeCombat`)
  * quand la Taille des combattants compte (effets déclenchés d'aire centrés sur un combattant).
  * CHOIX z du défaut : une aire de zone (souffle, munition, zone déclenchée) est HORIZONTALE — elle ne
  * porte qu'un centre `Pt` (jamais de portée verticale à mesurer) ; le défaut ne compte donc QUE les
  * combattants du MÊME étage que `center` (`center.z ?? 0`), les autres valant `Infinity` (hors rayon,
  * quel que soit `radiusTiles`) — un souffle posé au sol n'atteint plus un défenseur de muraille au-dessus.
- * Un appelant qui veut une vraie distance 3D (Taille + hauteur) passe `combatDistance` en `dist`, comme
+ * Un appelant qui veut une vraie distance 3D (Taille + hauteur) passe `distanceDeCombat` en `dist`, comme
  * `triggeredEffects.ts` (centre = position d'un combattant, donc déjà au bon étage).
  */
 export function combatantsWithinRadius(

@@ -93,7 +93,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(miscastTableRows(id));
       expect(def.rows.map((r) => r.id)).toEqual(rows.map((r) => r.id));
-      expect(def.die).toBe(100);
+      expect(def.die).toEqual({ n: 1, sides: 100 });
       expect(def.label).toBe(label);
       // Surface JOUEUR : aucun libellé ne porte de référence de livre (`docs/charte-ui.md`).
       expect(hasBookMarker(def.label), `provenance dans « ${def.label} »`).toBe(false);
@@ -189,7 +189,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     const st = stepAt(0);
     expect(st.kind).toBe('tableDIncantationImparfaite');
     expect(stepInteraction(st)).toBe('table'); // dé À POSER → les deux affordances de la modale
-    expect(st.table).toMatchObject({ tableId: 'miscast-majeure', spec: { n: 1, sides: 100 } });
+    expect(st.table).toMatchObject({ tableId: 'miscast-majeure' });
     expect(st.table!.mod, 'aucun modificateur hors Colère').toBeUndefined();
     expect(st.table!.result).toBeUndefined();
     expect(hero.conditions).toEqual([]);
@@ -247,7 +247,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     const st = stepAt(0);
     // Le modificateur est DÉCLARÉ vivant (compteur de l'acteur), pas figé à l'ouverture.
-    expect(st.table).toMatchObject({ tableId: 'miscast-colere', spec: { n: 1, sides: 100 }, modPerActor: { counter: 'sinPoints', factor: 10 } });
+    expect(st.table).toMatchObject({ tableId: 'miscast-colere', modPerActor: { counter: 'sinPoints', factor: 10 } });
     expect(hero.sinPoints, 'le Péché expire AVANT le lancer').toBe(1);
     // 95 naturel + 10 = 105 → « Châtiment » (101-105), une ligne INATTEIGNABLE sans Point de Péché.
     poser(st.id, 95);

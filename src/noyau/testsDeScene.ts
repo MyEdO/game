@@ -22,6 +22,7 @@ import { reprendreTestSubi } from './combat/triggeredTest';
 import { poursuivreLAccostage } from './seaVoyageFlow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -95,7 +96,7 @@ export function reglagesDesTestsDeScene(get: Get, set: Set): Pick<CorpsDesReglag
         const pc = get().pendingCascade;
         const etape = pc ? curseurPose(get, { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, actorId: cand.id } : st)) }, pc.cursor) : null;
         set({
-          pendingTest: { ...pt, actorId: cand.id, actorName: cand.label, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
+          pendingTest: { ...pt, actorId: cand.id, skillValue: cand.value, target: cand.target, clamped: cand.clamped, base: cand.base, mods: cand.mods, psychMod: cand.psychMod, psychDetail: cand.psychDetail, itemUid: cand.itemUid, support: cand.support },
           ...(etape ? { pendingCascade: etape } : {}),
         });
       },
@@ -197,7 +198,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
           tool.destroyed = true;
           set({ party: [...get().party] }); // persiste la casse + re-render
-          get().ecrireAuJournal(t('store.toolBroken', { tool: tool.label, name: actor?.label ?? pt.actorName }));
+          get().ecrireAuJournal(t('store.toolBroken', { tool: tool.label, name: garanti(nomEnVue(get(), pt.actorId), pt.actorId, 'testeur') }));
         }
         // Action de combat « cumuler l'Avantage » (LDB 09 l.305-308) : sur réussite, +1 Avantage plafonné au
         // `cap` de la Compétence (via `gainAdvantage`, qui respecte aussi le plafond général) ; l'Action est

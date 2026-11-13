@@ -778,7 +778,7 @@ export const stageWeatherRows = (entries: { min: number; max: number; weather: s
 const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepDef>(
   weather.map((saison) => [stageWeatherTableId(saison.id as Season), {
     label: t('step.stageWeather'),
-    die: facesDuDe(weatherDie(saison.id as Season)),
+    die: weatherDie(saison.id as Season),
     rows: stageWeatherRows(saison.entries),
     lines: (die) => [t('out.stageWeather', { weather: weatherCondition(weatherFromRoll(die, saison.id as Season)).label })],
   }]),
@@ -801,7 +801,7 @@ function buildTravelDayCascade(
     pousseSi(steps, tableStep({
       id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'voyage/vague',
       label: t('step.stageWeather'),
-      table: { tableId: stageWeatherTableId(currentSeason(get)), spec: weatherDie(currentSeason(get)) },
+      table: { tableId: stageWeatherTableId(currentSeason(get)) },
       stake: voyageStakeRef(STAGE_WEATHER_KIND),
     }));
   }
@@ -816,7 +816,7 @@ function buildTravelDayCascade(
   if (estFaceDeSeuil(perilDie)) {
     pousseSi(steps, tableStep({
       id: 'route-peripetie', kind: 'perilATerre', worldOwner: true, icon: 'interface/attention', label: t('step.perilATerre'),
-      table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
+      table: { tableId: perilThresholdTableId(perilDie) },
       stake: voyageStakeRef('route-peripetie', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
     }));
@@ -951,10 +951,11 @@ function perilThresholdRows(face: number, faces: number): TableStepRow[] {
 
 /** Les tables du dé de seuil, une par face — FAMILLE dérivée de `peripeties` (son `tirageQuotidien`). */
 const tablesDeSeuil = memoParVersion('peripeties', () => {
-  const faces = facesDuDe(peripetieSeuilDie());
+  const die = peripetieSeuilDie();
+  const faces = facesDuDe(die);
   return new Map<string, TableStepDef>(Array.from({ length: faces }, (_, i) => i + 1).map((face) => [perilThresholdTableId(face), {
     label: t('step.perilATerre'),
-    die: faces,
+    die,
     rows: perilThresholdRows(face, faces),
     lines: (roll: number) => [roll === face ? t('tf.evenementDePeril') : t('tf.sansPeril')],
   }]));
@@ -966,7 +967,7 @@ const PERIL_TABLE_ID = 'route-peripetie-table';
  *  entrée, son `roll` pour fourchette, son id pour clé. */
 const tableDesPeripeties = memoParVersion('peripeties', () => new Map<string, TableStepDef>([[PERIL_TABLE_ID, {
   label: t('step.perilATerreTable'),
-  die: facesDuDe(peripetieDie()),
+  die: peripetieDie(),
   rows: PERIPETIES.map((p) => ({ id: p.id, min: p.roll, max: p.roll, label: p.label })),
   lines: (roll) => {
     const p = PERIPETIES.find((x) => x.roll === roll);
@@ -1381,7 +1382,7 @@ export const TABLES = {
       if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
       const table = tableStep({
         id: 'route-peripetie-table', kind: 'perilATerreTable', worldOwner: true, icon: 'interface/attention', label: t('step.perilATerreTable'),
-        table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
+        table: { tableId: PERIL_TABLE_ID },
         stake: voyageStakeRef('route-peripetie-table'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });

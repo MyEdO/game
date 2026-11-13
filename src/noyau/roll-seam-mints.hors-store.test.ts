@@ -30,6 +30,7 @@ import { combatStakeRef, type StakeRef } from '../data';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -55,6 +56,7 @@ beforeEach(() => {
   banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, ownership: {} } } as never);
   avecLesTables({ plis: { ...tablesDuJeu().plis, [KIND_A_PLI]: (step) => step }, tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE]: {
     label: 'Table des mints',
+    die: deDeLaTableTiree({ die: 'd100' }),
     rows: [{ min: 1, max: 50, id: 'basse' }, { min: 51, max: 100, id: 'haute' }],
     lines: (die) => [`ligne ${die}`],
     entryCategory: 'mutations',

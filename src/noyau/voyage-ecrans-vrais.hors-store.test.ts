@@ -15,7 +15,7 @@ import { resetCadence } from '../engine/cadence';
 import { seasonOfMonth } from '../engine/travelStages';
 import { t } from '../i18n';
 import { activeDayWeather, activeExposureSeverity } from './combatFlow';
-import { tableStepDef } from './cascade';
+import { tableSpec, tableStepDef } from './cascade';
 import { draineCascade } from './cascade.testkit';
 import { creditBourse } from './bourseFlow';
 import { sceneLieu } from './restFlow';
@@ -318,7 +318,7 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
     get().partirEnVoyage('r1', 'pied');
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerre')!;
     expect(seuil.worldOwner).toBe(true);
-    expect(seuil.table!.spec, 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
+    expect(tableSpec(seuil.table!), 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
     expect(seuil.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
     get().jetImposerLeResultat('cascadeTirage', 3, seuil.id);
     const tire = get().pendingCascade!.participants.find((s) => s.id === seuil.id)!.table!.result!;

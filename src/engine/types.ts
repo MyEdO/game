@@ -1687,8 +1687,10 @@ export interface Combatant {
   /** Case occupée. `z` = étage (cf. `SceneEntity.z` / `path.ts:Pt`) ; ABSENT = sol (z=0). `h` = hauteur
    *  RÉELLE de la surface sous le combattant, en MÈTRES (relief, `scene.heightAt`) — STAMPÉE au spawn et
    *  RAFRAÎCHIE à chaque déplacement (`placeCombatant`), pour que la distance de combat (composante
-   *  verticale métrique) et le −10 « en contrebas » restent justes après tout mouvement. Absent = 0 m. */
-  pos?: { x: number; y: number; z?: number; h?: number };
+   *  verticale métrique) et le −10 « en contrebas » restent justes après tout mouvement. Absent = 0 m.
+   *  `plafond` = le plus haut des plafonds des cases de son empreinte, en MÈTRES (`plafondDe`), posé avec `h` ;
+   *  absent = ciel ouvert. */
+  pos?: { x: number; y: number; z?: number; h?: number; plafond?: number };
   initiative?: number;
   /** A gagné de l'Avantage durant le Round courant (upkeep de fin de Round, LDB Dépl. l.40). */
   gainedAdvThisRound?: boolean;

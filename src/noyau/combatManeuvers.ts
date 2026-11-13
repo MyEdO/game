@@ -17,6 +17,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
 import { facingToward } from '../geometry/dir8';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
@@ -45,7 +46,7 @@ import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
 type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
 import { type Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { combatantsWithinRadius } from './monde/combatGeometry';
@@ -121,7 +122,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
       !isOutOfAction(t) &&
       !!t.pos &&
       !!c.pos &&
-      combatDistance(c, t) <= 1 &&
+      distanceDeContact(c, t) <= 1 &&
       sizeGap(c.size, t.size) >= ecart,
   );
 }
@@ -588,7 +589,7 @@ function openManeuverDefenseCascade(
       label: attackerLabel,
       stake: combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
-        opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
+        opposed: { aT: atk, attackerId: attacker.id, attackerName: nomDe(attacker), attackerLabel },
         defenseDeManoeuvre: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
       },
     };
