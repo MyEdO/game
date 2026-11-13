@@ -35,7 +35,7 @@ function setup() {
 
 const ctxDe = (def?: ActionDef): ActionCtx => {
   const battle = banc.getState().battle!;
-  return { active: battle.combatants.find((c) => c.kind === 'heros')!, battle, def, gameTime: banc.getState().gameTime };
+  return { scene: banc.getState().scene, active: battle.combatants.find((c) => c.kind === 'heros')!, battle, def, gameTime: banc.getState().gameTime };
 };
 
 describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit', () => {

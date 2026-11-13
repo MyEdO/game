@@ -4,10 +4,10 @@
  * que soldée, et la dernière engage le héros, qui rejoint le groupe de la partie avec les valeurs tirées et choisies,
  * son entrée écrite au roster de l'hôte.
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import { chargerLeRoster } from '../../../src/hote/roster';
-import type { Suite } from './pont';
+import type { Pont, Suite } from './pont';
 import type { Bouton, Choix, Element, Jet, Puce } from '../../../src/hote/elements';
 
 /** Le bouton d'id `id` d'une zone de la création, ou l'échec qui la dit. */
@@ -23,8 +23,12 @@ const elementDe = (s: Suite, id: string): Element | undefined => s.vue.zones['cr
 const titre = (s: Suite): string => s.vue.zones['creation.titre'][0]?.texte ?? '';
 
 describe('la création d’un héros par le pont', () => {
+  let ouvert: Pont | null = null;
+  afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
+
   it('chaque page jouée par ses boutons, le héros engagé rejoint le groupe avec ses valeurs', () => {
-    const { appel, stockage } = table();
+    const { pont, appel, stockage } = table();
+    ouvert = pont;
     let s = drainer(appel, appel('demarrer', { scenario: 'marche-equipement', graine: 7 })).suite;
     while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (enFocus(s.vue) as Bouton).jeu)).suite;
     const avant = s.vue.zones['groupe.heros'].map((c) => c.nom);
@@ -55,6 +59,7 @@ describe('la création d’un héros par le pont', () => {
     expect(titre(s)).toBe('Carrière · 2/10');
     s = jouer(boutonDe(s, 'creation.corps', 'tirage'));
     const carriere = choixDe(s, 'tirees')!.valeurs.find((v) => v.presse)!.libelle;
+    expect(s.vue.zones['creation.corps'].filter((e) => e.id.startsWith('variante/')).map((e) => e.id), `${carriere} n’a pas de variante : aucun second lancer`).toEqual([]);
     expect((elementDe(s, 'px') as Puce).valeur, 'la carrière du premier jet gardée vaut ses PX').toBe('+50 PX');
     s = jouer(boutonDe(s, 'creation.gestes', 'suivante'));
 
@@ -134,5 +139,23 @@ describe('la création d’un héros par le pont', () => {
     const augmentee = augmentations[0].id.slice('augmentation/'.length);
     expect(Number(fiche[`carac/${augmentee}`]) - caracteristiques[augmentee], 'la Caractéristique augmentée porte ses 5 Augmentations').toBeGreaterThanOrEqual(5);
     expect((sectionDeLaFiche(s.vue, 'talents') as Puce[]).map((p) => p.libelle), 'son Talent de carrière').toContain(talent);
+  });
+
+  it('le second lancer (AA 02 l.109-111 ; VDM 03 l.17-19) : un bouton du jet dont la carrière a une variante, qui ne s’offre qu’une fois', () => {
+    const { pont, appel } = table();
+    ouvert = pont;
+    let s = drainer(appel, appel('demarrer', { scenario: 'marche-equipement', graine: 3 })).suite;
+    while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (enFocus(s.vue) as Bouton).jeu)).suite;
+    const jouer = (b: Bouton): Suite => suiteDe(appel('creation', b.jeu));
+    s = jouer(boutonDe(s, 'groupe.gestes', 'creation'));
+    s = jouer(boutonDe(s, 'creation.corps', 'tirage'));
+    s = jouer(boutonDe(s, 'creation.gestes', 'suivante'));
+    s = jouer(boutonDe(s, 'creation.corps', 'tirage'));
+    const second = boutonDe(s, 'creation.corps', 'variante/0');
+    expect([second.libelle, second.refus], 'le premier jet tire Soldat, qui a une variante').toEqual(['Second lancer : Soldat', null]);
+    s = jouer(second);
+    expect((elementDe(s, 'tirage') as Jet).resultat, 'le tirage dit le d100 et le second').toMatch(/^\d+ → \d+$/);
+    expect(s.vue.zones['creation.corps'].some((e) => e.id === 'variante/0'), 'fait, il ne s’offre plus').toBe(false);
+    expect(erreurDe(appel('creation', { creation: { geste: 'tirerLaVariante', args: [0] } })).categorie, 'rejoué, il se refuse').toBe('validation');
   });
 });

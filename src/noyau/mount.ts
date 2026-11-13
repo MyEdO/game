@@ -101,13 +101,13 @@ export const attackGeomOf = (battle: BattleState, c: Combatant, weapon: Weapon |
  *  abîme une porte) — jamais un `if` bélier : règle GÉNÉRALE « utile bat inutile », qui rejoue pour toute
  *  future immunité d'arme/cible. Repli sur la 1ʳᵉ candidate à portée (même immunisée) si aucune n'est utile
  *  — mieux vaut un choix cohérent qu'aucun. `undefined` si aucune arme de mêlée n'atteint la cible. */
-export function meleeWeaponInRangeList(combatants: Combatant[], attacker: Combatant, target: Combatant, weapons: Weapon[] = attacker.weapons): Weapon | undefined {
+export function meleeWeaponInRangeList(scene: Scene | null, combatants: Combatant[], attacker: Combatant, target: Combatant, weapons: Weapon[] = attacker.weapons): Weapon | undefined {
   const tGeom = combatGeomOfList(combatants, target);
-  const inRange = weapons.filter((w) => w.type === 'melee' && distanceDeContact(attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w));
+  const inRange = weapons.filter((w) => w.type === 'melee' && distanceDeContact(scene, attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w));
   return inRange.find((w) => !structureImmune(w, target)) ?? inRange[0];
 }
-export function meleeWeaponInRange(battle: BattleState, attacker: Combatant, target: Combatant): Weapon | undefined {
-  return meleeWeaponInRangeList(battle.combatants, attacker, target);
+export function meleeWeaponInRange(scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant): Weapon | undefined {
+  return meleeWeaponInRangeList(scene, battle.combatants, attacker, target);
 }
 
 /** Armes PERSONNELLES d'un combattant — HORS l'arme dérivée du poste qu'il sert (`mannedPoste`), si un
@@ -140,7 +140,7 @@ export const ARME_INTROUVABLE = { vues: 0, dites: new Set<string>() };
  *  Un `weaponUid` fourni et INTROUVABLE n'est jamais un choix par défaut : c'est un appelant qui
  *  désigne une arme que le combattant ne TIENT pas. Le fait se crie (DEV) au lieu de se traduire en
  *  arme différente — la re-dérivation d'un jet déjà résolu en dépendait. */
-export function pickAttackWeaponList(combatants: Combatant[] | undefined, attacker: Combatant, target: Combatant, weaponUid?: string): Weapon {
+export function pickAttackWeaponList(scene: Scene | null, combatants: Combatant[] | undefined, attacker: Combatant, target: Combatant, weaponUid?: string): Weapon {
   const chosen = weaponUid ? attacker.weapons.find((w) => w.uid === weaponUid) : undefined;
   if (chosen) return chosen;
   if (weaponUid) {
@@ -155,11 +155,11 @@ export function pickAttackWeaponList(combatants: Combatant[] | undefined, attack
     }
   }
   const personal = personalWeaponsOf(attacker);
-  if (!combatants) return assertAttackWeapon(personal, distanceDeContact(attacker, target) <= meleeReachTiles(personal));
-  return meleeWeaponInRangeList(combatants, attacker, target, personal) ?? assertAttackWeapon(personal, false);
+  if (!combatants) return assertAttackWeapon(personal, distanceDeContact(scene, attacker, target) <= meleeReachTiles(personal));
+  return meleeWeaponInRangeList(scene, combatants, attacker, target, personal) ?? assertAttackWeapon(personal, false);
 }
-export function pickAttackWeapon(battle: BattleState, attacker: Combatant, target: Combatant, weaponUid?: string): Weapon {
-  return pickAttackWeaponList(battle.combatants, attacker, target, weaponUid);
+export function pickAttackWeapon(scene: Scene | null, battle: BattleState, attacker: Combatant, target: Combatant, weaponUid?: string): Weapon {
+  return pickAttackWeaponList(scene, battle.combatants, attacker, target, weaponUid);
 }
 
 /** Cavalier émérite (AA 13 l.25) : Taille EFFECTIVE de `self` face à la Peur/Terreur causée par la TAILLE
@@ -185,15 +185,12 @@ function tileToFootprint(c: Combatant, x: number, y: number): number {
   return Math.max(dx, dy);
 }
 
-/** `rider` (à pied, libre) peut-il enfourcher `mount` ? Monture vivante, SANS cavalier, à une case de
- *  l'empreinte de la monture (ou dessus), et `rider` n'est pas déjà monté. MÊME ÉTAGE requis (z-aware) :
- *  un cavalier au rez ne peut pas enfourcher une monture qui couvre les mêmes (x,y) au chemin de ronde
- *  (sans ce filtre, l'enfourchement le téléporterait verticalement via `mountUp`). */
-export function canMount(_battle: BattleState, rider: Combatant, mount: Combatant): boolean {
+/** `rider` (à pied, libre) peut-il enfourcher `mount` ? Monture vivante, SANS cavalier, au contact (`distanceDeContact`,
+ *  arête, plafond et hauteur compris) ou sur son empreinte, et `rider` n'est pas déjà monté. */
+export function canMount(scene: Scene | null, rider: Combatant, mount: Combatant): boolean {
   if (rider.id === mount.id || rider.mountId || mount.riderId) return false;
   if (isOutOfAction(rider) || isOutOfAction(mount) || !rider.pos || !mount.pos) return false;
-  if ((rider.pos.z ?? 0) !== (mount.pos.z ?? 0)) return false;
-  return tileToFootprint(mount, rider.pos.x, rider.pos.y) <= 1;
+  return distanceDeContact(scene, rider, mount) <= 1;
 }
 
 /** `rider` enfourche `mount` : appairage + le cavalier monte SUR la monture (partage sa position). */
@@ -335,15 +332,15 @@ export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: C
  *  marquées `mountable`, du MÊME camp (on n'enfourche pas la monture d'un ennemi), sans cavalier, à une
  *  case de leur empreinte (LDB 14). SOURCE UNIQUE de la disponibilité de « Monter » — la pastille de
  *  CHAQUE monture en naît, et le dispatcher y retrouve celle qu'on a désignée. */
-export function mountablesNear(battle: BattleState, rider: Combatant): Combatant[] {
+export function mountablesNear(battle: BattleState, scene: Scene | null, rider: Combatant): Combatant[] {
   return battle.combatants
-    .filter((m) => m.mountable && m.kind === rider.kind && canMount(battle, rider, m))
+    .filter((m) => m.mountable && m.kind === rider.kind && canMount(scene, rider, m))
     .map((m) => ({ m, d: m.pos && rider.pos ? chebyshev(m.pos, rider.pos) : Infinity }))
     .sort((a, b) => a.d - b.d)
     .map((x) => x.m);
 }
 
 /** La PLUS PROCHE des montures enfourchables (`mountablesNear`) — le défaut quand aucune n'est désignée. */
-export function mountableNear(battle: BattleState, rider: Combatant): Combatant | undefined {
-  return mountablesNear(battle, rider)[0];
+export function mountableNear(battle: BattleState, scene: Scene | null, rider: Combatant): Combatant | undefined {
+  return mountablesNear(battle, scene, rider)[0];
 }

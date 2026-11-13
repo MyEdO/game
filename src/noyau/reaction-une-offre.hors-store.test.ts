@@ -162,7 +162,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
     runEnemyAI(banc.getState, banc.setState, E.id);
     for (let i = 0; i < 2 && banc.enAttente() && !banc.getState().pendingCascade && !banc.getState().pendingDefense; i++) banc.reprendreLesEnAttente();
     fin();
-    expect(distanceDeContact(vif(E.id), vif(H.id)), 'au contact').toBeLessThanOrEqual(1);
+    expect(distanceDeContact(banc.getState().scene, vif(E.id), vif(H.id)), 'au contact').toBeLessThanOrEqual(1);
     expect(charge).toBe(false);
     expect(vif(E.id).advantage).toBe(avantage);
     expect(etapes()).not.toContain('choixDeclenche');
