@@ -93,9 +93,8 @@ import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNa
 import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
-import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
+import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { ajouterAuRoster, crewRoleValue, crewTestModParts, facteurDuVivreSeul, facteursDeVivreSeul, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
-import type { NightEntry } from './restFlow';
 import { provisioningManifest, rationsDeCale } from '../engine/provisions';
 import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, mouvementDeLaBourseDuGroupe } from './bourseFlow';
@@ -174,9 +173,6 @@ export interface SeaVoyageState {
   waterContaminated?: { diseaseId: string };
   /** Lignes du jour (recap de la halte de nuit). */
   lines: string[];
-  /** PROCÈS-VERBAL structuré du jour (couche `voyageCadence`) : une ligne de JET par Test d'équipage de
-   *  ROUTINE auto-résolu en route COMMANDÉE — « aucun jet silencieux » (rendu par `MultiRollList`). */
-  entries?: NightEntry[];
   /** Milles parcourus AUJOURD'HUI le long du trajet : Progression, ou dérive SIGNÉE (MDG 13 l.294). */
   milesToday: number;
   /** Blessures de coque AU LEVER du jour — sert au DELTA du jour clos (`SeaRecapChrome.hullDelta`) :
@@ -1020,51 +1016,6 @@ function seaDayAllRoutine(get: Get): boolean {
   return !sea.crisis && !get().vessel?.infestation;
 }
 
-/** PV structuré (couche `voyageCadence` — « aucun jet silencieux ») : une entrée de JET par contributeur
- *  d'une étape À PARTICIPANTS déjà résolue (`runCascadeImmediate`, route COMMANDÉE) — rendue par
- *  `MultiRollList` sur l'écran de traversée. Étapes MONO (Forcer le rythme…) : `[]` (leur ligne va au
- *  journal via `tell()`, comme avant). */
-function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
-  if (!step.participants) return [];
-  const pool = get().party;
-  return step.participants.flatMap((part, i) => {
-    const actor = pool.find((c) => c.id === part.id);
-    const res = part.result;
-    if (!actor || !res) return [];
-    return [voyageDayEntry({
-      id: `mer-${step.kind}-${get().travelPlan?.sea?.daysAtSea ?? 0}-${part.id}-${i}`,
-      actorId: part.id, icon: 'voyage/ancre', group: step.label,
-      // L'ENJEU est celui de l'ÉTAPE (#1117 L1b) : recopié tel quel, rendu UNE fois par bande.
-      ...(step.stake ? { stake: step.stake } : {}),
-      label: `${(part.roleId ? findCrewRoleById(part.roleId)?.label : undefined) ?? part.label ?? actor.label}${part.essential ? ' ★' : ''}`,
-      // Z5 : la ligne NOMME la COMPÉTENCE lancée (couture id→label du catalogue) ; le RÔLE tenu est
-      // la provenance, porté par le libellé d'entrée. La Difficulté posée à la construction voyage
-      // avec la ligne (#1112) au lieu d'être jetée. Une ligne non tentable n'a pas de dé : son refus.
-      ...(estJete(res) ? { d: {
-        label: part.skill ? refLabel('skills', part.skill) : (part.label ?? actor.label),
-        base: part.base, modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl,
-        ...(part.difficulty ? { difficulty: part.difficulty } : {}),
-      } } : { text: part.refus }),
-      tone: res.success ? 'reussite' : 'echec',
-    })];
-  });
-}
-
-/** Pousse les entrées de PV des étapes RÉSOLUES (route COMMANDÉE, `jouerLaJournee`) dans
- *  `sea.entries` (accumulateur du jour, vidé par `continueSeaDayAfterCascade`). */
-function pushDayEntries(get: Get, set: Set, resolved: CascadeStep[]): void {
-  const entries = resolved.flatMap((s) => dayEntriesFromStep(get, s));
-  if (entries.length) patchSea(get, set, { entries: [...(get().travelPlan?.sea?.entries ?? []), ...entries] });
-  // « Aucun jet silencieux » (voyageCadence.ts) : un RÉSUMÉ DR par Test d'équipage AUTO-RÉSOLU, au
-  // journal du jour.
-  for (const s of resolved) {
-    if (!s.participants || !s.result) continue;
-    const total = s.result.sl;
-    // MDG 14 l.13
-    tell(get, set, [t('sv.crewTestSummary', { label: String(s.label), dr: total >= 0 ? `+${total}` : total, issue: crewTestSuccess(total) ? t('sv.success') : t('sv.failure') })]);
-  }
-}
-
 /** La météo d'un jour en mer (MDG 13 l.164, l.250, l.272) sous les météos imposées au navire (op
  *  `meteoImposee`), dans leur ordre de pose : leurs axes remplacent ceux du tirage, les vents dominants
  *  soufflent à l'opposé (`ventInverse`), et l'aggravation tire son dé ce matin-là. `ventDeLaVeille` absent =
@@ -1333,8 +1284,8 @@ function jouerLesEtapesDuJour(get: Get, set: Set, steps: BuiltCascadeStep[]): vo
   // Traversée sous ordres (`voyageCadence.traverseeCommandee`) d'une journée de PURE routine (#275 Ronde 2
   // cran 3) : aucun arrêt. Un combat ouvert EN PLEIN VOL (embuscade ancrée) parque la journée derrière lui :
   // sa reprise et son dénouement (`dispatchCascadeDone`) jouent la clôture. `rowSurface: 'pv'` : les rangées
-  // des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries` à la clôture) — le journal ne redit pas
-  // leurs dés (#1291). Les monos du tableau y gardent leur ligne.
+  // des bandes du jour se montrent au PROCÈS-VERBAL (`TravelPlan.procesVerbal`, écrit au commit de chaque
+  // bande) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
   const commandee = traverseeCommandee(get()) && seaDayAllRoutine(get);
   jouerLaJournee(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', ...(commandee ? { rowSurface: 'pv' as const } : {}) }, commandee);
 }
@@ -1481,11 +1432,8 @@ function lignesResolues(steps: readonly CascadeStep[]): string[] {
  * ligne générée ICI passe par `tell()` (journal + `sea.lines`, durable) plutôt qu'un tableau local — une
  * cascade surfacée PAUSE l'exécution (reprise asynchrone par un clic), un accumulateur JS ne survivrait
  * pas la pause.
- * `auPv` : les étapes qu'un pilote immédiat a résolues sous `rowSurface: 'pv'` — en direct, ou à la
- * reprise d'une séquence parquée (`PendingCascade.piloteImmediat`) — versées au PV (`pushDayEntries`).
  */
-export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep[] = []): void {
-  if (get().travelPlan?.sea) pushDayEntries(get, set, auPv);
+export function continueSeaDayAfterCascade(get: Get, set: Set): void {
   const plan = get().travelPlan;
   // Une « Fuite de vapeur » (MDG 12 l.326-328) suspend le jour depuis l'applier `equipage-progression` : sa
   // reprise est `resolveSteamSave`, quel que soit le pilote qui a clos le fragment.
@@ -1668,9 +1616,9 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
 
   const miles = sea.milesToday;
   const kmDone = Math.min(plan.km, plan.kmDone + miles);
-  // PV DU JOUR (couche `voyageCadence`) : les jets de ROUTINE auto-résolus s'y sont accumulés (`sea.entries`) —
-  // on les EMPORTE dans le recap du jour avant de rincer l'accumulateur pour le lendemain.
-  const dayEntries = [...(sea.entries ?? [])];
+  // Compte rendu du jour (`TravelPlan.procesVerbal`, couche `voyageCadence`) : le jour clos l'emporte et le
+  // trajet repart sans.
+  const dayEntries = get().travelPlan!.procesVerbal ?? [];
   const hull = plan.vehicle!;
   const chrome: SeaRecapChrome = {
     weatherLabel: seaWeatherLabel(sea.weather), windForce: sea.weather.vent, windFrom: sea.windFrom, heading: sea.heading,
@@ -1683,12 +1631,12 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   // Météo du LENDEMAIN, sous les météos imposées au navire.
   const { weather, windFrom } = meteoDuJour(get, hull, sea.weather.vent, rng);
   patchSea(get, set, {
-    daysAtSea, lines: [], entries: [],
+    daysAtSea, lines: [],
     weather, windFrom,
     milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, paceToday: undefined, manieursToday: undefined,
     hullAtDayStart: hull.wounds.current,
   });
-  set({ travelPlan: { ...get().travelPlan!, kmDone } });
+  set({ travelPlan: { ...get().travelPlan!, kmDone, procesVerbal: undefined } });
 
   const worldMap = get().worldMap as WorldMap;
   const to = placeById(worldMap, plan.toPlaceId);

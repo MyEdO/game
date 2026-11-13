@@ -521,7 +521,7 @@ const V8C3: Site[] = [
     apres: t('sv.careened', { cost: t('sv.fragCareenCost', { cost: 12, pct: 25 }) }),
   },
   {
-    site: 'seaVoyageFlow.ts:866 — résumé DR d’un Test d’équipage (signe + issue en 2ᵉ clé)',
+    site: 'voyageCadence.ts:154 — résumé DR d’un Test d’équipage (signe + issue en 2ᵉ clé)',
     avant: `${'Rude épreuve'} : DR ${`+${2}`} → ${'succès'}.`,
     apres: t('sv.crewTestSummary', { label: 'Rude épreuve', dr: `+${2}`, issue: t('sv.success') }),
   },

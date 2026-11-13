@@ -732,7 +732,7 @@ function prepareJourTerrestre(seed: number): void {
   get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
-const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied'); };
+const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied', { cadence: 'jourParJour' }); };
 
 /** État d'une traversée dont le compteur d'événement de bord échoit AUJOURD'HUI (l'étape à table
  *  existe). RNG ensemencé EN TÊTE, pour la raison dite sur `prepareJourTerrestre` : `buildSeaPlan`

@@ -2290,14 +2290,14 @@ export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
 export type CascadeStep = CascadeRollStep | (CascadeStepBase & { target?: undefined; rollLabel?: undefined });
 
 /** SURFACE des rangées d'une bande résolue par un pilote sans fenêtre, DÉCLARÉE par ce pilote : le
- *  procès-verbal structuré d'une traversée (`dayEntriesFromStep`, `seaVoyageFlow.ts`) montre déjà
- *  chaque dé, ligne par ligne — le journal ne les redit pas (#1291). Absente = le journal est la seule
- *  surface, il porte les dés. */
+ *  procès-verbal structuré d'une traversée (`TravelPlan.procesVerbal`, écrit au commit de la bande par
+ *  `voyageCadence.noterAuProcesVerbal`) montre chaque dé, ligne par ligne — le journal ne les redit pas
+ *  (#1291). Absente = le journal est la seule surface, il porte les dés. */
 export type RowSurface = 'pv';
 
 /** Contexte de lancement d'un pilote immédiat PARQUÉ, rejoué tel quel à sa reprise : `sansContexte` = lancé
  *  sans `ctx` (un combat ouvert en plein vol arrête la boucle sans rien empiler) ; `rowSurface` = la
- *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore ; `auxVraisChoix` = il
+ *  surface de rangées qu'il avait déclarée, que chaque commit de bande de la suite honore ; `auxVraisChoix` = il
  *  s'arrête à chaque vrai choix d'un siège (`cascade.jouerLaJournee`, #3534). */
 export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; auxVraisChoix?: true };
 

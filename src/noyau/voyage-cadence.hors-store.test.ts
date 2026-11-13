@@ -180,7 +180,7 @@ describe('traversée JOUR-PAR-JOUR (mer) — cadence manuelle inchangée', () =>
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const p = get().pendingCascade;
     expect(p?.purpose).toBe('travelDay');
-    expect(get().travelPlan!.sea!.entries ?? []).toHaveLength(0); // pas de PV auto en cadence manuelle
+    expect(get().travelPlan!.procesVerbal ?? []).toHaveLength(0); // pas de PV auto en cadence manuelle
   });
 });
 

@@ -1,52 +1,35 @@
-// LE BANC DES ÉTALONS (#3935) : chaque planche du dépôt (`planches.mjs`) montrée par l'export Web de l'hôte Godot dans un
-// Chrome sans GPU, à la vue de référence (`VUE_REFERENCE`, `scripts/recette/lib.mjs`), sans son monde 3D
-// (`?planche=<nom>&monde=sans`, un navigateur neuf par planche, `projet/scripts/pont_de_planche.gd`), capturée une fois dite
-// montrée (`wfrpPlancheMontree`), et comparée pixel à pixel à son étalon `etalons/<nom>.png`. Un pixel
-// d'écart, un étalon absent ou d'une autre taille, ou une erreur de la page, sort en 1. Le rapport (`--rapport <dossier>`)
-// garde le rendu de chaque planche, sa capture avec le monde, et une page qui les range près de leur étalon, l'écart en
-// surimpression ; il dit de chaque étalon s'il est celui que l'utilisateur a validé (`valides.json` : son empreinte).
+// LE BANC DES ÉTALONS (#3935) : chaque planche de l'export Web de l'hôte Godot (`<export>/planches/`, déposées par
+// `construire.mjs --export`, `planches.mjs`) montrée dans un Chrome sans GPU, à la vue de référence (`VUE_REFERENCE`,
+// `scripts/recette/lib.mjs`), sans son monde 3D (`?planche=<nom>&monde=sans`, `projet/scripts/pont_de_planche.gd`, un
+// navigateur neuf par planche, deux planches de front par `enFileBornee`), capturée une fois dite montrée
+// (`wfrpPlancheMontree`), et comparée pixel à pixel à son étalon `etalons/<nom>.png`. Avant toute capture, le navigateur
+// lancé et la plateforme passent l'épingle (`refusDuNavigateur` : `Chrome/<EPINGLE.chrome>` sous Linux x86-64), sinon
+// le banc sort en 1. Un étalon qu'aucune planche de l'export ne porte, un pixel d'écart, un étalon absent ou d'une autre
+// taille, ou une erreur de la page, dont une méthode du pont que la planche ne sert pas, sort en 1. Le rapport
+// (`--rapport <dossier>`) garde le rendu de chaque planche, sa capture avec le monde, et une page qui les range près de
+// leur étalon, l'écart en surimpression ; il dit de chaque étalon s'il est celui que l'utilisateur a validé
+// (`valides.json` : son empreinte). Le rapport, le journal et le code de sortie suivent l'ordre des noms.
 //
-//   node hotes/godot/etalons.mjs --enregistrer                       réécrit les planches depuis le pont (`figerLesPlanches`),
-//                                                                    sur les modèles épinglés (`recupererModeles`)
+//   npm run godot:etalons                                                     l'export, puis le banc qui compare
 //   node hotes/godot/etalons.mjs --web <export> [--rapport <dossier>] [--planche <nom>]...
 //   node hotes/godot/etalons.mjs --web <export> --poser [--planche <nom>]...   écrit le rendu comme étalon
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
+import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { VUE_REFERENCE, consoleGuard, launchSession, sleep, waitFor } from '../../scripts/recette/lib.mjs'
-import { chargerAssets } from './asset/charger.mjs'
-import { listage } from './listage.mjs'
-import { DOSSIER_DES_ETALONS, DOSSIER_DES_PLANCHES, MONDES, VALIDES, nomsDesPlanches } from './planches.mjs'
+import { DOSSIER_DES_ETALONS, VALIDES, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 
 const { values: o } = parseArgs({
-  options: { enregistrer: { type: 'boolean' }, web: { type: 'string' }, poser: { type: 'boolean' }, rapport: { type: 'string' }, planche: { type: 'string', multiple: true } },
+  options: { web: { type: 'string' }, poser: { type: 'boolean' }, rapport: { type: 'string' }, planche: { type: 'string', multiple: true } },
 })
-if (!o.enregistrer === !o.web) throw new Error('usage : node hotes/godot/etalons.mjs --enregistrer | --web <dossier de l’export> [--poser] [--rapport <dossier>] [--planche <nom>]...')
+if (!o.web) throw new Error('usage : node hotes/godot/etalons.mjs --web <dossier de l’export> [--poser] [--rapport <dossier>] [--planche <nom>]...')
 
 /** Le temps laissé à l'écran, la planche dite montrée, avant sa capture. */
 const POSE_MS = 400
-
-/** Les planches du pont écrites sous `planches/`, celles d'avant retirées, et le monde de chaque scénario sous `mondes/`. */
-async function enregistrer() {
-  const { DOSSIER_DES_MODELES, recupererModeles, figerLesPlanches } = await chargerAssets(["export { figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';"])
-  await recupererModeles({ dossier: DOSSIER_DES_MODELES })
-  const planches = figerLesPlanches(listage(DOSSIER_DES_MODELES))
-  rmSync(DOSSIER_DES_PLANCHES, { recursive: true, force: true })
-  mkdirSync(join(DOSSIER_DES_PLANCHES, MONDES), { recursive: true })
-  const mondes = new Map()
-  for (const { monde, ...planche } of planches) {
-    const { scenario } = planche.parametres
-    const json = JSON.stringify(monde)
-    if (mondes.has(scenario) && mondes.get(scenario) !== json) throw new Error(`${planche.nom} : le monde de ${scenario} n’est pas celui de ses autres planches`)
-    mondes.set(scenario, json)
-    writeFileSync(join(DOSSIER_DES_PLANCHES, `${planche.nom}.json`), `${JSON.stringify(planche)}\n`)
-  }
-  for (const [scenario, json] of mondes) writeFileSync(join(DOSSIER_DES_PLANCHES, MONDES, `${scenario}.json`), `${json}\n`)
-  console.log(`[etalons] ${planches.length} planches enregistrées, ${mondes.size} mondes`)
-}
 
 /** Les pixels qui diffèrent entre les PNG `a` et `b`, et la boîte qui les contient ; tous, d'une taille à l'autre. */
 function ecart(a, b) {
@@ -81,18 +64,33 @@ function pageDuRapport(lignes) {
 ${lignes.map(rangee).join('\n')}`
 }
 
+/** Le Chrome du banc, lancé à la vue de référence en WebGL logiciel. */
+const lancer = () => launchSession({ width: VUE_REFERENCE.largeur, height: VUE_REFERENCE.hauteur, timeoutMs: 30000, args: WEBGL_LOGICIEL })
+
 async function comparer() {
-  const noms = o.planche ?? nomsDesPlanches()
+  const planches = join(o.web, 'planches')
+  const tous = readdirSync(planches).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -'.json'.length)).sort()
+  const orphelins = etalonsSansPlanche(readdirSync(DOSSIER_DES_ETALONS), tous)
+  if (orphelins.length) {
+    console.error(`[etalons] étalon(s) qu'aucune planche de l'export ne porte : ${orphelins.join(', ')}`)
+    return 1
+  }
+  const sonde = await lancer()
+  const { product } = await sonde.rpcNavigateur('Browser.getVersion').finally(() => sonde.close())
+  const refus = refusDuNavigateur(product, { plateforme: process.platform, architecture: process.arch })
+  if (refus) {
+    console.error(`[etalons] ${refus}`)
+    return 1
+  }
+  const noms = o.planche ?? tous
   const valides = JSON.parse(readFileSync(VALIDES, 'utf8'))
   if (o.rapport) mkdirSync(o.rapport, { recursive: true })
   const srv = await servir({ web: o.web })
-  const lignes = []
-  const erreurs = []
-  let fautes = 0
-  /** La capture de la planche `nom` une fois montrée, dans un navigateur neuf ; avec son monde, une fois vêtu chaque
-   *  corps de `bases` (par id de combattant, l'id de sa base, `vue.corps.combattants`). */
-  const capturer = async (nom, bases) => {
-    const session = await launchSession({ width: VUE_REFERENCE.largeur, height: VUE_REFERENCE.hauteur, timeoutMs: 30000, args: WEBGL_LOGICIEL })
+  /** La capture de la planche `nom` une fois montrée, dans un navigateur neuf, les erreurs de sa page versées à
+   *  `erreurs` ; avec son monde, une fois vêtu chaque corps de `bases` (par id de combattant, l'id de sa base,
+   *  `vue.corps.combattants`). */
+  const capturer = async (nom, bases, erreurs) => {
+    const session = await lancer()
     const garde = consoleGuard(session)
     try {
       await session.rpc('Page.navigate', { url: `${srv.url}index.html?planche=${nom}&recette=1${bases ? '' : '&monde=sans'}` })
@@ -101,37 +99,42 @@ async function comparer() {
       await sleep(POSE_MS)
       return Buffer.from((await session.rpc('Page.captureScreenshot', { format: 'png' })).data, 'base64')
     } finally {
-      erreurs.push(...garde.errors().map((e) => ({ nom, ...e })))
+      erreurs.push(...garde.errors())
       await session.close()
     }
   }
-  try {
-    for (const nom of noms) {
-      const { titre, demarrer } = JSON.parse(readFileSync(join(DOSSIER_DES_PLANCHES, `${nom}.json`), 'utf8'))
-      const chemin = join(DOSSIER_DES_ETALONS, `${nom}.png`)
-      const rendu = await capturer(nom, null)
-      if (o.poser) writeFileSync(chemin, rendu)
-      const etalon = existsSync(chemin) ? readFileSync(chemin) : null
-      const { pixels, boite } = etalon ? ecart(rendu, etalon) : { pixels: -1, boite: '' }
-      const verdict = !etalon ? 'sans étalon' : pixels ? `${pixels} pixels d’écart, ${boite}` : 'conforme'
-      if (verdict !== 'conforme') fautes++
-      const valide = !!etalon && valides[nom]?.empreinte === empreinte(etalon)
-      lignes.push({ nom, titre, verdict, valide })
-      console.log(`[etalons] ${nom} : ${verdict}${valide ? ', validé' : ''}`)
-      if (o.rapport) {
-        writeFileSync(join(o.rapport, `${nom}.rendu.png`), rendu)
-        if (etalon) writeFileSync(join(o.rapport, `${nom}.etalon.png`), etalon)
-        const bases = Object.fromEntries(Object.entries(demarrer.vue.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
-        writeFileSync(join(o.rapport, `${nom}.monde.png`), await capturer(nom, bases))
-      }
+  /** La ligne du rapport de la planche `nom` et les erreurs de ses pages ; l'étalon posé avec `--poser`. */
+  const juger = async (nom) => {
+    const { titre, reponses: { demarrer } } = JSON.parse(readFileSync(join(planches, `${nom}.json`), 'utf8'))
+    const chemin = join(DOSSIER_DES_ETALONS, `${nom}.png`)
+    const erreurs = []
+    const rendu = await capturer(nom, null, erreurs)
+    if (o.poser) writeFileSync(chemin, rendu)
+    const etalon = existsSync(chemin) ? readFileSync(chemin) : null
+    const { pixels, boite } = etalon ? ecart(rendu, etalon) : { pixels: -1, boite: '' }
+    const verdict = !etalon ? 'sans étalon' : pixels ? `${pixels} pixels d’écart, ${boite}` : 'conforme'
+    const valide = !!etalon && valides[nom]?.empreinte === empreinte(etalon)
+    if (o.rapport) {
+      writeFileSync(join(o.rapport, `${nom}.rendu.png`), rendu)
+      if (etalon) writeFileSync(join(o.rapport, `${nom}.etalon.png`), etalon)
+      const bases = Object.fromEntries(Object.entries(demarrer.vue.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
+      writeFileSync(join(o.rapport, `${nom}.monde.png`), await capturer(nom, bases, erreurs))
     }
-    if (o.rapport) writeFileSync(join(o.rapport, 'index.html'), pageDuRapport(lignes))
+    return { nom, titre, verdict, valide, erreurs }
+  }
+  let lignes
+  try {
+    lignes = await enFileBornee(noms.map((nom) => () => juger(nom)), { deFront: 2 })
   } finally {
     srv.fermer()
   }
+  if (o.rapport) writeFileSync(join(o.rapport, 'index.html'), pageDuRapport(lignes))
+  for (const l of lignes) console.log(`[etalons] ${l.nom} : ${l.verdict}${l.valide ? ', validé' : ''}`)
+  const erreurs = lignes.flatMap((l) => l.erreurs.map((e) => ({ nom: l.nom, ...e })))
   for (const e of erreurs) console.log(`[etalons] console de ${e.nom} :`, e.level, e.text)
+  const fautes = lignes.filter((l) => l.verdict !== 'conforme').length
   console.log(`[etalons] ${lignes.length} planches, ${lignes.filter((l) => l.valide).length} étalons validés, ${fautes} en écart, ${erreurs.length} erreur(s) de console`)
   return fautes || erreurs.length ? 1 : 0
 }
 
-process.exitCode = o.enregistrer ? (await enregistrer(), 0) : await comparer()
+process.exitCode = await comparer()

@@ -1,13 +1,14 @@
 /**
  * VOYAGE TERRESTRE (LDB « Voyage » + EDOC 8 « Voyage par Étapes ») — la journée de route JOUÉE.
  * Depuis la Phase B, TOUS les jets du JOUR terrestre (Activités de l'Étape, Exposition de fin d'Étape,
- * péripéties Survie/Perception) passent par la MÊME cascade influençable (`purpose:'travelDay'`,
- * Chance/Pacte/Résilience) que le voyage fluvial et la nuit — aucune auto-résolution inline. La cascade
+ * péripéties Survie/Perception) passent par la MÊME cascade (`purpose:'travelDay'`) que le voyage fluvial et
+ * la nuit : influençable jour par jour (Chance/Pacte/Résilience), jouée d'office sous ordres (`TravelPlan.orders`,
+ * #3935) — aucune auto-résolution inline. La cascade
  * du jour se clôt sur le calcul de la progression puis enchaîne la halte
  * de nuit / l'arrivée. La marche forcée reste une étape de la cascade de NUIT (inchangée).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { refLabel, resolveStake, weather } from '../data';
+import { refLabel, resolveStake, testSkillLabel, voyageStakeRef, weather } from '../data';
 import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -31,7 +32,9 @@ import { seasonOfMonth, weatherFromRoll, type Season } from '../engine/travelSta
 import { toDate } from '../engine/clock';
 import { creditBourse } from './bourseFlow';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engine/types';
-import { applierDe, rollTableStep } from './cascade';
+import type { Possession } from '../engine/possession';
+import { applierDe, jouerLaJournee, rollTableStep } from './cascade';
+import { bandStep, monoStep, rollStep } from './rollSeam';
 import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 import { lignesDe } from '../engine/modLine.testkit';
@@ -85,12 +88,6 @@ function runToEnd(maxSteps = 60): void {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-// (b) INFLUENCE : les jets du JOUR terrestre sont des étapes influençables d'une cascade travelDay.
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-describe('cascade du JOUR terrestre — les jets d’Étape sont influençables (purpose travelDay)', () => {
-  beforeEach(() => setRule('voyage-etapes', true));
-
 /** Franchit la Météo d'Étape — étape à TABLE en tête du jour (#1426) dont l'applier INSÈRE les pas qui
  *  dépendent du temps qu'il fait (Résistance de traversée, postes). Sans elle, la séquence du jour n'a
  *  encore qu'une étape : c'est le dé de monde qui fait exister la suite. En cadence MANUELLE la table
@@ -101,10 +98,16 @@ function passerLaMeteo(): void {
   avanceEtapeCascade(get);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// (b) INFLUENCE : les jets du JOUR terrestre sont des étapes influençables d'une cascade travelDay.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('cascade du JOUR terrestre — les jets d’Étape sont influençables (purpose travelDay)', () => {
+  beforeEach(() => setRule('voyage-etapes', true));
+
   it('la Météo d’Étape déclare la table de SA SAISON, SANS modificateur (#1426)', () => {
     seedBattleRng(1);
     setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'approvisionnement' }, items: [] })]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'etape-meteo')!;
     expect(meteo, 'la Météo est une étape à TABLE de monde').toBeTruthy();
     expect(meteo.worldOwner).toBe(true);
@@ -150,7 +153,7 @@ function passerLaMeteo(): void {
     seedBattleRng(1);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     const pc0 = get().pendingCascade;
     expect(pc0?.purpose).toBe('travelDay'); // le jour ne s'auto-résout plus
     passerLaMeteo();
@@ -166,7 +169,7 @@ function passerLaMeteo(): void {
     seedBattleRng(5); // seed où l'Approvisionnement échoue (parité : 78/70)
     const h = hero({ id: 'h', travelRole: { activityId: 'approvisionnement' }, resilience: 2, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     expect(get().pendingCascade!.purpose).toBe('travelDay');
     passerLaMeteo();
     const batch = get().pendingCascade!.participants.find((s) => s.kind === 'etapePosteEnBande')!;
@@ -187,7 +190,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     seedBattleRng(1);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     drainCascade();
     const st = get();
     expect(st.lieu).toBe('pb');
@@ -315,7 +318,7 @@ describe('#4005 — la Rencontre tirée est l’événement du jour, rangé à l
     setRule('voyage-etapes', true);
     seedBattleRng(2);
     setup(wm, [hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] })]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     expect(voyageEnVue(get())!.evenements, 'un jour sans événement sert une liste vide').toEqual([]);
     const tiree = () => get().pendingCascade?.participants.some((st) => st.kind === 'etapeRencontre' && st.committed);
     for (let i = 0; i < 40 && get().pendingCascade && !tiree(); i++) avanceEtapeCascade(get);
@@ -368,7 +371,7 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
     seedBattleRng(1);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 30, perilDie: 0 }), [h]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     // Le jour ouvre la cascade travelDay ; sa clôture pose la halte de nuit (30 km > 24 km/jour).
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     drainCascade();
@@ -416,7 +419,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     get().chargerLeProjet({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: forcedRoute(20), projet: null });
     banc.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 }); // passage de l'attelage (dépense de groupe)
-    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop', cadence: 'jourParJour' });
     const pc = get().pendingCascade;
     expect(pc?.purpose).toBe('travelDay');
     const first = pc!.participants[0];
@@ -607,7 +610,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap, projet: null });
     banc.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'lead', { gold: 500, silver: 0, brass: 0 });
-    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop', cadence: 'jourParJour' });
   }
 
   it('1ᵉʳ km : base NUE, Soutien NOMMÉ, aucune chip anonyme', () => {
@@ -725,7 +728,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-// #4006 — sous `jouerLaJournee` (`travelFlow.ts:720`), ce que l'applier d'un péril d'auteur ouvre arrête le jour.
+// #4006 — sous `jouerLaJournee` (`travelFlow.ts:726`), ce que l'applier d'un péril d'auteur ouvre arrête le jour.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 describe('péril d’auteur dont l’effet ouvre un nœud de scène sous la journée pilotée (#4006)', () => {
   /** Cadence déférée : aucun siège ne tient les dés du jour, le pilote joue l'applier du péril lui-même. */
@@ -774,5 +777,174 @@ describe('péril d’auteur dont l’effet ouvre un nœud de scène sous la jour
     expect(exaucee(), `son effet n’est pas rejoué (${noeud})`).toBe(1);
     expect(jours(), `une journée comptée (${noeud})`).toBe(1);
     expect(get().pendingRest, `la halte de nuit s’ouvre après la clôture (${noeud})`).toBeTruthy();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// #3935 — la route de terre se joue sous les ordres du trajet (`TravelPlan.orders`, `traverseeCommandee`).
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('#3935 — la route de terre se joue sous les ordres du trajet', () => {
+  /** Quatre héros, chacun tient un poste à Test. */
+  const quatrePostes = (): Combatant[] => ([
+    ['h1', 'Hilda', 'plein-air', 'survie-en-exterieur'],
+    ['h2', 'Gunther', 'approvisionnement', 'survie-en-exterieur'],
+    ['h3', 'Elsa', 'recueillir-informations', 'ragot'],
+    ['h4', 'Bruno', 'rester-aux-aguets', 'perception'],
+  ] as const).map(([id, label, activityId, skill]) => hero({ id, label, travelRole: { activityId }, items: [ration(`${id}-r`)], skills: [{ id: skill, advances: 20 } as any] }));
+  const traceDe = (label: string) => get().journal.filter((l) => new RegExp(`^${label} — .+ : \\d+/\\d+ → `).test(l));
+  /** Route à « Attaqués ! » (graine 326, péripétie au d8) dont l'embuscade est configurée. */
+  const routeAEmbuscade = () => map({ km: 30, perilDie: 8, ambush: { scene: { id: 'lieu-a-scene' }, encounter: 'enc-test' } });
+  /** Draine la cascade de nuit ; s'arrête sur celle du jour suivant si elle s'ouvre. */
+  const dormir = () => {
+    get().fenetreValider('repos');
+    for (let i = 0; i < 40 && get().pendingCascade && get().pendingCascade!.purpose !== 'travelDay'; i++) avanceEtapeCascade(get);
+  };
+
+  it('sous ordres (défaut du départ), quatre postes tenus : du départ à la halte sans arrêt, chaque Test au journal', () => {
+    setRule('voyage-etapes', true);
+    seedBattleRng(1);
+    setup(map({ km: 30, perilDie: 0 }), quatrePostes());
+    get().partirEnVoyage('r1', 'pied');
+    expect(get().travelPlan!.orders, 'le plan de terre porte les ordres par défaut').toEqual({ cadence: 'commande' });
+    expect(get().pendingCascade, 'aucune fenêtre ne s’ouvre dans la journée').toBeNull();
+    expect(get().pendingRest, 'la journée va à la halte').toBeTruthy();
+    for (const label of ['Hilda', 'Gunther', 'Elsa', 'Bruno']) expect(traceDe(label).length, `le Test de poste de ${label} laisse sa ligne`).toBeGreaterThanOrEqual(1);
+  });
+
+  it('jour par jour, la même journée s’arrête sur la bande des postes', () => {
+    setRule('voyage-etapes', true);
+    seedBattleRng(1);
+    setup(map({ km: 30, perilDie: 0 }), quatrePostes());
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
+    passerLaMeteo();
+    const pc = get().pendingCascade!;
+    expect(pc.purpose).toBe('travelDay');
+    expect(pc.participants[pc.cursor].kind).toBe('etapePosteEnBande');
+    expect(pc.participants[pc.cursor].participants!.every((r) => r.result == null), 'aucune rangée roulée').toBe(true);
+  });
+
+  it('une péripétie éreintante joue son Test d’office et laisse sa trace (perilATerreSurvie)', () => {
+    seedBattleRng(2);
+    setup(map({ km: 12, perilDie: 8 }), [hero({ items: [ration('r1')], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any, { id: 'perception', advances: 20 } as any] })]);
+    get().partirEnVoyage('r1', 'pied');
+    expect(get().pendingCascade, 'le Test de la péripétie n’ouvre aucune fenêtre').toBeNull();
+    expect(get().lieu).toBe('pb');
+    expect(get().journal).toContain('Hilda — Survie en extérieur : 29/70 → réussi (DR +5).');
+    expect(get().journal).toContain('Hilda — Survie en extérieur (+20) : un itinéraire de substitution est trouvé.');
+  });
+
+  it('une péripétie qui ouvre un combat arrête le jour par l’interruption de terre', () => {
+    seedBattleRng(326);
+    setup(routeAEmbuscade(), [hero({ skills: [{ id: 'perception', advances: 20 } as any] })]);
+    get().partirEnVoyage('r1', 'pied');
+    expect(get().pendingCascade).toBeNull();
+    expect(get().travelPlan!.interrupted).toBe(true);
+    expect(get().travelRecap!.then?.kind).toBe('ambush');
+    expect(get().pendingRest, 'interrompu : aucune halte').toBeFalsy();
+    expect(get().battle, 'le combat attend l’acquittement du récit').toBeNull();
+  });
+
+  it('fixerLaCadence en route : jour par jour → commandée, le jour suivant se joue sans arrêt', () => {
+    seedBattleRng(1);
+    setup(map({ km: 60, perilDie: 0 }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any] })]);
+    setRule('voyage-etapes', true);
+    banc.setState({ party: get().party.map((h) => ({ ...h, travelRole: { activityId: 'approvisionnement' } })) });
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
+    expect(get().pendingCascade?.purpose, 'jour 1 : la journée ouvre ses fenêtres').toBe('travelDay');
+    drainCascade();
+    expect(get().pendingRest).toBeTruthy();
+    get().fixerLaCadence('commande');
+    dormir();
+    expect(get().pendingCascade, 'jour 2 : aucune fenêtre').toBeNull();
+    expect(get().travelPlan!.log!.length, 'le jour 2 est joué jusqu’à sa halte').toBe(2);
+    expect(get().pendingRest).toBeTruthy();
+  });
+
+  it('fixerLaCadence en route : commandée → jour par jour, le jour suivant s’arrête', () => {
+    seedBattleRng(1);
+    setup(map({ km: 60, perilDie: 0 }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any] })]);
+    setRule('voyage-etapes', true);
+    banc.setState({ party: get().party.map((h) => ({ ...h, travelRole: { activityId: 'approvisionnement' } })) });
+    get().partirEnVoyage('r1', 'pied');
+    expect(get().pendingCascade, 'jour 1 : aucune fenêtre').toBeNull();
+    expect(get().pendingRest).toBeTruthy();
+    get().fixerLaCadence('jourParJour');
+    dormir();
+    expect(get().pendingCascade?.purpose, 'jour 2 : la journée ouvre ses fenêtres').toBe('travelDay');
+    expect(get().travelPlan!.log!.length).toBe(1);
+  });
+
+  it('sous ordres, l’allure forcée d’un conducteur joueur se joue d’office, chaque km au journal', () => {
+    setRule('voyage-allures', true);
+    seedBattleRng(1);
+    const h = hero({ id: 'h', skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
+    setup({ ...map({ km: 20, perilDie: 0 }), routes: [{ ...map().routes[0], km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] }, [h]);
+    creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
+    expect(get().pendingCascade, 'aucune fenêtre ne s’ouvre dans la journée').toBeNull();
+    const kms = get().journal.filter((l) => l.includes('(allure forcée)')).length;
+    expect(kms, 'prémisse : des km au pas de course').toBeGreaterThan(0);
+    expect(traceDe('Hilda').length, 'chaque km joué laisse sa ligne').toBe(kms);
+  });
+
+  /** Chaque moyen de terre, sous les ordres du départ puis jour par jour : en selle, transport payant, attelage conduit. */
+  const monture = (uid: string, ownerId: string): Possession => ({ uid, ownerId, nature: 'bete', ref: { id: 'cheval-de-monte' }, location: { kind: 'avec-le-groupe' }, items: [] } as Possession);
+  it.each([
+    { moyen: 'en selle', mode: 'monture', opts: { allure: 'trot' }, montures: true },
+    { moyen: 'transport payant', mode: 'diligence', opts: {}, montures: false },
+    { moyen: 'attelage conduit au galop', mode: 'diligence', opts: { allure: 'galop' }, montures: false },
+  ] as const)('$moyen : sans cadence déclarée, aucune fenêtre ; jour par jour, la journée ouvre la sienne', ({ mode, opts, montures }) => {
+    for (const cadence of [undefined, 'jourParJour'] as const) {
+      setRule('voyage-etapes', true);
+      setRule('voyage-allures', true);
+      seedBattleRng(1);
+      setup(map({ km: 30, modes: ['pied', 'diligence'] }), [
+        hero({ id: 'h1', label: 'Hilda', travelRole: { activityId: 'approvisionnement' }, items: [ration('a'), ration('b')], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any, { id: 'conduite-d-attelage', advances: 40 } as any, { id: 'equitation', advances: 20 } as any] }),
+        hero({ id: 'h2', label: 'Bruno', travelRole: { activityId: 'rester-aux-aguets' }, items: [ration('c'), ration('d')], skills: [{ id: 'perception', advances: 20 } as any] }),
+      ]);
+      if (montures) banc.setState({ possessions: [monture('m1', 'h1'), monture('m2', 'h2')] });
+      creditBourse(get, set, 'h1', { gold: 500, silver: 0, brass: 0 });
+      get().partirEnVoyage('r1', mode, { ...opts, ...(cadence ? { cadence } : {}) });
+      if (cadence) {
+        expect(get().travelPlan?.mode, 'le trajet part par ce moyen').toBe(mode);
+        expect(get().pendingCascade?.purpose, 'jour par jour : la journée ouvre sa fenêtre').toBe('travelDay');
+      } else {
+        expect(get().pendingCascade, 'sous les ordres du départ : aucune fenêtre').toBeNull();
+        expect(get().lieu, 'la route va au bout sans arrêt').toBe('pb');
+      }
+    }
+  });
+
+  it('hors mode local, un jour de terre aux ordres commandés reste jour par jour', () => {
+    setRule('voyage-etapes', true);
+    seedBattleRng(1);
+    setup(map({ km: 30, perilDie: 0 }), quatrePostes());
+    banc.setState({ net: { ...get().net, mode: 'hote' } });
+    get().partirEnVoyage('r1', 'pied');
+    expect(get().travelPlan!.orders).toEqual({ cadence: 'commande' });
+    expect(get().pendingCascade?.purpose, 'la journée ouvre ses fenêtres').toBe('travelDay');
+  });
+
+  it('le pilote du jour (`jouerLaJournee`) : commandé, la bande et la péripétie se jouent d’office au journal ; sinon il s’arrête sur la bande', () => {
+    for (const commandee of [false, true]) {
+      const a = hero({ id: 'a', label: 'Anna', skills: [{ id: 'survie-en-exterieur', characteristic: 'intelligence', advances: 5 } as any] });
+      const b = hero({ id: 'b', label: 'Bert', skills: [{ id: 'survie-en-exterieur', characteristic: 'intelligence', advances: 5 } as any] });
+      banc.setState({ party: [a, b], pendingCascade: null, journal: [] });
+      const bande = bandStep({ id: 'stage-postes', kind: 'etapePosteEnBande', label: t('step.stagePostes') }, [a, b].map((h) => ({
+        id: h.id, label: testSkillLabel({ skill: { id: 'survie-en-exterieur' } }), interactive: true, result: null, difficulty: 'intermediaire' as const,
+        ...rollStep({ actor: h, test: { skill: { id: 'survie-en-exterieur' } }, difficulty: 'intermediaire' }),
+      })))!;
+      const peril = monoStep({ id: 'peril-survie', kind: 'perilATerreSurvie', actor: a, label: t('step.perilATerreSurvie'), difficulty: 'accessible',
+        stake: voyageStakeRef('route-peripetie-survie'), ligne: { test: { skill: { id: 'survie-en-exterieur' } } } })!;
+      jouerLaJournee(get, set, [bande, peril], { title: 'Jour', purpose: 'travelDay' }, commandee);
+      const pc = get().pendingCascade;
+      if (!commandee) {
+        expect(pc?.participants[pc.cursor].kind, 'jour par jour : arrêt sur la bande').toBe('etapePosteEnBande');
+        continue;
+      }
+      expect(pc, 'commandé : la journée va au bout').toBeNull();
+      for (const label of ['Anna', 'Bert']) expect(traceDe(label).length, `la rangée de ${label} laisse sa ligne`).toBeGreaterThanOrEqual(1);
+      expect(traceDe('Anna').length, 'la péripétie laisse aussi la sienne').toBe(2);
+    }
   });
 });

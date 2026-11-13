@@ -695,10 +695,12 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
                             étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
                             `const RECETTE_RENDUE := true`.
-  etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
-                            `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
-                            (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run
-                            godot:etalons` exporte le jeu et refuse tout pixel d'écart entre une planche et son étalon
+  etalons/                  l'étalon de chaque planche (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des
+                            étalons validés). Une planche (un état de partie figé par le pont, que le jeu montre à
+                            `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`
+                            la dépose sous `<export>/planches/` (`planches.mjs`). `npm run godot:etalons` exporte le
+                            jeu et refuse tout pixel d'écart entre une planche et son étalon, dans le seul Chromium
+                            épinglé (`EPINGLE`, `planches.mjs`) sous Linux x86-64 ; porte de la file de fusion
                             (#3935, `.claude/rules/ecrans-godot.md`).
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
@@ -950,10 +952,11 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`traverseeCommandee`)
-  est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
-  (`jouerLaJournee` commandée, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
-  `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`cadenceAUnEffet`,
+  source unique de « locale », lue par `traverseeCommandee`, source unique de « commandée ET locale ») garde la
+  résolution d'un bloc du jour (`jouerLaJournee` commandée, dans `travelFlow.runTravelDays`,
+  `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans `seaVoyageFlow.jouerLesEtapesDuJour`,
+  commune aux deux entrées du jour `runSeaDay` et `continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
   (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
   soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution
   immédiate est un bloc synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales
