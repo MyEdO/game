@@ -15,16 +15,16 @@
   surface d'un pied, `sol.poser_les_clips_au_sol`), linéaire entre les deux (`fondu`). Champ fini F + T′,
   F = (1 − libre)·C, T′ = libre·T (F et C nuls hors silhouette à os).
 - Une silhouette à os garde F + T′ (#4002 issuecomment-6826035694). Les autres : T′ des champs rabotés ensemble aux
-  seules arêtes fautives (`formes.raboter`, #3104) hors du socle, fautes par site mesurées sur tous les champs finis
-  (#4002) : jusqu'à
+  seules arêtes fautives (`formes.raboter`, #3104) hors du socle, fautes par site mesurées sur tous les champs finis,
+  chaque champ raboté à la part qu'il prend aux fautes (`parts_des_fautes`, #4002) : jusqu'à
   `ETIREMENT_DES_CLES` au repos sur tout le domaine de `etatsDuGabarit`, aux facteurs non neutres par les clés
   `gabarit_*` cuites sur le résidu F + T′ − C (`cuisson_gabarit.cuisson_des_champs`, #3104), et jusqu'à
   `ETIREMENT_EN_CLIP` sous les clips aux facteurs neutres.
 - Correction de T′ des champs rabotés par les anneaux articulaires (`correction`, #3101 issuecomment-6489583109),
   après le rabot et le fondu : la clé la plus proche de sa source, en énergie d'arêtes, dont le centre de chaque
   anneau de la garde des silhouettes reste en place. Les anneaux sont ceux de la garde, calculés sur le maillage de la
-  construction par `anneaux.mjs` (`anneaux`). Le rabot se mesure sur les clés corrigées (`raboter_sous_correction`), hotes/godot/pont/CONTRAT.md,
-  « Gabarit d'une base ». Les sommets jumeaux prennent le même décalage ; puis chaque clé passe aux peaux
+  construction par `anneaux.mjs` (`anneaux`). Le rabot se mesure sur les clés corrigées (`raboter_sous_correction` ;
+  hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »). Les sommets jumeaux prennent le même décalage ; puis chaque clé passe aux peaux
   secondaires par liaison de surface (`formes.transferer_les_cles`).
 
 Les poids sont ceux de l'export glTF (`poids.peau_lineaire`).
@@ -44,7 +44,7 @@ from cuisson_gabarit import cuisson_des_champs, groupes_de_peau
 from portage import (axes_de_chair, ecrire_os_des_silhouettes, lire_os_des_silhouettes, portages_des_silhouettes, projete,
                      table_locale, tetes_portees, vers_le_mesh)
 from script_node import lancer
-from seuils import INFLUENCES_MAX, MAJORITE_DU_POIDS, SOL_TOLERANCE_M
+from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, INFLUENCES_MAX, MAJORITE_DU_POIDS, SOL_TOLERANCE_M
 
 ICI = Path(__file__).resolve().parent
 DONNEES = ICI.parents[2] / 'src' / 'data'
@@ -313,9 +313,10 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     rend C + libre·(T − C), sans rabot ni correction. Les autres, libre·T, sont rabotés ensemble (`formes.raboter`,
     nœuds `groupe`, arêtes `aretes`, fondu `libre`) jusqu'à ce que leur correction (`corriger`, repère monde
     `vers_le_monde`, matrice 3×3 à droite) ne laisse plus aucune arête marquée. `hors` (nom -> champ fini au repère du
-    mesh, tous les noms de `bruts`) rend `(fautes, pese)`, la forme de la mesure de `mesurer_domaine` ; le socle, les
+    mesh, tous les noms de `bruts`) rend `(fautes, parts)`, la forme de la mesure de `mesurer_domaine` ; le socle, les
     fautes que `hors` rend quand les noms portés ont leur champ fini et les rabotés un champ nul (#4002). Une arête
-    est marquée pour un nom raboté quand un site y est en faute hors du socle et y pèse pour ce nom. La correction de
+    est marquée pour un nom raboté avec la force de la plus grande part du nom aux sites qui y sont en faute hors du
+    socle, marquée dès que cette force est non nulle. La correction de
     chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que le
     rabot leur ôte. Le rabot repart du rabot cumulé `rabot` (nom -> facteur par sommet) d'un tour précédent de la
     construction ; rend aussi le rabot cumulé de ce tour, des seuls noms rabotés."""
@@ -338,12 +339,12 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
                                  [cumul[:, k] for k in range(len(noms))])
         sondes.append(sonde)
         courants = {nom: d @ inverse for nom, d in zip(noms, champs)}
-        fautes, pese = hors(tous(courants))
+        fautes, parts = hors(tous(courants))
         hors_socle = fautes & ~socle
-        marques = numpy.stack([(hors_socle & pese[nom]).any(axis=0) for nom in noms], axis=1)
+        marques = numpy.stack([numpy.where(hors_socle, parts[nom], 0.0).max(axis=0) for nom in noms], axis=1)
         print('SILHOUETTES rabot : arêtes en défaut, décalage corrigé le plus grand à leurs nœuds (m)',
-              {nom: (int(marques[:, k].sum()),
-                     round(float(numpy.linalg.norm(courants[nom][aretes[marques[:, k]].ravel()], axis=1).max(initial=0)), 5))
+              {nom: (int((marques[:, k] > 0).sum()),
+                     round(float(numpy.linalg.norm(courants[nom][aretes[marques[:, k] > 0].ravel()], axis=1).max(initial=0)), 5))
                for k, nom in enumerate(noms)}, flush=True)
         return numpy.stack([courants[nom] for nom in noms], axis=1), marques
 
@@ -354,49 +355,126 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     return tous({nom: pile[:, k] for k, nom in enumerate(noms)}), {nom: cumul[:, k] for k, nom in enumerate(noms)}
 
 
-def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None):
+def exces(rapport, bornes):
+    """La distance du log de `rapport` à l'intervalle `bornes` en log, nulle dedans (#4002)."""
+    log = numpy.log(rapport)
+    return numpy.maximum.reduce([numpy.log(bornes[0]) - log, numpy.zeros_like(log), log - numpy.log(bornes[1])])
+
+
+def parts_des_fautes(w, aretes, groupes, traces, monde, noms, portes=()):
+    """#4002 : nom de `noms` -> part (sites, arêtes) dans [0, 1] de chaque site en faute aux arêtes `aretes`, sous les
+    `GroupePondere` `groupes` aux champs monde `monde` (silhouettes et clés qui en dérivent), selon leurs traces
+    `traces` (`poids.extremes`), sites dans l'ordre de `mesurer_domaine`. Chaque clause en faute d'un site se relit à
+    son point extrême : l'instant, et pour une clause de domaine le point de sa cellule que portent les poids de la
+    trace. Son excès (`exces`) se recalcule sans chaque nom hors de `portes` qui pèse au site, son champ et ses clés
+    dérivées (`nomDeCleDuGabarit`, suffixe `_<nom>`) à poids nul, mêmes matrices de peau ; le gain d'un nom est la
+    baisse relative de l'excès, sa part son gain rapporté au plus grand gain de la clause parmi ces noms, bornée à
+    [0, 1], 1 à chacun d'eux qui pèse quand aucun n'a de gain positif. Un nom de `portes` déplace les os : ses mêmes
+    matrices de peau ne disent pas son effet, il a la part 0 partout. La part du site est la plus grande de ses
+    clauses ; un nom qui ne pèse pas au site y a la part 0."""
+    etats = [e for g in groupes for e in g.demandes]
+    parts = {nom: numpy.zeros((len(etats) + 2 * len(groupes), len(aretes))) for nom in noms}
+    clauses = []
+    debut = 0
+    for gi, (groupe, t) in enumerate(zip(groupes, traces)):
+        def etat(i, j, instant, bornes):
+            clauses.append((debut + i, j, gi, (i, i, i), (0.0, 0.0), instant, bornes, t.longueurs_reference[i, j],
+                            groupe.demandes[i]['poidsSilhouettes']))
+        for i, j in zip(*numpy.nonzero(t.cotes_repos >= 0)):
+            etat(i, j, 0, ETIREMENT_DES_CLES)
+        for i, j in zip(*numpy.nonzero(t.cotes_clip >= 0)):
+            if t.haut[i, j] > ETIREMENT_EN_CLIP[1]:
+                etat(i, j, t.instants_haut[i, j], ETIREMENT_EN_CLIP)
+            if t.cotes_clip[i, j] == 0:
+                etat(i, j, t.instants_bas[i, j], ETIREMENT_EN_CLIP)
+        cellules = {c['nom']: c for c in groupe.cellules}
+        for k, (d, bornes) in enumerate(((t.domaine_repos, ETIREMENT_DES_CLES), (t.domaine_clip, ETIREMENT_EN_CLIP))):
+            for j in numpy.flatnonzero(d.cotes >= 0):
+                c = cellules[d.cellules[j]]
+                origine = list(c['origine'])
+                uv = numpy.linalg.lstsq(numpy.array([[c['colonnes'][0][n], c['colonnes'][1][n]] for n in origine]),
+                                        numpy.array([d.poids[n][j] - c['origine'][n] for n in origine]), rcond=None)[0]
+                clauses.append((len(etats) + 2 * gi + k, j, gi, tuple(c['coins'][:3]), tuple(uv), d.instants[j], bornes,
+                                t.longueurs_reference[c['coins'][0], j], {n: p[j] for n, p in d.poids.items()}))
+        debut += len(groupe.demandes)
+    rabotes = [nom for nom in noms if nom not in portes]
+    if not clauses or not rabotes:
+        return parts
+    site, colonne, gi, coins, uv, instant, bornes, reference = (numpy.array(v) for v in list(zip(*clauses))[:8])
+    au_site = [c[8] for c in clauses]
+    sommets = aretes[colonne]
+    positions = numpy.stack([groupes[g][0][list(c)][:, s] for g, c, s in zip(gi, coins, sommets)]).astype(numpy.float64)
+    melanges = numpy.stack([numpy.einsum('vb,cbij->cvij', w[s], numpy.stack([groupes[g][2][e][i, :, :3] for e in c]))
+                            for g, c, s, i in zip(gi, coins, sommets, instant)])
+    poids_des_coins = [[{**groupes[g].demandes[e]['poidsSilhouettes'], **groupes[g].demandes[e]['poidsGabarit']}
+                        for e in c] for g, c in zip(gi, coins)]
+
+    def excedent(retire=()):
+        p = positions.copy()
+        for k in retire:
+            poids = numpy.array([[q.get(k, 0) for q in coin] for coin in poids_des_coins])
+            p[..., :3] -= poids[:, :, None, None] * monde[k][sommets][:, None]
+        posees = numpy.einsum('pcvij,pcvj->pcvi', melanges, p)
+        v = posees[:, :, 1] - posees[:, :, 0]
+        point = v[:, 0] + uv[:, :1] * (v[:, 1] - v[:, 0]) + uv[:, 1:] * (v[:, 2] - v[:, 0])
+        return exces(numpy.linalg.norm(point, axis=1) / reference, bornes.T)
+
+    avec = excedent()
+    gains = {}
+    for nom in rabotes:
+        pese = numpy.array([p.get(nom, 0) != 0 for p in au_site])
+        propres = [nom, *(k for k in monde if k not in noms and k.endswith('_' + nom))]
+        gains[nom] = numpy.full(len(clauses), -numpy.inf)
+        gains[nom][pese] = numpy.divide(avec - excedent(propres), avec, out=numpy.zeros_like(avec), where=avec > 0)[pese]
+    plus_grand = numpy.max(list(gains.values()), axis=0)
+    for nom, gain in gains.items():
+        part = numpy.where(plus_grand > 0, numpy.clip(gain / numpy.where(plus_grand > 0, plus_grand, 1), 0, 1), 1.0)
+        numpy.maximum.at(parts[nom], (site, colonne), numpy.where(numpy.isfinite(gain), part, 0.0))
+    return parts
+
+
+def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None, portes=()):
     """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » : `groupes`, `[(domaine, matrices, clips)]` ; `derivees`, des champs
-    aux décalages monde des clés qui en dérivent (`cuisson_gabarit.cuisson_des_champs`). La mesure rend `(fautes, pese)`
+    aux décalages monde des clés qui en dérivent (`cuisson_gabarit.cuisson_des_champs`). La mesure rend `(fautes, parts)`
     par site (#4002) : un site est un état des domaines, ses clauses repos et clip réunies, dans leur ordre, puis par
     groupe sa clause de domaine au repos et sa clause de domaine en clip. `fautes`, booléen (sites, arêtes), le site
-    en faute à l'arête ; `pese`, nom de `champs` -> booléen (sites, arêtes), le poids du nom non nul au site (à
-    l'arête, pour une clause de domaine). Seules les arêtes que déplace un champ changé depuis la mesure précédente se
+    en faute à l'arête ; `parts`, nom de `champs` -> (sites, arêtes) dans [0, 1], la part du nom à chaque site en faute
+    (`parts_des_fautes`, noms portés `portes`), nulle ailleurs. Seules les arêtes que déplace un champ changé depuis la mesure précédente se
     remesurent ; les tableaux rendus sont des copies."""
     etats = [e for domaine, _, _ in groupes for e in domaine['etats']]
-    vus, fautes, pese = None, None, None
+    vus, fautes, parts = None, None, None
 
     def mesurer(champs):
-        nonlocal vus, fautes, pese
+        nonlocal vus, fautes, parts
         monde = {nom: d @ vers_le_monde for nom, d in champs.items()}
         if derivees is not None:
             monde.update(derivees(champs))
         if vus is None:
             touchees = numpy.ones(len(aretes), dtype=bool)
             fautes = numpy.zeros((len(etats) + 2 * len(groupes), len(aretes)), dtype=bool)
-            pese = {n: numpy.zeros_like(fautes) for n in champs}
-            for n, p in pese.items():
-                p[:len(etats)] = numpy.array([e['poidsSilhouettes'].get(n, 0) != 0 for e in etats])[:, None]
+            parts = {n: numpy.zeros(fautes.shape) for n in champs}
         else:
             sommets = numpy.logical_or.reduce([(monde[n] != vus[n]).any(axis=1) for n in monde])
             touchees = sommets[aretes].any(axis=1)
         if touchees.any():
             traces = []
-            extremes(w, aretes[touchees], etats_ponderes(x, monde, groupes), traces)
+            ponderes = etats_ponderes(x, monde, groupes)
+            extremes(w, aretes[touchees], ponderes, traces)
             domaines = [d for t in traces for d in (t.domaine_repos, t.domaine_clip)]
             fautes[:, touchees] = numpy.concatenate([(t.cotes_repos >= 0) | (t.cotes_clip >= 0) for t in traces]
                                                     + [numpy.stack([d.cotes >= 0 for d in domaines])])
-            for nom, p in pese.items():
-                p[len(etats):, touchees] = numpy.stack([d.poids.get(nom, numpy.zeros(len(d.bas))) != 0
-                                                        for d in domaines])
+            for nom, p in parts_des_fautes(w, aretes[touchees], ponderes, traces, monde, list(champs),
+                                             portes).items():
+                parts[nom][:, touchees] = p
         vus = {nom: d.copy() for nom, d in monde.items()}
-        return fautes.copy(), {nom: p.copy() for nom, p in pese.items()}
+        return fautes.copy(), {nom: p.copy() for nom, p in parts.items()}
 
     return mesurer
 
 
-def par_nom(fautes, pese):
-    """Nom de `pese` -> booléen par arête : un site de `fautes` y est en faute et y pèse pour ce nom (#4002)."""
-    return {nom: (fautes & p).any(axis=0) for nom, p in pese.items()}
+def par_nom(fautes, parts):
+    """Nom de `parts` -> booléen par arête : un site de `fautes` y est en faute et le nom y a une part (#4002)."""
+    return {nom: (fautes & (p > 0)).any(axis=0) for nom, p in parts.items()}
 
 
 def refuser_les_inertes(finis):
@@ -447,7 +525,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
             return cuire({nom: d - portes[nom] if nom in portes else d for nom, d in champs.items()})
 
         finis, rabot = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
-                                               mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees), rabot,
+                                               mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees,
+                                                               portes=list(portes)), rabot,
                                                portes)
     for nom, d in finis.items():
         poser_la_cle(corps, nom, d)

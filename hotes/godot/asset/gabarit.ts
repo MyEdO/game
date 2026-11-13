@@ -62,15 +62,20 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
  *   silhouettes `l_b`. La trace porte le minimum, sa nature EXACT ou CERTIFIÉ (dans ce cas `bas` est une borne
  *   inférieure), la cellule, les poids de l’argmin exact sur toute arête en défaut, et l’instant. Sa portée est «
  *   exact sur les silhouettes, aux facteurs de `etatsDuGabarit` » : au repos l’arête est bilinéaire en silhouettes ×
- *   facteurs. `mesurer_domaine` et `diagnostic_poids` lisent cette trace ; la finition attribue chaque arête en
- *   défaut, au repos ou en clip, aux silhouettes de poids non nul de son argmin.
+ *   facteurs. `mesurer_domaine` et `diagnostic_poids` lisent cette trace ; la finition donne à chaque silhouette
+ *   rabotée de poids non nul de l'argmin d'une arête en défaut, au repos ou en clip, sa part de la faute
+ *   (`parts_des_fautes`, `silhouettes.py`, #4002) : la baisse relative de l'excès en log quand son champ et ses clés
+ *   dérivées passent à poids nul au même point, rapportée à la plus grande des silhouettes rabotées du site, 1 à
+ *   chacune quand aucune ne baisse. Une silhouette portée, qui déplace les os, a la part 0.
  * - Une couche par domaine : défaut d'une silhouette, au repos ou en clip aux facteurs neutres → clés (finition des
  *   clés, sous les poids de la phase neutre) ; défaut en clip du neutre, ou que la finition laisse aux clés →
  *   correction des poids de la phase silhouettes, qui mesure les mêmes états sous les clips posés au sol.
  *   `raboter_sous_correction` (`silhouettes.py`) compte les fautes par site, un état ou une clause de domaine d'un
  *   groupe : une faute de site présente quand les clés rabotées sont nulles est au socle, hors du rabot (#4002).
- *   Chaque passe de `formes.raboter` multiplie par `RABOT`, sur les nœuds de leurs arêtes en défaut (`region_locale`, qui gagne un anneau quand la clé
- *   y stagne sous `STAGNATION_M`), les clés participantes aux états actuellement en défaut, au repos du domaine comme
+ *   Chaque passe de `formes.raboter` multiplie par `RABOT ** s`, sur les nœuds de leurs arêtes en défaut (région qui
+ *   gagne un anneau quand la clé y stagne sous `STAGNATION_M`), s la plus grande part de la clé aux sites en défaut
+ *   hors du socle, puis en pente jusqu'à 1 sur `PENTE_DU_RABOT` anneaux autour (`formes.anneaux_des_marquees`), les
+ *   clés participantes aux états actuellement en défaut, au repos du domaine comme
  *   sous les clips aux facteurs neutres ; chaque clé garde sa forme partout ailleurs (#3104). Les défauts se mesurent
  *   sur le champ que `correction` rend de cette passe, qui répartit la part imposée par les anneaux au prorata du
  *   rabot cumulé de chaque nœud, et la passe suivante rabote ce champ corrigé. La vraie amplitude des silhouettes aux
