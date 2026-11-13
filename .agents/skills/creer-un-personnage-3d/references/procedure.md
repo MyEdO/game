@@ -261,7 +261,8 @@ triangles entièrement couverts ne se dessinent plus. La pièce lui doit trois c
 - sa `couche` déclarée, qui dit ce qui la couvre ; à couche égale, un `accessoire` se porte par-dessus ;
 - au repos et sous chaque silhouette, rester derrière ce qui la couvre : le montage laisse dehors ce qui le perce de
   plus de 1 cm, et la porte nomme (`couche-percee-au-repos`) l'arête qui traverse l'endroit de sa couverture et en sort
-  de plus de 5 mm ; longer sa couverture sans la traverser, comme un col sous une écharpe, n'est pas la percer ;
+  de plus de 5 mm devant un triangle qui lui fait face ; longer sa couverture sans la traverser, comme un col sous une
+  écharpe, n'est pas la percer, ni sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une barbe ;
 - les mêmes poids, sommet pour sommet, sur les deux faces d'une épaisseur : le montage garde rigide ce que son auteur
   a lié pareil.
 
@@ -457,7 +458,8 @@ rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, 
 La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
 la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
 `couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
-sort devant. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
+sort devant un triangle qui lui fait face ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une
+barbe, n'est pas la percer. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
 manche de l'autre bras. Le tissu pincé n'en est pas : là où le vêtement repose sur le corps d'une autre zone,
 le membre qui l'y presse ne le traverse pas. D'un vêtement à doublure, seul compte l'endroit : la main posée devant
 lui est derrière sa doublure sans l'avoir traversé.
