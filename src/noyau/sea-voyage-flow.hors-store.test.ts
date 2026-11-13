@@ -36,10 +36,10 @@ import { imposerLesD100 } from './battleRng.testkit';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { applierDe, runCascadeImmediate, startCascade, tableStepDef } from './cascade';
+import { applierDe, runCascadeImmediate, startCascade, stepInteraction, tableStepDef, toutResoudre } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
-import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
+import { STAKES, findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { t } from '../i18n';
@@ -1009,6 +1009,127 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().travelPlan?.sea?.ambushFired).toBeFalsy();
     expect(get().battle).toBeNull();
   });
+
+  /**
+   * #4075 M-I4 : la construction d'un jour de mer n'ouvre rien. Sans titulaire (rôles épinglés, `shipCrew`),
+   * l'embuscade et la manche de crise sont des étapes du jour, ouvertes par leur applier sous le pilote du jour :
+   * le jour interrompu attend en pile derrière le combat, il est annoncé, décompté et bâti une fois.
+   */
+  describe('abordage d’une étape du jour : le jour attend sous le combat et se dénoue une fois (#4075)', () => {
+    type Soir = { jour: number; log: number; meteo: number; cpt: number };
+    const prefixeMeteo = t('sv.weatherOfDay', { weather: '§', from: '§', heading: '§' }).split('§')[0];
+    const meteo = () => get().journal.filter((l) => l.startsWith(prefixeMeteo)).length;
+    const prefixeManche = t('sv.chase', { label: '§', issue: '', gain: '', distance: '', escapeAt: '' }).split('§')[0];
+    const ancreA = (at: number): WorldMap => ({ ...abordageMap, routes: [{ ...abordageMap.routes[0], ambush: { scene: { id: 'ls-abordage' }, encounter: 'enc-abordage', at } }] });
+    /** Le groupe aux rôles ÉPINGLÉS, le plan posé (compteur d'événement de bord à 3). */
+    function monter(roles: string[], { cadence = 'jourParJour', kmDone = 270, at = 0.5, sea = {} }: { cadence?: 'jourParJour' | 'commande'; kmDone?: number; at?: number; sea?: Partial<SeaVoyageState> } = {}) {
+      const map = ancreA(at);
+      freshAmbush(map);
+      set({ party: get().party.map((h, i) => ({ ...h, shipRole: roles[i] })) } as never);
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', map.routes[0], { cadence })!;
+      set({ travelPlan: { ...plan, kmDone, sea: { ...plan.sea!, daysToEvent: 3, ...sea } } } as never);
+    }
+    function gagner() {
+      const b = get().battle!;
+      set({ battle: { ...b, combatants: b.combatants.map((c) => (c.kind === 'ennemi' ? { ...c, dead: true } : c)) } } as never);
+      checkBattleOver(get, set);
+      get().fenetreFermer('victoire');
+      banc.reprendreTout();
+    }
+    /** Joue comme le joueur jusqu'au `n`-ième soir : étapes, victoire, repos, « Reprendre » quand la carte l'offre. */
+    function jusquAuSoir(n: number): { soirs: Soir[]; combats: number } {
+      const soirs: Soir[] = [];
+      let combats = 0;
+      for (let i = 0; i < 3000 && get().travelPlan && soirs.length < n; i++) {
+        if (get().battle) { combats++; gagner(); continue; }
+        if (get().pendingCascade) avanceEtapeCascade(get);
+        else if (get().pendingSeaActivities) get().fenetreValider('activitesEnMer');
+        else if (get().pendingRest) {
+          const p = get().travelPlan!;
+          soirs.push({ jour: p.sea!.daysAtSea, log: p.log?.length ?? 0, meteo: meteo(), cpt: p.sea!.daysToEvent });
+          if (soirs.length < n) get().fenetreValider('repos');
+        } else if (get().travelPlan!.interrupted) get().reprendreLeVoyage();
+        else break;
+        banc.reprendreTout();
+      }
+      return { soirs, combats };
+    }
+    /** Au combat : le slot libre, le jour seul en pile, aucune halte ni journée comptée. */
+    function leJourAttendSousLeCombat(cas: string) {
+      expect(get().battle, `l’abordage est ouvert (${cas})`).toBeTruthy();
+      expect(get().pendingCascade, `aucune séquence au slot sous le combat, fin de jour comprise (${cas})`).toBeNull();
+      expect(get().suspendedCascades.map((c) => c.purpose), `le jour attend en pile (${cas})`).toEqual(['travelDay']);
+      expect(get().travelPlan!.sea!.daysAtSea, `aucune journée comptée sous le combat (${cas})`).toBe(0);
+      expect(get().pendingRest, `aucune halte sous le combat (${cas})`).toBeNull();
+    }
+
+    const crise = { kind: 'poursuite', label: 'Pirates', distance: -50, escapeAt: 10, foeM: 6, foeSkill: 50 } as const;
+    it.each([
+      { cas: 'B, aucun PJ au rôle de la Progression (repos ×3), embuscade ancrée', roles: ['repos', 'repos', 'repos'], opts: {} },
+      { cas: 'B, aucun PJ au rôle de la Progression (artilleur, chirurgien, cuisinier), embuscade ancrée', roles: ['artilleur', 'chirurgien', 'cuisinier'], opts: {} },
+      { cas: 'B2, échoué, embuscade ancrée sans vigie', roles: ['artilleur', 'chirurgien', 'cuisinier'], opts: { kmDone: 280, sea: { stranded: { hazardId: 'recif', label: 'Récif' } } } },
+      { cas: 'C, Poursuite « rattrapé » sans titulaire', roles: ['vigie', 'artilleur', 'chirurgien'], opts: { kmDone: 10, at: 1, sea: { crisis: crise } } },
+    ])('$cas : le jour de l’abordage est annoncé, décompté, bâti et compté une fois ; l’événement de bord tombe au jour du livre', ({ roles, opts }) => {
+      monter(roles, opts);
+      runSeaDay(get, set);
+      banc.reprendreTout();
+      const { soirs, combats } = jusquAuSoir(3);
+      expect(combats, 'un seul abordage').toBe(1);
+      expect(soirs.slice(0, 2), 'une « Météo du jour » et un décompte par jour, chaque jour compté une fois').toEqual([
+        { jour: 1, log: 1, meteo: 1, cpt: 2 },
+        { jour: 2, log: 2, meteo: 2, cpt: 1 },
+      ]);
+      expect([soirs[2].jour, soirs[2].log, soirs[2].meteo], 'le troisième jour, compté une fois').toEqual([3, 3, 3]);
+      expect(soirs[2].cpt, 'l’événement de bord du jour 3 a retiré son délai (MDG 15 l.89)').toBeGreaterThan(0);
+      const manches = (get().travelPlan!.log ?? []).flatMap((d) => d.lines ?? []).filter((l) => l.text.startsWith(prefixeManche));
+      expect(manches, 'la manche de crise jouée une fois, au procès-verbal').toHaveLength(opts.sea && 'crisis' in opts.sea ? 1 : 0);
+    });
+
+    for (const geste of ['Suivant', 'Tout résoudre'] as const) it.each([
+      { cas: 'repli sans vigie après le Dégagement d’un échoué', roles: ['artilleur', 'chirurgien', 'cuisinier'], opts: { kmDone: 280, sea: { stranded: { hazardId: 'recif', label: 'Récif' } } } },
+      { cas: 'Test de Perception d’équipage après la Progression', roles: ['chansonnier', 'repos', 'repos'], opts: {} },
+    ])(`embuscade en DERNIÈRE étape du jour au slot, par « ${geste} » ($cas) : le jour attend sous le combat, puis un seul soir`, ({ cas, roles, opts }) => {
+      monter(roles, opts);
+      runSeaDay(get, set);
+      banc.reprendreTout();
+      expect(get().pendingCascade?.purpose, 'prémisse : le jour tient le slot').toBe('travelDay');
+      for (let i = 0; i < 50 && get().pendingCascade && !get().battle; i++) {
+        const p = get().pendingCascade!;
+        const st = p.participants[p.cursor];
+        if (geste === 'Tout résoudre' && st && stepInteraction(st) !== 'choix') toutResoudre(get, set); else avanceEtapeCascade(get);
+        banc.reprendreTout();
+      }
+      const [jour] = get().suspendedCascades;
+      expect(jour?.participants[jour.participants.length - 1]?.kind, 'prémisse : l’embuscade est la dernière étape du jour').toBe('equipage-embuscade');
+      leJourAttendSousLeCombat(cas);
+      gagner();
+      expect(jusquAuSoir(1).soirs, 'le jour se dénoue une fois').toEqual([{ jour: 1, log: 1, meteo: 1, cpt: 2 }]);
+    });
+
+    it.each(['jourParJour', 'commande'] as const)('embuscade sans vigie SEULE étape du jour, sous le pilote immédiat (%s) : le jour attend sous le combat, puis un seul soir', (cadence) => {
+      monter(['repos', 'repos', 'repos'], { cadence });
+      runSeaDay(get, set);
+      banc.reprendreTout();
+      expect(get().suspendedCascades[0]?.participants.map((x) => x.kind), 'prémisse : l’embuscade est la seule étape du jour').toEqual(['equipage-embuscade']);
+      leJourAttendSousLeCombat(cadence);
+      gagner();
+      expect(jusquAuSoir(1).soirs, 'le jour se dénoue une fois').toEqual([{ jour: 1, log: 1, meteo: 1, cpt: 2 }]);
+    });
+
+    it.each([
+      { kind: 'equipage-embuscade', roles: ['repos', 'repos', 'repos'], opts: {} },
+      { kind: 'equipage-poursuite', roles: ['vigie', 'artilleur', 'chirurgien'], opts: { kmDone: 10, at: 1, sea: { crisis: crise } } },
+      { kind: 'equipage-tourbillon', roles: ['vigie', 'artilleur', 'chirurgien'], opts: { kmDone: 10, at: 1, sea: { crisis: { kind: 'tourbillon', whirlpoolId: 'maelstrom', need: 999, progress: 0, label: 'Maelström' } as const } } },
+    ])('étape du monde sans titulaire ($kind) : titrée par son enjeu, jamais par un Test que personne ne lance', ({ kind, roles, opts }) => {
+      monter(roles, opts);
+      runSeaDay(get, set);
+      banc.reprendreTout();
+      const etapes = [get().pendingCascade, ...get().suspendedCascades].flatMap((c) => c?.participants ?? []);
+      const etape = etapes.find((e) => e.kind === kind);
+      expect(etape?.worldOwner, `prémisse : l’étape ${kind} est portée par le monde`).toBe(true);
+      expect(etape?.label).toBe(STAKES.find((e) => e.cascade === 'voyage' && e.id === kind)?.label);
+    });
+  });
 });
 
 describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)', () => {
@@ -1291,10 +1412,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     forceHail();
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', 'fuir', cur.id);
-    get().jetValider('cascade'); // → runSeaDay : aucun PJ apte = sous l'effectif minimal → crise résolue au plancher (−2 DR, MDG 14 l.55), pas de lock
-    // La manche a JOUÉ : soit la crise s'est résolue (échappée/rattrapée), soit une manche a été jouée
-    // ET JOURNALISÉE (`sea.lines`). Au plancher de Manque de bras l'écart peut nier à 0 milles (le navire
-    // sous-armé ne creuse pas l'écart, MDG 14 l.55) — c'est le RAW, pas un drop : le journal le prouve.
+    get().jetValider('cascade'); // → runSeaDay : sans compétence, aucun rôle n'est affecté (`crewTestContributors` vide)
     const sea = get().travelPlan?.sea;
     const journaled = (sea?.lines ?? []).some((l) => l.includes('Poursuite'))
       || (get().travelPlan?.log ?? []).some((d) => d.lines?.some((l) => l.text.includes('Poursuite')));

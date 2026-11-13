@@ -672,13 +672,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/seaVoyageFlow.ts",
-    motif: "désormais",
-    ancre: "Lot 1) est désormais écrit par `commitStep` depuis les `consequences` retournées (`freeCons`), pas",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/sequence-contrat-socle.hors-store.test.ts",
     motif: "désormais",
     ancre: "// Ce que fait `lancerLeCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE",
