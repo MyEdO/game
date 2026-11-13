@@ -67,7 +67,7 @@ describe('matières de relief — l’id émis est celui de la DONNÉE (toutes s
   });
 
   it('l’inventaire des ids émis est inclus dans le domaine `relief` de materials.json', () => {
-    const connus = new Set(matieresDe('relief').map((m) => m.id));
+    const connus = new Set<string>(matieresDe('relief').map((m) => m.id));
     const emis = new Set(mesures.flatMap((m) => [...m.idsEmis]));
     expect(emis.size).toBeGreaterThan(0);
     expect([...emis].filter((id) => !connus.has(id))).toEqual([]);

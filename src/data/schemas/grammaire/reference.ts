@@ -290,13 +290,16 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
-type DotationSansTexte =
+/** Les formes typées d'une dotation hors du `{choice}` (`formesDeDotation`). */
+type FormeDeDotation =
   | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true; valeur?: Somme }
   | DotationDePossession
   | Somme
-  | { choice: unknown[] }
   | { wildcard: 'arme' };
+type DotationSansTexte = FormeDeDotation | { choice: DotationSansTexte[] };
 type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
+/** Une dotation de carrière : ses formes typées, une ligne hors catalogue ou une mention (`trappingRefSchema`). */
+type DotationDeCarriere = FormeDeDotation | DotationDeTexte | DotationDeMention | { choice: DotationDeCarriere[] };
 
 const jokerDeDotationSchema = nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } });
 
@@ -314,6 +317,6 @@ function formesDeDotation<T, A = never>(soi: () => z.ZodType<T>, ...autres: z.Zo
 
 /** Dotation sans texte ni mention : `classes.json`. LDB 05 l.552 ; #4053 */
 export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation(() => dotationSansTexteSchema);
-export const trappingRefSchema: z.ZodType<DotationSansTexte | DotationDeTexte | DotationDeMention> =
-  formesDeDotation<DotationSansTexte | DotationDeTexte | DotationDeMention, DotationDeTexte | DotationDeMention>(() => trappingRefSchema, dotationDeTexteSchema, dotationDeMentionSchema);
+export const trappingRefSchema: z.ZodType<DotationDeCarriere> =
+  formesDeDotation<DotationDeCarriere, DotationDeTexte | DotationDeMention>(() => trappingRefSchema, dotationDeTexteSchema, dotationDeMentionSchema);
 

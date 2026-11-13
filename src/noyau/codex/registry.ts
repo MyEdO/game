@@ -1841,7 +1841,7 @@ const CODEX_SPECS = {
     // Le `label` EST le texte du résultat → on le garde tel quel ;
     // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
-      const range = 'min' in o ? bandeAuDe(oupsDie(), o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
+      const range = o.kind !== 'misfire' ? bandeAuDe(oupsDie(), o.min, o.max) : tr('codex.fiche.horsTableArmeAPoudreNoire');
       return depuisEnveloppe(o, {
         sub: range,
         meta: facts(fact(tr('codex.fiche.type'), valeurFR('oups.json', 'kind', o.kind))),

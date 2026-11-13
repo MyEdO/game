@@ -46,7 +46,7 @@ import { menaceIds } from '../../../engine/menace';
 import { dotationsDuHeros, resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
-import type { TrappingRef } from '../../index';
+import type { CareerLevelData } from '../../index';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -96,7 +96,7 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
   });
 
   it('{choice} migré (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
-    const ref: TrappingRef = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
+    const ref: CareerLevelData['trappings'][number] = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
     const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
       resolveTrappingChoices(dotationsDuHeros(CARRIERE_FIXTURE), { [adresseDeCreation.dotation([0])]: 1 }));
     expect(resolues).toEqual([{ id: 'pistolet' }]);

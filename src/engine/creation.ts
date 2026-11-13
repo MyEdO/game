@@ -21,7 +21,7 @@ import { Money, gainDeStatut, enPieces, type Status } from './money';
 import { SpeciesData, findSpeciesById, tableDesRacesAleatoires, tableDeCarrieres, carrieresOffertesAvec, species as allSpecies, eyes as eyesTable, hairs as hairsTable, eyesDie, hairsDie, type DetailColorData, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
-import { rule } from './policy';
+import { rule, ruleDef } from './policy';
 import { garanti } from '../lib/garanti';
 import { bonus } from './characteristics';
 import { baseWithTalents } from './talentEffects';
@@ -38,7 +38,7 @@ export const XP_STAR_ROLLED = 25; // ADE II 3 l.36 (signe astral tiré et accept
 /** Espèce OUVERTE au joueur : sans `gatedByRule`, ou sa règle optionnelle active. Lue par le tirage et la grille
  *  du créateur. NADJ 14 l.5 ; ADE II 02 l.110 */
 export function speciesAllowed(s: SpeciesData): boolean {
-  return !s.gatedByRule || !!rule(s.gatedByRule.id);
+  return !s.gatedByRule || !!rule(garanti(ruleDef(s.gatedByRule.id), s.gatedByRule.id, 'règle optionnelle de l’espèce').id);
 }
 
 /** Une rangée du Tableau des Races aléatoires : sa fourchette, l'espèce nominale de sa race puis les autres

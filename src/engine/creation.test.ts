@@ -3,7 +3,9 @@ import { describe, it, expect } from 'vitest';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { makeRNG, roll } from './dice';
 import { findTableEntry } from './tables';
-import { setRule } from './policy';
+import { ruleDef, setRule } from './policy';
+import { garanti } from '../lib/garanti';
+import type { EntreeVivante } from '../data/datasets';
 import { CHAR_KEYS, CharKey } from './types';
 import {
   randomSpeciesTable,
@@ -151,7 +153,7 @@ describe('Tableau des Races aléatoires (LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE
   });
 
   it('pour chaque combinaison des règles qui gatent une espèce, exactement une table s’applique, à rangées égales aux races ouvertes', () => {
-    const regles = [...new Set(species.flatMap((s) => (s.gatedByRule ? [s.gatedByRule.id] : [])))];
+    const regles = [...new Set(species.flatMap((s) => (s.gatedByRule ? [garanti(ruleDef(s.gatedByRule.id), s.gatedByRule.id, 'règle optionnelle de l’espèce').id] : [])))];
     for (let masque = 0; masque < 2 ** regles.length; masque++) {
       regles.forEach((r, i) => setRule(r, (masque & (2 ** i)) !== 0));
       const ouvertes = new Set(species.filter(speciesAllowed).map((s) => s.refChar));
@@ -169,7 +171,7 @@ describe('Tableau des Races aléatoires (LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE
 
   it('le gate porte sur l’ESPÈCE (`gatedByRule`), pas sur son livre : une espèce NADJ sans le champ est ouverte dans sa race', () => {
     const gnome = findSpeciesById('gnomes')!;
-    const fictive: SpeciesData = { ...gnome, id: 'sonde-espece-nadj', label: 'Sonde NADJ', refChar: 'halfling' };
+    const fictive: EntreeVivante<SpeciesData> = { ...gnome, id: 'sonde-espece-nadj', label: 'Sonde NADJ', refChar: 'halfling' };
     delete fictive.gatedByRule;
     setDataset('species', [...species, fictive]);
     try {

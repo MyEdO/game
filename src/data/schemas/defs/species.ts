@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `species.json` — dérivé du contenu RÉEL (script d'inventaire) et de
  * `SpeciesData` (`src/data/index.ts`). `skills`/`talents` = emplacements d'avancement
- * (`grammaire/avancement.ts`), `baseChar` = `Partial<Record<CharKey, number>>`. Mêmes petites formes
+ * (`grammaire/avancement.ts`), `baseChar` = une valeur par `CharKey`. Mêmes petites formes
  * partagées que `careerLevels.ts`, PROMUES dans `grammaire/avancement.ts`, `grammaire/reference.ts`
  * (Ref/TraitPose) et `grammaire/valeurs.ts` (CharKey). `mutationBodyMax` est ABSENT sur une partie des
  * entrées : optionnel, conforme à l'interface.

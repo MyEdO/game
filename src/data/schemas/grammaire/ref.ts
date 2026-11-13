@@ -970,7 +970,7 @@ function noeudASpecialisation<T extends TypeEntite>(
 export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
-): z.ZodType<unknown> {
+): z.ZodType<RefASpecialisation> {
   return noeudASpecialisation(type, extra, 'specOuChoix');
 }
 
@@ -1025,7 +1025,7 @@ export const aLaFormeDe = (noeud: unknown, valeur: unknown): boolean =>
  * la forme (aucune issue de type ni de clé) — celui d'`idDe` nomme l'id et son catalogue —, jamais par
  * l'« Entrée invalide » générique d'une union.
  */
-export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
+export function unionDeFormes<const B extends readonly [z.ZodType, ...z.ZodType[]]>(branches: B): z.ZodUnion<B> {
   return z.union(branches, { error: messageDeFormes });
 }
 
@@ -1048,10 +1048,20 @@ export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
  * même composition FERMÉE que l'`extra` de `ref()`/`specRef()` : le porteur déclare ce qu'il
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
-export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
-  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
-  const noeud: z.ZodType<unknown> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
+export function pick<T extends TypeEntite, P = never>(type: T, optionsDuPorteur: readonly z.ZodType<P>[] = []): z.ZodType<ChoixNParmi<P>> {
+  const option: z.ZodType<OptionDePick<P>> = z.lazy(() => unionDeFormes([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
+  const noeud: z.ZodType<ChoixNParmi<P>> = marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
+}
+
+/** Une option de l'`of` d'un « n parmi » : référence (nue ou à spécialisation, `RefASpecialisation`), « n parmi »
+ *  imbriqué, ou forme `P` que le porteur admet (`pick`). */
+export type OptionDePick<P = never> = RefASpecialisation | ChoixNParmi<P> | P;
+
+/** Le « n parmi » : `pick` options de son `of` (`pick`). */
+export interface ChoixNParmi<P = never> {
+  pick: number;
+  of: OptionDePick<P>[];
 }
 
 /** Le nombre `n` d'un « n parmi » ou d'un tirage. */

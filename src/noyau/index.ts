@@ -37,7 +37,7 @@ export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
 export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/paysages';
 export { ENTREES_DE_DOSSIER } from '../data/dossiers';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
-export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
+export type { LigneDeGardeRobe } from '../data/index';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
