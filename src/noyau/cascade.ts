@@ -16,6 +16,7 @@
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
 import { nomDe } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 import type { IconId } from '../data/icons';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
@@ -368,7 +369,7 @@ export function lireEnTable(decl: CascadeTableDecl, de: CascadeDeResult, ctx?: T
  * qu'il sauve ou non — sans la ligne du raté, le porteur voit ses Blessures tomber sous sa propre
  * protection sans que rien ne le lui explique. PURE (aucun état lu).
  */
-export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: string): { sauve: boolean; ligne: string } {
+export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: PlayerText): { sauve: boolean; ligne: string } {
   const sauve = de.total >= seuil.indice;
   return {
     sauve,

@@ -13,6 +13,7 @@ import type { PorteurDeFiche } from '../../engine/statblock';
 import { parcoursDe } from '../../engine/pnjDeCarriere';
 import { nomDePreset, presetDuNarratif, resolvePresetCreature, type ResolveurDePreset } from './resolveursDuNarratif';
 import type { NomDIndividu } from '../../engine/psych/ciblage';
+import type { SansMarqueNonAffichable } from '../../i18n/playerText';
 import type { Jeu } from '../etat';
 import { inBattleId } from './combatants';
 import { typeNonNomme } from '../../data/schemas/defs-scenes/scene';
@@ -56,7 +57,7 @@ function individuAnonyme(ent: SceneEntity): { race: RaceKey; sexe: Sexe } | unde
  * `porteurDeFiche` (preset, statbloc, réf). `presetDe` résout un preset : le narratif de la partie en jeu, celui du
  * projet édité dans l'éditeur (`presetDuNarratif`).
  */
-export function nomDEntite(ent: SceneEntity, presetDe: ResolveurDePreset): string | undefined {
+export function nomDEntite(ent: SceneEntity, presetDe: ResolveurDePreset): SansMarqueNonAffichable | undefined {
   if (ent.label) return ent.label;
   if (ent.kind !== 'personnage') return undefined;
   const anonyme = individuAnonyme(ent);

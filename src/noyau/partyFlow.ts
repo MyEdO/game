@@ -70,6 +70,7 @@ import type { CorpsDesChoix } from './choixDesFenetres';
 import type { IdDeHeros } from './designations';
 import { garanti } from '../lib/garanti';
 import { nomDe } from '../engine/nom';
+import type { SansMarqueNonAffichable } from '../i18n/playerText';
 
 /** Contexte carrière d'un héros : niveaux + slots cumulés/courants + désignations (LDB 07). */
 function careerCtx(hero: Combatant) {
@@ -108,7 +109,7 @@ function isCompleted(hero: Combatant): boolean {
 /** Bascule `equipped` sur les items d'un porteur (héros OU possession, #620) en place : retire d'abord
  *  les conflits de port (armure de même couche, autre cape — LDB 63, échange façon jeu vidéo, journalisé).
  *  `items` est muté EN PLACE (référence du porteur clone) — le retour n'est que le message. */
-function applyToggleEquip(items: ItemInstance[], uid: string, label: string): string {
+function applyToggleEquip(items: ItemInstance[], uid: string, label: SansMarqueNonAffichable): string {
   let msg = '';
   const it = items.find((i) => i.uid === uid);
   if (!it) return msg;
@@ -168,7 +169,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string): void {
 /** Range (`containerUid` non-null) ou sort (null) un objet d'un PORTEUR d'un contenant (LDB 64). Ranger
  *  vérifie la capacité (`canStow`) et met l'objet à l'état « rangé » (ni porté ni tenu) ; sortir le remet
  *  en vrac. Renvoie le message (échec de capacité inclus) ; `items` muté EN PLACE. */
-function applyStow(items: ItemInstance[], uid: string, containerUid: string | null, label: string): { msg: string; moved: boolean } {
+function applyStow(items: ItemInstance[], uid: string, containerUid: string | null, label: SansMarqueNonAffichable): { msg: string; moved: boolean } {
   const it = items.find((i) => i.uid === uid);
   if (!it) return { msg: '', moved: false };
   if (containerUid) {

@@ -1,3 +1,4 @@
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { creditBourse } from './bourseFlow';
@@ -504,7 +505,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [al], pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, 'al', { gold: 0, silver: 10, brass: 0 }); // bourse du groupe (seul membre) = 10 pistoles
     const purse = () => bourseOf(banc.getState().party.find((h) => h.id === 'al')!);
-    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'blessures', cost: { silver: 5 } }] });
+    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: fixtureText('Médecin'), skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'blessures', cost: { silver: 5 } }] });
     expect(banc.getState().pendingHeal!.healerName).toBe('Médecin');
     expect(purse().silver).toBe(10); // le brouillon ne coûte rien
     banc.getState().jetAnnuler('soins'); // fermé hors combat
@@ -522,7 +523,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const bob = hero({ id: 'bob', skills: [] }); // porte la bourse du groupe
     banc.setState({ mode: 'exploration', battle: null, party: [al, bob], pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, 'bob', { gold: 0, silver: 10, brass: 0 });
-    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'blessures', cost: { silver: 5 } }] });
+    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: fixtureText('Médecin'), skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'blessures', cost: { silver: 5 } }] });
     banc.getState().jetLancer('soins');
     // Le soin se lance MALGRÉ la bourse vide du patient : le groupe a payé.
     expect(banc.getState().pendingHeal!.healerName).toBe('Médecin');

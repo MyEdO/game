@@ -11,6 +11,7 @@
  *  - le seuil DÉCLARÉ à la porte voyage jusqu'à l'étape (`dieStep`), qui naît NON RÉSOLUE : c'est la
  *    fenêtre qui jette le dé, et la rangée peut MONTRER contre quoi il est tombé.
  */
+import { nomDe } from '../engine/nom';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { lireEnSeuil, stepInteraction, stepReady, startCascade } from './cascade';
 import { dieStep, freeCons } from './rollSeam';
@@ -31,33 +32,33 @@ const DEMONIAQUE: SeuilDeSauvegarde = { indice: 8, source: { kind: 'trait', id: 
 
 describe('lireEnSeuil — la 3ᵉ lecture d’un dé d’étape', () => {
   it('SAUVE au-dessus de l’Indice, et À l’Indice (LDB 85 l.278 : « supérieur ou égal »)', () => {
-    expect(lireEnSeuil(PROTECTION, { roll: 8, total: 8 }, 'Kurt').sauve).toBe(true);
-    expect(lireEnSeuil(PROTECTION, { roll: 6, total: 6 }, 'Kurt').sauve).toBe(true);
-    expect(lireEnSeuil(DEMONIAQUE, { roll: 8, total: 8 }, 'Démon').sauve).toBe(true);
+    expect(lireEnSeuil(PROTECTION, { roll: 8, total: 8 }, fixtureText('Kurt')).sauve).toBe(true);
+    expect(lireEnSeuil(PROTECTION, { roll: 6, total: 6 }, fixtureText('Kurt')).sauve).toBe(true);
+    expect(lireEnSeuil(DEMONIAQUE, { roll: 8, total: 8 }, fixtureText('Démon')).sauve).toBe(true);
   });
 
   it('NE SAUVE PAS sous l’Indice', () => {
-    expect(lireEnSeuil(PROTECTION, { roll: 5, total: 5 }, 'Kurt').sauve).toBe(false);
-    expect(lireEnSeuil(DEMONIAQUE, { roll: 7, total: 7 }, 'Démon').sauve).toBe(false);
+    expect(lireEnSeuil(PROTECTION, { roll: 5, total: 5 }, fixtureText('Kurt')).sauve).toBe(false);
+    expect(lireEnSeuil(DEMONIAQUE, { roll: 7, total: 7 }, fixtureText('Démon')).sauve).toBe(false);
   });
 
   it('lit le TOTAL (dé effectif), pas le naturel — même convention que le lookup d’une table', () => {
-    expect(lireEnSeuil(PROTECTION, { roll: 4, total: 6 }, 'Kurt').sauve).toBe(true);
+    expect(lireEnSeuil(PROTECTION, { roll: 4, total: 6 }, fixtureText('Kurt')).sauve).toBe(true);
   });
 
   it('ÉCRIT sa ligne dans les deux cas, à la graphie unique du seuil', () => {
-    const ok = lireEnSeuil(PROTECTION, { roll: 8, total: 8 }, 'Kurt');
+    const ok = lireEnSeuil(PROTECTION, { roll: 8, total: 8 }, fixtureText('Kurt'));
     expect(ok.ligne).toContain('Protection (6+)');
     expect(ok.ligne).toContain('8');
     expect(ok.ligne).toContain('ignore le coup');
-    const ko = lireEnSeuil(PROTECTION, { roll: 5, total: 5 }, 'Kurt');
+    const ko = lireEnSeuil(PROTECTION, { roll: 5, total: 5 }, fixtureText('Kurt'));
     expect(ko.ligne).toContain('Protection (6+)');
     expect(ko.ligne).toContain('n’ignore pas le coup');
   });
 
   it('DIT la provenance quand une zone octroie le Trait (Dôme, LDB 47 l.410)', () => {
-    expect(lireEnSeuil(DOME, { roll: 9, total: 9 }, 'Kurt').ligne).toContain('du Dôme');
-    expect(lireEnSeuil(PROTECTION, { roll: 9, total: 9 }, 'Kurt').ligne).not.toContain('du Dôme');
+    expect(lireEnSeuil(DOME, { roll: 9, total: 9 }, fixtureText('Kurt')).ligne).toContain('du Dôme');
+    expect(lireEnSeuil(PROTECTION, { roll: 9, total: 9 }, fixtureText('Kurt')).ligne).not.toContain('du Dôme');
   });
 });
 
@@ -124,7 +125,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
     // L'applier de sauvegarde du combat vit dans `combatFlow` et RÉ-ENTRE dans le coup suspendu ; ce
     // qu'on mesure ici est le ROUTAGE d'une conséquence de cascade, avec la ligne réelle du socle.
     avecLesTables({ appliers: { seuilSpy: (_g, _s, step, porteur) =>
-      ({ consequences: freeCons([lireEnSeuil(step.de!.seuil!, step.de!.result!, porteur!.label).ligne]) }) } });
+      ({ consequences: freeCons([lireEnSeuil(step.de!.seuil!, step.de!.result!, nomDe(porteur!)).ligne]) }) } });
     banc.setState({
       battle: null, party: [PORTEUR], journal: [], pendingCascade: null, suspendedCascades: [],
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

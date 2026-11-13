@@ -4,6 +4,7 @@
  * un acte refusé se DIT (journal hors combat), au siège qui a agi ; `jetLancer('soins')` pose le jet ou arme
  * l'opération. Une raison par cas, oracle littéral.
  */
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
@@ -33,7 +34,7 @@ function hero(p: Partial<Combatant>): Combatant {
   }) as Combatant;
 }
 
-const BARBIER: MedicNpc = { id: 'barbier', label: 'Barbier', skill: { id: 'guerison', value: 50 }, intBonus: 3, acts: [{ act: 'blessures', cost: { gold: 5 } }] };
+const BARBIER: MedicNpc = { id: 'barbier', label: fixtureText('Barbier'), skill: { id: 'guerison', value: 50 }, intBonus: 3, acts: [{ act: 'blessures', cost: { gold: 5 } }] };
 const chirurgien = () => hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
 const saignant = (p: Partial<Combatant> = {}) => hero({ id: 'p', label: 'Patient', skills: [], conditions: [{ id: 'hemorragique', value: 1 }], ...p });
 

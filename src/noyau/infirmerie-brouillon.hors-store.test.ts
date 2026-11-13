@@ -4,6 +4,7 @@
  * coop (qui choisit, ferme, lance, valide) et d'argent (le tarif d'un PNJ se débite au lancer, jamais au brouillon).
  * LDB 75 ; LDB 12 l.170-174.
  */
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -32,7 +33,7 @@ const mk = (id: string, over: Partial<Combatant> = {}): Combatant => blessuresSu
 } as Combatant) as Combatant;
 const GUERISON = [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] as Combatant['skills'];
 const blesse = (id: string) => mk(id, { wounds: blessuresDeBase(14, 4), conditions: [{ id: 'hemorragique', value: 2 }] });
-const BARBIER: MedicNpc = { id: 'medecin-de-scene', label: 'Barbier', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'blessures', cost: { silver: 2 } }, { act: 'hemorragie', cost: { silver: 3 } }] };
+const BARBIER: MedicNpc = { id: 'medecin-de-scene', label: fixtureText('Barbier'), skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'blessures', cost: { silver: 2 } }, { act: 'hemorragie', cost: { silver: 3 } }] };
 
 /** Le groupe `party` hors combat, en coop : chaque héros au siège que `sieges` lui donne. */
 function poser(party: Combatant[], sieges: Record<string, number>): void {

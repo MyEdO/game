@@ -76,7 +76,7 @@ import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate, pluriel } from '../i18n';
 import { dataLabel, testSkillLabel } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
-import type { PlayerText } from '../i18n/playerText';
+import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -251,7 +251,7 @@ export interface TavernPayload {
    *  PNJ de scène, l.34) — les héros portent le leur sur leur fiche (ops de manche). */
   advantage?: Record<CampDeTaverne, number>;
   /** TORCHON : l'ORDRE de passage des lanceurs (un tour = un lanceur, l.111), figé à l'ouverture. */
-  throwers?: { id: string; label: string; camp: CampDeTaverne; value?: number }[];
+  throwers?: { id: string; label: SansMarqueNonAffichable; camp: CampDeTaverne; value?: number }[];
   /** MISE : les joueurs assis à la table, dans l'ORDRE du tour (Al-zahr l.17). */
   seats?: TavernSeat[];
   /** MISE : joueurs SORTIS de la manche en cours (éliminés ou ayant abandonné) — ils ne roulent plus. */

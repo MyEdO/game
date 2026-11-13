@@ -6,7 +6,7 @@
 import { dataLabel, findGroupById, findPsychologyById, findTraitById, groupLabel, psychologyLabel } from '../../data';
 import type { VarianteDeCible } from '../../data/schemas/grammaire/valeurs';
 import { t } from '../../i18n';
-import type { NonAffichable, PlayerText } from '../../i18n/playerText';
+import type { NonAffichable, PlayerText, SansMarqueNonAffichable } from '../../i18n/playerText';
 
 declare const CIBLE_PSY: unique symbol;
 
@@ -123,7 +123,7 @@ export function identiteDeCiblage(type: string, cible?: CiblePsy): string {
 }
 
 /** Le nom d'un individu par son id, fourni par l'appelant (`nomDIndividu`, `noyau/monde/sceneNpc.ts`). */
-export type NomDIndividu = (id: string) => string | undefined;
+export type NomDIndividu = (id: string) => SansMarqueNonAffichable | undefined;
 
 /** Le libellé joueur d'une Cible : le libellé du Groupe, ou le nom de l'individu, à défaut « une personne de
  *  la scène ». */

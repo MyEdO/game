@@ -18,6 +18,7 @@ import { memoParVersion } from '../data/versionDataset';
 import type { GameOp } from './ops';
 import { STRUCTURE_CRITICALS, structureCriticalsDie, type StructureCritEntry } from '../data/structureCriticals';
 import { t } from '../i18n';
+import type { PlayerText } from '../i18n/playerText';
 
 export interface StructureCriticalResolved {
   entry: StructureCritEntry;
@@ -60,6 +61,6 @@ export function rollStructureCritical(rng: RNG, forcedRoll?: number): StructureC
 /** Ligne de journal de l'Effondrement d'une Structure (AA 10 l.127) → BRÈCHE franchissable. Construite dans la
  *  couche MOTEUR (comme les `log` de `shipCritical`) pour que la narration ne soit pas un littéral FR brut
  *  dans `noyau/combatFlow` (garde-fou i18n). */
-export function structureCollapseLog(name: string): string {
+export function structureCollapseLog(name: PlayerText): string {
   return t('structCrit.collapse', { name });
 }

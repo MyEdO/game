@@ -10,12 +10,13 @@ import { skillBaseValue, testValue } from '../engine/skills';
 import { findMutationById } from '../data';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { fixtureText } from '../i18n/fixtureText';
 import { presetPnjById } from '../state/campaignData';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 const base: PendingBargain = {
   playerId: 'h',
-  playerName: 'H',
+  playerName: fixtureText('H'),
   contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') },
   opposant: { label: 'Armurier', valeur: 45 },
   playerSkill: 50,

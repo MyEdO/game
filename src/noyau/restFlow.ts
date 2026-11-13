@@ -227,7 +227,7 @@ export function sleepParty(
         reKind: r.kind,
       });
     });
-    for (const line of log) entries.push({ actorId: h.id, icon: 'repos/lit', label: t('rf.nuit'), text: line.replace(`${h.label} `, ''), tone: 'neutre' });
+    for (const line of log) entries.push({ actorId: h.id, icon: 'repos/lit', label: t('rf.nuit'), text: line.replace(`${nomDe(h)} `, ''), tone: 'neutre' });
     journal.push(...log);
   }
 

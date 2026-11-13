@@ -28,7 +28,7 @@ import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
 import type { RollLineParts } from './ligneDeJet';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
-import type { PlayerText } from '../i18n/playerText';
+import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail, TestDesigne } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -310,7 +310,7 @@ export type ContrepartieDeMarchandage = { titre: PlayerText } & (
 /** L'opposant d'un Marchandage, résolu à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur
  *  du départage, LDB 12 l.160) et la fiche qui porte son portrait. */
 export interface OpposantDeMarchandage {
-  label: string;
+  label: SansMarqueNonAffichable;
   valeur: number;
   portrait?: Combatant;
 }
@@ -319,7 +319,7 @@ export interface OpposantDeMarchandage {
  *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance. 1 jet verrouillé par contrepartie. */
 export interface PendingBargain {
   playerId: string;
-  playerName: string;
+  playerName: PlayerText;
   contrepartie: ContrepartieDeMarchandage;
   opposant: OpposantDeMarchandage;
   playerSkill: number; // valeur Marchandage du meilleur négociateur du groupe (Soutien FONDU)

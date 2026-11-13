@@ -9,7 +9,7 @@ import type { Combatant, Difficulty, Trauma } from '../engine/types';
 import type { IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
 import { rollLine, type RollLineParts } from './ligneDeJet';
-import { dataLabel, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
+import { type FlowStakeId, type StakeRef, type SkillRef } from '../data';
 import { nomDe } from '../engine/nom';
 import type { PlayerText } from '../i18n/playerText';
 import { cibleMesuree } from '../engine/tests';
@@ -29,7 +29,7 @@ export interface MedicCost { gold?: number; silver?: number; brass?: number }
  *  une RÉFÉRENCE portant sa valeur de Test imprimée (`SkillRef`) — le PNJ n'a pas de fiche. */
 export interface MedicNpc {
   id: string;
-  label: string;
+  label: PlayerText;
   skill: SkillRef;
   intBonus: number;
   acts: { act: HealMode; cost?: MedicCost }[];
@@ -109,7 +109,7 @@ function soigneurDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Soigne
   const m = s.medic;
   const sg = m?.surgery;
   if (sg?.kind === act) return { id: sg.healerId, label: sg.healerName, skill: sg.skill, intBonus: sg.intBonus, support: sg.support };
-  if (m?.npc) return { id: m.npc.id, label: dataLabel(m.npc.label), skill: m.npc.skill.value, intBonus: m.npc.intBonus };
+  if (m?.npc) return { id: m.npc.id, label: m.npc.label, skill: m.npc.skill.value, intBonus: m.npc.intBonus };
   const best = bestHealerFor(s.party, act);
   return best && { id: best.actor.id, actor: best.actor, label: nomDe(best.actor), skill: best.value, intBonus: bonus(effectiveChar(best.actor, 'intelligence')), support: best.support };
 }

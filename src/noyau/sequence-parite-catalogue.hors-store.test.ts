@@ -15,6 +15,7 @@
  * Ce test ne dit RIEN de la 2ᵉ langue : il verrouille la locale FR (la seule montée en v1). Une
  * locale ajoutée ne le fait pas mentir — elle ne passe simplement pas par lui.
  */
+import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect } from 'vitest';
 import { t } from '../i18n';
 import { stepDetail, stepFraction, stepPrecision } from './rollSeam';
@@ -699,7 +700,7 @@ const V8C5: Site[] = [
   {
     site: 'structureCritical.ts:57 — Effondrement → brèche (fonction de PRODUCTION)',
     avant: "La palissade s'effondre — une brèche s'ouvre.",
-    apres: structureCollapseLog('La palissade'),
+    apres: structureCollapseLog(fixtureText('La palissade')),
   },
   {
     site: 'traits/dispatch.ts:136 — squelette d’argument d’un Trait (fonction de PRODUCTION)',
