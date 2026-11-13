@@ -53,7 +53,7 @@ function distanceAfterRound(h: Combatant, partyRole: 'fleeing' | 'pursuing'): nu
       definition: 'pursuit', manche: 1, cumuls: {}, parametres: { score: { fleeing: 'min', pursuers: 'max' } },
       chargeUtile: {
         partyRole, distance: 5, escapeAt: 10, skill: 'athletisme', policy: { ...PURSUIT_POLICY_DEFAUT },
-        foes: [{ id: 'foe-1', label: 'Bandit', movement: 4, skill: 40 }], manche: 1, phase: 'course', retires: [],
+        foes: [{ id: 'foe-1', label: fixtureText('Bandit'), movement: 4, skill: 40 }], manche: 1, phase: 'course', retires: [],
       },
     },
   });
