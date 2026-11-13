@@ -864,7 +864,7 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/noyau/intentionsDeSiege.ts  Allowlist coop : la classe de chaque action du noyau (invité, hôte,
-                            local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusDuVerbeDHote`
+                            local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusChezLInvite`
                             que `Partie.envoyer` lit chez l'invité, et `appliquerLIntentionDUnSiege`, seul point
                             d'entrée d'une intention chez l'hôte.
 src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte).

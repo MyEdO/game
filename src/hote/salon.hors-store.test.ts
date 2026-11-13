@@ -115,6 +115,10 @@ describe('lireUnGesteDuSalon — un geste que les zones d’avant offrent (S-D3)
           expect(lireUnGesteDuSalon(z, { type: 'heberger', args: ['Gunnar'] }), cas).toEqual({ sorte: 'heberger', nom: 'Gunnar' });
           sortes.add('heberger');
         }
+        if (g.type === 'formulaire' && g.verbe === 'rejoindre' && g.refus === null) {
+          expect(lireUnGesteDuSalon(z, { type: 'rejoindre', args: ['ABC234', 'Anna'] }), cas).toEqual({ sorte: 'rejoindre', code: 'ABC234', nom: 'Anna' });
+          sortes.add('rejoindre');
+        }
         if (g.type === 'bouton') {
           expect(lireUnGesteDuSalon(z, JSON.parse(JSON.stringify(g.jeu))), cas).toEqual({ sorte: 'quitter' });
           sortes.add('quitter');
@@ -127,7 +131,7 @@ describe('lireUnGesteDuSalon — un geste que les zones d’avant offrent (S-D3)
         sortes.add('siege');
       }
     }
-    expect([...sortes].sort()).toEqual(['heberger', 'quitter', 'siege']);
+    expect([...sortes].sort()).toEqual(['heberger', 'quitter', 'rejoindre', 'siege']);
   });
 
   it('L2 : validation, pour un geste non offert', () => {
@@ -147,10 +151,13 @@ describe('lireUnGesteDuSalon — un geste que les zones d’avant offrent (S-D3)
     for (const entree of [null, 'heberger', ['heberger', 'Gunnar'], 3]) expect(refus(zLocale, entree)?.[0], JSON.stringify(entree)).toBe('validation');
   });
 
-  it('L2 : validation, pour `rejoindre` même offert (S-D6)', () => {
+  it('L2 : `rejoindre` refusé en validation hors des zones qui l’offrent ou sur ses arguments, en règle avec le texte du formulaire', () => {
     const z = zonesDuSalon(null, null, true);
-    expect(refusDesFormulaires(z).rejoindre).toBeNull();
-    expect(refus(z, { type: 'rejoindre', args: ['ABC234', 'Anna'] })?.[0]).toBe('validation');
+    for (const args of [['ABC234'], ['ABC234', 3], 'ABC234']) expect(refus(z, { type: 'rejoindre', args })?.[0], JSON.stringify(args)).toBe('validation');
+    expect(refus(zHote, { type: 'rejoindre', args: ['ABC234', 'Anna'] })?.[0], 'en session').toBe('validation');
+    expect(refus(zonesDuSalon(null, { enCours: 'rejoindre' }, true), { type: 'rejoindre', args: ['ABC234', 'Anna'] })?.[0], 'pendant une jonction').toBe('validation');
+    expect(refus(zLocale, { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toEqual(['regle', `salon : ${t('ecran.salon.refus.partieOuverte')}`]);
+    expect(refus(zonesDuSalon(null, null, false), { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toEqual(['regle', `salon : ${t('ecran.salon.refus.sansReseau')}`]);
   });
 
   it('L3 : règle, avec le texte du formulaire, pour `heberger` offert mais refusé', () => {

@@ -176,6 +176,38 @@ describe('creerPartie — l’intention sans siège joue l’action de l’état
     }
   });
 
+  it('M3 (e) : chez un invité, une intention qui porte un siège se refuse sans rien jouer, émettre ni envoyer, hors combat et en combat', () => {
+    const attable = creerPartie(chezLInvite(etatAttable()), ENTREES);
+    try {
+      const envoi = vi.fn();
+      attable.etat().transmettreLesIntentions(envoi);
+      const avant = horsJournal(attable);
+      const appel = attable.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id], siege: 1 });
+      expect(appel.issue).toBe('appliquee');
+      expect(appel.journal).toEqual([expect.objectContaining({ de: 'journal', texte: t('coop.siegeHoteSeul') })]);
+      expect(horsJournal(attable), 'l’intention du siège s’est jouée dans la copie de l’invité').toBe(avant);
+      expect(envoi, 'l’intention du siège est partie à l’hôte').not.toHaveBeenCalled();
+    } finally {
+      attable.fermer();
+    }
+    const { H, partie: ouverte } = duel();
+    const garde = ouverte.etat();
+    ouverte.fermer();
+    const partie = creerPartie(chezLInvite({ ...garde, net: { ...garde.net, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } }), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      const avant = horsJournal(partie);
+      const appel = partie.envoyer({ type: 'jetLancer', args: ['attaque'], siege: 1 });
+      expect(appel.evenements, 'le refus a émis').toEqual([]);
+      expect(partie.etat().refus?.texte).toBe(t('coop.siegeHoteSeul'));
+      expect(JSON.stringify({ ...partie.etat(), refus: undefined, journal: undefined, lignesAuJournal: undefined }), 'l’intention du siège s’est jouée').toBe(JSON.stringify({ ...JSON.parse(avant), refus: undefined }));
+      expect(envoi).not.toHaveBeenCalled();
+    } finally {
+      partie.fermer();
+    }
+  });
+
   it('en partie locale et chez l’hôte d’une session, un verbe `hôte` se joue : la porte fermée s’ouvre', () => {
     const scene = emptyScene('scene-test', 4, 4);
     scene.effectZones = [{ id: 'piece', label: 'Pièce', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 1, h: 1 } }];

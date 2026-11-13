@@ -79,9 +79,9 @@ export function zonesDuSalon(etat: Pick<Partie, 'net' | 'party'> | null, ouvertu
   };
 }
 
-/** Un geste de salon lu : héberger sous le nom `nom`, quitter le salon, ou l'intention de siège d'une valeur de
- *  `salon.sieges`, telle que la valeur la porte. */
-export type GesteDuSalon = { sorte: 'heberger'; nom: string } | { sorte: 'quitter' } | { sorte: 'siege'; intention: Appel };
+/** Un geste de salon lu : héberger sous le nom `nom`, rejoindre la room `code` sous le nom `nom`, quitter le salon, ou
+ *  l'intention de siège d'une valeur de `salon.sieges`, telle que la valeur la porte. */
+export type GesteDuSalon = { sorte: 'heberger'; nom: string } | { sorte: 'rejoindre'; code: string; nom: string } | { sorte: 'quitter' } | { sorte: 'siege'; intention: Appel };
 
 /** `a` et `b` sont-elles la même valeur JSON ? */
 const memeValeur = (a: unknown, b: unknown): boolean => {
@@ -102,11 +102,10 @@ export function lireUnGesteDuSalon(zones: ZonesDuSalon, entree: unknown): GesteD
   if (!estObjet(entree)) return refuser('validation', 'un geste est un objet JSON');
   const formulaire = zones['salon.gestes'].find((g): g is Formulaire => g.type === 'formulaire' && g.verbe === entree.type);
   if (formulaire) {
-    if (formulaire.verbe !== 'heberger') return refuser('validation', `geste non lu : ${formulaire.verbe}`);
     const { args } = entree;
     if (!Array.isArray(args) || args.length !== formulaire.champs.length || !args.every((a): a is string => typeof a === 'string')) return refuser('validation', `args, une chaîne par champ de ${formulaire.verbe}`);
     if (formulaire.refus !== null) return refuser('regle', formulaire.refus);
-    return { sorte: 'heberger', nom: args[0] };
+    return formulaire.verbe === 'rejoindre' ? { sorte: 'rejoindre', code: args[0], nom: args[1] } : { sorte: 'heberger', nom: args[0] };
   }
   const boutons = [...zones['salon.gestes'], ...zones['salon.sieges'].flatMap((c) => c.valeurs)].filter((g): g is Bouton => g.type === 'bouton');
   const jeu: Jeu | undefined = boutons.find((b) => memeValeur(b.jeu, entree))?.jeu;

@@ -1,0 +1,278 @@
+/**
+ * LE PONT REJOINT UN SALON (#3009, lot E3sb) : la jonction (`salon { type: 'rejoindre' }`), la partie miroir nourrie
+ * par les instantanés de l'hôte, et la clôture unique de toute fin d'un miroir, dite une fois par `nouvelles`
+ * (`quittee`). Un pont hôte joue d'abord une campagne lancée et garde ses trames, puis se quitte : une partie par
+ * contexte. Le pair joué par `FakeSocket`, les minuteurs factices.
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { erreurDe, suiteDe, table, type Reponse } from './pont.testkit';
+import type { ReseauDuPont } from './pont';
+import { FakeSocket, compressionFactice, minuterieDuTest, roomOuverte, stockageEnMap, instantanesAuSiege1 } from '../../../src/hote/coop/relay.testkit';
+import { PROTOCOL_VERSION, serializeMessage } from '../../../src/hote/coop/protocol';
+import { buildDeLaCoop, etatInitialDuJeu, OPTIONAL_RULES, pointDeRepriseAGarder, poserLesReglesMaisonPersistees, ruleOverrides, type LigneDuJournal } from '../../../src/noyau/index';
+import { appliquerLInstantane } from '../../../src/noyau/coop';
+import { AUTO_SLOT, cleDEmplacement } from '../../../src/hote/sauvegardes';
+import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
+import type { ZonesDuSalon } from '../../../src/hote/salon';
+import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
+import { t } from '../../../src/i18n';
+
+type Appel = ReturnType<typeof table>['appel'];
+
+const reseau = (sur: Partial<ReseauDuPont> = {}): ReseauDuPont => ({
+  relais: () => 'http://localhost:8787',
+  fetch: roomOuverte,
+  socket: (url) => new FakeSocket(url),
+  minuterie: minuterieDuTest,
+  compression: compressionFactice,
+  stockage: stockageEnMap().stockage,
+  ...sur,
+});
+
+const PLAFOND = OPTIONAL_RULES.find((r) => r.id === 'combat-plafond-avantage')!;
+const RIEN = { ok: true, rien: true };
+const OCTETS_DU_JOUEUR = '{"emplacement":"du joueur"}';
+
+/** Le pont du test dont une partie est ouverte ou se rejoint, que `afterEach` ramène sans partie. */
+let courant: Appel | null = null;
+beforeEach(() => {
+  vi.useFakeTimers();
+  FakeSocket.instances = [];
+});
+afterEach(() => {
+  if (courant) courant('quitter');
+  if (courant) courant('salon', { salon: 'quitter' });
+  courant = null;
+  poserLesReglesMaisonPersistees({});
+  vi.useRealTimers();
+});
+
+const zonesDe = (appel: Appel): ZonesDuSalon => (appel('salon') as unknown as { zones: ZonesDuSalon }).zones;
+const gestes = (z: ZonesDuSalon) => z['salon.gestes'].map((g) => g.id);
+const textesDuJournal = (journal: LigneDuJournal[]) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+/** Les lignes de la `quittee` de `r`, hors la date d'un jour (`lignesDuJournal`). */
+const quitteeDe = (r: Reponse): string[] => {
+  const q = (r as unknown as { quittee?: { lignes: Ligne[] } }).quittee;
+  if (!q) throw new Error(`aucune quittee : ${JSON.stringify(r).slice(0, 200)}`);
+  return q.lignes.filter((l) => !l.id.startsWith('journal/jour/')).map((l) => l.texte);
+};
+const bouton = (entites: Entite[], id: string, prefixe: string): Bouton =>
+  entites.find((e) => e.id === id)!.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith(`${prefixe}/`))!;
+const message = (m: Parameters<typeof serializeMessage>[0]) => JSON.stringify({ data: serializeMessage(m) });
+const HELLO = message({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Hôte' });
+
+/** Les trames d'un hôte qui a lancé `la-diligence` (règle maison PLAFOND à 12), Anna assise au siège 1 : chaque
+ *  instantané envoyé au siège 1, et la scène et la case du groupe de sa vue à ce moment. L'hôte quitté ensuite. */
+async function tramesDeLHote() {
+  const { appel } = table(stockageEnMemoire(), reseau());
+  appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] });
+  let s = suiteDe(appel('ouvrir', { graine: 7 }));
+  s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/harbull-piedvelu', 'recruter').jeu));
+  s = suiteDe(appel('jouer', bouton(s.vue.zones['groupe.pretires'], 'pretire/werner-murrmann', 'recruter').jeu));
+  suiteDe(appel('lancer', bouton(s.vue.zones['groupe.campagnes'], 'campagne/la-diligence', 'lancer').jeu));
+  appel('salon', { type: 'heberger', args: ['Hôte'] });
+  await vi.advanceTimersByTimeAsync(0);
+  const ws = FakeSocket.last!;
+  ws.open();
+  ws.receive(JSON.stringify({ evt: 'join', seat: 1, name: 'Anna' }));
+  ws.receive(JSON.stringify({ from: 1, data: serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Anna' }) }));
+  await vi.advanceTimersByTimeAsync(200);
+  const vueDeLHote = () => {
+    const { projection } = (appel('vue') as unknown as { vue: { projection: { scene: { id: string } | null; exploration: { groupe: unknown } | null } } }).vue;
+    return [projection.scene?.id, projection.exploration?.groupe];
+  };
+  const vues = [vueDeLHote()];
+  const instantanes = instantanesAuSiege1(ws);
+  expect(instantanes.length, 'aucun instantané au siège 1').toBeGreaterThan(0);
+  expect(appel('quitter')).toEqual({ ok: true });
+  FakeSocket.instances = [];
+  poserLesReglesMaisonPersistees({});
+  return { instantanes, vues, dernier: JSON.parse(instantanes[instantanes.length - 1]).data as Record<string, unknown> };
+}
+
+/** Un pont invité sur un stockage où le joueur a écrit son emplacement automatique et PLAFOND à 8. */
+function invite(r: ReseauDuPont = reseau()) {
+  const stockage = stockageEnMemoire();
+  stockage.setItem(cleDEmplacement(AUTO_SLOT), OCTETS_DU_JOUEUR);
+  const { appel } = table(stockage, r);
+  appel('reglages', { type: 'regle', args: [PLAFOND.id, 8] });
+  courant = appel;
+  return { appel, stockage };
+}
+
+/** `appel` rejoint `ABC234` et s'assoit au siège 1, le hello de l'hôte reçu ; la socket de l'invité. */
+async function assis(appel: Appel) {
+  expect(appel('salon', { type: 'rejoindre', args: ['ABC234', 'Anna'] })).toMatchObject({ ok: true });
+  const ws = FakeSocket.last!;
+  ws.open();
+  ws.receive(JSON.stringify({ evt: 'seated', seat: 1, token: 'TOK' }));
+  await vi.advanceTimersByTimeAsync(0);
+  ws.receive(HELLO);
+  await vi.advanceTimersByTimeAsync(0);
+  return ws;
+}
+
+/** La socket `ws` reçoit l'instantané `texte`. */
+async function recevoir(ws: FakeSocket, texte: string) {
+  ws.receive(JSON.stringify({ data: texte }));
+  await vi.advanceTimersByTimeAsync(0);
+}
+
+describe('le pont rejoint un salon', () => {
+  it('M1, M2 — assis, la vue suit celle de l’hôte ; le journal de l’hôte arrive une fois', async () => {
+    const { instantanes, vues } = await tramesDeLHote();
+    const { appel } = invite();
+    const ws = await assis(appel);
+    suiteDe(appel('nouvelles'));
+    await recevoir(ws, instantanes[instantanes.length - 1]);
+    const s = suiteDe(appel('nouvelles'));
+    expect([s.vue.projection.scene?.id, s.vue.projection.exploration?.groupe], 'la vue de l’invité n’est pas celle de l’hôte').toEqual(vues[0]);
+    expect(ruleOverrides()[PLAFOND.id], 'témoin : les règles de l’hôte reçues').toBe(12);
+    await recevoir(ws, instantanes[instantanes.length - 1]);
+    expect(textesDuJournal(suiteDe(appel('nouvelles')).journal), 'le même instantané redit le journal').toEqual([]);
+  });
+
+  it('M3 (d, e) — un invité : `lancer` en règle, un geste qui porte `siege` ne part pas', async () => {
+    const { instantanes } = await tramesDeLHote();
+    const { appel } = invite();
+    const ws = await assis(appel);
+    await recevoir(ws, instantanes[instantanes.length - 1]);
+    suiteDe(appel('nouvelles'));
+    const envoyes = ws.sent.length;
+    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' })).categorie, 'une partie en cours ne se relance pas').toBe('validation');
+    const refus = suiteDe(appel('jouer', { type: 'renvoyerLeHeros', args: ['pretire-harbull-piedvelu'], siege: 1 }));
+    expect(textesDuJournal(refus.journal)).toEqual([t('coop.siegeHoteSeul')]);
+    expect(refus.vue.zones['groupe.heros'].map((h) => h.id), 'l’intention du siège s’est jouée chez l’invité').toContain('heros/pretire-harbull-piedvelu');
+    expect(ws.sent.length, 'l’intention du siège est partie').toBe(envoyes);
+  });
+
+  it('M4 — la room fermée par l’hôte : « aucune partie », `quittee` une fois avec la raison, emplacement et règles intacts', async () => {
+    const { instantanes, dernier } = await tramesDeLHote();
+    expect(pointDeRepriseAGarder(appliquerLInstantane(dernier, etatInitialDuJeu()).etat, 0), 'témoin : le miroir au siège 0 serait à garder').toBe(true);
+    const { appel, stockage } = invite();
+    const ws = await assis(appel);
+    await recevoir(ws, instantanes[instantanes.length - 1]);
+    suiteDe(appel('nouvelles'));
+    expect(ruleOverrides()[PLAFOND.id]).toBe(12);
+    ws.dropFromServer(4404, 'room fermée');
+    expect(erreurDe(appel('vue')).message).toMatch(/^aucune partie/);
+    expect(quitteeDe(appel('nouvelles'))).toEqual([t('coop.reason', { reason: 'room fermée' })]);
+    expect(appel('nouvelles')).toEqual(RIEN);
+    expect(ruleOverrides()[PLAFOND.id], 'les règles de l’hôte restent').toBe(8);
+    expect(stockage.getItem(cleDEmplacement(AUTO_SLOT)), 'l’emplacement automatique du joueur écrasé').toBe(OCTETS_DU_JOUEUR);
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
+  });
+
+  it('M4 — `quitter` puis `{ salon: \'quitter\' }` : emplacement et règles intacts, `quitter` sans `quittee`', async () => {
+    const { instantanes } = await tramesDeLHote();
+    const { appel, stockage } = invite();
+    for (const fin of [['quitter'], ['salon', { salon: 'quitter' }]] as [string, unknown?][]) {
+      const ws = await assis(appel);
+      await recevoir(ws, instantanes[instantanes.length - 1]);
+      suiteDe(appel('nouvelles'));
+      expect(appel(...fin), fin[0]).toMatchObject({ ok: true });
+      expect(ws.closedWith, fin[0]).not.toBeNull();
+      expect(ruleOverrides()[PLAFOND.id], fin[0]).toBe(8);
+      expect(stockage.getItem(cleDEmplacement(AUTO_SLOT)), fin[0]).toBe(OCTETS_DU_JOUEUR);
+      if (fin[0] === 'quitter') expect(appel('nouvelles'), '`quitter` laisse une `quittee`').toEqual(RIEN);
+      else expect(quitteeDe(appel('nouvelles'))).toEqual([]);
+      expect(vi.getTimerCount(), fin[0]).toBe(0);
+    }
+  });
+
+  it('M4 — une clôture venue du réseau vue par un `salon`, puis une jonction ratée : `quittee` porte les deux', async () => {
+    const { appel } = invite();
+    const ws = await assis(appel);
+    ws.dropFromServer(4404, 'room fermée');
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
+    appel('salon', { type: 'rejoindre', args: ['abc-23', 'Anna'] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(quitteeDe(appel('nouvelles'))).toEqual([t('coop.reason', { reason: 'room fermée' }), t('coop.badCode')]);
+    expect(appel('nouvelles')).toEqual(RIEN);
+  });
+});
+
+describe('M5 — la jonction', () => {
+  it('entre `rejoindre` et l’assise : sans partie, les ouvertures refusées, `salon` et `nouvelles` répondent ; quitter l’abandonne', async () => {
+    const { appel } = invite();
+    const z = (appel('salon', { type: 'rejoindre', args: ['ABC234', 'Anna'] }) as unknown as { zones: ZonesDuSalon }).zones;
+    expect(gestes(z)).toEqual(['quitter']);
+    for (const m of ['jouer', 'lancer', 'roster', 'creation', 'vue']) expect(erreurDe(appel(m, m === 'jouer' ? { type: 'terminerLeTour' } : m === 'lancer' ? { lancer: 'arene' } : undefined)).message, m).toMatch(/aucune partie/);
+    for (const [m, e] of [['ouvrir', {}], ['charger', { charger: AUTO_SLOT }], ['demarrer', { scenario: 'voyage' }]] as const) expect(erreurDe(appel(m, e)).message, m).toBe(`${m} : un salon se rejoint ; quitter le salon d’abord`);
+    expect(appel('nouvelles')).toEqual(RIEN);
+    expect(gestes(zonesDe(appel))).toEqual(['quitter']);
+    expect(gestes((appel('salon', { salon: 'quitter' }) as unknown as { zones: ZonesDuSalon }).zones)).toEqual(['heberger', 'rejoindre']);
+    expect(quitteeDe(appel('nouvelles'))).toEqual([]);
+    expect(appel('nouvelles')).toEqual(RIEN);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(FakeSocket.instances.every((s) => s.closedWith !== null), 'une socket reste ouverte').toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(appel('ouvrir', { graine: 1 }), 'une partie s’ouvre après la jonction abandonnée').toMatchObject({ ok: true });
+  });
+
+  it('le code refusé par le relay, le délai écoulé, le code mal formé : `quittee` avec son texte, les formulaires de nouveau', async () => {
+    const { appel } = invite();
+    for (const [code, finir, texte] of [
+      ['ABC234', async () => { FakeSocket.last!.dropFromServer(4404, 'room inconnue'); }, 'room inconnue'],
+      ['ABC234', () => vi.advanceTimersByTimeAsync(15_000), t('coop.joinFailed')],
+      ['abc-23', async () => {}, t('coop.badCode')],
+    ] as const) {
+      appel('salon', { type: 'rejoindre', args: [code, 'Anna'] });
+      await finir();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(quitteeDe(appel('nouvelles')), code).toEqual([texte]);
+      const z = zonesDe(appel);
+      expect([gestes(z), z['salon.etat']], texte).toEqual([['heberger', 'rejoindre'], []]);
+      expect(vi.getTimerCount(), texte).toBe(0);
+    }
+  });
+});
+
+describe('M6, M7, M8 — chez un invité', () => {
+  it('M6 (a) — le stockage du jeton lève à l’assise : la levée dite, `coop.joinFailed` au délai, aucune minuterie', async () => {
+    const { appel } = invite(reseau({ stockage: () => ({ getItem: () => null, setItem: () => { throw new Error('stockage plein'); } }) }));
+    appel('salon', { type: 'rejoindre', args: ['ABC234', 'Anna'] });
+    const ws = FakeSocket.last!;
+    ws.open();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 1, token: 'TOK' }));
+    expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [{ message: 'stockage plein', source: 'reseau' }] });
+    expect(gestes(zonesDe(appel))).toEqual(['quitter']);
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(quitteeDe(appel('nouvelles'))).toEqual([t('coop.joinFailed')]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('M6 (b) — un instantané que `recevoir` ne sait pas appliquer : la levée dite, le suivant appliqué', async () => {
+    const { instantanes } = await tramesDeLHote();
+    const { appel } = invite();
+    const ws = await assis(appel);
+    suiteDe(appel('nouvelles'));
+    await recevoir(ws, serializeMessage({ kind: 'snapshot', data: { campaignDoc: { scenes: 3 } } }));
+    expect((appel('erreursGlobales') as unknown as { erreurs: { source: string }[] }).erreurs.map((e) => e.source)).toEqual(['reseau']);
+    await recevoir(ws, instantanes[instantanes.length - 1]);
+    expect(suiteDe(appel('nouvelles')).vue.projection.scene, 'l’instantané suivant n’est pas appliqué').not.toBeNull();
+  });
+
+  it('M7 — un second `rejoindre` ouvre un miroir neuf : son premier instantané ne dit aucune ligne', async () => {
+    const { instantanes } = await tramesDeLHote();
+    const { appel } = invite();
+    let ws = await assis(appel);
+    await recevoir(ws, instantanes[0]);
+    suiteDe(appel('nouvelles'));
+    appel('salon', { salon: 'quitter' });
+    quitteeDe(appel('nouvelles'));
+    ws = await assis(appel);
+    await recevoir(ws, instantanes[instantanes.length - 1]);
+    expect(suiteDe(appel('nouvelles')).journal).toEqual([]);
+  });
+
+  it('M8 — l’hôte absent, hors appel : `nouvelles` rend une `Suite`, `salon.etat` montre le lien', async () => {
+    const { appel } = invite();
+    const ws = await assis(appel);
+    suiteDe(appel('nouvelles'));
+    expect(appel('nouvelles')).toEqual(RIEN);
+    ws.receive(JSON.stringify({ evt: 'host-down' }));
+    suiteDe(appel('nouvelles'));
+    expect(zonesDe(appel)['salon.etat'].map((l) => l.texte)).toContain(t('coop.invite.attente.hoteAbsent'));
+  });
+});
