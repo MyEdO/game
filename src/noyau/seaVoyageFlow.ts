@@ -2827,7 +2827,7 @@ export const TABLES = {
     'reparation-temporaire-degats': (get, set, step) => {
       if (!step.de?.result) return;
       const hull = coqueParId(get(), String(step.meta?.hullId));
-      if (!hull) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!hull) return { consequences: freeCons([t('cascade.cibleDisparue', { label: t('sv.reparationTemporaireDegats') })]) };
       const n = Math.max(0, step.de.result.total);
       const line = [t('sv.reparationTemporaireCoque', { n }), ...(n > 0 ? damageVesselHull(get, set, hull, n) : [])];
       set(touchActors(get()));
