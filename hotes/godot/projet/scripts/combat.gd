@@ -18,10 +18,11 @@
 ## `null`, le champ ne se clique pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant
 ## d'une case lu dans `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
-## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
-## et la partie se joue sans corps. Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque
-## cadrage du monde, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
-## recette lit ; hors recette, rien. La bulle de l'aperçu
+## (`MontageDeComposition.indexer_les_modeles`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne
+## (un listage illisible aussi à la console), et la partie ne s'ouvre pas : aucun corps ne se monte sans eux. Chaque
+## vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque cadrage du monde, il publie ce que
+## l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la recette lit ; hors recette, rien. La bulle
+## de l'aperçu
 ## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
 ## l'interface lui laisse.
 extends Node
@@ -102,7 +103,8 @@ func _ready() -> void:
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	_pont.exposer("wfrpCadrer", _cadrer)
-	await _indexer_les_modeles()
+	if not await _indexer_les_modeles():
+		return
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
@@ -144,12 +146,14 @@ func _choisir_un_scenario() -> String:
 	return str(jeu.scenario)
 
 
-## Le listage du serveur et l'index du pont, retenu pour les corps du plateau (`MontageDeComposition.indexer_les_modeles`) ;
-## ses erreurs, les refus de l'index et celui du pont vont à l'avis de panne.
-func _indexer_les_modeles() -> void:
-	var recueil: Array[String] = await MontageDeComposition.indexer_les_modeles(self)
+## Le listage du serveur et l'index du pont, retenu pour les corps du plateau (`MontageDeComposition.indexer_les_modeles`),
+## `true` s'il l'est ; ses erreurs, les refus de l'index et celui du pont vont à l'avis de panne.
+func _indexer_les_modeles() -> bool:
+	var recueil: Array[String] = []
+	var retenus := await MontageDeComposition.indexer_les_modeles(self, recueil)
 	if not recueil.is_empty():
 		_panne.text = "\n".join(PackedStringArray(recueil))
+	return retenus
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,

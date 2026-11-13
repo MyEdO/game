@@ -128,36 +128,41 @@ static func retenir_les_modeles(reponse: Dictionary, listage: Dictionary) -> voi
 
 
 ## Le listage des modèles (`GET modeles/listage.json`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par le pont que `hote`
-## rejoint (`PontDuNoyau.requeter`) ; ses erreurs à `recueil`, vide s'il ne se lit pas.
+## rejoint (`PontDuNoyau.requeter`) ; ses erreurs à `recueil`, vide s'il ne se lit pas, panne dite aussi à la console.
 static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
 	var octets := await (hote.get_node("/root/Pont") as PontDuNoyau).requeter("modeles/listage.json", recueil)
 	var listage: Variant = JSON.parse_string(octets.get_string_from_utf8()) if not octets.is_empty() else null
 	if not listage is Dictionary:
 		recueil.append("listage-illisible : modeles/listage.json")
+		push_error("[modeles] %s" % " ; ".join(PackedStringArray(recueil)))
 		return {}
 	for erreur in listage.get("erreurs", []):
 		recueil.append(str(erreur))
 	return listage
 
 
-## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne.
+## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne, dont celle
+## d'un listage qui ne s'est pas lu (vide), jamais indexé.
 static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
+	if listage.is_empty():
+		return {}
 	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
 
 
 ## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :
-## les erreurs du listage, les refus de l'index et celui du pont, que l'hôte dit en panne.
-static func indexer_les_modeles(hote: Node) -> Array[String]:
-	var recueil: Array[String] = []
+## `true` une fois retenu ; les erreurs du listage, les refus de l'index et celui du pont à `recueil`, que l'hôte dit en
+## panne. Non retenu, aucun corps ne se monte : l'hôte n'entre pas en partie.
+static func indexer_les_modeles(hote: Node, recueil: Array[String]) -> bool:
 	var listage := await lister(hote, recueil)
 	var reponse := indexer(hote.get_node("/root/Pont") as PontDuNoyau, listage)
 	if reponse.get("ok") == true:
 		retenir_les_modeles(reponse, listage)
 		for refus in reponse.refus:
 			recueil.append(str(refus))
-	elif reponse.get("ok") == false:
+		return true
+	if reponse.get("ok") == false:
 		recueil.append(str(reponse.erreur.message))
-	return recueil
+	return false
 
 
 ## Le premier `Skeleton3D` sous `noeud`, `null` s'il n'en porte aucun.

@@ -1,8 +1,8 @@
 // LE SERVEUR DE L'EXPORT WEB DE L'HÔTE GODOT (#2928, #3086, `pont/CONTRAT.md`, section « Atelier 3D ») : l'export servi
 // en statique sur un port libre de la boucle locale (sans export, rien d'autre que les modèles et le dépôt : le pont
 // vivant, `vivant.mjs`), et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
-// rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
-// et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store` ; tout autre chemin est un fichier de
+// rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), calculés au lancement
+// puis à nouveau quand un fichier du dossier change (`listageDuDossier`), et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store` ; tout autre chemin est un fichier de
 // l'export, ses planches comprises (`planches/`, `planches.mjs`, #3935). Avec `--statique`, l'export seul, tel que le site le publie : ses
 // modèles déposés en scènes fabriquées et ses planches (`construire.mjs --export`, #3946). Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
@@ -11,7 +11,7 @@
 // serveur continue.
 //
 //   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier> | --statique] [--depot]
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -102,6 +102,30 @@ function servirLeDepot(req, res, depot, id) {
   }
 }
 
+/** L'empreinte du dossier `dossier` : le nom, la taille et la date de chacun de ses fichiers ; le code de l'erreur s'il ne
+ *  se lit pas. */
+function empreinteDu(dossier) {
+  try {
+    return readdirSync(dossier).map((f) => { const s = statSync(join(dossier, f)); return `${f}:${s.size}:${s.mtimeMs}` }).join('\n')
+  } catch (e) {
+    return String(e.code ?? e.message)
+  }
+}
+
+/** Le texte du listage du dossier vivant `dossier` (`listage`), calculé tout de suite, puis à la lecture qui trouve
+ *  changée l'empreinte du dossier (`empreinteDu`) : sa validation lit chaque GLB, plusieurs secondes pendant lesquelles
+ *  le serveur, sur un seul fil, ne répond à rien, et une page qui attend plus que le silence du pont (`SILENCE_S`,
+ *  `projet/scripts/pont.gd`) n'a plus de modèles. */
+function listageDuDossier(dossier) {
+  let empreinte = empreinteDu(dossier)
+  let texte = JSON.stringify(listage(dossier))
+  return () => {
+    const lue = empreinteDu(dossier)
+    if (lue !== empreinte) [empreinte, texte] = [lue, JSON.stringify(listage(dossier))]
+    return texte
+  }
+}
+
 /** Sert le dossier `modeles` sous `/modeles/`, sur un port libre de 127.0.0.1 ; avec `web`, l'export en statique,
  *  ses `planches/` comprises, sans lui 404 hors de `/modeles/`, `/depot/` et `/source/` ; avec `statique`, `web`
  *  seul, ses `modeles/` déposés compris ; avec `depot`, la racine
@@ -110,10 +134,11 @@ function servirLeDepot(req, res, depot, id) {
 export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false }) {
   const racine = web && resolve(web)
   const dossier = resolve(modeles)
+  const lireLeListage = !statique && listageDuDossier(dossier)
   return ecouter((req, res, rel) => {
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
     if (depot && rel.startsWith('source/')) return void (servirLaSource(`/${rel}`, res) || res.writeHead(404).end())
-    if (!statique && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
+    if (lireLeListage && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(lireLeListage())
     const sansCache = { 'Cache-Control': 'no-store' }
     const [base, chemin, entetes] = statique ? [racine, rel || 'index.html', {}]
       : rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
