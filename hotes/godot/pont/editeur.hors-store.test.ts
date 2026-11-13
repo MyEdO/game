@@ -1945,3 +1945,102 @@ describe('le retrait d’un champ que son objet exige, par le pont (#3606)', () 
       .toEqual([FLUX, findCreatureById('l-ombre-du-fleuve')!.label, { skill: { id: 'athletisme' }, difficulty: 'intermediaire' }]);
   });
 });
+
+describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  type Servi = { id: string; scenes: { triggers?: unknown[] }[]; narratif: { affaires: unknown[]; indices: unknown[] } };
+  const servi = lireProjetLivre(manuscrit) as Servi;
+  /** Le projet servi, son narratif enrichi d'une affaire et d'un indice à deux stades, que révèle un déclencheur de sa
+   *  première scène. */
+  const SERVI: Servi = {
+    ...servi,
+    scenes: servi.scenes.map((sc, i) => (i ? sc : {
+      ...sc,
+      triggers: [...(sc.triggers ?? []), { id: 't-pont', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind-pont', stade: 'lu' } }] } }],
+    })),
+    narratif: {
+      ...servi.narratif,
+      affaires: [...servi.narratif.affaires, { id: 'aff-pont', titre: 'L’affaire du pont' }],
+      indices: [...servi.narratif.indices, { id: 'ind-pont', affaireId: 'aff-pont', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lu', prose: 'a' }, { id: 'vu', prose: 'b' }] }],
+    },
+  };
+  /** Une table ouverte sur ce projet, le narratif ouvert. */
+  function surLeNarratif() {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: SERVI.id, projet: JSON.stringify(SERVI) }));
+    return { appel, presser, ouverte, narratif: presser(boutonDe(ouverte, 'document/narratif')) };
+  }
+  const inspecte = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+  const liste = (e: Edition, sorte: string) => ((e.vue.zones['editeur.logique'].find((el) => el.id === `logique/${sorte}/liste`) as Choix | undefined)?.valeurs ?? []).map((b) => b.libelle);
+  /** Le déclencheur `t-pont` du projet que rend l'enregistrement de l'édition `e`. */
+  function revele(presser: (b: Bouton) => Edition, e: Edition): unknown {
+    const depot = presser(boutonDe(e, 'enregistrer')).depot!;
+    const projet = JSON.parse(depot.texte) as { scenes: { triggers: { id: string; flow: { etapes: { effet: unknown }[] } }[] }[] };
+    return projet.scenes[0].triggers.find((tr) => tr.id === 't-pont')!.flow.etapes[0].effet;
+  }
+
+  it('le menu Fichier ouvre le narratif, sans cran : ses registres à la zone Logique, comptés, les zones de la scène vides, son inspecteur à son ouverture et sa clôture ; il rend la scène', () => {
+    const { presser, ouverte, narratif } = surLeNarratif();
+    const z = narratif.vue.zones;
+    expect([boutonDe(narratif, 'document/narratif').presse, boutonDe(narratif, 'annuler').refus !== null]).toEqual([true, true]);
+    expect([z['editeur.scenes'], z['editeur.outils'], z['editeur.options'], z['editeur.couches'], z['editeur.carte']]).toEqual([[], [], [], [], []]);
+    expect(z['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.id)).toEqual(['logique/affaires', 'logique/indices', 'logique/presetsPnj', 'logique/documents', 'logique/etats', 'logique/ecart']);
+    expect(z['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne' && el.texte.startsWith('ecran.')), 'chaque registre a son texte').toEqual([]);
+    expect([...new Set(z['editeur.inspecteur'].map((el) => el.id.split('/').slice(0, 2).join('/')))]).toEqual(['valeur/ouverture', 'valeur/cloture']);
+    const scene = presser(boutonDe(narratif, 'document/scene'));
+    expect([boutonDe(scene, 'document/scene').presse, scene.vue.zones['editeur.titre']]).toEqual([true, ouverte.vue.zones['editeur.titre']]);
+  });
+
+  it('« Ajouter » crée une entrée de chaque registre créable, sélectionnée, son inspecteur à son nom et à son formulaire ; un champ s’y écrit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    let e = narratif;
+    for (const sorte of ['affaires', 'indices', 'presetsPnj', 'documents', 'etats']) {
+      const avant = liste(e, sorte);
+      e = presser(boutonDe(e, `logique/${sorte}/ajouter`));
+      const neuve = liste(e, sorte).filter((id) => !avant.includes(id));
+      expect([neuve.length, boutonDe(e, `logique/${sorte}/${neuve[0]}`).presse, inspecte(e, 'nommer')], sorte).toEqual([1, true, expect.objectContaining({ champs: [expect.objectContaining({ valeur: neuve[0] })] })]);
+    }
+    const affaire = presser(boutonDe(e, 'logique/affaires/aff-pont'));
+    const ecrite = editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'affaires', id: 'aff-pont' }, ['titre'], 'La route d’Altdorf'] }));
+    expect([inspecte(affaire, 'valeur/titre'), inspecte(ecrite, 'valeur/titre')]).toMatchObject([{ type: 'formulaire' }, { type: 'formulaire', champs: [{}, {}, { valeur: 'La route d’Altdorf' }] }]);
+  });
+
+  it('un indice que désigne une scène se renomme, la scène suit, une annulation défait les deux ; un identifiant pris se refuse, dit ; le supprimer se refuse, dit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const indice = presser(boutonDe(narratif, 'logique/indices/ind-pont'));
+    expect(erreurDe(appel('editer', { type: 'nommer', args: ['aff-pont'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « aff-pont » déjà porté par l\'affaire « L’affaire du pont »' });
+    const refus = boutonDe(indice, 'indices/supprimer').refus;
+    expect(refus).toMatch(/^Encore désigné par : scène/);
+    expect(erreurDe(appel('editer', boutonDe(indice, 'indices/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    const renomme = editionDe(appel('editer', { type: 'nommer', args: ['ind-missive'] }));
+    expect([boutonDe(renomme, 'logique/indices/ind-missive').presse, revele(presser, renomme)]).toEqual([true, { type: 'revealClue', indiceId: 'ind-missive', stade: 'lu' }]);
+    editionDe(appel('editer', { edition: { geste: 'enregistrement', reussi: false } }));
+    const annule = editionDe(appel('editer', { edition: { geste: 'annuler' } }));
+    expect([liste(annule, 'indices').includes('ind-pont'), boutonDe(annule, 'enregistrer').refus], 'le projet, scène comprise, est celui du dépôt').toEqual([true, 'Rien à enregistrer']);
+  });
+
+  it('un stade s’ajoute, se renomme, se retire ; un stade désigné, comme le dernier, ne se retire pas, dit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const indice = presser(boutonDe(narratif, 'logique/indices/ind-pont'));
+    const ajoute = presser(boutonDe(indice, 'stade/ajouter'));
+    expect(inspecte(ajoute, 'identifier/stade/stade-3')).toMatchObject({ type: 'formulaire' });
+    const renomme = editionDe(appel('editer', { type: 'identifier', args: ['stade-3', 'releve'] }));
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['releve', 'vu'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « vu » déjà porté par le stade 2' });
+    expect(boutonDe(renomme, 'stade/lu/supprimer').refus).toMatch(/^Encore désigné par : scène/);
+    const retire = presser(boutonDe(renomme, 'stade/releve/supprimer'));
+    expect(retire.vue.zones['editeur.inspecteur'].some((el) => el.id === 'identifier/stade/releve')).toBe(false);
+    const seul = presser(boutonDe(presser(boutonDe(retire, 'logique/indices/ajouter')), 'logique/indices/ajouter'));
+    const id = liste(seul, 'indices').slice(-1)[0];
+    expect(boutonDe(presser(boutonDe(seul, `logique/indices/${id}`)), 'stade/stade-1/supprimer').refus).toBe('Un indice garde au moins un stade.');
+  });
+
+  it('un écart s’ajoute avec son entrée parmi les entrées libres, que la zone Logique offre', () => {
+    const { presser, narratif } = surLeNarratif();
+    const offre = narratif.vue.zones['editeur.logique'].find((el) => el.type === 'bouton' && el.id.startsWith('logique/ecart/ajouter/')) as Bouton;
+    const entree = offre.id.slice('logique/ecart/ajouter/'.length);
+    const ecarte = presser(offre);
+    expect([liste(ecarte, 'ecart'), boutonDe(ecarte, `logique/ecart/${entree}`).presse, ecarte.vue.zones['editeur.logique'].some((el) => el.id === offre.id)]).toEqual([[entree], true, false]);
+    expect(inspecte(ecarte, 'valeur/motif')).toMatchObject({ type: 'formulaire' });
+  });
+});

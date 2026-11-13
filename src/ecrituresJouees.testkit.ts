@@ -119,7 +119,7 @@ const porteurChoisi = (s: SessionDEdition) => porteurDeLaSel(s.sel, s.document, 
 const porteurDu = (s: SessionDEdition, porteur: { sorte: SorteDePorteur; id: string }) => porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id);
 
 /** Les porteurs de sorte `sorte` de la session `s` (`porteursDuProjet`). */
-const porteursDe = (s: SessionDEdition, sorte: SorteDePorteur): readonly { id: string }[] => porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s));
+const porteursDe = (s: SessionDEdition, sorte: SorteDePorteur): readonly unknown[] => porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s));
 
 /** Les empreintes déjà jouées de chaque partie (`ecrituresJouees`), par son `out`. */
 const empreintesJouees = new WeakMap<EcritureJouee[], Set<string>>();

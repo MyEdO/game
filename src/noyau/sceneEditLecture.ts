@@ -10,7 +10,9 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { dialogueSchema, encounterDefSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { mapPlaceSchema, mapRouteSchema, placePoiSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
-import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
+import { affaireSchema, documentNarratifSchema, ecartSchema, etatNarratifSchema, formeDEtatSchema, indiceSchema, indiceStadeSchema, narratifSchema, presetPnjSchema, valeurDEtatSchema, type EcartDeFiche, type EtatNarratif, type Indice, type NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { idFrais, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { FORMES_D_ETAT, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
 import { porteeDeLaFeuille } from '../data/schemas/grammaire/ref';
@@ -125,9 +127,10 @@ export function structuresDeLArete(paint: WallPaint): StructureData[] {
  *  est leur ENCRE (`zoneInk`, EditorCanvas) : la pièce n'a qu'un liseré, le piège porte l'aplat. */
 export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entries: boolean; rest: boolean; zones: boolean };
 
-/** Les types de sélection qui désignent un élément du projet par son seul identifiant : de la scène, ou un lieu et une
- *  route de la carte du monde. */
-type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue' | 'encounter' | 'place' | 'route';
+/** Les types de sélection qui désignent un élément du projet par son seul identifiant : de la scène, un lieu et une
+ *  route de la carte du monde, une entrée d'un registre créable du narratif (`RegistreCreable`), sous sa clé, ou un
+ *  écart. */
+type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue' | 'encounter' | 'place' | 'route' | RegistreCreable | 'ecart';
 
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
@@ -426,8 +429,12 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
 export type EntityTool = Extract<Tool, { mode: 'entite' }>;
 
-/** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
-export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene; lieu: MapPlace; route: MapRoute; carte: WorldMap; projet: ReglagesDuProjet }
+/** La donnée d'une entrée de chaque registre créable du narratif (`RegistreCreable`), sous sa clé. */
+type DonneeDesRegistres = { [R in RegistreCreable]: NarratifBlock[R][number] };
+
+/** La donnée du porteur de chaque sorte de formulaire tiré du schéma : une entrée de chaque registre créable du narratif
+ *  (`DonneeDesRegistres`), un écart et le narratif compris. */
+export interface DonneeDuPorteur extends DonneeDesRegistres { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene; lieu: MapPlace; route: MapRoute; carte: WorldMap; projet: ReglagesDuProjet; ecart: EcartDeFiche; narratif: NarratifBlock }
 
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
@@ -795,6 +802,85 @@ function choixDeLaRoute(route: MapRoute, chemin: readonly Segment[], cadre: Cadr
   return (cadre.projet.scenes.find((sc) => sc.id === id)?.encounters ?? []).map((e) => ({ valeur: e.id, libelle: e.id, refus: null }));
 }
 
+/** Les champs qu'offre, sous la sous-collection à clé au chemin `parent`, de ses éléments `elements` de schéma
+ *  `schema` : de chacun, à son rang, chaque champ hors de son identifiant, que le geste dédié change en propageant
+ *  (`renommerElement`) ; le rang qui suit le dernier, où l'élément neuf s'ajoute. La sous-collection entière n'est pas
+ *  offerte : aucun raccourcissement ne la réécrit, son élément se retire par le geste dédié (`retirerElement`). #3606 B8 */
+const champsDesElements = (parent: readonly Segment[], schema: unknown, elements: readonly unknown[]): CheminsOfferts =>
+  [...elements.flatMap((_, i) => champsSauf(schema, ['id']).map(([cle]) => [...parent, i, cle])), [...parent, elements.length]];
+
+/** Les stades d'un indice, et les valeurs déclarées d'un état. */
+const STADES = ['stades'] as const;
+const VALEURS_D_ETAT = ['forme', 'valeurs'] as const;
+
+/** Les registres du narratif dont une entrée déclare des sous-entrées à clé (`CibleNarrative.sous`), le chemin de leur
+ *  sous-collection et le nom de leur famille : les stades d'un indice, les valeurs déclarées d'un état. #3606 B8 */
+export const SOUS_ENTREES: { readonly [R in RegistreCreable]?: { readonly chemin: readonly Segment[]; readonly famille: 'stade' | 'valeur' } } = {
+  indices: { chemin: STADES, famille: 'stade' },
+  etats: { chemin: VALEURS_D_ETAT, famille: 'valeur' },
+};
+
+/** Les champs qu'offre le formulaire d'un indice : chacun de son schéma hors de son identifiant et de ses stades, et
+ *  ceux de ses stades (`champsDesElements`). */
+const champsDeLIndice = (indice: Indice): CheminsOfferts =>
+  [...champsSauf(indiceSchema, ['id', 'stades']), ...champsDesElements(STADES, indiceStadeSchema, indice.stades)];
+
+/** `chemin` est-il, sous `parent`, le rang qui suit les `n` éléments de sa sous-collection ? */
+const auRangNeuf = (chemin: readonly Segment[], parent: readonly Segment[], n: number): boolean =>
+  chemin.length === parent.length + 1 && parent.every((cle, i) => chemin[i] === cle) && chemin[parent.length] === n;
+
+/** L'élément neuf posé par son identifiant, seul choix. */
+const poseNeuf = <V extends { id: string }>(valeur: V): readonly ChoixDuContexte[] => [{ valeur, libelle: valeur.id, refus: null }];
+
+/** Les choix que le contexte de l'indice `indice`, dans le cadre `cadre`, pose au chemin `chemin` de sa donnée : au rang
+ *  qui suit son dernier stade, le stade neuf, d'identifiant frais (`idFrais`), à prose vide (`NarratifEditor`, `addStade`) ;
+ *  à un de ses renvois (`refs`), chaque autre indice de son narratif, hors de ceux qu'il renvoie déjà, le courant restant
+ *  offert. #3606 */
+function choixDeLIndice(indice: Indice, chemin: readonly Segment[], { projet: { narratif } }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  if (auRangNeuf(chemin, STADES, indice.stades.length)) return poseNeuf({ id: idFrais('stade', indice.stades), prose: '' });
+  const [refs, rang, ...reste] = chemin;
+  if (refs !== 'refs' || typeof rang !== 'number' || reste.length) return undefined;
+  const poses = indice.refs ?? [];
+  return narratif.indices
+    .filter((i) => i.id !== indice.id && (i.id === poses[rang] || !poses.includes(i.id)))
+    .map((i) => ({ valeur: i.id, libelle: i.titre || i.id, refus: null }));
+}
+
+/** Les champs qu'offre le formulaire d'un état : chacun de son schéma hors de son identifiant et de sa forme ; de sa forme
+ *  courante (`formeAuPoint`), chaque champ hors de son discriminant, ses valeurs déclarées par élément
+ *  (`champsDesElements`). Changer de forme n'y est pas offert. */
+function champsDeLEtat(etat: EtatNarratif): CheminsOfferts {
+  const forme = champsSauf(formeAuPoint(formeDEtatSchema, etat.forme)!.noeud, ['kind', 'valeurs']).map((c) => ['forme', ...c]);
+  const valeurs = FORMES_D_ETAT[etat.forme.kind].valeursDeclarees ? champsDesElements(VALEURS_D_ETAT, valeurDEtatSchema, valeursDeclarees(etat)) : [];
+  return [...champsSauf(etatNarratifSchema, ['id', 'forme']), ...forme, ...valeurs];
+}
+
+/** Les choix que le contexte de l'état `etat` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière valeur
+ *  déclarée, la valeur neuve, d'identifiant frais (`idFrais`), libellée de son rang (`NarratifEditor`, « Ajouter une
+ *  valeur »). #3606 */
+function choixDeLEtat(etat: EtatNarratif, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+  const valeurs = valeursDeclarees(etat);
+  if (!FORMES_D_ETAT[etat.forme.kind].valeursDeclarees || !auRangNeuf(chemin, VALEURS_D_ETAT, valeurs.length)) return undefined;
+  return poseNeuf({ id: idFrais('valeur', valeurs), label: t('ecran.editeur.narratif.valeurNeuve', { n: valeurs.length + 1 }) });
+}
+
+/** Ce que déclare le formulaire d'une entrée de chaque registre créable du narratif (`RegistreCreable`) : son schéma,
+ *  ses champs, chacun hors de son identifiant, que le renommage propage (`renommeAuProjet`), et les choix de son
+ *  contexte ; d'un indice, ses champs (`champsDeLIndice`) aux choix de son contexte (`choixDeLIndice`) ; d'un état, les
+ *  siens (`champsDeLEtat`, `choixDeLEtat`). */
+const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<FormulaireDuPorteur<DonneeDuPorteur[R]>, 'schema' | 'champs' | 'choix'> } = {
+  affaires: { schema: affaireSchema, champs: () => champsSauf(affaireSchema, ['id']) },
+  indices: { schema: indiceSchema, champs: champsDeLIndice, choix: choixDeLIndice },
+  presetsPnj: { schema: presetPnjSchema, champs: () => champsSauf(presetPnjSchema, ['id']) },
+  documents: { schema: documentNarratifSchema, champs: () => champsSauf(documentNarratifSchema, ['id']) },
+  etats: { schema: etatNarratifSchema, champs: champsDeLEtat, choix: choixDeLEtat },
+};
+
+/** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection
+ *  du narratif sous la clé du registre, sélectionnée sous elle, listé à la zone Logique. */
+const formulairesDesRegistres = Object.fromEntries((Object.keys(FORMULAIRES_DES_REGISTRES) as RegistreCreable[])
+  .map((registre) => [registre, { acces: { document: 'narratif', collection: registre }, sel: registre, logique: true, ...FORMULAIRES_DES_REGISTRES[registre] }])) as { readonly [R in RegistreCreable]: FormulaireDuPorteur<DonneeDuPorteur[R]> };
+
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
  *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
@@ -813,8 +899,10 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  de la scène, porteur singulier de son document, son message de départ ; d'un lieu, ses champs (`champsDuLieu`), aux
  *  choix de son contexte (`choixDuLieu`) ; d'une route, les siens (`CHAMPS_DE_LA_ROUTE`), aux choix de son contexte
  *  (`choixDeLaRoute`) ; de la carte, porteur singulier de son document, son libellé, son fond et ses réglages ; de ses
- *  réglages, porteur singulier de leur document, ses axes actifs. Chacun
- *  déclare la portée des avertissements qui le désignent ; ceux de la carte, la portée `worldMap`. */
+ *  réglages, porteur singulier de leur document, ses axes actifs ; d'une entrée de chaque registre créable du narratif,
+ *  le sien (`formulairesDesRegistres`) ; d'un écart, son motif, son entrée se changeant par le renommage ; du narratif,
+ *  porteur singulier de son document, son ouverture et sa clôture. Chacun déclare la portée des avertissements qui le
+ *  désignent ; ceux de la carte, la portée `worldMap`. */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { acces: { document: 'scene', collection: 'effectZones' }, sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
   declencheur: { acces: { document: 'scene', collection: 'triggers' }, sel: 'trigger', schema: triggerSchema, portee: 'trigger', logique: true, champs: () => [['when'], ['flow']] },
@@ -833,6 +921,9 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   route: { acces: { document: 'carte', collection: 'routes' }, sel: 'route', schema: mapRouteSchema, portee: 'worldMap', logique: true, champs: () => CHAMPS_DE_LA_ROUTE, choix: choixDeLaRoute },
   carte: { acces: { document: 'carte' }, schema: worldMapSchema, portee: 'worldMap', champs: () => [['label'], ['background'], ['params']] },
   projet: { acces: { document: 'projet' }, schema: projetSchema, champs: () => [['activeAxes']] },
+  ...formulairesDesRegistres,
+  ecart: { acces: { document: 'narratif', collection: 'ecartes' }, sel: 'ecart', schema: ecartSchema, logique: true, champs: () => [['motif']] },
+  narratif: { acces: { document: 'narratif' }, schema: narratifSchema, champs: () => [['ouverture'], ['cloture']] },
 };
 
 /** Le porteur de formulaire que la sélection `sel` désigne, le document `document` ouvert où la scène d'identifiant
@@ -914,6 +1005,10 @@ export function porteursDuProjet<D>(acces: AccesDuPorteur<D>, projet: ProjetDEdi
   const doc = document.lire(projet, sceneId);
   return (doc === undefined ? [] : porteurs(doc)) as readonly D[];
 }
+
+/** L'identifiant du porteur `porteur` d'accès `acces`, là où la scène `sceneId` est montrée (`lectureDe`). */
+export const idDuPorteur = <D>(acces: AccesDuPorteur<D>, porteur: D, sceneId: string): string =>
+  lectureDe(acces as AccesDuPorteur<unknown>).id(porteur, sceneId)!;
 
 /** Le porteur d'accès `acces` et d'identifiant `id` du projet `projet` où la scène `sceneId` est montrée, et son chemin
  *  depuis son document ; `undefined` sans lui. */

@@ -37,7 +37,9 @@ import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
-import { refusDeLaValeur, refusDeRetrait } from './session';
+import { refusDeLaValeur, refusDeRetrait, refusDuRenommage } from './session';
+import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
+import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { creatures, findCreatureById, MERCHANT_ARCHETYPES, navalPorts, siegeEngines, spells, talents, traits } from '../../data';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
@@ -1425,5 +1427,136 @@ describe('les axes actifs du projet, réglés sur l’écran de la carte du mond
     const vides = jouer(surLaCarte(), axes(['melee']), axes([]));
     expect(['activeAxes' in projetEdite(vides), vides.historique.passe.length]).toEqual([false, 2]);
     expect('activeAxes' in projetEdite(jouer(surLaCarte(), axes(['melee']), axes()))).toBe(false);
+  });
+});
+
+describe('le narratif, document ouvert du menu Fichier, ses registres par la table d’écriture de leur sorte (#3606 M6)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const valeur = (sorte: SorteDePorteur, id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> =>
+    ({ geste: 'valeur', porteur: { sorte, id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
+  /** Une affaire, deux indices (la lettre à deux stades, le sceau qui la recoupe, à un stade), un état énuméré. */
+  const NARRATIF = {
+    ...emptyNarratif(),
+    affaires: [{ id: 'aff', titre: 'La route' }],
+    indices: [
+      { id: 'ind-lettre', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }, { id: 'dechiffree', prose: 'b' }] },
+      { id: 'ind-sceau', affaireId: 'aff', kind: 'indice', titre: 'Le sceau', refs: ['ind-lettre'], stades: [{ id: 'vu', prose: 'c' }] },
+    ],
+    etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+  } as ReturnType<typeof emptyNarratif>;
+  /** Le relais, dont le déclencheur révèle le stade déchiffré de la lettre. */
+  const RELAIS: Scene = {
+    ...emptyScene('relais', 4, 4),
+    label: 'Le relais',
+    triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' } }] } }],
+  } as Scene;
+  const ouvert = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'narratif' });
+  const narratif = (s: SessionDEdition) => projetEdite(s).narratif;
+  const revele = (s: SessionDEdition) => (projetEdite(s).scenes[0].triggers[0].flow as { etapes: { effet: unknown }[] }).etapes[0].effet;
+  const choisir = (s: SessionDEdition, sorte: SorteDePorteur, id: string) => jouer(s, { geste: 'selectionner', porteur: { sorte, id } });
+
+  it('ouvrir le narratif navigue sans cran, son singulier édité sans sélection ; revenir à la scène la rend', () => {
+    const s = ouvrirLEdition({ scenes: [RELAIS], narratif: NARRATIF } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+    const sur = jouer(s, { geste: 'document', document: 'narratif' });
+    expect([sur.document, sur.historique, porteurDeLaSel(sur.sel, sur.document, idDeLaSceneEditee(sur))]).toEqual(['narratif', s.historique, { sorte: 'narratif', id: 'narratif' }]);
+    const retour = jouer(choisir(sur, 'affaires', 'aff'), { geste: 'document', document: 'scene' });
+    expect([retour.document, retour.sel, porteurDeLaSel(retour.sel, retour.document, idDeLaSceneEditee(retour))]).toEqual(['scene', null, { sorte: 'scene', id: 'relais' }]);
+  });
+
+  it('ajouter une entrée de chaque registre créable pose le corps neuf de l’éditeur web sous un identifiant frais, sélectionnée sur un cran ; l’indice sans affaire est refusé, dit', () => {
+    const s = ouvert(emptyNarratif());
+    expect(jouer(s, { geste: 'ajouter', sorte: 'indices' }), 'aucune affaire à rattacher').toBe(s);
+    expect(ECRITURES_DES_PORTEURS.indices.refusDeCreer?.(projetEdite(s), idDeLaSceneEditee(s), null)).toBe('Créez d’abord une affaire.');
+    const crees = (['affaires', 'indices', 'presetsPnj', 'documents', 'etats'] as const).reduce((acc, sorte) => jouer(acc, { geste: 'ajouter', sorte }), s);
+    const n = narratif(crees);
+    expect([n.affaires, n.indices, n.documents, n.etats]).toEqual([
+      [{ id: 'affaire-1', titre: 'Nouvelle affaire' }],
+      [{ id: 'indice-1', affaireId: 'affaire-1', kind: 'indice', titre: 'Nouvel indice', stades: [{ id: 'stade-1', prose: '' }] }],
+      [{ id: 'document-1', titre: 'Nouveau document', prose: '' }],
+      [{ id: 'etat-1', label: 'Nouvel état', forme: { kind: 'heros' } }],
+    ]);
+    expect(n.presetsPnj).toEqual([{ id: 'pnj-1', base: { id: [...creatures].sort((a, b) => a.label.localeCompare(b.label))[0].id } }]);
+    expect([crees.sel, crees.historique.passe.length]).toEqual([{ type: 'etats', id: 'etat-1' }, s.historique.passe.length + 5]);
+  });
+
+  it('une entrée écrit ses champs, sur un cran ; son identifiant et la liste de ses stades ne s’écrivent pas au formulaire', () => {
+    const s = choisir(ouvert(), 'affaires', 'aff');
+    const ecrite = jouer(s, valeur('affaires', 'aff', ['titre'], 'La route d’Altdorf'));
+    expect([narratif(ecrite).affaires[0].titre, ecrite.historique.passe.length]).toEqual(['La route d’Altdorf', s.historique.passe.length + 1]);
+    expect([
+      refusDeLaValeur(s, valeur('affaires', 'aff', ['id'], 'autre')),
+      refusDeLaValeur(s, valeur('indices', 'ind-lettre', ['stades'], [{ id: 'lue', prose: 'a' }])),
+      refusDeLaValeur(s, valeur('indices', 'ind-lettre', ['stades', 0, 'id'], 'autre')),
+    ]).toEqual(['nonOffert', 'nonOffert', 'nonOffert']);
+  });
+
+  it('renommer un indice que désigne une scène la suit, sur un seul cran qu’une annulation défait ; un identifiant pris ou vide est refusé, dit', () => {
+    const s = choisir(ouvert(), 'indices', 'ind-lettre');
+    expect([refusDuRenommage(s, { geste: 'nommer', nom: 'aff' }), refusDuRenommage(s, { geste: 'nommer' }), refusDuRenommage(s, { geste: 'nommer', nom: 'ind-missive' })])
+      .toEqual(['Identifiant « aff » déjà porté par l\'affaire « La route »', 'Identifiant vide', null]);
+    expect(jouer(s, { geste: 'nommer', nom: 'aff' })).toBe(s);
+    const renomme = jouer(s, { geste: 'nommer', nom: 'ind-missive' });
+    expect([revele(renomme), narratif(renomme).indices[1].refs, renomme.sel, renomme.historique.passe.length])
+      .toEqual([{ type: 'revealClue', indiceId: 'ind-missive', stade: 'dechiffree' }, ['ind-missive'], { type: 'indices', id: 'ind-missive' }, s.historique.passe.length + 1]);
+    const annule = jouer(renomme, { geste: 'annuler' });
+    expect([revele(annule), narratif(annule).indices.map((i) => i.id)]).toEqual([revele(s), ['ind-lettre', 'ind-sceau']]);
+  });
+
+  it('retirer un indice que désigne une scène est refusé, dit ; libre, il se retire sur un cran, ses recoupements avec lui', () => {
+    const s = choisir(ouvert(), 'indices', 'ind-lettre');
+    expect(refusDeRetrait(s)).toMatch(/^Encore désigné par : scène « Le relais »/);
+    expect(jouer(s, { geste: 'supprimer' })).toBe(s);
+    const sceau = jouer(choisir(s, 'indices', 'ind-sceau'), { geste: 'supprimer' });
+    expect([narratif(sceau).indices.map((i) => i.id), sceau.sel]).toEqual([['ind-lettre'], null]);
+  });
+
+  it('un stade s’ajoute au rang neuf, se renomme en suivant la scène, se retire par son geste ; un stade désigné, comme le dernier, ne se retire pas, dit', () => {
+    const s = choisir(ouvert(), 'indices', 'ind-lettre');
+    const ajoute = jouer(s, valeur('indices', 'ind-lettre', ['stades', 2], { id: 'stade-3', prose: '' }));
+    expect(narratif(ajoute).indices[0].stades.map((x) => x.id)).toEqual(['lue', 'dechiffree', 'stade-3']);
+    const renomme = jouer(ajoute, { geste: 'identifier', element: 'dechiffree', id: 'traduite' });
+    expect([revele(renomme), narratif(renomme).indices[0].stades.map((x) => x.id)]).toEqual([{ type: 'revealClue', indiceId: 'ind-lettre', stade: 'traduite' }, ['lue', 'traduite', 'stade-3']]);
+    expect(refusDuRenommage(renomme, { geste: 'identifier', element: 'lue', id: 'traduite' })).toBe('Identifiant « traduite » déjà porté par le stade 2');
+    expect(refusDeRetrait(renomme, 'traduite')).toMatch(/^Encore désigné par : scène « Le relais »/);
+    const retire = jouer(renomme, { geste: 'supprimer', element: 'lue' });
+    expect([narratif(retire).indices[0].stades.map((x) => x.id), retire.sel, retire.historique.passe.length]).toEqual([['traduite', 'stade-3'], s.sel, s.historique.passe.length + 3]);
+    const sceau = choisir(retire, 'indices', 'ind-sceau');
+    expect([refusDeRetrait(sceau, 'vu'), jouer(sceau, { geste: 'supprimer', element: 'vu' })]).toEqual(['Un indice garde au moins un stade.', sceau]);
+  });
+
+  it('une valeur d’un état énuméré s’ajoute, se renomme ; la dernière ne se retire pas', () => {
+    const s = choisir(ouvert(), 'etats', 'humeur');
+    const ajoute = jouer(s, valeur('etats', 'humeur', ['forme', 'valeurs', 1], { id: 'valeur-2', label: 'Valeur 2' }), { geste: 'identifier', element: 'valeur-2', id: 'furieux' });
+    expect(narratif(ajoute).etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }, { id: 'furieux', label: 'Valeur 2' }] });
+    expect(refusDeRetrait(s, 'calme')).toBe('Un état énuméré garde au moins une valeur.');
+  });
+
+  it('un écart s’ajoute avec son entrée parmi les entrées libres, écrit son motif, change d’entrée vers une libre, se retire', () => {
+    const [premiere, seconde] = ENTREES_DE_DOSSIER.map((e) => e.id);
+    const s = ouvert();
+    const ecarte = jouer(s, { geste: 'ajouter', sorte: 'ecart', avec: premiere }, valeur('ecart', premiere, ['motif'], 'Hors du chapitre'));
+    expect([narratif(ecarte).ecartes, ecarte.sel]).toEqual([[{ entree: premiere, motif: 'Hors du chapitre' }], { type: 'ecart', id: premiere }]);
+    expect(ECRITURES_DES_PORTEURS.ecart.avecs?.(projetEdite(ecarte), idDeLaSceneEditee(ecarte), null).includes(premiere)).toBe(false);
+    expect(refusDuRenommage(ecarte, { geste: 'nommer', nom: 'XX-99#rien' })).toBe('L’entrée « XX-99#rien » n’est dans aucune fiche de dossier commitée.');
+    const deplace = jouer(ecarte, { geste: 'nommer', nom: seconde });
+    expect(narratif(deplace).ecartes).toEqual([{ entree: seconde, motif: 'Hors du chapitre' }]);
+    expect('ecartes' in narratif(jouer(deplace, { geste: 'supprimer' }))).toBe(true);
+    expect(narratif(jouer(deplace, { geste: 'supprimer' })).ecartes).toBeUndefined();
+  });
+
+  it('sélectionner un PNJ dont le profil porte une adresse à chapitre demande ce chapitre, comme un porteur de la scène', () => {
+    const manifeste = { 'livre-de-base': { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armures.md', titre: 'Les Armures', octets: 1 }] } };
+    const avecPnj = { ...NARRATIF, presetsPnj: [{ id: 'pnj-1', base: { id: creatures[0].id }, profil: { descRef: { book: 'livre-de-base', ch: '01', parts: [] } } }] } as unknown as typeof NARRATIF;
+    const s = jouer(ouvrirLEdition({ scenes: [RELAIS], narratif: avecPnj } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, manifeste), { geste: 'document', document: 'narratif' });
+    expect([s.chapitreEnAttente, choisir(s, 'presetsPnj', 'pnj-1').chapitreEnAttente]).toEqual([null, { book: 'livre-de-base', ch: '01' }]);
+  });
+
+  it('le narratif écrit son ouverture et sa clôture, sans sélection', () => {
+    const s = ouvert();
+    const neuve = valeurNeuveDe(ouvertureSchema) as Record<string, unknown>;
+    const ecrit = jouer(s, valeur('narratif', 'narratif', ['ouverture'], neuve), valeur('narratif', 'narratif', ['ouverture', 'titre'], 'Prologue'));
+    expect([narratif(ecrit).ouverture, ecrit.historique.passe.length]).toEqual([{ ...neuve, titre: 'Prologue' }, s.historique.passe.length + 2]);
+    expect(narratif(jouer(s, valeur('narratif', 'narratif', ['cloture'], valeurNeuveDe(clotureSchema)))).cloture).toEqual(valeurNeuveDe(clotureSchema));
+    expect(refusDeLaValeur(s, valeur('narratif', 'narratif', ['affaires'], []))).toBe('nonOffert');
   });
 });

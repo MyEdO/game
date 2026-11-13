@@ -10,7 +10,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import type { SourceDeLEdition } from './adresseDeProse';
+import { cleDuChapitre, type SourceDeLEdition } from './adresseDeProse';
+import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
+import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
@@ -711,7 +713,7 @@ describe('l’accès d’un porteur à son document du projet (#3606)', () => {
     expect([porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'narratif'), porteurDuProjet<Narratif>(LE_NARRATIF, projet(), 'salle', 'salle')]).toEqual([{ donnee: NARRATIF_VIDE, chemin: [] }, undefined]);
     const enrichi = { ...NARRATIF_VIDE, presetsPnj: [] };
     expect(projetAvecLePorteur<Narratif>(LE_NARRATIF, projet(), 'salle', NARRATIF_VIDE, enrichi).narratif).toBe(enrichi);
-    expect([porteurDeLaSel(null, 'scene', 'salle'), porteurDeLaSel(null, 'narratif', 'salle')], 'sans sélection, le singulier du document ouvert ; le narratif n’en porte aucun').toEqual([{ sorte: 'scene', id: 'salle' }, undefined]);
+    expect([porteurDeLaSel(null, 'scene', 'salle'), porteurDeLaSel(null, 'narratif', 'salle')], 'sans sélection, le singulier du document ouvert, le narratif compris (#3606 B3)').toEqual([{ sorte: 'scene', id: 'salle' }, { sorte: 'narratif', id: 'narratif' }]);
   });
 });
 
@@ -753,5 +755,75 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
   it('un avertissement de la carte désigne le lieu ou la route qui porte son élément ; sans élément, la carte ; un point d’intérêt, aucun porteur', () => {
     expect([porteurDeLaPortee('worldMap', 'x', projet, 'salle'), porteurDeLaPortee('worldMap', 'r', projet, 'salle'), porteurDeLaPortee('worldMap', undefined, projet, 'salle'), porteurDeLaPortee('worldMap', 'temple', projet, 'salle')])
       .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }, undefined]);
+  });
+});
+
+describe('les porteurs du narratif : une entrée de chaque registre créable, un écart, le narratif (#3606 M6)', () => {
+  const NARRATIF = {
+    ...NARRATIF_VIDE,
+    affaires: [{ id: 'aff', titre: 'La route' }, { id: 'aff-2', titre: 'Le fleuve' }],
+    indices: [
+      { id: 'ind-lettre', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }, { id: 'dechiffree', prose: 'b' }] },
+      { id: 'ind-sceau', affaireId: 'aff', kind: 'indice', titre: 'Le sceau', refs: ['ind-lettre'], stades: [{ id: 'vu', prose: 'c' }] },
+      { id: 'ind-carte', affaireId: 'aff-2', kind: 'rumeur', titre: 'La carte', stades: [{ id: 'dite', prose: 'd' }] },
+    ],
+    documents: [{ id: 'doc-affiche', titre: 'L’affiche', prose: 'VOYAGEURS' }],
+    etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+    ecartes: [{ entree: 'EDO-01#x', motif: 'm' }],
+  } as typeof NARRATIF_VIDE;
+  const cadre: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF }, source: SANS_SOURCE };
+  const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
+  const [lettre, sceau] = NARRATIF.indices;
+  const valeurs = (sorte: Parameters<typeof choixDuChamp>[0], donnee: unknown, chemin: Segment[]) => choixDuChamp(sorte, donnee as never, chemin, cadre)?.map((c) => c.valeur);
+
+  it('une sélection d’une entrée d’un registre créable ou d’un écart désigne son porteur, sous la clé de sa collection', () => {
+    expect([porteurDeLaSel({ type: 'indices', id: 'ind-lettre' }, 'narratif', 's'), porteurDeLaSel({ type: 'ecart', id: 'EDO-01#x' }, 'narratif', 's')])
+      .toEqual([{ sorte: 'indices', id: 'ind-lettre' }, { sorte: 'ecart', id: 'EDO-01#x' }]);
+  });
+
+  it('chaque entrée offre les champs de son schéma hors de son identifiant ; un indice, ses stades par rang ; un écart, son motif ; le narratif, son ouverture et sa clôture', () => {
+    expect(cles(formulaireDe('affaires', NARRATIF.affaires[0], cadre))).toEqual(['titre', 'desc']);
+    expect(cles(formulaireDe('documents', NARRATIF.documents[0], cadre))).toEqual(['titre', 'prose', 'source']);
+    expect(cles(formulaireDe('indices', lettre, cadre))).toEqual(['affaireId', 'kind', 'titre', 'refs', 'couvre', 'stades']);
+    expect(cles(formulaireDe('etats', NARRATIF.etats[0], cadre))).toEqual(['label', 'source', 'maison', 'forme']);
+    expect(cles(formulaireDe('ecart', NARRATIF.ecartes![0], cadre))).toEqual(['motif']);
+    expect(cles(formulaireDe('narratif', NARRATIF, cadre))).toEqual(['ouverture', 'cloture']);
+    expect([['stades', 1, 'prose'], ['stades', 1, 'documentId'], ['stades', 1, 'id'], ['stades']].map((c) => avecLaValeurDuPorteur('indices', lettre, c as Segment[], c[2] === 'documentId' ? 'doc-affiche' : 'z', cadre).ok))
+      .toEqual([true, true, false, false]);
+  });
+
+  it('les références du narratif reçoivent leurs choix : l’affaire d’un indice, le document d’un stade, par le registre ; ses renvois, les autres indices hors des renvoyés', () => {
+    expect(valeurs('indices', lettre, ['affaireId'])).toEqual(['aff', 'aff-2']);
+    expect(valeurs('indices', lettre, ['stades', 0, 'documentId'])).toEqual(['doc-affiche']);
+    expect(valeurs('indices', lettre, ['refs', 0])).toEqual(['ind-sceau', 'ind-carte']);
+    expect(valeurs('indices', sceau, ['refs', 1]), 'le renvoi posé ne se repropose pas').toEqual(['ind-carte']);
+    expect(valeurs('indices', sceau, ['refs', 0]), 'le renvoi courant reste offert').toEqual(['ind-lettre', 'ind-carte']);
+  });
+
+  it('au rang qui suit le dernier stade, le stade neuf, d’identifiant frais ; au rang qui suit la dernière valeur d’un état, la valeur neuve', () => {
+    expect(valeurs('indices', lettre, ['stades', 2])).toEqual([{ id: 'stade-3', prose: '' }]);
+    expect(valeurs('etats', NARRATIF.etats[0], ['forme', 'valeurs', 1])).toEqual([{ id: 'valeur-2', label: 'Valeur 2' }]);
+    expect(avecLaValeurDuPorteur('indices', lettre, ['stades', 2], { id: 'autre', prose: '' }, cadre).ok, 'seul l’élément neuf s’ajoute').toBe(false);
+  });
+});
+
+describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ du narratif (#3606 M6)', () => {
+  const TEXTE = ['# Les Armures', '', 'Une armure protège son porteur des coups, au prix de sa discrétion.', ''].join('\n');
+  const LIVRE = 'livre-de-base';
+  const CHARGEE: SourceDeLEdition = {
+    manifeste: { [LIVRE]: { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armures.md', titre: 'Les Armures', octets: TEXTE.length }] } },
+    chapitres: { [cleDuChapitre(LIVRE, '01')]: parseChapitre(TEXTE) },
+  };
+  const ARMURES: Fragment = { kind: 'blocs', sec: 'les-armures', secOcc: 1, b0: 0, b1: 0, sum: '' };
+  const preset = { id: 'pnj-1', base: { id: creatureSemee() } };
+  const cadre = (source: SourceDeLEdition): CadreDuPorteur => ({ scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: { ...NARRATIF_VIDE, presetsPnj: [preset] } }, source });
+
+  it('l’adresse écrite au profil d’un PNJ se scelle sur le chapitre chargé, comme sous un porteur de la scène ; sans lui, elle n’est pas offerte', () => {
+    const vide = { ...preset, profil: { descRef: { book: LIVRE, ch: '01', parts: [] } } } as unknown as PresetPnj;
+    const PARTS: Segment[] = ['profil', 'descRef', 'parts'];
+    const choisie = choixDuChamp('presetsPnj', vide, PARTS, cadre(CHARGEE))?.map((c) => c.valeur).find((v) => (v as Fragment[])[0]?.kind === 'blocs');
+    const ecrite = avecLaValeurDuPorteur('presetsPnj', vide, PARTS, choisie, cadre(CHARGEE));
+    expect(ecrite.ok && (ecrite.valeur.profil as { descRef: DescRef }).descRef.parts).toEqual([{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }]);
+    expect(avecLaValeurDuPorteur('presetsPnj', vide, PARTS, [{ ...ARMURES, sum: empreinteDe(parseChapitre(TEXTE), ARMURES) }], cadre({ ...CHARGEE, chapitres: {} })), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
   });
 });

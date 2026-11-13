@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, porteurDeLaSel, porteurDuProjet, porteursDuProjet, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, choixDuChamp, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -73,7 +73,12 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * 'identifier', id }` (`renameEffectZone`, `renameScene`), refusé comme un nom vide ou déjà pris ; celui qui change
  * l'identifiant d'une action authorée du décor sélectionné, `{ type: 'identifier', args: [action, id] }`, en `{ geste:
  * 'identifier', id, element: action }` (`renameActionAuthoree`), ou d'un nœud du dialogue sélectionné, `{ type:
- * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }` (`noeudRenomme`), refusé de même ; la scène renommée
+ * 'identifier', args: [noeud, id] }`, en `{ geste: 'identifier', id, element: noeud }` (`noeudRenomme`), refusé de même ;
+ * celui qui nomme une entrée sélectionnée du narratif lui donne cet identifiant, propagé aux scènes, à la carte et au
+ * narratif sur un seul cran (`renommeAuProjet`), et celui d'un écart change son entrée vers une entrée libre ; celui qui
+ * change l'identifiant d'un stade de l'indice ou d'une valeur de l'état sélectionné, `{ type: 'identifier', args:
+ * [element, id] }`, le propage de même ; un identifiant vide ou déjà porté s'y refuse en `regle`, avec sa raison
+ * (`refusDuRenommage`) ; la scène renommée
  * l'est hors de l'historique, chaque cran portant son nouvel identifiant, et ses calques la suivent ; celui qui décrit
  * la scène se joue `{ type: 'decrire', args }`, en `{ geste: 'scene', patch: { scalaires: { desc } } }`, la description
  * retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ se joue `{ type: 'drapeau', args }`, en `{
@@ -196,6 +201,8 @@ export interface ZonesDeLEditeur {
   'editeur.presse': Bouton[];
   /**
    * enregistrer, refusé hors du dépôt, pendant un enregistrement en cours, et sur les scènes que le dépôt porte déjà ;
+   * chaque document que le menu ouvre, `document/<document>` (`DOCUMENTS_DU_MENU` : la scène, la carte du monde, le
+   * narratif), l'ouvert pressé, `{ geste: 'document', document }` ;
    * « Tester la scène », `{ geste: 'tester' }`, qui passe le projet, ses scènes à jour, par la porte, refusé avec la
    * raison de la porte (`essaiDeLaScene`), et rend `essai: true` : le lancement du projet, la scène éditée à l'entrée,
    * les autres scènes, sa carte et son narratif, joué par le groupe vitrine (`groupeVitrine`), qu'ouvre `demarrer {
@@ -213,13 +220,17 @@ export interface ZonesDeLEditeur {
   /**
    * la logique du document ouvert : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique`) et vit
    * dans ce document (le déclencheur, le dialogue, la rencontre de la scène ; le lieu et la route de la carte du
-   * monde), la ligne `logique/<sorte>` qui compte ses porteurs, puis, s'il en a, chacun en liste par
-   * son identifiant, pressé s'il est sélectionné, qui joue `{ geste: 'selectionner', porteur: { sorte, id } }` ; puis,
-   * quand sa sorte se crée (`creer`, `ECRITURES_DES_PORTEURS`), « Ajouter », `{ geste: 'ajouter', sorte }`, qui pose un
-   * porteur neuf et le sélectionne (le dialogue : `addDialogue` ; la rencontre : `addEncounter` ; le lieu, au centre
-   * de la carte : `ajouterLieu`) ; de la route, à la place, `logique/route/ajouter/<lieu>`, « Relier à <lieu> », pour
-   * chaque lieu que le lieu sélectionné rejoint par une route neuve (`avecs`, `lierLieux`), `{ geste: 'ajouter',
-   * sorte: 'route', avec }`
+   * monde ; une entrée de chaque registre créable du narratif, sous la clé du registre, `affaires`, `indices`,
+   * `presetsPnj`, `documents`, `etats`, et l'écart, `ecart`), la ligne `logique/<sorte>` qui compte ses porteurs, puis,
+   * s'il en a, chacun en liste par son identifiant (l'entrée de fiche d'un écart), pressé s'il est sélectionné, qui joue
+   * `{ geste: 'selectionner', porteur: { sorte, id } }` ; puis, quand sa sorte se crée (`creer`,
+   * `ECRITURES_DES_PORTEURS`), « Ajouter », `{ geste: 'ajouter', sorte }`, qui pose un porteur neuf et le sélectionne
+   * (le dialogue : `addDialogue` ; la rencontre : `addEncounter` ; le lieu, au centre de la carte : `ajouterLieu` ;
+   * l'entrée du narratif, le corps neuf de son registre sous un identifiant frais : `ajouteEntree`), refusé avec sa
+   * raison (`refusDeCreer` : l'indice sans affaire) ; de la route, à la place, `logique/route/ajouter/<lieu>`,
+   * « Relier à <lieu> », pour chaque lieu que le lieu sélectionné rejoint par une route neuve (`avecs`, `lierLieux`),
+   * `{ geste: 'ajouter', sorte: 'route', avec }` ; de l'écart, `logique/ecart/ajouter/<entrée>`, « Écarter <entrée> »,
+   * pour chaque entrée des fiches commitées qu'aucun écart n'écarte, `{ geste: 'ajouter', sorte: 'ecart', avec }`
    */
   'editeur.logique': (Choix | Ligne | Bouton)[];
   /**
@@ -359,6 +370,18 @@ export interface ZonesDeLEditeur {
    * plan ; le supprimer, ses routes avec lui. D'une route : son sens, `route/sens/deux` ou `route/sens/<lieu>`, le courant pressé,
    * chacun refusé quand une autre route de la paire l'offre déjà, `{ geste: 'sens', depuis }` (`depuis` nul : les deux
    * sens, `orienterRoute`) ; son formulaire tiré du schéma ; la supprimer.
+   *
+   * Le narratif ouvert, sans sélection : le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'narratif',
+   * id: 'narratif' }`), son ouverture et sa clôture. D'une entrée d'un registre créable du narratif : le formulaire qui
+   * la renomme, de son identifiant ; d'un indice, pour chacun de ses stades, et d'un état énuméré, pour chacune de ses
+   * valeurs (`SOUS_ENTREES`), le formulaire `identifier/<stade|valeur>/<id>` qui change son identifiant, `{ type:
+   * 'identifier', args: [element, id] }`, propagé au projet, et `<stade|valeur>/<id>/supprimer`, `{ geste: 'supprimer',
+   * element }`, refusé avec sa raison (la dernière sous-entrée, une sous-entrée qu'une référence désigne), puis
+   * `<stade|valeur>/ajouter`, qui écrit au rang neuf la sous-entrée neuve, d'identifiant frais ; le formulaire tiré du
+   * schéma de chacun de ses champs, son identifiant excepté, les champs de ses sous-entrées par rang, sans
+   * l'identifiant ni le raccourcissement de leur liste (ses renvois, parmi les autres indices) ; la supprimer, refusé
+   * avec sa raison tant qu'une référence la désigne (`refusDeRetrait`, `retireDuProjet`). D'un écart : le formulaire qui
+   * change son entrée, parmi les entrées libres ; son motif ; le supprimer.
    *
    * D'une zone : la poignée qui la redimensionne ; d'un déclencheur, le formulaire qui le renomme ; d'une zone d'effet,
    * le formulaire qui la nomme et celui qui change son identifiant, sa nature (non déclarée, intérieur ou extérieur),
@@ -691,7 +714,7 @@ const formulaireDeLIdentifiant = (id: string): Formulaire =>
 /** Le formulaire qui change l'identifiant de chaque élément d'identifiant `ids` de la sous-collection `famille` du porteur
  *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, en saisie fixe, son champ prérempli
  *  de lui, libellé `libelle`. */
-const identifiantsDesElements = (famille: 'action' | 'noeud', ids: readonly string[], libelle: (id: string) => string): Formulaire[] => ids.map((el) => {
+const identifiantsDesElements = (famille: 'action' | 'noeud' | 'stade' | 'valeur', ids: readonly string[], libelle: (id: string) => string): Formulaire[] => ids.map((el) => {
   const id = `identifier/${famille}/${el}`;
   return {
     type: 'formulaire', id, libelle: libelle(el), verbe: 'identifier', focus: false, refus: null,
@@ -1624,18 +1647,22 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
 }
 
 /** La zone Logique de la session `s` : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique`) et vit dans
- *  le document ouvert (`accesDe`), le compte de ses porteurs, chacun en liste, pressé s'il est sélectionné, qui le
- *  sélectionne ; quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`), « Ajouter », ou, de la sorte
- *  qui se crée avec l'identifiant qu'offre la sélection (`avecs`), un bouton par identifiant offert. #3606 décision 7 */
+ *  le document ouvert (`accesDe`), le compte de ses porteurs, chacun en liste sous son identifiant (`idDuPorteur`), pressé
+ *  s'il est sélectionné, qui le sélectionne ; quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`),
+ *  « Ajouter », refusé avec la raison que la table dit (`refusDeCreer`), ou, de la sorte qui se crée avec l'identifiant
+ *  qu'offre la sélection (`avecs`), un bouton par identifiant offert. #3606 décision 7 */
 function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const choisi = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
+  const projet = projetEdite(s);
+  const sceneId = idDeLaSceneEditee(s);
   return (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((sorte) => FORMULAIRES[sorte].logique && accesDe(sorte).document === s.document).flatMap((sorte) => {
-    const ids = porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s)).map((d) => d.id);
+    const acces = accesDe(sorte);
+    const ids = porteursDuProjet(acces, projet, sceneId).map((d) => idDuPorteur(acces, d, sceneId));
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
-    const { creer, avecs } = ECRITURES_DES_PORTEURS[sorte];
+    const { creer, refusDeCreer, avecs } = ECRITURES_DES_PORTEURS[sorte];
     const ajouts = !creer ? []
-      : avecs ? avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel).map((avec) => bouton(`logique/${sorte}/ajouter/${avec}`, t(texte('.avec'), { avec }), { geste: 'ajouter', sorte, avec }))
-        : [bouton(`logique/${sorte}/ajouter`, t(texte('.ajouter')), { geste: 'ajouter', sorte })];
+      : avecs ? avecs(projet, sceneId, s.sel).map((avec) => bouton(`logique/${sorte}/ajouter/${avec}`, t(texte('.avec'), { avec }), { geste: 'ajouter', sorte, avec }))
+        : [bouton(`logique/${sorte}/ajouter`, t(texte('.ajouter')), { geste: 'ajouter', sorte }, false, refusDeCreer?.(projet, sceneId, s.sel) ?? null)];
     return [
       ligne(`logique/${sorte}`, t(texte(''), { n: ids.length })),
       ...(ids.length ? [choix(`logique/${sorte}/liste`, t(texte('.choisir')), ids.map((id) =>
@@ -1723,22 +1750,46 @@ function planDuLieuEnInspecteur(s: SessionDEdition, lieu: DonneeDuPorteur['lieu'
   ];
 }
 
+/** Les éléments propres d'une entrée du registre `registre` du narratif à sous-entrées (`SOUS_ENTREES`), de donnée
+ *  `donnee`, dans la session `s` : de chacune de ses sous-entrées, le formulaire qui change son identifiant
+ *  (`identifiantsDesElements`, `renommerElement`) et le bouton qui la retire (`{ geste: 'supprimer', element }`), refusé
+ *  avec sa raison (`refusDeRetrait`) ; puis « Ajouter », qui écrit au rang qui suit la dernière la sous-entrée neuve que
+ *  son contexte y pose (`choixDuChamp`), sans elle s'il n'en pose pas. #3606 B8 */
+function sousEntreesDuRegistre<R extends keyof typeof SOUS_ENTREES>(registre: R) {
+  const { chemin, famille } = SOUS_ENTREES[registre]!;
+  const texte = (suffixe: string) => `ecran.editeur.sousEntree.${famille}.${suffixe}` as MsgKey;
+  return (s: SessionDEdition, donnee: DonneeDuPorteur[R]): (Choix | Ligne | Bouton | Formulaire)[] => {
+    const elements = chemin.reduce<unknown>((o, cle) => (o as Record<Segment, unknown> | undefined)?.[cle], donnee) as readonly { id: string }[] | undefined ?? [];
+    const rangNeuf = [...chemin, elements.length];
+    const [neuve] = choixDuChamp(registre, donnee, rangNeuf, cadreDeLaSession(s)) ?? [];
+    return [
+      ...elements.flatMap(({ id }) => [
+        ...identifiantsDesElements(famille, [id], (el) => t(texte('identifier'), { id: el })),
+        bouton(`${famille}/${id}/supprimer`, t(texte('supprimer'), { id }), { geste: 'supprimer', element: id }, false, refusDeRetrait(s, id)),
+      ]),
+      ...(neuve ? [bouton(`${famille}/ajouter`, t(texte('ajouter')), ecrireLaValeur({ sorte: registre, id: donnee.id }, rangNeuf, neuve.valeur))] : []),
+    ];
+  };
+}
+
 /** Les éléments propres de l'inspecteur d'un porteur qui se liste à la zone Logique (`FORMULAIRES`, `logique`), par
  *  sorte : les nœuds d'un dialogue (`noeudsDuDialogue`), les membres d'une rencontre (`membresDeLaRencontre`), le sens
- *  d'une route (`sensDeLaRoute`), le plan d'un lieu (`planDuLieuEnInspecteur`) ; sans
- *  entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme elle (`inspecteurDeZone`). */
+ *  d'une route (`sensDeLaRoute`), le plan d'un lieu (`planDuLieuEnInspecteur`), les sous-entrées d'une entrée du narratif
+ *  qui en déclare (`sousEntreesDuRegistre`) ; sans entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme
+ *  elle (`inspecteurDeZone`). */
 const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[] } = {
   dialogue: noeudsDuDialogue,
   rencontre: membresDeLaRencontre,
   route: sensDeLaRoute,
   lieu: planDuLieuEnInspecteur,
+  ...Object.fromEntries((Object.keys(SOUS_ENTREES) as (keyof typeof SOUS_ENTREES)[]).map((registre) => [registre, sousEntreesDuRegistre(registre)])),
 };
 
 /** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique
  *  (`inspecteurDuPorteur`, ses éléments d'id `<sorte>/…`), ses éléments propres (`PROPRES_DE_LA_LOGIQUE`). */
 function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sorte: S, donnee: DonneeDuPorteur[S]): (Choix | Ligne | Bouton | Formulaire)[] {
   const propres: ((s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[]) | undefined = PROPRES_DE_LA_LOGIQUE[sorte];
-  return inspecteurDuPorteur(s, sorte, { sorte, id: donnee.id }, propres?.(s, donnee) ?? []);
+  return inspecteurDuPorteur(s, sorte, { sorte, id: idDuPorteur(accesDe(sorte), donnee, idDeLaSceneEditee(s)) }, propres?.(s, donnee) ?? []);
 }
 
 /** Les documents dont l'inspecteur de la carte du monde, sans sélection, montre le porteur singulier : la carte, puis le
@@ -2158,8 +2209,9 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   };
 }
 
-/** Les documents du projet que le menu Fichier ouvre (`{ geste: 'document' }`) : la scène et la carte du monde. #3606 */
-const DOCUMENTS_DU_MENU = ['scene', 'carte'] as const;
+/** Les documents du projet que le menu Fichier ouvre (`{ geste: 'document' }`) : la scène, la carte du monde et le
+ *  narratif. #3606 */
+const DOCUMENTS_DU_MENU = ['scene', 'carte', 'narratif'] as const;
 
 /** Les avertissements que la validation montre d'emblée ; au-delà, leur nombre. */
 const AVERTISSEMENTS_MONTRES = 20;

@@ -23,6 +23,10 @@ export interface ProjetEdite {
   narratif: NarratifBlock;
 }
 
+/** Ce que les écrivains lisent d'un projet : celui de l'éditeur web (`ProjetEdite`) comme celui de la session du noyau,
+ *  dont la carte du monde peut manquer. */
+type ProjetDesEcrivains = Pick<ProjetEdite, 'scenes' | 'narratif'> & { worldMap?: WorldMap | null };
+
 /** Les sous-entrées que `cible` (sans `sous`) déclare : les stades d'un indice, les valeurs d'un état ;
  *  `undefined` si l'entrée n'existe pas ou n'en déclare pas. */
 function sousEntrees(narratif: NarratifBlock, cible: CibleNarrative): readonly { id: string }[] | undefined {
@@ -83,7 +87,7 @@ function renommeDansLeNarratif(n: NarratifBlock, cible: CibleNarrative, nouveau:
 
 /** Renomme `cible` en `nouveau` (rogné) et propage à toute référence du projet (`renommeRef`), les
  *  recoupements d'indices compris. Refusé (projet inchangé) : `refusDeRenommage`. */
-export function renommeAuProjet<P extends ProjetEdite>(projet: P, cible: CibleNarrative, nouveau: string): P {
+export function renommeAuProjet<P extends ProjetDesEcrivains>(projet: P, cible: CibleNarrative, nouveau: string): P {
   const next = nouveau.trim();
   if (next === (cible.sous ?? cible.id) || refusDeRenommage(projet.narratif, cible, next)) return projet;
   const p = renommeRef(projet, cible, next);
@@ -97,7 +101,7 @@ const MINIMUM_DE_SOUS_ENTREES = { indices: 'narratifEdit.minimum.stade', etats: 
 
 /** La raison qui refuse de retirer `cible` : la dernière sous-entrée de son entrée, ou les lieux DISTINCTS
  *  qui la désignent encore ; `undefined` : le retrait est permis. */
-export function refusDeRetrait(projet: ProjetEdite, cible: CibleNarrative): string | undefined {
+export function refusDeRetrait(projet: ProjetDesEcrivains, cible: CibleNarrative): string | undefined {
   if (cible.sous !== undefined && (sousEntrees(projet.narratif, { registre: cible.registre, id: cible.id })?.length ?? 0) <= 1)
     return t(MINIMUM_DE_SOUS_ENTREES[cible.registre as keyof typeof MINIMUM_DE_SOUS_ENTREES]);
   const sites = referencesA(projet, cible);
@@ -107,7 +111,7 @@ export function refusDeRetrait(projet: ProjetEdite, cible: CibleNarrative): stri
 
 /** Retire `cible` du narratif ; un indice retiré l'est aussi des recoupements. Refusé (projet inchangé) :
  *  `refusDeRetrait`. */
-export function retireDuProjet<P extends ProjetEdite>(projet: P, cible: CibleNarrative): P {
+export function retireDuProjet<P extends ProjetDesEcrivains>(projet: P, cible: CibleNarrative): P {
   if (refusDeRetrait(projet, cible)) return projet;
   const n = projet.narratif;
   const { registre, id, sous } = cible;

@@ -401,6 +401,8 @@ export interface SessionDEdition {
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; poser une troupe de `nombre` copies du personnage sélectionné (`poserUneTroupe`,
  *  `nombre` entre `BORNES_DE_LA_TROUPE`) ; supprimer la sélection, par la table de sa sorte s'il y a lieu (`projetSansLePorteur`),
+ *  ou l'élément `element` de la sous-collection à clé du porteur sélectionné (le stade d'un indice, la valeur d'un état,
+ *  par la table, `retirerElement`),
  *  sans elle le porteur singulier du document ouvert qui se retire (la carte du monde), la scène redevenant ouverte ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  mettre la scène à l'essai, que l'hôte joue (`essaiDeLaScene`), la session telle quelle ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
@@ -443,7 +445,7 @@ export type GesteDEdition =
   | { geste: 'coller' }
   | { geste: 'dupliquer' }
   | { geste: 'troupe'; nombre: number }
-  | { geste: 'supprimer' }
+  | { geste: 'supprimer'; element?: string }
   | { geste: 'effacerVolee' }
   | { geste: 'annuler' }
   | { geste: 'retablir' }
@@ -918,12 +920,23 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
   return ecrite.ok ? null : ecrite.refus;
 }
 
-/** Pourquoi la session `s` ne supprime pas sa sélection : le refus du retrait de son porteur par la table de sa sorte
- *  (`projetSansLePorteur`), dit à l'auteur ; `null` si elle la supprime. #3606 */
-export function refusDeRetrait(s: SessionDEdition): string | null {
+/** Pourquoi la session `s` ne supprime pas sa sélection, ou l'élément `element` de son porteur : le refus du retrait par
+ *  la table de sa sorte (`projetSansLePorteur`), dit à l'auteur ; `null` si elle le supprime. #3606 */
+export function refusDeRetrait(s: SessionDEdition, element?: string): string | null {
   const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
-  const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
+  const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur, element);
   return retrait && !retrait.ok ? retrait.regle : null;
+}
+
+/** Pourquoi la session `s` ne donne pas le nom du geste `g` au porteur sélectionné, ou l'identifiant du geste à son
+ *  élément : le refus que la table de sa sorte dit (`ECRITURES_DES_PORTEURS`, `refusDeRenommer`), le nom laissé vide
+ *  compris ; `null` si elle le donne, ou si sa sorte ne dit pas ce refus. #3606 B8 */
+export function refusDuRenommage(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'nommer' | 'identifier' }>): string | null {
+  const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
+  const refus = porteur && s.sel ? ECRITURES_DES_PORTEURS[porteur.sorte].refusDeRenommer : undefined;
+  if (!porteur || !refus) return null;
+  if (g.geste === 'nommer') return refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom ?? '');
+  return g.element === undefined ? null : refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.id, g.element);
 }
 
 /** La session après le geste `g`, sur la couche éditée, l'une de la vue (`vueDeLaScene`) : les ponts d'un navire en sont.
@@ -1117,9 +1130,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'supprimer': {
       const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
-      const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
-      if (retrait) return retrait.ok ? avecSonDocument(ecrireLeProjet(s, retrait.valeur)) : s;
-      return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;
+      const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur, g.element);
+      if (retrait) return retrait.ok ? avecSonDocument(ecrireLeProjet(s, retrait.valeur, g.element === undefined ? null : s.sel)) : s;
+      return s.sel && g.element === undefined ? ecrire(s, deleteSel(scene, s.sel)) : s;
     }
     case 'annuler':
     case 'retablir':
