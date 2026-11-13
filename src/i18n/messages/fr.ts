@@ -764,7 +764,6 @@ export const fr = {
   'ecran.editeur.scene.musique.combat': 'Musique de combat',
   'ecran.editeur.scene.musique.auto': 'Automatique (selon le contexte)',
   'ecran.editeur.scene.musique.silence': 'Aucune (silence)',
-  'ecran.editeur.scene.introduire': 'Écrire le message de départ',
   'ecran.editeur.scene.stations': 'Ancres de bataille',
   'ecran.editeur.scene.stations.aucune': 'Aucune ancre de bataille : les Scènes de Round s’étalent d’office.',
   'ecran.editeur.scene.stations.ajouter': 'Ajouter une ancre de bataille',

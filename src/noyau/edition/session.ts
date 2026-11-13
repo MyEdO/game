@@ -20,16 +20,16 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, projetSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
-import { DOCUMENTS, FORMULAIRES, accesDe, entiteDeLaSelection, porteurDeLaSel, porteurDuProjet, porteursDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, projetSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, type PatchDeZone, type Pt } from '../sceneEdit';
+import { DOCUMENTS, FORMULAIRES, accesDe, cheminOffert, entiteDeLaSelection, formeDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
 import { groupeVitrine } from '../../data/pregens';
 import { lancementDuProjet, type LancementDeScenario } from '../lancementDeScenario';
-import { facadeFeatureKindSchema, messageIntroductionSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
-import { champsOfferts, choixDuNoeud, elementDuNoeud, type FieldDesc, type ValeurDuChoix } from '../codex/editFields';
+import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
+import { choixDuNoeud, elementDuNoeud, type ValeurDuChoix } from '../codex/editFields';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
 import { memoByDeps } from '../monde/sceneMemo';
@@ -77,8 +77,7 @@ export type Ouvrage = (typeof OUVRAGES)[number];
 /** Ce que l'inspecteur de la scène écrit, sans sélection : ses champs scalaires (`null` retire le champ), sa grille,
  *  son nord (`null` : vers le haut du plan), les matières de son relief, sa toiture par défaut, son repos sur place
  *  (lieux offerts, qualité piètre), ses drapeaux de départ (`null` retire le drapeau) ; une piste de sa musique
- *  (`setSceneMusic` : `id` absent, la piste du contexte ; `null`, le silence) ; le texte de son message
- *  d'introduction (`setStartMessageTexte` : vide, il se retire) ; ses ancres de bataille, une ajoutée vers la Scène de
+ *  (`setSceneMusic` : `id` absent, la piste du contexte ; `null`, le silence) ; ses ancres de bataille, une ajoutée vers la Scène de
  *  Round `ajouter`, celle de rang `rang` patchée, ou celle de rang `retirer` retirée. */
 export interface PatchDeScene {
   scalaires?: { [K in keyof ScalairesDeScene]?: ScalairesDeScene[K] | null };
@@ -89,15 +88,11 @@ export interface PatchDeScene {
   repos?: { lieux?: PatchDeZone['lieux']; pietre?: boolean };
   drapeaux?: Record<string, boolean | null>;
   musique?: { piste: keyof NonNullable<Scene['music']>; id?: string | null };
-  message?: string;
   stations?: { ajouter: string } | { rang: number; sceneId?: string; pos?: SceneStationAnchor['pos'] } | { retirer: number };
 }
 
 /** Les groupes que le lieu déclare (`Scene.groups`), chacun sa valeur et son libellé (`choixDuNoeud`). */
 export const groupesDuLieu = (): ValeurDuChoix[] => choixDuNoeud(elementDuNoeud(sceneSchema.shape.groups))!;
-
-/** Le champ du texte du message d'introduction, tiré de son schéma (`messageIntroductionSchema`). */
-export const champDuMessage = (): FieldDesc => champsOfferts(messageIntroductionSchema, {}).find((f) => f.key === 'texte')!;
 
 /** La validation du projet (`validateScene`), datée par la version des datasets qu'elle lit (`versionDesDatasets`), comme
  *  le mémo de schéma de `validateScene.ts`. */
@@ -218,7 +213,6 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   if (patch.repos) sc = setSceneRest(sc, { ...patch.repos.lieux, ...(patch.repos.pietre !== undefined && { quality: patch.repos.pietre ? 'pietre' : undefined }) });
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });
   if (patch.musique) sc = setSceneMusic(sc, patch.musique.piste, patch.musique.id);
-  if (patch.message !== undefined) sc = setStartMessageTexte(sc, patch.message);
   if (patch.stations) sc = stationsPatchees(sc, patch.stations);
   return sc;
 }
@@ -760,9 +754,9 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
 }
 
 /** Pourquoi la session `s` ne supprime pas sa sélection : le refus du retrait de son porteur par la table de sa sorte
- *  (`projetSansLePorteur`), dit à l'auteur ; `null` si elle la supprime. #3606 B8 */
+ *  (`projetSansLePorteur`), dit à l'auteur ; `null` si elle la supprime. #3606 */
 export function refusDeRetrait(s: SessionDEdition): string | null {
-  const porteur = porteurDeLaSel(s.sel);
+  const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
   const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
   return retrait && !retrait.ok ? retrait.regle : null;
 }
@@ -878,7 +872,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         const renommee = renameEntry(scene, s.sel.id, g.nom);
         return renommee === scene ? s : ecrire(s, renommee, { type: 'entry', id: g.nom.trim() });
       }
-      const porteur = porteurDeLaSel(s.sel);
+      const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
       const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommer;
       if (!porteur || !renommer) return s;
       const renomme = renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom);
@@ -920,7 +914,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'identifier': {
       if (g.element !== undefined) {
-        const porteur = porteurDeLaSel(s.sel);
+        const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
         const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommerElement;
         const renomme = porteur && renommer ? renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.element, g.id) : projetEdite(s);
         return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, s.sel);
@@ -955,7 +949,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return out?.ids.length ? ecrire(s, out.scene, s.sel) : s;
     }
     case 'supprimer': {
-      const porteur = porteurDeLaSel(s.sel);
+      const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
       const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
       if (retrait) return retrait.ok ? ecrireLeProjet(s, retrait.valeur) : s;
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;
@@ -1006,20 +1000,23 @@ function calquesElagues(s: SessionDEdition): { calques?: CalquesDuProjet } {
 }
 
 /** Le porteur de formulaire de la sélection de la session `s` (`porteurDeLaSel`) : le schéma de sa sorte
- *  (`FORMULAIRES`) et sa donnée dans le projet (`porteurDuProjet`) ; `undefined` sans lui. */
-function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: unknown } | undefined {
-  const porteur = porteurDeLaSel(s.sel);
-  return porteur && { schema: FORMULAIRES[porteur.sorte].schema, donnee: porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee };
+ *  (`FORMULAIRES`), sa donnée dans le projet (`porteurDuProjet`) et les champs qu'elle offre dans son cadre
+ *  (`formeDuPorteur`) ; `undefined` sans lui ou sans sa donnée. */
+function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: unknown; champs: ReturnType<typeof formeDuPorteur>['champs'] } | undefined {
+  const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+  const donnee = porteur && porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee;
+  return porteur && donnee && { schema: FORMULAIRES[porteur.sorte].schema, donnee, champs: formeDuPorteur(porteur.sorte, donnee, cadreDeLaSession(s)).champs };
 }
 
 /** La session `s`, le chapitre qu'elle attend posé si elle n'en attend aucun et que l'hôte sert le `Source/` : celui de
- *  la première adresse de prose du porteur sélectionné (`porteurDeLaSelection`, `adressesDe`) dont le chapitre est
- *  choisi et absent des chapitres reçus. Il se demande donc à la sélection d'un porteur dont une adresse a déjà un
+ *  la première adresse de prose du porteur sélectionné (`porteurDeLaSelection`, `adressesDe`), sous un champ qu'il
+ *  offre (`cheminOffert`), dont le chapitre est choisi et absent des chapitres reçus. Il se demande donc à la sélection d'un porteur dont une adresse a déjà un
  *  chapitre, et au choix d'un chapitre. */
 function avecLeChapitreDemande(s: SessionDEdition): SessionDEdition {
   const porteur = porteurDeLaSelection(s);
-  if (s.chapitreEnAttente || !s.manifeste || porteur?.donnee === undefined) return s;
+  if (s.chapitreEnAttente || !s.manifeste || !porteur) return s;
   const manquante = adressesDe(porteur.schema, porteur.donnee)
+    .filter(({ chemin }) => cheminOffert(porteur.champs, chemin))
     .map(({ adresse }) => adresse)
     .find((a) => estGraphieDeChapitre(a.ch) && !(cleDuChapitre(a.book, a.ch) in s.chapitres));
   return manquante ? { ...s, chapitreEnAttente: { book: manquante.book, ch: manquante.ch } } : s;

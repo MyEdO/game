@@ -480,9 +480,9 @@ describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
     for (const chemin of [['nodes', 1], ['nodes', 0, 'choices', 0], ['nodes', 5, 'choices', 0]] as Segment[][]) expect(choixDuChamp('dialogue', DIALOGUE, chemin, CADRE_DU_DIALOGUE), chemin.join('/')).toBeUndefined();
   });
 
-  it('la sélection d’un dialogue désigne son porteur, comme celle d’un déclencheur, d’une zone, d’une entité ; une entrée, aucun', () => {
-    expect(([{ type: 'dialogue', id: 'd' }, { type: 'trigger', id: 't' }, { type: 'effectZone', id: 'z' }, { type: 'entity', id: 'e' }, { type: 'entry', id: 'p' }, null] as Sel[]).map(porteurDeLaSel)).toEqual([
-      { sorte: 'dialogue', id: 'd' }, { sorte: 'declencheur', id: 't' }, { sorte: 'zone', id: 'z' }, { sorte: 'entite', id: 'e' }, undefined, undefined,
+  it('la sélection d’un dialogue désigne son porteur, comme celle d’un déclencheur, d’une zone, d’une entité ; une entrée, aucun ; aucune sélection, la scène ouverte', () => {
+    expect(([{ type: 'dialogue', id: 'd' }, { type: 'trigger', id: 't' }, { type: 'effectZone', id: 'z' }, { type: 'entity', id: 'e' }, { type: 'entry', id: 'p' }, null] as Sel[]).map((sel) => porteurDeLaSel(sel, 'salle'))).toEqual([
+      { sorte: 'dialogue', id: 'd' }, { sorte: 'declencheur', id: 't' }, { sorte: 'zone', id: 'z' }, { sorte: 'entite', id: 'e' }, undefined, { sorte: 'scene', id: 'salle' },
     ]);
   });
 
@@ -587,7 +587,7 @@ describe('le formulaire d’une rencontre (#3606 M4b)', () => {
   });
 
   it('la sélection d’une rencontre désigne son porteur', () => {
-    expect(porteurDeLaSel({ type: 'encounter', id: 'enc' })).toEqual({ sorte: 'rencontre', id: 'enc' });
+    expect(porteurDeLaSel({ type: 'encounter', id: 'enc' }, 'salle')).toEqual({ sorte: 'rencontre', id: 'enc' });
   });
 });
 
@@ -679,7 +679,7 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
   });
 });
 
-describe('l’accès d’un porteur à son document du projet (#3606 L2a, B3, S1)', () => {
+describe('l’accès d’un porteur à son document du projet (#3606)', () => {
   const MURS = [{ x: 1, y: 2, side: 'N' as const }, { x: 3, y: 0, side: 'E' as const, z: 1 }];
   const SCENE: Scene = { ...emptyScene('salle', 4, 4), walls: MURS };
   const CARTE: WorldMap = { ...emptyWorldMap('carte'), routes: [{ id: 'route', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }] };

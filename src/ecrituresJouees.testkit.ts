@@ -1,6 +1,6 @@
 /**
  * L'ALLER-RETOUR DE L'ÉDITEUR GODOT (#3606, garde #841) : les écritures que le formulaire tiré du schéma offre à
- * l'inspecteur d'une zone d'effet, d'un déclencheur, d'un personnage, d'un dialogue, d'une rencontre, d'un décor et d'une coque, et le navire que pose l'outil navire, jouées comme la méthode `editer` du pont les joue
+ * l'inspecteur de la scène sans sélection, d'une zone d'effet, d'un déclencheur, d'un personnage, d'un dialogue, d'une rencontre, d'un décor et d'une coque, et le navire que pose l'outil navire, jouées comme la méthode `editer` du pont les joue
  * (`hotes/godot/pont/pont.ts`) : le jeu d'un élément des zones passé en JSON, validé par `gesteDuFormulaire` ou
  * `boutonDeLEdition`, puis joué par `editer` sur la session d'édition ; le document relu avant et après. Partagé par la garde (`src/scene-field-editability-guard.test.ts`) et par la copie de
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
@@ -112,6 +112,9 @@ function empreinte(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'v
   return JSON.stringify([geste.porteur.sorte, geste.chemin.map((p) => (typeof p === 'number' ? '#' : p)), saisie, formes, forme(geste.valeur)]);
 }
 
+/** Le porteur de formulaire que désigne la sélection de la session `s`, la scène éditée sans elle (`porteurDeLaSel`). */
+const porteurChoisi = (s: SessionDEdition) => porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
+
 /** Le porteur `porteur` de la session `s` (`porteurDuProjet`) : sa donnée et son chemin depuis son document. */
 const porteurDu = (s: SessionDEdition, porteur: { sorte: SorteDePorteur; id: string }) => porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id);
 
@@ -181,7 +184,7 @@ function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'vale
 function ajouter(s: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]): SessionDEdition {
   const avant = sceneEditee(s);
   const suite = presser(s, `logique/${sorte}/ajouter`);
-  const porteur = porteurDeLaSel(suite.sel);
+  const porteur = porteurChoisi(suite);
   const cree = porteur?.sorte === sorte ? porteurDu(suite, porteur) : undefined;
   if (!cree) throw new Error(`la zone Logique n’a pas ajouté de porteur ${sorte}`);
   out.push({ avant, apres: sceneEditee(suite), chemin: cree.chemin.slice(0, -1), valeur: porteursDe(suite, sorte), saisie: 'bouton' });
@@ -197,7 +200,7 @@ function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJ
   const designe = formulaire?.champs[0];
   const element = designe?.type === 'fixe' ? designe.valeur : undefined;
   const geste = element === undefined ? undefined : gesteDuFormulaire(zones, { type: 'identifier', args: [element, vers] });
-  const porteur = porteurDeLaSel(s.sel);
+  const porteur = porteurChoisi(s);
   if (geste?.geste !== 'identifier' || !porteur) throw new Error(`aucun formulaire ${id} qui change un identifiant`);
   const avant = sceneEditee(s);
   const suite = jouer(s, geste);
@@ -312,7 +315,7 @@ const poserPersonnage = (s: SessionDEdition, fiche: string, x: number, y: number
 const enroler = (s: SessionDEdition, rencontre: string, fiche: string, x: number, y: number): SessionDEdition => presser(poserPersonnage(s, fiche, x, y), `rencontre/${rencontre}/enrole`);
 
 /** L'id du porteur sélectionné de la session `s`. */
-const selectionne = (s: SessionDEdition): string => porteurDeLaSel(s.sel)!.id;
+const selectionne = (s: SessionDEdition): string => porteurChoisi(s)!.id;
 
 /** Le paquet du projet du jeu d'id `id`. */
 function projetDuJeu(id: string): ReturnType<typeof paquetDuJeu> {
@@ -339,7 +342,7 @@ const NAVIRE_NEUF = { x: 2, y: 6 } as const;
 function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJouee[]): SessionDEdition {
   const avant = sceneEditee(s);
   const suite = jouer(presser(s, 'outil/navire'), { geste: 'appui', point: point(x, y) });
-  const porteur = porteurDeLaSel(suite.sel);
+  const porteur = porteurChoisi(suite);
   const apres = sceneEditee(suite);
   const rang = apres.entities.findIndex((e) => e.id === porteur?.id);
   if (porteur?.sorte !== 'entite' || rang < 0 || avant.entities.some((e) => e.id === porteur.id)) throw new Error('l’outil navire n’a pas posé de navire');
@@ -347,7 +350,7 @@ function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJo
   return suite;
 }
 
-/** Les écritures jouées sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`) et un personnage de chacune des `FICHES` d'une
+/** Les écritures jouées sur l'inspecteur d'une scène neuve de la première campagne du jeu sans sélection, puis sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`) et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, le manifeste du `Source/` servi, chacun posé à son outil (Zone,
  *  Personnage), un dialogue que la zone Logique y ajoute, dont l'adresse de prose d'un nœud se compose, son nœud renommé (`NOEUD_DU_DIALOGUE`), une rencontre que la zone Logique y ajoute, où un
  *  personnage d'`ENROLE` et un de la première des `FICHES` s'enrôlent (`enroler`), le second fait monture et chevauché
@@ -365,6 +368,7 @@ function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJo
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false, undefined, manifesteDe(CORPUS_DISQUE)), 'scenes/ajouter');
+  jouerLInspecteur(s, out);
   for (const [sorte, de, a, boutons] of ZONES) {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) })), out);

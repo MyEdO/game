@@ -19,7 +19,7 @@ import {
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
-  allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
+  allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
@@ -90,8 +90,10 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * type: 'valeur', args: [porteur, chemin, valeur?] }`, en `{ geste: 'valeur', porteur, chemin, valeur }`
  * (`gesteDuFormulaire`), refusé en `validation` si aucun formulaire des zones ne porte ce porteur et ce chemin, ni
  * aucune valeur d'un de leurs choix ce geste même ; `porteur` est `{ sorte: 'zone' | 'declencheur' | 'entite' |
- * 'dialogue', id }`, la zone d'effet, le déclencheur, l'entité ou le dialogue par son identifiant, et `chemin` les clés du champ depuis lui, le rang
- * entier d'un élément de liste et la clé d'une entrée de record compris.
+ * 'dialogue' | 'rencontre' | 'scene', id }`, la zone d'effet, le déclencheur, l'entité, le dialogue, la rencontre ou la
+ * scène éditée par son identifiant, et `chemin` les clés du champ depuis lui, le rang
+ * entier d'un élément de liste et la clé d'une entrée de record compris. Sa saisie d'un texte est optionnelle : laissée
+ * vide, `valeur` part absente.
  *
  * Le geste, joué par un bouton ou par ce formulaire, n'écrit que ce que le formulaire offre (`avecLaValeur`) : sous un
  * champ que son porteur offre (`FORMULAIRES`, `cheminOffert`), le rang d'un élément d'une liste présente, une clé
@@ -102,7 +104,8 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * (`choixDuNoeud`), la valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
  * choisir pour une union (`variantesAChoisir`), la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le
  * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise ou si c'est l'entrée d'un record,
- * une liste vidée part si la sienne l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
+ * sinon l'objet le plus proche qui l'exige et dont l'absence est admise, entier ; une liste vidée part si la sienne
+ * l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
  *
  * L'entité s'écrit par sa porte (`editEntity`), et l'écriture qui lui fait enfreindre une règle qu'elle n'enfreignait
  * pas (`refusDeLEntite`, `src/data/schemas/defs-scenes/scene.ts` ; `TypeNonNomme`) est refusée, la règle dite ; une
@@ -212,8 +215,9 @@ export interface ZonesDeLEditeur {
    * lumière ambiante en liste, automatique ou l'une de `lightLevels`, son nord à la réglette au pas de 15° ou vers le
    * haut du plan, son environnement (`ENVIRONNEMENTS`) et sa météo en liste (`METEOS`), chacun non spécifié ou l'un des
    * siens, sa musique d'ambiance et de combat en liste, chacune automatique, silence ou l'une du catalogue
-   * (`allMusicDefs`), le formulaire de son message de départ, `{ type: 'introduire', args: [texte] }`, sa saisie
-   * `saisieMultiligne`, la matière de chaque partie de relief (`PARTS_RELIEF`) en liste parmi `matieresDe('relief')`,
+   * (`allMusicDefs`), le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'scene', id }`), son message de
+   * départ (`startMessage`), son texte en `saisieMultiligne`, vidé le retirant avec sa provenance, la matière de
+   * chaque partie de relief (`PARTS_RELIEF`) en liste parmi `matieresDe('relief')`,
    * sa toiture par défaut, couverture en liste, pente et comble à la réglette, son repos sur place, ses lieux et sa
    * qualité piètre, ses drapeaux de départ, chacun pressé s'il est vrai, que sa pression bascule, puis en liste, à
    * retirer, et le formulaire qui en ajoute un, vrai, puis ses ancres de bataille : de chacune sa Scène de Round en
@@ -223,8 +227,7 @@ export interface ZonesDeLEditeur {
    * Chaque bouton joue `{ geste: 'scene', patch }` (`PatchDeScene`), `patch` portant `scalaires` (`desc`, `ambiance`,
    * `weather`, `couvre`, `groups`, `metresPerTile`, `ambientLight`, `environment`, `null` retirant le champ),
    * `dimensions`, `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `pietre`), `drapeaux`
-   * (`null` retirant le drapeau), `musique` (`{ piste, id }`, `id` `null` : silence, absent : automatique), `message`
-   * (le texte de départ, vide le retirant avec sa provenance) ou `stations` (`{ ajouter }`, `{ rang, sceneId?, pos? }`
+   * (`null` retirant le drapeau), `musique` (`{ piste, id }`, `id` `null` : silence, absent : automatique) ou `stations` (`{ ajouter }`, `{ rang, sceneId?, pos? }`
    * ou `{ retirer }`, refusé à un rang absent).
    *
    * D'une entité : le formulaire qui la nomme, prérempli de son nom d'auteur ; le type d'un décor ou la fiche d'un
@@ -1225,10 +1228,16 @@ function elementDuGeste(cle: string, verbe: string, args: ArgumentDuGeste[], lib
   return elementsDesGestes([{ cle, verbe, libelle: libelle(rendu.rendu), arguments: args, ...rendu, attendu: false, ouvert: true, raison: null, reglage: false }])[0];
 }
 
+/** Les saisies de texte, qui, laissées vides, retirent leur champ. */
+const SAISIES_DE_TEXTE: readonly string[] = ['saisieTexte', 'saisieMultiligne'];
+
 /** L'élément qui écrit au champ `f`, au chemin `chemin` du porteur `porteur`, la valeur de son argument `a` : le geste
- *  `valeur` qui pose le porteur et le chemin (`elementDuGeste`). */
-const elementDeValeur = (id: string, porteur: PorteurDeValeur, chemin: Segment[], f: FieldDesc, a: ArgumentDuGeste): Bouton | Choix | Formulaire =>
-  elementDuGeste(id, 'valeur', [fixe('porteur', porteur), fixe('chemin', chemin), a], (rendu) => (rendu === 'formulaire' ? t('ecran.editeur.valeur.ecrire') : f.label));
+ *  `valeur` qui pose le porteur et le chemin (`elementDuGeste`), sa saisie de texte optionnelle (`SAISIES_DE_TEXTE`) :
+ *  laissée vide, la valeur part absente, qui retire le champ. */
+function elementDeValeur(id: string, porteur: PorteurDeValeur, chemin: Segment[], f: FieldDesc, a: ArgumentDuGeste): Bouton | Choix | Formulaire {
+  const el = elementDuGeste(id, 'valeur', [fixe('porteur', porteur), fixe('chemin', chemin), a], (rendu) => (rendu === 'formulaire' ? t('ecran.editeur.valeur.ecrire') : f.label));
+  return el.type === 'formulaire' ? { ...el, champs: el.champs.map((c) => (SAISIES_DE_TEXTE.includes(c.type) ? { ...c, optionnel: true } : c)) } : el;
+}
 
 /** Le geste `valeur` qui écrit `v` au chemin `chemin` du porteur `porteur` (`v` absente : le champ se retire). */
 const ecrireLaValeur = (porteur: PorteurDeValeur, chemin: Segment[], v?: unknown): GesteDEdition => ({ geste: 'valeur', porteur, chemin, ...(v === undefined ? {} : { valeur: v }) });
@@ -1344,7 +1353,7 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
  *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), son identifiant à son libellé s'il en porte un
- *  (#3606 B3), ses éléments, « Retirer » et, hors du premier,
+ *  (#3606), ses éléments, « Retirer » et, hors du premier,
  *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). Une liste
  *  à laquelle rien ne s'ajoute (un élément récursif, sans valeur neuve ni choix) : la saisie de sa valeur entière
  *  (`argumentDeValeur`), en JSON. Une liste que son contexte n'écrit pas entière (`ContexteDuChamp.ecrivable`) : son
@@ -1564,7 +1573,7 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  de ses porteurs dans la scène éditée, chacun en liste, pressé s'il est sélectionné, qui le sélectionne ; « Ajouter »
  *  quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`). #3606 décision 7 */
 function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
-  const choisi = porteurDeLaSel(s.sel);
+  const choisi = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
   return (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((sorte) => FORMULAIRES[sorte].logique).flatMap((sorte) => {
     const ids = porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s)).map((d) => d.id);
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
@@ -1597,7 +1606,7 @@ const LONGUEUR_DE_L_EXTRAIT = 60;
 
 /** Les éléments propres du dialogue `dlg` : pour chacun de ses nœuds, sa ligne, le marqueur du départ, son
  *  identifiant, l'extrait de sa réplique et les nœuds où mènent ses réponses, puis le formulaire qui change son
- *  identifiant (`identifiantsDesElements`). #3606 B3 */
+ *  identifiant (`identifiantsDesElements`). #3606 */
 function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue']): (Choix | Ligne | Bouton | Formulaire)[] {
   return dlg.nodes.flatMap((n) => {
     const vers = n.choices.flatMap((c) => (c.next ? [c.next.id] : []));
@@ -1651,7 +1660,7 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   const ent = entiteDeLaSelection(scene, s.sel);
   const entree = entreeDeLaSelection(s);
   const zone = zonesLues(scene).find((z) => sameSel(z.sel, s.sel));
-  const porteur = porteurDeLaSel(s.sel);
+  const porteur = porteurDeLaSel(s.sel, idDeLaSceneEditee(s));
   const logique = porteur && FORMULAIRES[porteur.sorte].logique ? porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee : undefined;
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
@@ -1678,11 +1687,6 @@ const musiqueDeLaScene = (scene: Scene): Choix[] => (['ambient', 'combat'] as co
     ...allMusicDefs().map((d) => bouton(`scene/musique/${piste}/${d.id}`, d.id, sur(d.id), v === d.id)),
   ], 'liste');
 });
-
-/** Le formulaire du message d'introduction de la scène `scene` (`{ type: 'introduire', args: [texte] }`), sa saisie
- *  tirée du schéma (`champDuMessage`), multiligne pour une prose, préremplie de son texte. */
-const formulaireDuMessage = (scene: Scene): Formulaire =>
-  elementDuGeste('introduire', 'introduire', [{ ...argumentDeValeur(champDuMessage(), scene.startMessage?.texte, []), nom: 'texte' }], () => t('ecran.editeur.scene.introduire')) as Formulaire;
 
 /** Les ancres de bataille de la scène éditée de la session `s` : la ligne qui dit qu'elle n'en a aucune, ou de chacune
  *  sa Scène de Round en liste (`ciblesDAncreDeBataille`), sa case, la poser à la case pointée (refusé sans case
@@ -1711,7 +1715,7 @@ function ancresDeBataille(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
 /** L'inspecteur de la scène éditée de la session `s`, sans sélection : le formulaire qui la nomme, celui qui la décrit ;
  *  sa grille, largeur et hauteur à la réglette ; les entrées de fiche qu'elle couvre ; les groupes du lieu
  *  (`groupesDuLieu`) ; son ambiance, son échelle, sa lumière ambiante, son nord, son environnement et sa météo ; sa
- *  musique ; le formulaire de son message d'introduction ; la matière de chaque partie de son relief ; sa toiture par
+ *  musique ; le formulaire tiré du schéma de son porteur singulier (`formulaireDe`), son message de départ ; la matière de chaque partie de son relief ; sa toiture par
  *  défaut ; son repos sur place ; ses drapeaux de départ, et le formulaire qui en ajoute un ; ses ancres de bataille. */
 function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
@@ -1745,7 +1749,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
       ...METEOS.map(([m, libelle]) => bouton(`scene/meteo/${m}`, libelle, scalaire({ weather: m }), scene.weather === m)),
     ], 'liste'),
     ...musiqueDeLaScene(scene),
-    formulaireDuMessage(scene),
+    ...elementsDuFormulaire({ sorte: 'scene', id: scene.id }, formulaireDe('scene', scene, cadreDeLaSession(s)), scene as unknown as Record<string, unknown>),
     ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) => {
       const matiere: Scene['reliefDefaults'][typeof part] = { id: m.id };
       return bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: matiere } }), scene.reliefDefaults[part].id === m.id);
@@ -2041,8 +2045,7 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
  *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
  *  d'un élément d'un porteur, l'action d'un décor ou le nœud d'un dialogue (`identifiantsDesElements`), `{ geste: 'identifier',
  *  id, element }`, l'élément, quand un formulaire des zones désigne cet élément ; celui
- *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui écrit le message d'introduction de
- *  la scène, son texte tel quel, retiré s'il est laissé vide ; celui qui ajoute un drapeau de départ à la
+ *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la
  *  scène, vrai ; celui qui pose une troupe du personnage sélectionné, `{ geste: 'troupe', nombre }`, un entier entre
  *  `BORNES_DE_LA_TROUPE` ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
  *  son chemin et la valeur saisie, `{ geste: 'valeur', porteur, chemin, valeur }`, quand un formulaire des zones porte
@@ -2073,13 +2076,12 @@ export function gesteDuFormulaire(z: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>
   }
   const [valeur, ...reste] = jeu.args as unknown[];
   const vide = valeur === undefined || valeur === null;
-  const optionnel = jeu.type === 'nommer' || jeu.type === 'decrire' || jeu.type === 'introduire';
+  const optionnel = jeu.type === 'nommer' || jeu.type === 'decrire';
   if (reste.length || !(typeof valeur === 'string' || (vide && optionnel))) return undefined;
   if (!formulaires.length) return undefined;
   const texte = typeof valeur === 'string' ? valeur : undefined;
   switch (jeu.type) {
     case 'decrire': return { geste: 'scene', patch: { scalaires: { desc: texte?.trim() || null } } };
-    case 'introduire': return { geste: 'scene', patch: { message: texte ?? '' } };
     case 'drapeau': return texte?.trim() ? { geste: 'scene', patch: { drapeaux: { [texte.trim()]: true } } } : undefined;
     default: return { geste: 'nommer', ...(texte !== undefined ? { nom: texte } : {}) };
   }
@@ -2100,7 +2102,7 @@ export function refusDeLaValeurDit(s: SessionDEdition, g: Extract<GesteDEdition,
 }
 
 /** Les verbes des formulaires de l'inspecteur. */
-const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'introduire', 'drapeau', 'valeur', 'troupe'];
+const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'drapeau', 'valeur', 'troupe'];
 
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
 export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {

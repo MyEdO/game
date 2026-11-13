@@ -1106,6 +1106,34 @@ function noeudDuPas(noeud: unknown, point: unknown, pas: Segment, poses: () => r
   return n !== undefined && !forme!.tenus.includes(pas) && cleOfferte(pas, n) ? n : undefined;
 }
 
+/** Les nœuds de chaque pas du chemin `chemin` (`noeudDuPas`) depuis la donnée `donnee` de l'objet de schéma `objet`, aux
+ *  choix `choix` que pose le contexte de son porteur, et la valeur au bout ; `undefined` si le formulaire n'offre pas
+ *  l'un de ses pas, ou s'il est vide. */
+function noeudsDuChemin(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ContexteDuChamp['choix']): { noeuds: unknown[]; point: unknown } | undefined {
+  const noeuds: unknown[] = [];
+  let point: unknown = donnee;
+  for (const [rang, pas] of chemin.entries()) {
+    const noeud = noeudDuPas(noeuds.length ? noeuds[noeuds.length - 1] : objet, point, pas, () => choix(chemin.slice(0, rang)));
+    if (noeud === undefined) return undefined;
+    noeuds.push(noeud);
+    point = (point as Record<Segment, unknown>)[pas];
+  }
+  return noeuds.length ? { noeuds, point } : undefined;
+}
+
+/** Le chemin où s'écrit le retrait du champ au chemin `chemin` de la donnée `donnee` de l'objet de schéma `objet`, aux
+ *  choix `choix` : le sien si son absence est admise (son nœud l'admet, ou il est l'entrée d'un record) ; sinon, de
+ *  proche en proche à travers les clés des objets qui le portent, celui du plus proche dont l'absence est admise, qui
+ *  se retire entier, le champ qu'il exige avec lui ; le sien sans lui. */
+function cheminDuRetrait(objet: unknown, donnee: Objet, chemin: readonly Segment[], choix: ContexteDuChamp['choix']): readonly Segment[] {
+  const noeuds = noeudsDuChemin(objet, donnee, chemin, choix)?.noeuds;
+  if (!noeuds) return chemin;
+  const absenceAdmise = (rang: number) => retirable(noeuds[rang]) || recordDuNoeud(rang ? noeuds[rang - 1] : objet) !== undefined;
+  if (absenceAdmise(noeuds.length - 1)) return chemin;
+  for (let rang = noeuds.length - 2; rang >= 0 && typeof chemin[rang + 1] === 'string'; rang--) if (absenceAdmise(rang)) return chemin.slice(0, rang + 1);
+  return chemin;
+}
+
 /** Pourquoi une valeur ne s'écrit pas : le formulaire n'offre pas son chemin, elle n'est pas de la sorte du champ, elle
  *  est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas, ou son porteur écrit enfreint une règle,
  *  dite. */
@@ -1142,16 +1170,10 @@ function fauteNeuve(objet: unknown, avant: unknown, apres: unknown): string | un
  *  l'objet écrit porte une faute de son parse que la donnée ne portait pas (`fauteNeuve`), dite. Hors retrait, le schéma
  *  entier ne se vérifie qu'à l'enregistrement et à l'essai (#3606, décision 3). */
 export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown, choix: ContexteDuChamp['choix'] = () => undefined): EcritureDeValeur<Objet> {
-  const noeuds: unknown[] = [];
-  let point: unknown = donnee;
-  for (const [rang, pas] of chemin.entries()) {
-    const noeud = noeudDuPas(noeuds.length ? noeuds[noeuds.length - 1] : objet, point, pas, () => choix(chemin.slice(0, rang)));
-    if (noeud === undefined) return { ok: false, refus: 'nonOffert' };
-    noeuds.push(noeud);
-    point = (point as Record<Segment, unknown>)[pas];
-  }
+  const pas = noeudsDuChemin(objet, donnee, chemin, choix);
+  if (!pas) return { ok: false, refus: 'nonOffert' };
+  const { noeuds, point } = pas;
   const dernier = noeuds[noeuds.length - 1];
-  if (dernier === undefined) return { ok: false, refus: 'nonOffert' };
   const ecrite = Array.isArray(valeur) && !valeur.length && elementDuNoeud(dernier) !== undefined && retirable(dernier) ? undefined : valeur;
   const poses = ecrite === undefined || recordDuNoeud(dernier) ? undefined : choix(chemin);
   const entreeRetiree = ecrite === undefined && recordDuNoeud(noeuds.length > 1 ? noeuds[noeuds.length - 2] : objet) !== undefined;
@@ -1166,18 +1188,20 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
 }
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
- *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), son
- *  adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
+ *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), le
+ *  retrait d'un champ exigé porté à l'objet qui l'exige (`cheminDuRetrait`), son adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
  *  (`adressesScellees`) ; ou son refus : une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas
  *  (`ecritureOfferte`), à ce qu'une adresse de prose dérive (`estCheminDerive`), ou qui apporte un fragment que seul un
  *  chapitre non chargé scellerait, n'est pas offerte. */
 export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
   const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
-  const actuelle = chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
-  if (!ecritureOfferte(offerts, chemin, actuelle) || estCheminDerive(noeud, donnee, chemin)) return { ok: false, refus: 'nonOffert' };
-  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
+  const choix = (ici: readonly Segment[]) => choixDuChamp(sorte, donnee, ici, cadre);
+  const ecrit = valeur === undefined ? cheminDuRetrait(noeud, donnee as unknown as Objet, chemin, choix) : chemin;
+  const actuelle = ecrit.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
+  if (!ecritureOfferte(offerts, ecrit, actuelle) || estCheminDerive(noeud, donnee, ecrit)) return { ok: false, refus: 'nonOffert' };
+  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, ecrit, valeur, choix);
   if (!ecrite.ok) return ecrite;
-  const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, chemin), cadre.source);
+  const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, ecrit), cadre.source);
   return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as DonneeDuPorteur[S] };
 }
 
@@ -1229,7 +1253,7 @@ interface EcritureDeScene<D> {
  *  porteur neuf est créé, sous son identifiant ; celui où le porteur `de` prend l'identifiant `vers`, propagé à ce qui
  *  le désigne ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la sous-collection à clé du porteur
  *  `id` prend l'identifiant `vers` ; et ce qui refuse le retrait du porteur `id`, dit. Un renommage sous un identifiant
- *  vide ou déjà pris rend le projet tel quel. #3606 B8 */
+ *  vide ou déjà pris rend le projet tel quel. #3606 */
 interface EcritureDuPorteur<D> {
   ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D) => EcritureDeValeur<ProjetDEdition>;
   creer?: (projet: ProjetDEdition, sceneId: string) => { projet: ProjetDEdition; id: string };
@@ -1283,7 +1307,7 @@ function embuscadesDeLaRencontre(projet: ProjetDEdition, sceneId: string, id: st
 }
 
 /** Le projet `projet` où la rencontre `de` de la scène `sceneId` prend l'identifiant `vers` (`renameEncounter`), propagé
- *  à l'embuscade de chaque route qui la lance (`routesDeLEmbuscade`). #3606 D2 */
+ *  à l'embuscade de chaque route qui la lance (`routesDeLEmbuscade`). #3606 */
 function rencontreRenommee(projet: ProjetDEdition, sceneId: string, de: string, vers: string): ProjetDEdition {
   const scene = DOCUMENTS.scene.lire(projet, sceneId)!;
   const renommee = renameEncounter(scene, de, vers);
@@ -1311,8 +1335,8 @@ function noeudRenomme(scene: Scene, id: string, de: string, vers: string): Scene
   return dialogue && renomme !== dialogue ? replaceDialogue(scene, id, renomme!) : scene;
 }
 
-/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur, d'un dialogue ou
- *  d'une rencontre, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
+/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur, d'un dialogue,
+ *  d'une rencontre ou de la scène, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
  *  renommage d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son
  *  retrait (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
  *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`) ; d'une rencontre, sa création
@@ -1330,6 +1354,7 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
     renommer: rencontreRenommee,
     refusDeRetirer: embuscadesDeLaRencontre,
   },
+  scene: { ecrire: remplace('scene') },
 };
 
 /** Le projet `projet`, où la scène `sceneId` est montrée, sans le porteur `porteur`, retiré par la table de sa sorte

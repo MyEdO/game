@@ -18,7 +18,7 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { emptyWorldMap, type WorldMap } from '../worldMap';
-import { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, champDuMessage, editer, groupesDuLieu, idDeLaSceneEditee, ouvrirLEdition, planDeLaVolee, projetEdite, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
+import { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, editer, groupesDuLieu, idDeLaSceneEditee, ouvrirLEdition, planDeLaVolee, projetEdite, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
 import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
 import { validateScene } from '../validateScene';
 import { bumperDataset } from '../../data/versionDataset';
@@ -30,7 +30,7 @@ import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDu
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, segmentDeLaSelection, type CadreDuPorteur } from '../sceneEditLecture';
+import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, porteurDeLaSel, segmentDeLaSelection, type CadreDuPorteur } from '../sceneEditLecture';
 import { champsDeclares, champsDuRecord, choixDuNoeud, elementDuNoeud, recordDuNoeud } from '../codex/editFields';
 import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/schemas/grammaire/valeurs';
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
@@ -349,16 +349,6 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
     expect('music' in sceneEditee(jouer(auto, sur({ musique: { piste: 'combat' } }))), 'aucune piste : le champ quitte la scène').toBe(false);
   });
 
-  it('le message d’introduction : saisi sur plusieurs lignes tel quel, sa provenance gardée ; vide, il se retire avec elle', () => {
-    expect(champDuMessage(), 'une prose nommée se saisit sur plusieurs lignes').toMatchObject({ key: 'texte', kind: 'textarea' });
-    const texte = '  Le relais est désert.\n\nUne lanterne bat au vent.';
-    const source = { book: 'ldb', page: 12 };
-    const scene = { ...emptyScene('session', 4, 4), startMessage: { texte: 'Ancien.', source } } as Scene;
-    const saisi = jouer(ouverteSur(scene), sur({ message: texte }));
-    expect(sceneEditee(saisi).startMessage).toEqual({ texte, source });
-    expect('startMessage' in sceneEditee(jouer(saisi, sur({ message: '' }))), 'vide : le message quitte la scène, provenance comprise').toBe(false);
-  });
-
   it('les ancres de bataille : ajoutées vers une Scène de Round, repointées, posées à une case, retirées ; la dernière retirée, le champ quitte la scène ; un rang absent laisse la session', () => {
     const [a, b] = ciblesDAncreDeBataille();
     const posee = jouer(ouverte(), sur({ stations: { ajouter: a.id } }), sur({ stations: { ajouter: a.id } }));
@@ -394,6 +384,30 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
     expect(jouer(habillee, { geste: 'baie', id: 'absente', patch: { apparence: apparence.id } })).toBe(habillee);
     const decor = (['chimney', 'sign', 'belfry'] as const).find((k) => !apparencesDeLOuverture(k).some((a) => a.id === apparence.id))!;
     expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { sorte: decor } })), 'une sorte d’un autre catalogue retire l’apparence').toBe(false);
+  });
+});
+
+describe('le porteur singulier `scene` du geste `valeur` (#3606)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const surLaScene = (s: SessionDEdition, chemin: (string | number)[], ...valeur: unknown[]): GesteDEdition =>
+    ({ geste: 'valeur', porteur: porteurDeLaSel(s.sel, idDeLaSceneEditee(s))!, chemin, ...(valeur.length ? { valeur: valeur[0] } : {}) });
+
+  it('sans sélection, le porteur édité est la scène ouverte, sous son identifiant ; nommer, identifier et supprimer y restent ceux de la scène', () => {
+    const s = ouverteSur(emptyScene('session', 4, 4));
+    expect(porteurDeLaSel(s.sel, idDeLaSceneEditee(s))).toEqual({ sorte: 'scene', id: 'session' });
+    expect(sceneEditee(jouer(s, { geste: 'nommer', nom: 'Le relais' })).label).toBe('Le relais');
+    expect(idDeLaSceneEditee(jouer(s, { geste: 'identifier', id: 'relais' }))).toBe('relais');
+    expect(jouer(s, { geste: 'supprimer' }), 'rien à supprimer').toBe(s);
+  });
+
+  it('le message de départ : son texte saisi sur plusieurs lignes tel quel, sa provenance gardée ; vidé, il se retire avec elle', () => {
+    const texte = '  Le relais est désert.\n\nUne lanterne bat au vent.';
+    const adapteDe = { book: 'ldb', page: 12 };
+    const s = ouverteSur({ ...emptyScene('session', 4, 4), startMessage: { texte: 'Ancien.', adapteDe } } as Scene);
+    const saisi = jouer(s, surLaScene(s, ['startMessage', 'texte'], texte));
+    expect(sceneEditee(saisi).startMessage).toEqual({ texte, adapteDe });
+    expect('startMessage' in sceneEditee(jouer(saisi, surLaScene(saisi, ['startMessage', 'texte']))), 'vidé : le message quitte la scène, provenance comprise').toBe(false);
+    expect(jouer(saisi, surLaScene(saisi, ['desc'], 'Une salle.')), 'hors du message, la scène n’offre rien').toBe(saisi);
   });
 });
 

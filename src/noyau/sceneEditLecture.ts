@@ -431,7 +431,7 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 export type EntityTool = Extract<Tool, { mode: 'entite' }>;
 
 /** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
-export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef }
+export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene }
 
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
@@ -461,7 +461,7 @@ interface DocumentDuProjet<T> {
   schema: unknown;
 }
 
-/** Les documents du projet édité : la scène montrée, la carte du monde, le narratif. #3606 B3 */
+/** Les documents du projet édité : la scène montrée, la carte du monde, le narratif. #3606 */
 export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<TypesDesDocuments[K]> } = {
   scene: {
     lire: (projet, sceneId) => projet.scenes.find((sc) => sc.id === sceneId),
@@ -487,11 +487,12 @@ export type AccesDuPorteur<D> = {
 }[SorteDeDocument];
 
 /** Ce qu'un porteur de formulaire tiré du schéma déclare : où il vit (`AccesDuPorteur`), le type de la sélection
- *  qui le désigne (`Sel`), le nœud de sa donnée, les champs qu'il offre, et les choix que son contexte pose à un chemin
- *  de sa donnée (`choixDuChamp`), dans son cadre. */
+ *  qui le désigne (`Sel`), absent du porteur singulier de la scène montrée, que désigne l'absence de sélection, le nœud
+ *  de sa donnée, les champs qu'il offre, et les choix que son contexte pose à un chemin de sa donnée (`choixDuChamp`),
+ *  dans son cadre. */
 interface FormulaireDuPorteur<D> {
   acces: AccesDuPorteur<D>;
-  sel: TypeDeSelParId;
+  sel?: TypeDeSelParId;
   schema: unknown;
   /** Le porteur se liste à la zone Logique de l'éditeur, qui le sélectionne ; sinon il s'atteint sur la carte. */
   logique?: true;
@@ -687,7 +688,7 @@ export const choixNeuf = (noeud: Pick<DialogueNode, 'choices'>): DialogueChoice 
 
 /** Les choix que le contexte du dialogue `dlg` pose au chemin `chemin` de sa donnée : au rang qui suit son dernier nœud,
  *  le nœud neuf (`noeudNeuf`) ; au rang qui suit le dernier choix d'un de ses nœuds, le choix neuf (`choixNeuf`) ;
- *  chacun par son identifiant. #3606 B3 */
+ *  chacun par son identifiant. #3606 */
 function choixDuDialogue(dlg: Dialogue, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [nodes, rang, choices, rangDuChoix, ...reste] = chemin;
   if (nodes !== 'nodes' || typeof rang !== 'number' || reste.length) return undefined;
@@ -720,7 +721,8 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  bloque quand elle barre le passage (`barrier`) ; d'un déclencheur, sa
  *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`) ; d'un dialogue, son nœud de
  *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`) ; d'une rencontre, ses
- *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`). */
+ *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`) ;
+ *  de la scène, porteur singulier de son document, son message de départ. */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { acces: { document: 'scene', collection: 'effectZones' }, sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
   declencheur: { acces: { document: 'scene', collection: 'triggers' }, sel: 'trigger', schema: triggerSchema, logique: true, champs: () => [['when'], ['flow']] },
@@ -733,18 +735,23 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   },
   dialogue: { acces: { document: 'scene', collection: 'dialogues' }, sel: 'dialogue', schema: dialogueSchema, logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
   rencontre: { acces: { document: 'scene', collection: 'encounters' }, sel: 'encounter', schema: encounterDefSchema, logique: true, champs: champsDeLaRencontre },
+  scene: { acces: { document: 'scene' }, schema: sceneSchema, champs: () => [['startMessage']] },
 };
 
-/** Le porteur de formulaire que la sélection `sel` désigne (`FORMULAIRES`, `sel`) : sa sorte et son identifiant ;
- *  `undefined` sans lui. */
-export function porteurDeLaSel(sel: Sel): { sorte: SorteDePorteur; id: string } | undefined {
-  if (!sel) return undefined;
-  const sorte = (Object.keys(FORMULAIRES) as SorteDePorteur[]).find((k) => FORMULAIRES[k].sel === sel.type);
-  return sorte && { sorte, id: (sel as Extract<Sel, { type: TypeDeSelParId }>).id };
+/** Le porteur de formulaire que la sélection `sel` désigne dans la scène montrée d'identifiant `sceneId`
+ *  (`FORMULAIRES`, `sel`) : sa sorte et son identifiant, celui de la sélection, ou, sans sélection, celui de la scène,
+ *  dont le porteur singulier ne déclare aucune sélection ; `undefined` sans lui. */
+export function porteurDeLaSel(sel: Sel, sceneId: string): { sorte: SorteDePorteur; id: string } | undefined {
+  const sorte = (Object.keys(FORMULAIRES) as SorteDePorteur[]).find((k) => FORMULAIRES[k].sel === sel?.type);
+  return sorte && { sorte, id: sel ? (sel as Extract<Sel, { type: TypeDeSelParId }>).id : sceneId };
 }
 
-/** La sélection qui désigne le porteur de sorte `sorte` d'identifiant `id` (`FORMULAIRES`, `sel`). */
-export const selDuPorteur = (sorte: SorteDePorteur, id: string): Sel => ({ type: FORMULAIRES[sorte].sel, id });
+/** La sélection qui désigne le porteur de sorte `sorte` d'identifiant `id` (`FORMULAIRES`, `sel`) : aucune, du porteur
+ *  qui n'en déclare pas. */
+export function selDuPorteur(sorte: SorteDePorteur, id: string): Sel {
+  const type = FORMULAIRES[sorte].sel;
+  return type ? { type, id } : null;
+}
 
 /** Où vit le porteur de sorte `sorte` (`FORMULAIRES`). */
 export const accesDe = <S extends SorteDePorteur>(sorte: S): AccesDuPorteur<DonneeDuPorteur[S]> => (FORMULAIRES[sorte] as FormulaireDuPorteur<DonneeDuPorteur[S]>).acces;
@@ -764,7 +771,7 @@ const LECTURES = new WeakMap<object, LectureDeLAcces>();
 
 /** La lecture de l'accès `acces`, seule à le lire : dans sa collection, absente lue vide, chacun identifié par la clé que
  *  le schéma de son document déclare à cette collection (`listeCle`, `collectionDe`) ; sans collection, le document
- *  seul, identifié par son `id`. #3606 S1 */
+ *  seul, identifié par son `id`. #3606 */
 function lectureDe(acces: AccesDuPorteur<unknown>): LectureDeLAcces {
   const deja = LECTURES.get(acces);
   if (deja) return deja;

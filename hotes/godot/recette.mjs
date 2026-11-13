@@ -139,8 +139,9 @@
 //   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
 //   d'avant.
 //   « Couche 1 » édite l'étage, sans calque. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
-//   tourne son nord, « Annuler » le rend au haut du plan ; son message de départ tapé au clavier sur deux lignes (#3606),
-//   « Écrire le message de départ » le pose, « Annuler » le retire. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
+//   tourne son nord, « Annuler » le rend au haut du plan ; au formulaire tiré du schéma de la scène (#3606), « Ajouter :
+//   message de départ » l'ajoute vide, son texte tapé au clavier sur deux lignes, « Écrire » le pose, « Annuler » deux
+//   fois le retire. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
 //   rend la précédente. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
 //   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
 //   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
@@ -1847,23 +1848,29 @@ async function parcoursEditeur() {
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
   noter('« Annuler » : le nord rendu au haut du plan')
   const message = 'Au relais\nEn route'
-  const champMessage = await amenerAuPanneau({ element: 'saisieMultiligne/introduire/texte' }, 'saisies')
-  assert.equal(champMessage.texte, '', 'la Diligence n’a pas de message de départ')
+  const formulaireDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'valeur/startMessage/texte')`
+  assert.equal(boutonDeLEditeur(await editeur(), 'valeur/startMessage/ajouter')?.libelle, 'Ajouter : message de départ', 'la Diligence n’a pas de message de départ')
+  await cliquerAuPanneau({ element: 'bouton/valeur/startMessage/ajouter' })
+  await waitFor(session, `${formulaireDuMessage} !== undefined`)
+  const champMessage = await amenerAuPanneau({ element: 'saisieMultiligne/valeur/startMessage/texte/valeur' }, 'saisies')
+  assert.equal(champMessage.texte, '', 'le message de départ ajouté, vide')
   await geste(session, { surface: 'canvas', x: champMessage.x, y: champMessage.y }, { qui: 'le champ du message de départ' }, clic())
   for (const lettre of message) {
     await realKey(session, lettre === '\n' ? { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }
       : lettre === ' ' ? { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
         : { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
   }
-  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')?.texte === ${JSON.stringify(message)}`)
-  await cliquerAuPanneau({ element: 'formulaire/introduire' })
-  const valeurDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'introduire')?.champs[0].valeur`
+  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieMultiligne/valeur/startMessage/texte/valeur')?.texte === ${JSON.stringify(message)}`)
+  await cliquerAuPanneau({ element: 'formulaire/valeur/startMessage/texte' })
+  const valeurDuMessage = `${formulaireDuMessage}?.champs[2].valeur`
   await waitFor(session, `${valeurDuMessage} === ${JSON.stringify(message)}`)
-  noter(`inspecteur de la scène, le message de départ tapé sur deux lignes, « ${(await editeur()).zones['editeur.inspecteur'].find((l) => l.id === 'introduire').libelle} » : ${JSON.stringify(message)}`)
+  noter(`inspecteur de la scène, le message de départ tapé sur deux lignes au formulaire de la scène, « ${(await editeur()).zones['editeur.inspecteur'].find((l) => l.id === 'valeur/startMessage/texte').champs[2].libelle} » : ${JSON.stringify(message)}`)
   await capturer('3606-m0c-1-message-de-depart')
   await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `${valeurDuMessage} === ''`)
-  noter('« Annuler » : la scène rendue sans message de départ')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `${formulaireDuMessage} === undefined`)
+  noter('« Annuler » deux fois : la scène rendue sans message de départ')
   e = await editeur()
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
     await cliquerAuPanneau({ element: `bouton/${id}` })

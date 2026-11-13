@@ -1076,7 +1076,7 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
     expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
 
     e = presser(boutonDe(e, 'arete/supprimer'));
-    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'identifier', 'decrire', 'introduire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
+    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !id.startsWith('valeur/startMessage') && !['nommer', 'identifier', 'decrire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
   });
 });
 
@@ -1695,7 +1695,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(scene.triggers[0].flow).toEqual({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'transition', scene: { id: valeurDe(offertes[0]) } } }] });
   });
 
-  it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+  it('la musique, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés, le message de départ sur plusieurs lignes au formulaire tiré du schéma de la scène, vidé, retiré avec sa provenance ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
     const { appel } = table();
     let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
     const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
@@ -1703,7 +1703,12 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const inspecteur = () => e.vue.zones['editeur.inspecteur'];
     const liste = (id: string) => valeursDeLInspecteur(e, id);
     const choisir = (id: string, rang = 0) => (e = editionDe(appel('editer', liste(id).filter((b) => !b.presse)[rang].jeu)));
-    const message = () => (inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.verbe === 'introduire') ?? (() => { throw new Error('aucun formulaire du message'); })()).champs[0];
+    const formulaireDuMessage = () => inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.id === 'valeur/startMessage/texte');
+    const message = () => formulaireDuMessage()?.champs[2];
+    const ecrireLeMessage = (...valeur: unknown[]) => {
+      const [porteur, chemin] = formulaireDuMessage()!.champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+      e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, ...valeur] }));
+    };
     const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
     const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
     presser('scenes/ajouter');
@@ -1716,12 +1721,16 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     presser('scene/musique/combat/auto');
     expect([boutonDe(e, 'scene/musique/ambient/auto').presse, boutonDe(e, 'scene/musique/combat/auto').presse], 'retirées, les deux suivent le contexte').toEqual([true, true]);
 
-    expect(message(), 'le message d’introduction, une prose, se saisit sur plusieurs lignes').toMatchObject({ type: 'saisieMultiligne', valeur: '' });
+    expect(message(), 'sans message de départ, il s’ajoute').toBeUndefined();
+    presser('valeur/startMessage/ajouter');
+    expect(message(), 'le message de départ, une prose, se saisit sur plusieurs lignes ; laissé vide, il part absent').toMatchObject({ type: 'saisieMultiligne', valeur: '', optionnel: true });
     const texte = 'Le relais est désert.\n\nUne lanterne bat au vent.';
-    e = editionDe(appel('editer', { type: 'introduire', args: ['Brouillon'] }));
-    e = editionDe(appel('editer', { type: 'introduire', args: [null] }));
-    expect(message(), 'vidé, il se retire').toMatchObject({ valeur: '' });
-    e = editionDe(appel('editer', { type: 'introduire', args: [texte] }));
+    ecrireLeMessage('Brouillon');
+    presser('valeur/startMessage/adapteDe/ajouter');
+    ecrireLeMessage();
+    expect([message(), boutonDe(e, 'valeur/startMessage/ajouter').libelle], 'vidé, il se retire avec sa provenance').toEqual([undefined, expect.stringMatching(/^Ajouter/)]);
+    presser('valeur/startMessage/ajouter');
+    ecrireLeMessage(texte);
     expect(message()).toMatchObject({ valeur: texte });
 
     expect(inspecteur().find((el) => el.id === 'scene/stations')).toMatchObject({ texte: 'Aucune ancre de bataille : les Scènes de Round s’étalent d’office.' });
