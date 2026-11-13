@@ -694,7 +694,8 @@ function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
     case 'sequence': return f.etapes.flatMap(noeudsDeTest);
     case 'si': return [...noeudsDeTest(f.alors), ...noeudsDeTest(f.sinon)];
     case 'choix': return [...noeudsDeTest(f.oui), ...noeudsDeTest(f.non)];
-    default: return [];
+    case 'effet': return [];
+    default: return f satisfies never;
   }
 }
 
