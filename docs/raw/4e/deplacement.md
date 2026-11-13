@@ -582,10 +582,10 @@ l.205-216, l.223-233) ; EDOC 09 l.3-5 (usage facultatif, nombre par Étape).
 | 11–20 | **Voleurs !** | EDOC 08 l.226 | Biens dérobés ; le voleur est revu pendant la Phase d'arrivée ; renvois Wolmar Rotte (page 47), Wilhelm Kind (page 53) — au MJ. |
 | 21–30 | **Territoire hostile** | EDOC 08 l.227 | Traverser : chaque Personnage réussit un Test de **Discrétion (Rural) Intermédiaire (+0)** ou tombe dans une embuscade ; contourner : État *Exténué*. Ligne Source défectueuse (« en sans quoi »). |
 | 31–40 | **Terre empoisonnée** | EDOC 08 l.228 | Approvisionnement, achats ou séjour prolongé exposent à poisons, maladies, peut-être Corruption — non chiffré, au MJ. |
-| 41–50 | **Même la nature vous déteste !** | EDOC 08 l.229 | Danger naturel : affrontement, État ou confrontation mineure, au choix ; créatures LDB p.314 suggérées — au MJ. |
+| 41–50 | **Même la nature vous déteste !** | EDOC 08 l.229 | Danger naturel : affrontement, État ou confrontation mineure, au choix ; créatures des Bêtes du Reikland (LDB 78) suggérées — au MJ. |
 | 51–70 | **Très mauvais temps** | EDOC 08 l.230 | +40 au prochain jet de Météo ; à la dernière Étape, les intempéries frappent la destination. |
 | 71–80 | **Équipement essentiel endommagé** | EDOC 08 l.231 | Un équipement de voyage crucial perdu ou détruit (exemples : ciré, tente, roue) ; réparations, ou Test d'Exposition (WFJDR p.181). Objet non désigné — au MJ. |
-| 81–90 | **Conditions répugnantes !** | EDOC 08 l.232 | Tous les Personnages exposés à la Vérole du Tanneur (contraction : LDB p.187). |
+| 81–90 | **Conditions répugnantes !** | EDOC 08 l.232 | Tous les Personnages exposés à la Vérole du Tanneur (contraction : LDB 20 l.107-112). |
 | 91–00 | **Monture en fuite** | EDOC 08 l.233 | Une monture s'enfuit ; la récupérer coûte un État *Exténué* à un Personnage, plus un Test d'Exposition de nuit sous pluie, neige ou blizzard. |
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementrencontres-d-etape)
