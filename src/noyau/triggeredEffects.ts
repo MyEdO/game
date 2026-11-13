@@ -580,7 +580,7 @@ export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { s
   }
 }
 
-/** CŒUR GÉNÉRIQUE du folding des STATUTS portés (`StatusData` : États OU psy) : applique les `effects` de
+/** CŒUR GÉNÉRIQUE du folding des STATUTS portés (États OU psy) : applique les `effects` de
  *  chaque statut pour `trigger`, avec son nombre de pions (`stacks`). SOURCE UNIQUE — `fireConditionEffects`
  *  et `firePsychEffects` y délèguent (zéro copie du cœur `applyTriggeredEffects`). Le `[...snapshot]` côté
  *  appelant protège l'itération d'une auto-dissipation (`removeCondition`/`endPsych`) qui mute la collection. */

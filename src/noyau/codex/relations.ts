@@ -271,7 +271,7 @@ const catalog = versionCached<CatalogEntry[]>(() => {
   pushCatalog('spells', spells);
   pushCatalog('creatures', creatures as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('traits', traits);
-  pushCatalog('mutations', mutations as { id: string; label: string; source?: { book: string; page: number } | null }[]);
+  pushCatalog('mutations', mutations);
   pushCatalog('stars', stars);
   pushCatalog('locations', locations as { id: string; label: string; source?: { book: string; page: number } }[]);
   pushCatalog('characteristics', characteristics as { id: string; label: string }[]);

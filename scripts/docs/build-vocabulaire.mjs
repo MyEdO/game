@@ -324,7 +324,7 @@ function rendu() {
     const herite = e.heritage.length ? ` (étend ${e.heritage.map((h) => `\`${h}\``).join(', ')})` : ''
     out += `| \`${e.entite}\`${herite} | \`${e.fichier}:${e.ligne}\` | ${c('passive')} | ${c('effects')} | ${c('drapeaux')} |\n`
   }
-  out += `\n_${CANAUX.entites.length} entités déclarant au moins un canal. Une entité qui étend une autre HÉRITE de ses canaux — la\ntable ne montre que les champs DÉCLARÉS (\`EtatData\`/\`PsychologyData\` tiennent les leurs de \`StatusData\`)._\n\n`
+  out += `\n_${CANAUX.entites.length} entités déclarant au moins un canal. Une entité qui étend une autre HÉRITE de ses canaux — la\ntable ne montre que les champs DÉCLARÉS (\`PsychologyData\` tient les siens de \`StatusData\`)._\n\n`
 
   out += `### Le vocabulaire des drapeaux (${CANAUX.typesDrapeaux.length} types)\n\n`
   out += `| Type | Site | Drapeaux déclarés |\n|---|---|---|\n`

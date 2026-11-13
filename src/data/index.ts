@@ -134,6 +134,11 @@ import type * as qualitiesDef from './schemas/defs/qualities';
 import type * as tavernGamesDef from './schemas/defs/tavernGames';
 import type * as talentsDef from './schemas/defs/talents';
 import type * as traitsDef from './schemas/defs/traits';
+import type * as etatsDef from './schemas/defs/etats';
+import type * as maladiesDef from './schemas/defs/maladies';
+import type * as symptomsDef from './schemas/defs/symptoms';
+import type * as mutationsDef from './schemas/defs/mutations';
+import type { symptomCapabilitiesSchema } from './schemas/defs/symptoms';
 import type { qualityCapabilitiesSchema } from './schemas/defs/qualities';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
@@ -146,7 +151,6 @@ import type * as miscastDef from './schemas/defs/miscast';
 import type * as structureCriticalsDef from './schemas/defs/structure-criticals';
 import type * as artilleryMisfireDef from './schemas/defs/artillery-misfire';
 import type * as crewTestTypesDef from './schemas/defs/crew-test-types';
-import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as couleurDesYeux from './schemas/defs/eyes';
 import type * as couleurDesCheveux from './schemas/defs/hairs';
@@ -258,8 +262,6 @@ import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
 import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, Difficulty, type StakeForm } from '../engine/types';
-import type { MutationData } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
-import type { DiseaseDef } from './schemas/defs/maladies';
 // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle';
 import { formatDice } from '../engine/dice';
@@ -1147,8 +1149,8 @@ export interface CreatureData {
    *  faute de statbloc imprimé) — même patron que `ActivityData.maison`, `TraumaData.maison`. */
   maison?: string;
 }
-/** Base PARTAGÉE d'un STATUT porté pilotant des effets en DONNÉES — soit un État (LDB 16, `EtatData`), soit
- *  un état psychologique (LDB 21, `PsychologyData`). Porte le vocabulaire commun : modificateurs PASSIFS
+/** Base d'un état psychologique porté (LDB 21, `PsychologyData`), de même vocabulaire que l'État (LDB 16,
+ *  `EtatData`, dérivé de `schemas/defs/etats.ts`). Porte le vocabulaire commun : modificateurs PASSIFS
  *  (`passive: OpPassive[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
  *  (`effects: TriggeredEffect[]`). Folding UNIQUE : `passiveMods` (passifs) + `fireStatusEffects` (déclenchés)
  *  itèrent indifféremment États et états psy → zéro duplication de schéma ni de collecteur. */
@@ -1173,67 +1175,12 @@ export interface StatusData {
   /** Restriction d'Action / de Mouvement / de défense imposée par le STATUT (États : À Terre/Sonné/
    *  Inconscient/Surpris/Empêtré ; et Psychologie — « Etat comme Psy »), lue en DONNÉES par les prédicats
    *  moteur `canTakeAction`/`effectiveMovement`/`cannotDefend` via le collecteur `conditionGating` (jamais
-   *  une branche par-nom). Sur `StatusData` → partagée par `EtatData` ET `PsychologyData`. */
+   *  une branche par-nom). Même forme que le `gating` de l'État (`schemas/defs/etats.ts`). */
   gating?: { action?: 'none'; movement?: 'none' | 'half' | 'crawl'; cannotDefend?: true };
 }
 
-export interface EtatData extends StatusData {
-  /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
-  grantGroups?: string[];
-  /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
-  typeDeDegats?: { id: string };
-  /** La marque de l'État sur son porteur (#3834) : sa teinte, son visuel et son son en boucle. */
-  marqueCouleur: string;
-  marqueVisuel?: VisuelDeLumiere;
-  marqueSon?: { id: string };
-  /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
-   *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
-  perStack?: boolean;
-  /** Le nombre de pions vu par les `effects` (le `{stacks:'self'}` des dégâts par-round) est RÉDUIT du
-   *  niveau de cette capacité de combat chez la cible — ex. Hémorragique réduit par Endurci (`bleedIgnore`,
-   *  LDB 10). Clé de `CombatFeature` ; lu génériquement par `fireConditionEffects` (jamais codé par-nom). */
-  stacksReducedBy?: string;
-  /** Récupération de l'État par une ACTION (LDB 16 : Empêtré « se libérer » l.66 = Test OPPOSÉ de Force
-   *  contre la source de l'empêtrement ; En flammes « se rouler » l.84 = Test d'Athlétisme simple). Lue par
-   *  l'action `recover` (IA inline ET flux joueur — SOURCE UNIQUE `resolveRecoverTest`) au lieu des branches
-   *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
-   *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
-  recover?: { skill?: RefDesignee; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty; opposedDifficulty?: import('../engine/types').Difficulty; enjeu: string; form: StakeForm };
-  /** VERROU DE TYPE : tant que cette Condition est fausse, AUCUNE instance de cet État ne se retire
-   *  (À Terre — `LDB 18 l.15`). Même champ, même algèbre et même porte de parse que le verrou d'INSTANCE
-   *  (`ConditionInstance.lockedUntil`) ; lu par `isConditionLocked`. */
-  lockedUntil?: import('../engine/flowCore').Condition;
-  /** Ce que le joueur lit quand `lockedUntil` tient (fragment français, éditable). */
-  lockedReason?: string;
-  /** Blessures RENDUES quand une dépense de Détermination retire cet État — `LDB 17 l.61`. Le soin
-   *  précède le retrait : c'est lui qui lève le verrou d'À Terre. */
-  resolveHeals?: number;
-  /** Cet État VERROUILLE l'Action : le Mouvement + l'Action doivent servir à fuir/se cacher (Brisé, LDB 16
-   *  l.52). Drapeau DÉCLARATIF lu en DONNÉES par `isActionLocked`/`restrictingConditions` (engine/conditions),
-   *  partagé par le gate de hotbar (`armerLeMode`) ET l'IA (dépense PROACTIVE de Détermination pour se
-   *  ressaisir) — plus de nom d'État en dur. */
-  restrictsAction?: boolean;
-  /** Cet État ne porte JAMAIS plus d'un pion, quelle que soit la cause — LDB 16 l.115 (Inconscient :
-   *  « soit vous êtes *Inconscient*, soit vous ne l'êtes pas »), l.37 (À Terre), l.137 (Surpris).
-   *  Drapeau DÉCLARATIF lu par `addCondition`/`syncDerivedConditions` (engine/conditions) — la pose,
-   *  dérivée ou native, y est bornée à 1 par CONSTRUCTION. */
-  nonCumulable?: boolean;
-  /** Cet État SUIT le porteur hors du combat (LDB 16 : Brisé l.57, Empoisonné l.70, En flammes l.77,
-   *  Exténué l.91, Hémorragique l.107, Inconscient l.116 ; Munition logée LDB 62 l.250) — par opposition
-   *  au transitoire, retiré au teardown. Drapeau DÉCLARATIF lu par `isPersistentCondition`
-   *  (engine/persistence), seul juge du report vers le groupe et du carry-in au combat suivant. */
-  persistsAfterCombat?: boolean;
-  /** AFFICHAGE (couche UI, hors RAW LDB 16) : icône du registre `<Icon>` (id `famille/nom`) + sévérité
-   *  0-100 (≥50 = incapacitant → créneau unique de l'ordre de bataille). Lus par `effectIcons.conditionMeta`. */
-  icon?: IconId;
-  severity?: number;
-  /** Dangerosité IA de l'État infligé, en « Blessures espérées » (contrôle > simple malus) — lue par
-   *  `aiSpellValue.opValue` (`op:'condition'`). Absente → menace mineure (1). */
-  aiThreat?: number;
-  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `TraitData.maison`/`NavalTraitData.maison`/
-   *  `CreatureData.maison`) — porte la CITATION du passage et la couture qui manque. Jamais lu par le moteur. */
-  maison?: string;
-}
+/** État (LDB 16), son id fermé sur l'union générée (`Id<'etat'>`). */
+export type EtatData = EntreeDe<typeof etatsDef>;
 
 /** État PSYCHOLOGIQUE en DONNÉES (LDB 21) — `id` = `PsychType` (`frenesie`, à terme `peur`/`terreur`/…).
  *  Étend `StatusData` (passive/effects mutualisés) ; n'ajoute que la capacité propre à la psychologie. */
@@ -1392,60 +1339,10 @@ export type TraitData = EntreeDe<typeof traitsDef>;
 export type QualityCapabilities = z.output<typeof qualityCapabilitiesSchema>;
 /** Atout/Défaut d'arme, d'armure ou d'objet. LDB 60 ; LDB 62-63 */
 export type QualityData = EntreeDe<typeof qualitiesDef>;
-/** Capacités IRRÉDUCTIBLES d'un symptôme de maladie — drapeaux lus par la machinerie de cycle
- *  (`engine/disease`), pour les comportements non exprimables en GameOp continu. */
-export interface SymptomCapabilities {
-  blocksHealing?: boolean;   // « Blessé »/Gangrène : bloque la guérison d'1 PB par symptôme (LDB 20 l.145)
-  amputation?: boolean;      // Gangrène : Test quotidien, échecs > BE → Localisation perdue (l.176)
-  contagious?: boolean;      // Toux & éternuements : expose l'entourage (l.206)
-  nausea?: boolean;          // Nausée : Sonné sur Test de déplacement raté en combat (l.194)
-  endTest?: boolean;         // Persistant : Test de fin de Durée (difficulté portée par l'instance, l.200)
-  persistentActive?: boolean; // Vers de carie : la phase active NE guérit JAMAIS naturellement (dégénérescence quotidienne jusqu'à la Mort, MSRC 16 l.90-101)
-}
-/** Symptôme de maladie (LDB 20) — entité de DONNÉE éditable au Codex, mécaniques en GameOp / 3 canaux
- *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` = ops de
- *  chaque palier ATTEINT par l'instance, l'op de même cible REMPLACÉE (`symptomPassive`,
- *  LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
- *  conséquence GameOp appliquée par la cascade (différée/influençable) ; `capabilities` = règles
- *  irréductibles lues par la machinerie de maladie. */
-export interface SymptomData {
-  id: string;
-  type: 'symptoms';
-  label: string;
-  desc: string;
-  source?: SourceRef;
-  passive?: import('../engine/ops').OpPassive[];
-  passiveBySeverity?: { moderee?: import('../engine/ops').OpPassive[]; grave?: import('../engine/ops').OpPassive[] };
-  /** Effets DÉCLENCHÉS du symptôme (MÊME `TriggeredEffect` que Traits/Atouts/États) — dispatchés par
-   *  `fireTriggers` quand le porteur est actif (Crampes abdominales : `onOwnTestFailed` → Sonné/FM/
-   *  Inconscient par paliers de `slThreshold`, MSRC 16 l.152-158). Source du dispatcher via
-   *  `effectSourcesOf` (les symptômes ACTIFS deviennent une source, comme les États). */
-  effects?: TriggeredEffect[];
-  /** Cycle de PHASE ACTIVE. `test` = le nœud `test` du Flow (`engine/flowCore.ts`) : le jet ET sa
-   *  conséquence (branche `fail`). `ops` = la conséquence CERTAINE d'un cycle sans jet (éclatement du
-   *  Vers du Reik, d'issue invariante — MSRC 16 l.142) : l'un OU l'autre, jamais les deux.
-   *  `difficultyBySeverity` INDEXE la Difficulté du nœud sur la sévérité de l'instance (Toxine,
-   *  LDB 20 l.215 : Modéré→Facile, Grave→Accessible) — clé absente pour la sévérité portée = Difficulté
-   *  du nœud inchangée. Lu par `symptomOnTick`. `afterDays`/`once` cadencent le cycle sur la phase
-   *  ACTIVE (Vers de carie : Test quotidien À PARTIR de J+7, MSRC 16 l.90 ; Vers du Reik : 7ᵉ jour). */
-  onTick?: {
-    test?: import('../engine/flowCore').NoeudDecideAuPorteur;
-    ops?: import('../engine/ops').GameOp[];
-    difficultyBySeverity?: Partial<Record<'moderee' | 'grave', import('../engine/types').Difficulty>>;
-    /** Ne se déclenche qu'à partir du Nᵉ jour de PHASE ACTIVE (1 = premier jour actif). Absent = dès le 1ᵉʳ. */
-    afterDays?: number;
-    /** UNE seule fois, au jour `afterDays` exact (Vers du Reik) ; absent/false = quotidien (Vers de carie). */
-    once?: boolean;
-  };
-  /** Passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik : « si l'ampoule se trouve à un endroit
-   *  visible… −10 Sociabilité », MSRC 16 l.140) — appliqués SEULEMENT si la localisation tirée à l'entrée en
-   *  phase active (`Disease.blisterLocation`) ∈ `visibleLocations`. Jet de Localisation canonique (`hitLocation`). */
-  visiblePassive?: import('../engine/ops').OpPassive[];
-  /** Localisations comptées comme VISIBLES (arbitrage `maison` : tête/bras visibles, corps/jambes couverts) —
-   *  gate de `visiblePassive`. Éditable au Codex. */
-  visibleLocations?: import('../engine/types').HitLocation[];
-  capabilities?: SymptomCapabilities;
-}
+/** Capacités irréductibles d'un symptôme (`symptomCapabilitiesSchema`, `schemas/defs/symptoms.ts`). */
+export type SymptomCapabilities = z.output<typeof symptomCapabilitiesSchema>;
+/** Symptôme de maladie (LDB 20), son id fermé sur l'union générée (`Id<'symptome'>`). */
+export type SymptomData = EntreeDe<typeof symptomsDef>;
 /** Domaine de magie (Couleur, LDB 48) : ses ATTRIBUTS éditables au Codex — riders « à la touche »
  *  (`effects`, gatés par les Conditions Flow `relation`/`has`), mitigation de Projectile
  *  (`missile`), ops post-incantation au lanceur (`casterOps`). Le `label` correspond au `subType`
@@ -1707,7 +1604,7 @@ export const careers = datasetDe<typeof careersDef>(careersJson);
 export const careerLevels = datasetDe<typeof careerLevelsDef>(careerLevelsJson);
 export const skills = datasetDe<typeof skillsDef>(skillsJson);
 export const talents = datasetDe<typeof talentsDef>(talentsJson);
-export const etats = etatsJson as EtatData[];
+export const etats = datasetDe<typeof etatsDef>(etatsJson);
 /** Procédures / options de jeu (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation
  *  étendue…) — prose du livre ADRESSÉE au `Source/` (`descRef`, #1887) ou inline (`desc`, stock
  *  `PROSE_INLINE_TOLEREE`), app-owned. Routées en tooltip
@@ -1749,9 +1646,9 @@ export function findRegleById(id: string): RegleData | undefined {
 /** Tables numériques de Disponibilité & de Troc (LDB 59 « Faire son marché » p.290-291) — app-owned
  *  éditable ; consommé par `engine/disponibilite` (mêmes références). */
 export const disponibilite = datasetDe<typeof disponibiliteDef>(disponibiliteJson);
-/** Maladies (LDB 20) — app-owned éditable au Codex ; le COMPORTEMENT (cycle/symptômes) vit dans
- *  `engine/disease`, le type `DiseaseDef` dérive du schéma (`schemas/defs/maladies.ts`). */
-export const maladies = maladiesJson as DiseaseDef[];
+/** Maladie (LDB 20), son id fermé sur l'union générée (`Id<'maladie'>`) ; le cycle vit dans `engine/disease`. */
+export type DiseaseDef = EntreeDe<typeof maladiesDef>;
+export const maladies = datasetDe<typeof maladiesDef>(maladiesJson);
 const maladieParId = indexParId('maladies', maladies);
 /** Résout une Maladie par son `id` STABLE. */
 export function findDiseaseById(id: string): DiseaseDef | undefined {
@@ -1793,7 +1690,7 @@ export function fabricationAtoutQuality(id: string): QualityRef | undefined {
   return q && (q.indice ? { id: q.id, value: 1 } : { id: q.id });
 }
 /** Symptômes de maladie (LDB 20) — entités de DONNÉE éditables au Codex (passive/onTick/capabilities). */
-export const symptoms = symptomsJson as SymptomData[];
+export const symptoms = datasetDe<typeof symptomsDef>(symptomsJson);
 const symptomeParId = indexParId('symptoms', symptoms);
 export const findSymptomById: (id: string) => SymptomData | undefined = symptomeParId;
 /** Libellé FR d'un symptôme par son id (repli sur l'id si inconnu). */
@@ -1814,7 +1711,9 @@ export const symptomInstanceLabel = (inst: { symptomId: string; severity?: 'mode
 };
 /** Mutations (entités) + Tables de Corruption (plages de leur dé → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
  *  app-owned éditables au Codex. Le runtime du tirage (`rollMutation`) vit dans `mutations.ts`. */
-export const mutations = mutationsJson as MutationData[];
+/** Mutation au catalogue (LDB 19), son id fermé sur l'union générée de `mutations.json`. */
+export type MutationData = EntreeDe<typeof mutationsDef>;
+export const mutations = datasetDe<typeof mutationsDef>(mutationsJson);
 export const mutationTables = datasetDe<typeof tablesDeCorruption>(mutationTablesJson);
 /** Tables d'EFFETS référençables (`tables.json`, tirées par l'op `rollTable` variante `tableId`) —
  *  loader + lookup fail-fast dans `data/effectTables.ts` (importe le type `GameOp` du moteur, réservé). */
