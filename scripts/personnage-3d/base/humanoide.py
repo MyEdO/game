@@ -133,22 +133,6 @@ def fusionner(bpy, clips, autres):
     return clips
 
 
-def ecarter(bpy, clips, ecartes):
-    """Les clips de `clips` hors `ecartes`, ceux que la déclaration du corps écarte (`clipsEcartes`, #3810), qui
-    s'effacent ; un nom d'`ecartes` absent de `clips` arrête la construction."""
-    absents = sorted(set(ecartes) - {a.name for a in clips})
-    if absents:
-        raise RuntimeError(f'clipsEcartes : {", ".join(absents)} absent des packs fusionnés')
-    gardes = []
-    for action in clips:
-        if action.name not in ecartes:
-            gardes.append(action)
-            continue
-        print('RETIRE', action.name, ': écarté par la déclaration du corps (clipsEcartes)', flush=True)
-        bpy.data.actions.remove(action)
-    return gardes
-
-
 def preparer(action):
     """Retire les pistes de position hors `OS_A_POSITION` et passe toute clé en LINEAR."""
     for sac in sacs(action):
@@ -258,8 +242,7 @@ def construire(args):
         if objet in objets:
             print('RETIRE', objet.name, '(hors peau du corps)', flush=True)
         bpy.data.objects.remove(objet, do_unlink=True)
-    declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
-    clips = retirer_sans_sol(ecarter(bpy, fusionner(bpy, clips, clips2), declaration.get('clipsEcartes', [])), sources, PELVIS)
+    clips = retirer_sans_sol(fusionner(bpy, clips, clips2), sources, PELVIS)
     for action in clips:
         preparer(action)
     figee = {a.name: figer(a) for a in clips}
@@ -270,6 +253,7 @@ def construire(args):
     bornes = bornes_de_st()
     table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit(),
              OS_DES_SILHOUETTES: lire_os_des_silhouettes(squelette)}
+    declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
     marches = [declaration['clips']['marche']]
     plantes = clips_plantes(declaration)
     noms = [b.name for b in squelette.data.bones]

@@ -1,4 +1,4 @@
-"""#3104 issuecomment-6549354475 ; hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » ; #3810."""
+"""#3104 issuecomment-6549354475 ; hotes/godot/pont/CONTRAT.md, « Gabarit d'une base »."""
 import contextlib
 import io
 import sys
@@ -38,7 +38,7 @@ def doublures_de_la_construction(peau, journal):
     return {
         'manifeste_mjs': nul, 'importer': mock.MagicMock(return_value=(nul, [], [])), 'resoudre_images': nul,
         'hierarchie': mock.MagicMock(return_value=['root']), 'meshes_for': mock.MagicMock(return_value=[peau]),
-        'bas_des_sources': mock.MagicMock(return_value={}), 'fusionner': nul, 'ecarter': nul,
+        'bas_des_sources': mock.MagicMock(return_value={}), 'fusionner': nul,
         'retirer_sans_sol': mock.MagicMock(return_value=[]), 'reperes_des_prises': nul,
         'deriver_a_deux_mains': mock.MagicMock(return_value=[]), 'poser_au_sol': nul, 'rigidifier_les_pieds': nul,
         'clips_plantes': mock.MagicMock(return_value=[]),
@@ -106,39 +106,6 @@ class PhaseSilhouettes(unittest.TestCase):
         self.assertEqual(doublures['refuser_correction'].call_count, 1)
         self.assertEqual(doublures['refuser_correction'].call_args.args[2], 'entrée de pied')
         self.assertEqual(doublures['cuire_gabarit'].call_count, 0)
-
-
-def actions(*noms):
-    """Des actions nommées `noms`, et la doublure de `bpy` qui note les actions retirées."""
-    bpy = mock.MagicMock()
-    rendues = []
-    for nom in noms:
-        action = mock.MagicMock()
-        action.name = nom
-        rendues.append(action)
-    return bpy, rendues
-
-
-class ClipsEcartes(unittest.TestCase):
-    def test_les_clips_ecartes_s_effacent_avec_leur_trace(self):
-        bpy, clips = actions('Idle_Loop', 'LayToIdle', 'Walk_Loop')
-        sortie = io.StringIO()
-        with contextlib.redirect_stdout(sortie):
-            gardes = humanoide.ecarter(bpy, clips, ['LayToIdle'])
-        self.assertEqual([a.name for a in gardes], ['Idle_Loop', 'Walk_Loop'])
-        self.assertEqual([appel.args[0].name for appel in bpy.data.actions.remove.call_args_list], ['LayToIdle'])
-        self.assertEqual(sortie.getvalue(), 'RETIRE LayToIdle : écarté par la déclaration du corps (clipsEcartes)\n')
-
-    def test_sans_clip_ecarte_tout_reste(self):
-        bpy, clips = actions('Idle_Loop', 'Walk_Loop')
-        self.assertEqual(humanoide.ecarter(bpy, clips, []), clips)
-        self.assertEqual(bpy.data.actions.remove.call_count, 0)
-
-    def test_un_clip_ecarte_absent_des_packs_arrete_la_construction(self):
-        bpy, clips = actions('Idle_Loop', 'Walk_Loop')
-        with self.assertRaisesRegex(RuntimeError, r'^clipsEcartes : LayToIdle absent des packs fusionnés$'):
-            humanoide.ecarter(bpy, clips, ['Idle_Loop', 'LayToIdle'])
-        self.assertEqual(bpy.data.actions.remove.call_count, 0)
 
 
 class PointFixeCommun(unittest.TestCase):

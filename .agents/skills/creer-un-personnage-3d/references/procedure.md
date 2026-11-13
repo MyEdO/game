@@ -77,8 +77,6 @@ et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe`
 donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
 sexe, #3188), la vitesse au sol du clip du rôle `marche` mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerModele` (`hotes/godot/asset/modeles.ts`) fait échouer la construction.
-La déclaration porte aussi `clipsEcartes`, hors manifeste : les clips des packs que la construction retire après leur
-fusion ; un clip que la garde `membres` refuse et qu'aucun rôle ne joue quitte la base (#3810).
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
 `packs_sources`) et `LICENSE-ual1.txt`, `LICENSE-ual2.txt`, `LICENSE-corps.txt`,
