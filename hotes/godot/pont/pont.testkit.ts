@@ -14,8 +14,7 @@ import { creerPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite
 import { gestesDessines } from './dessines';
 export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
-import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
-import type { VoyageCadence } from '../../../src/noyau/voyageCadence';
+import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal, type VoyageCadence } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
 import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } from '../../../src/hote/elements';
 
