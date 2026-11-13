@@ -570,19 +570,33 @@ function echoppe(etat: Jeu): Element[] {
 
 type Voyage = NonNullable<ReturnType<typeof voyageEnVue>>;
 
-/** Le ciel de chaque moment du jour, et le voile qu'il pose sur le relief. */
-const CIEL_DU_MOMENT: Record<Voyage['moment']['id'], readonly IdDeCouche[]> = {
-  aube: ['ciel-aube', 'voile-aube'], matin: ['ciel-jour'], midi: ['ciel-jour'], apresmidi: ['ciel-jour'],
-  crepuscule: ['ciel-soir', 'voile-soir'], soir: ['ciel-nuit', 'voile-nuit'], nuit: ['ciel-nuit', 'voile-nuit'],
-};
+/** La teinte de chaque moment du jour : celle de son ciel (`ciel-…`) et de sa brume (`brume-…`). */
+const TEINTE_DU_MOMENT = { aube: 'aube', matin: 'jour', midi: 'jour', apresmidi: 'jour', crepuscule: 'soir', soir: 'nuit', nuit: 'nuit' } as const satisfies Record<Voyage['moment']['id'], string>;
+type Teinte = (typeof TEINTE_DU_MOMENT)[Voyage['moment']['id']];
 
 /** La couche de chaque météo du jour ; `null` : un temps qui ne se voit pas. */
 const COUCHE_DE_LA_METEO: Record<NonNullable<Voyage['meteo']>['id'], IdDeCouche | null> = {
   sec: null, beau: null, pluie: 'meteo-pluie', 'pluie-diluvienne': 'meteo-pluie-diluvienne', neige: 'meteo-neige', blizzard: 'meteo-blizzard',
 };
 
-/** Le relief de chaque voie. */
-const RELIEF_DE_LA_VOIE: Record<Voyage['voie'], IdDeCouche> = { terrestre: 'relief-terre', fluvial: 'relief-fleuve', maritime: 'relief-mer' };
+/** La lumière des plans de terre à la teinte `t` : leurs couleurs au jour, leurs silhouettes sinon. */
+const lumiere = (t: Teinte) => (t === 'jour' ? 'jour' : 'ombre');
+
+/** Le relief de la voie `voie` du plus lointain au plus proche, à la lumière de la teinte `t` et sa brume entre ses
+ *  plans : à terre les montagnes, les collines, la lisière et la route ; l'eau sous sa brume basse. */
+const reliefDeLaVoie = (voie: Voyage['voie'], t: Teinte): IdDeCouche[] => {
+  const l = lumiere(t);
+  return voie === 'terrestre'
+    ? [`relief-montagnes-${l}`, `brume-haute-${t}`, `relief-collines-${l}`, `brume-basse-${t}`, `relief-lisiere-${l}`, `relief-route-${l}`]
+    : [voie === 'fluvial' ? 'relief-fleuve' : 'relief-mer', `brume-basse-${t}`];
+};
+
+/** Ce qui ferme un paysage sur la voie `voie` à la teinte `t` : le premier plan à terre, la météo `meteo` du jour, la
+ *  vignette. */
+const avantDuPaysage = (voie: Voyage['voie'], t: Teinte, meteo: Voyage['meteo'] | undefined): IdDeCouche[] => {
+  const couche = meteo && COUCHE_DE_LA_METEO[meteo.id];
+  return [...(voie === 'terrestre' ? [`avant-foret-${lumiere(t)}` as const] : []), ...(couche ? [couche] : []), 'voile-coins'];
+};
 
 /** L'équipage d'un trajet, qui nomme sa couche (`equipage-…`) et celle de sa lanterne (`lanterne-…`). */
 type Equipage = 'pied' | 'monture' | 'attelage' | 'barge' | 'navire';
@@ -598,22 +612,21 @@ const scene = (etat: Jeu, couches: IdDeCouche[], moment: string): Element[] => [
   ligne('scene/moment', moment),
 ];
 
-/** Le paysage du trajet : le ciel du moment, le relief de la voie, le voile du moment, l'équipage, sa lanterne quand
- *  le moment pose un voile, puis la météo du jour. */
+/** Le paysage du trajet : le ciel du moment, le relief de la voie, l'équipage, sa lanterne quand le jour baisse, puis ce
+ *  qui ferme le paysage. */
 function paysageDuVoyage(v: Voyage): IdDeCouche[] {
-  const [ciel, ...voile] = CIEL_DU_MOMENT[v.moment.id];
-  const meteo = v.meteo && COUCHE_DE_LA_METEO[v.meteo.id];
+  const t = TEINTE_DU_MOMENT[v.moment.id];
   const e = equipage(v);
-  return [ciel, RELIEF_DE_LA_VOIE[v.voie], ...voile, `equipage-${e}`, ...(voile.length > 0 ? [`lanterne-${e}` as const] : []), ...(meteo ? [meteo] : [])];
+  return [`ciel-${t}`, ...reliefDeLaVoie(v.voie, t), `equipage-${e}`, ...(t === 'soir' || t === 'nuit' ? [`lanterne-${e}` as const] : []), ...avantDuPaysage(v.voie, t, v.meteo)];
 }
 
 /** Le paysage d'une halte : la nuit sur son relief, le toit de la nuit (le feu du campement, les fenêtres d'un logis,
- *  le bord et ses lanternes sur l'eau du trajet `v`, la mer hors d'un trajet), puis la météo du jour. */
+ *  le bord et ses lanternes sur l'eau du trajet `v`, la mer hors d'un trajet), puis ce qui ferme le paysage. */
 function paysageDeLaHalte(toit: NonNullable<ReturnType<typeof reposEnVue>>['toit'], v: Voyage | null): IdDeCouche[] {
-  const meteo = v?.meteo && COUCHE_DE_LA_METEO[v.meteo.id];
-  const bord = v?.voie === 'fluvial' ? 'barge' : 'navire';
+  const voie = toit === 'bord' ? (v?.voie === 'fluvial' ? 'fluvial' : 'maritime') : 'terrestre';
+  const bord = voie === 'fluvial' ? 'barge' : 'navire';
   const halte: IdDeCouche[] = toit === 'bord' ? [`equipage-${bord}`, `lanterne-${bord}`] : [toit === 'campement' ? 'halte-feu' : 'halte-toit'];
-  return ['ciel-nuit', toit === 'bord' ? RELIEF_DE_LA_VOIE[v?.voie === 'fluvial' ? 'fluvial' : 'maritime'] : 'relief-terre', 'voile-nuit', ...halte, ...(meteo ? [meteo] : [])];
+  return ['ciel-nuit', ...reliefDeLaVoie(voie, 'nuit'), ...halte, ...avantDuPaysage(voie, 'nuit', v?.meteo)];
 }
 
 /** La frise du trajet, en plan d'une seule ligne : le départ, chaque nuit passée en route à son km, là où est le

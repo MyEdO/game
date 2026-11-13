@@ -37,7 +37,7 @@ describe('la journée de route par le pont', () => {
     const { suite, lignes } = enRoute();
     expect(suite.vue.disposition, 'la scène du voyage').toBe('voyage');
     const c = corps(suite);
-    expect((c['scene/paysage'] as Paysage).paysage, 'le paysage : le ciel du jour, la route, les marcheurs').toEqual(['ciel-jour', 'relief-terre', 'equipage-pied']);
+    expect((c['scene/paysage'] as Paysage).paysage, 'le paysage : le ciel du jour, la voie terrestre en plans à la lumière du jour sous sa brume, les marcheurs, le premier plan au jour, la vignette').toEqual(['ciel-jour', 'relief-montagnes-jour', 'brume-haute-jour', 'relief-collines-jour', 'brume-basse-jour', 'relief-lisiere-jour', 'relief-route-jour', 'equipage-pied', 'avant-foret-jour', 'voile-coins']);
     expect((c['scene/jour'] as Ligne).texte, 'le jour de jeu, sans l’heure').toMatch(/ CI$/);
     expect((c['scene/moment'] as Ligne).texte, 'le moment du jour et la météo').toBe('Après-midi · temps sec');
     expect((c['voyage/route'] as Ligne).texte, 'les km du trajet par son moyen').toBe('À pied · 24 km sur 30');

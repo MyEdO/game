@@ -22,7 +22,7 @@ describe('le catalogue des dessins de l’hôte Godot', () => {
     expect(Object.keys(catalogue.paysage.dessins)).toEqual(Object.keys(COUCHES_DE_PAYSAGE));
     expect(Object.keys(catalogue.cadre.dessins)).toEqual(Object.keys(CADRES));
     expect(Object.keys(catalogue.cadre.tranches)).toEqual(Object.keys(CADRES));
-    expect([catalogue.icone, catalogue.fond, catalogue.paysage, catalogue.cadre].map((type) => [type.largeur, type.hauteur])).toEqual([[24, 24], [320, 96], [960, 360], [128, 128]]);
+    expect([catalogue.icone, catalogue.fond, catalogue.paysage, catalogue.cadre].map((type) => [type.largeur, type.hauteur])).toEqual([[24, 24], [320, 96], [1600, 900], [128, 128]]);
   });
 
   it('chaque jeton d’un dessin a sa couleur au thème', () => {

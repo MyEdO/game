@@ -3,7 +3,7 @@ export interface CoucheDePaysage {
   /** `famille-nom` en kebab-case (`ciel-nuit`, `meteo-pluie`). */
   id: string;
   label: string;
-  /** Contenu INTERNE d'un viewBox 0 0 960 360 ; tokens `var(--…)` seuls, jamais de couleur en dur ; l'id d'un dégradé
+  /** Contenu INTERNE d’un viewBox 0 0 1600 900 ; tokens `var(--…)` seuls, jamais de couleur en dur ; l'id d'un dégradé
    *  commence par l'id de sa couche. */
   svg: string;
 }
