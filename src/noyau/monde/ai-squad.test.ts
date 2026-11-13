@@ -51,7 +51,7 @@ describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
     const e = mk('e', 'ennemi', { x: 10, y: 10 }, { weapons: [MELEE] });
     const flanked = mk('flanked', 'heros', { x: 11, y: 10 }); // contact à l'est
     const alone = mk('alone', 'heros', { x: 9, y: 10 }); // contact à l'ouest, sans allié près
-    const ally = mk('ally', 'ennemi', { x: 12, y: 10 }); // adjacent à `flanked` (combatDistance 1)
+    const ally = mk('ally', 'ennemi', { x: 12, y: 10 }); // adjacent à `flanked` (distanceDeContact 1)
     const a = chooseEnemyAction(input(e, [flanked, alone], { squad: [ally] }));
     expect(a.kind).toBe('melee');
     expect(tidOf(a)).toBe('flanked'); // le surnombre fait pencher le feu concentré sur la cible encadrée
@@ -69,7 +69,7 @@ describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
   });
 
   it('parité du DÉCOMPTE avec combatFlow.ts:428 : 1 allié adjacent + l’attaquant = 2c1 → +20 (et 2 alliés → +40)', () => {
-    // L'IA réutilise `outnumberMod(adj + 1)` où `adj` = alliés à combatDistance ≤ 1 (MÊME filtre que la
+    // L'IA réutilise `outnumberMod(adj + 1)` où `adj` = alliés à distanceDeContact ≤ 1 (MÊME filtre que la
     // résolution combatFlow.ts:428, qui inclut l'attaquant). On vérifie ici la fonction partagée.
     expect(outnumberMod(1 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'deux-contre-un')); // 1 allié + attaquant
     expect(outnumberMod(2 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'trois-contre-un')); // 2 alliés + attaquant

@@ -73,7 +73,7 @@ import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
 import { type CascadeApplier, pushStep, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
 import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
@@ -997,8 +997,8 @@ export function openSkillTest(
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
     // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
-    // via `combatDistance`, active quand `actor.pos` est posé (combat en cours).
-    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && combatDistance(actor, c) <= 1 : undefined);
+    // via `distanceDeContact`, active quand `actor.pos` est posé (combat en cours).
+    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && distanceDeContact(actor, c) <= 1 : undefined);
     const sout = soutD?.bonus ?? 0;
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
@@ -2271,7 +2271,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const battle = env.get().battle;
       const pool = battle?.combatants.filter((c) => c.kind === 'heros') ?? env.get().party;
       const leader = partyBest(pool, e)?.actor;
-      const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && combatDistance(leader, c) <= 1 : undefined;
+      const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && distanceDeContact(leader, c) <= 1 : undefined;
       const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
       if (!best) return;
       const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), groupe: env.get().party });

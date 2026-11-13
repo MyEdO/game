@@ -134,7 +134,7 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
       out.push({ key: `cand-${id}`, cell: { x: t.pos.x, y: t.pos.y, z: tz }, h: hAt(t.pos.x, t.pos.y, tz), kind: 'anneau', tone });
     }
   // Bandes de portée (Bout Portant→Extrême) du tireur SURVOLÉ, au sol autour de sa position — distance
-  // de Chebyshev en cases (même métrique que `combatDistance`, 1x1). Rayon = Portée×3 (hors de portée),
+  // de Chebyshev en cases (même métrique que `distanceDeCombat`, 1x1). Rayon = Portée×3 (hors de portée),
   // BORNÉ à la carte : le semis ne peint jamais hors des `scene.dimensions` (plafond = w×h cases).
   if (view.rangeBandSource) {
     const { pos, rangeM } = view.rangeBandSource;

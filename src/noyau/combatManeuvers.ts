@@ -45,7 +45,7 @@ import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
 type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
 import { type Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { combatantsWithinRadius } from './monde/combatGeometry';
@@ -121,7 +121,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
       !isOutOfAction(t) &&
       !!t.pos &&
       !!c.pos &&
-      combatDistance(c, t) <= 1 &&
+      distanceDeContact(c, t) <= 1 &&
       sizeGap(c.size, t.size) >= ecart,
   );
 }

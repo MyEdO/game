@@ -24,11 +24,11 @@
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
 import { Combatant, Weapon } from '../../engine/types';
-import { Scene, sceneMetresPerTile, heightAt } from './scene';
+import { Scene, sceneMetresPerTile } from './scene';
+import { positionPosee } from './spawn';
 import { reachable, flyReachable, manhattan, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
 import { chebyshev } from '../../engine/grid';
-import { footprintChebyshev, footprintN, combatDistance } from './footprint';
-import { verticalTiles } from './relief';
+import { footprintChebyshev, footprintN, distanceDeContact } from './footprint';
 import { makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../../engine/combat';
@@ -562,15 +562,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // (Chebyshev). Source unique partagée avec le héros et la résolution → symétrie héros/ennemi.
   const mr = meleeReachTiles(enemy.weapons);
   const mpt = sceneMetresPerTile(scene); // m/case de la scène (échelle RAW, défaut 2) → convertit la hauteur en cases
-  // Z-AWARE (relief métrique) : la séparation VERTICALE réelle (Δhauteur ÷ m/case, `verticalTiles`) borne la
-  // portée par le bas — un ennemi au sol ne frappe pas un héros sur la muraille même 2D-adjacent. La case
-  // candidate `a` se mesure à SA surface (`heightAt`, comme `placeCombatant`) ; `b` (une cible posée) porte
-  // la sienne. Même décompte vertical que `combatDistance`.
-  const withinMelee = (a: Pt, b: Pt & { h?: number }) =>
-    Math.max(chebyshev(a, b), verticalTiles(heightAt(scene, a.x, a.y, a.z ?? 0), b.h ?? 0, mpt)) <= mr;
+  // Au contact depuis la case candidate `a`, l'ennemi posé là (`positionPosee`), mesuré par `distanceDeContact`.
+  const withinMelee = (a: Pt, h: Combatant) =>
+    distanceDeContact({ ...enemy, pos: positionPosee(scene, footprintN(enemy), a) }, h, mpt) <= mr;
   // Au CONTACT par empreinte (LDB 15 l.12) : un grand ennemi touche depuis n'importe quelle de ses tuiles.
-  // `combatDistance` plie empreinte ET Δhauteur (même `mpt`) → s'aligne sur la grille d'engagement de la résolution.
-  const inMelee = (h: Combatant) => combatDistance(enemy, h, mpt) <= mr;
+  // `distanceDeContact` plie empreinte ET Δhauteur (même `mpt`) → s'aligne sur la grille d'engagement de la résolution.
+  const inMelee = (h: Combatant) => distanceDeContact(enemy, h, mpt) <= mr;
 
   // Possède-t-il un sort OFFENSIF jouable (data-driven : Projectile ou op de dégât/contrôle hostile) ? Si
   // oui, il LANCE plutôt que de tirer (parité avec l'ancien `offensiveSpell == null` du gate de tir).
@@ -684,7 +681,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const clearable = restrictingConditions(enemy).find((rc) => rc.stacks <= resolve);
     if (!clearable) return null;
     const reachableFoe = adjacentFoes.length > 0 || shootableHeroes.length > 0
-      || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h.pos!)));
+      || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h)));
     if (!isEngaged(enemy) && !reachableFoe) return null; // ni Engagé ni cible joignable → se cacher vaut mieux
     return { kind: 'depenseDeRessource', resource: 'determination', via: 'retirerEtat', id: clearable.id };
   };
@@ -725,9 +722,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Un héros est « frappable ce tour » en mêlée s'il est déjà adjacent OU si une
   // case atteignable lui est adjacente.
   const meleeReachableNow = (h: Combatant): boolean => {
-    if (withinMelee(pos, h.pos!)) return true;
+    if (withinMelee(pos, h)) return true;
     for (const k of reach.keys()) {
-      if (withinMelee(tileFromKey(k), h.pos!)) return true;
+      if (withinMelee(tileFromKey(k), h)) return true;
     }
     return false;
   };
@@ -757,14 +754,14 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
   /** FEU CONCENTRÉ via SURNOMBRE (RAW, LDB 14) — MÊME `outnumberMod` et MÊME décompte que la résolution
-   *  (`effectifAuContact`, `src/noyau/combat/surnombre.ts`) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
+   *  (`effectifAuContact`, `src/noyau/combat/surnombre.ts`) : N = (alliés de l'escouade à `distanceDeContact ≤ 1` de la cible) + 1
    *  (l'attaquant lui-même, qui SERA au contact en frappant). Renvoie le `ModLine` du bonus de toucher
    *  (+20 à 2c1, +40 à 3+c1) sous forme d'`env` injecté DANS `expectedDamage` (mêlée UNIQUEMENT — le
    *  surnombre RAW est mêlée-only, cf. combatFlow:425 qui ne sert que `attackEnv` de mêlée). Aucun
    *  modificateur inventé : on réutilise la fonction du moteur. Squad vide → null (pas d'env). */
   const outnumberEnvMelee = (target: Combatant): ModLine[] | undefined => {
     if (squad.length === 0) return undefined;
-    const adj = squad.filter((c) => c.pos && combatDistance(c, target) <= 1).length;
+    const adj = squad.filter((c) => c.pos && distanceDeContact(c, target) <= 1).length;
     const onm = outnumberMod(adj + 1); // +1 = l'attaquant courant (parité avec `effectifAuContact`)
     return onm ? [onm] : undefined;
   };
@@ -895,7 +892,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
         ? (castRange == null || d <= castRange)
         : (maxWeaponRange === 0 || rangeBandModifier(d, maxWeaponRange, mpt) != null);
       if (d > mr && seesFrom && inShootRange) v += Weff.preferredRange; // garde la distance ET la ligne de tir
-    } else if (withinMelee(to, target.pos!)) {
+    } else if (withinMelee(to, target)) {
       v += Weff.preferredRange; // mêlée : au contact
     }
     // ÉVITEMENT du DANGER (Lot 4) : pénalise une case exposée à la menace des héros (danger-map). Calibré

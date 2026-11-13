@@ -6,9 +6,9 @@
 import type { Combatant } from '../../engine/types';
 import type { BattleState } from '../etat';
 import { isOutOfAction } from '../../engine/conditions';
-import { combatDistance } from '../monde/footprint';
+import { distanceDeContact } from '../monde/footprint';
 
-/** Les combattants vivants et posés du camp `kind` au contact de `cible` (`combatDistance`, relief compris). */
+/** Les combattants vivants et posés du camp `kind` au contact de `cible` (`distanceDeContact`, relief compris). */
 export function effectifAuContact(battle: BattleState, cible: Combatant, kind: Combatant['kind']): number {
-  return battle.combatants.filter((c) => c.kind === kind && !isOutOfAction(c) && c.pos && combatDistance(c, cible) <= 1).length;
+  return battle.combatants.filter((c) => c.kind === kind && !isOutOfAction(c) && c.pos && distanceDeContact(c, cible) <= 1).length;
 }
