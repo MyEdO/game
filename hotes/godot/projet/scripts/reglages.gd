@@ -5,7 +5,7 @@
 class_name PanneauDesReglages
 extends CanvasLayer
 
-## Ce que le panneau porte à l'écran a changé : ouvert, relu ou fermé.
+## Ce que le panneau porte à l'écran a changé : ouvert, relu, défilé ou fermé.
 signal change
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
@@ -15,6 +15,7 @@ signal change
 func _ready() -> void:
 	for zone in Zone.racines(_cadre):
 		zone.geste.connect(_jouer)
+	(%Defilement as ScrollContainer).get_v_scroll_bar().value_changed.connect(change.emit.unbind(1))
 
 
 ## Le panneau ouvert sur les réglages du pont.

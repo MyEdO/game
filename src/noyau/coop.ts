@@ -16,7 +16,7 @@ import { FORMAT_SAVE } from './persistance/formats.generated';
  *  dont un instantané nomme les ids (règles optionnelles et leur forme, États connus). Deux clients qui divergent
  *  sur l'un ou l'autre sont refusés par le seul `format-mismatch` du handshake (`hote/coop/session.ts`). */
 export function buildDeLaCoop(): string {
-  const regles = OPTIONAL_RULES.flatMap((r) => [r.id, r.kind, (r.options ?? []).join('|'), r.min ?? '', r.max ?? '']);
+  const regles = OPTIONAL_RULES.flatMap((r) => [r.id, r.kind, r.kind === 'mode' ? r.options.join('|') : '', r.kind === 'param' ? r.min : '', r.kind === 'param' ? r.max : '']);
   return `${FORMAT_SAVE}.${hash32(...regles, '§', ...etatIdsConnus()).toString(36)}`;
 }
 

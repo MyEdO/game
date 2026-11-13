@@ -12,7 +12,7 @@ import { loseWounds, isOutOfAction, addCondition, appliquerMortSubite } from '..
 import { critiquesDuCoup, relanceLaLocalisation } from '../../engine/critical';
 import { pathTo } from '../../noyau/monde/path';
 import { moveEnv } from '../../noyau/monde/combatGeometry';
-import { combatDistance } from '../../noyau/monde/footprint';
+import { distanceDeContact } from '../../noyau/monde/footprint';
 import { placeCombatant } from '../../noyau/monde/spawn';
 import { currentTargetingMode } from '../../noyau/targetingModes';
 import type { Combatant, Weapon } from '../../engine/types';
@@ -150,7 +150,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
       const pirate = byId(battle, id);
       const path = boardOnto(battle, scene, tueur, pirate); // TRAVERSÉE : chemin réel jusqu'au contact
       expect(path, `abordage injouable : aucun chemin vers ${id}`).not.toBeNull();
-      expect(combatDistance(tueur, pirate)).toBeLessThanOrEqual(1); // ENGAGÉ
+      expect(distanceDeContact(tueur, pirate)).toBeLessThanOrEqual(1); // ENGAGÉ
       const blows = meleeDown(tueur, pirate); // VAINCU au corps à corps
       expect(isOutOfAction(pirate), `le pirate ${id} n'est pas tombé en ${blows} coups`).toBe(true);
     }

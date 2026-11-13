@@ -19,8 +19,9 @@
 // chaque recette lancée avec `--pont=<vivant.mjs>` ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
-// (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), et les
-// planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), les avis
+// de licence de ce qu'il embarque sous `licences/` (`avis.mjs`, #4063 : le moteur, les paquets npm du bundle, les
+// assets du projet ; un avis qui manque fait échouer l'export), et les planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
@@ -32,14 +33,16 @@
 // (`vivant.mjs`), qui partage `empaqueter` en développement. `--bureau --sortie <dossier>` y écrit l'exécutable de bureau de cette
 // plateforme (#3951, `BUREAU`) : sous `noyau/`, le bundle, le point d'entrée embarqué empaqueté en un fichier
 // (`empaqueterLeProcessus`, `embarque.mjs`) et le Node qui joue l'export ; l'export de son préréglage sur son modèle
-// épinglé ; à côté, les modèles en scène ; puis l'exécutable joue une partie sur son noyau embarqué
+// épinglé ; à côté, les modèles en scène et les avis de licence, Node et les paquets npm des deux bundles compris ;
+// puis l'exécutable joue une partie sur son noyau embarqué
 // (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
 // déclarant `const RECETTE_RENDUE := true` (`rendre`) ; la CI le joue (`npm run godot:rendus`). L'import de ce module
 // ne lance aucun mode ; il charge les assets par `listage.mjs` (#3963).
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
 import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { createContext, runInContext } from 'node:vm'
@@ -47,8 +50,10 @@ import { gzipSync, inflateRawSync } from 'node:zlib'
 import { Linter } from 'eslint'
 import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
+import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { chargerAssets } from './asset/charger.mjs'
+import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs'
@@ -75,9 +80,9 @@ const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
-  --export            le bundle, l'export Web du projet et ses modèles fabriqués en scène, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
+  --export            le bundle, l'export Web du projet, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --rendus            le projet importé et les recettes rendues jouées en rendu réel sous chacun des deux rendus, Forward+ et compatibilité, par l'éditeur Godot épinglé
-  --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué et ses modèles fabriqués en scène, dans --sortie, puis la partie vivante jouée par l'exécutable
+  --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, puis la partie vivante jouée par l'exécutable
   --ouvrir            les GLB tirés de la Release et le catalogue des dessins déposés, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
@@ -100,9 +105,9 @@ function lireOptions(argv) {
   return { options }
 }
 
-/** Le bundle du pont bâti dans le `mode` donné (`'production'` ou `'development'`) : son code, écrit dans `sortie` si
- *  elle est donnée. Vite lit le mode dans `process.env.NODE_ENV`, posé au `mode` le temps de la construction, puis
- *  rendu à sa valeur d'avant, ou retiré s'il était absent. */
+/** Le bundle du pont bâti dans le `mode` donné (`'production'` ou `'development'`) : son code et les ids des modules
+ *  qu'il porte (`avisDesPaquets`), écrit dans `sortie` si elle est donnée. Vite lit le mode dans `process.env.NODE_ENV`,
+ *  posé au `mode` le temps de la construction, puis rendu à sa valeur d'avant, ou retiré s'il était absent. */
 export async function empaqueter(sortie, mode) {
   const entree = entreeDHote('wfrp-pont', ["import '/hotes/godot/pont/entree.ts';"])
   const avant = process.env.NODE_ENV
@@ -126,14 +131,20 @@ export async function empaqueter(sortie, mode) {
         reportCompressedSize: false,
       },
     })
-    const [sortieDeRollup] = Array.isArray(resultat) ? resultat : [resultat]
-    const morceau = sortieDeRollup.output.find((o) => o.type === 'chunk' && o.fileName === PONT)
-    if (!morceau) throw new Error(`[pont] ${PONT} absent de la sortie de vite build`)
-    return morceau.code
+    const { code, moduleIds } = morceauDe(resultat, PONT)
+    return { code, modules: moduleIds }
   } finally {
     if (avant === undefined) delete process.env.NODE_ENV
     else process.env.NODE_ENV = avant
   }
+}
+
+/** Le morceau `fichier` de `resultat`, la sortie de `vite build`. */
+function morceauDe(resultat, fichier) {
+  const [sortieDeRollup] = Array.isArray(resultat) ? resultat : [resultat]
+  const morceau = sortieDeRollup.output.find((o) => o.type === 'chunk' && o.fileName === fichier)
+  if (!morceau) throw new Error(`[pont] ${fichier} absent de la sortie de vite build`)
+  return morceau
 }
 
 /** Le point d'entrée embarqué du processus du pont (`embarque.mjs`), et le fichier où il s'empaquette à côté du bundle. */
@@ -141,9 +152,9 @@ const EMBARQUE = join(RACINE, 'hotes', 'godot', 'embarque.mjs')
 const PROCESSUS = 'vivant.mjs'
 
 /** Le point d'entrée embarqué empaqueté en un seul fichier, `PROCESSUS`, dans `sortie` : il n'importe que Node. Rend
- *  son chemin. */
+ *  son chemin et les ids des modules qu'il porte (`avisDesPaquets`). */
 export async function empaqueterLeProcessus(sortie) {
-  await build({
+  const resultat = await build({
     root: RACINE,
     configFile: false,
     publicDir: false,
@@ -157,7 +168,7 @@ export async function empaqueterLeProcessus(sortie) {
       rolldownOptions: { output: { entryFileNames: PROCESSUS } },
     },
   })
-  return join(sortie, PROCESSUS)
+  return { chemin: join(sortie, PROCESSUS), modules: morceauDe(resultat, PROCESSUS).moduleIds }
 }
 
 /** Le scénario que l'exécution démarre : le combat des tests du pont (`hotes/godot/pont/tour.hors-store.test.ts`). */
@@ -352,11 +363,13 @@ function modeleDuPreset(cfg) {
 
 /** Le préréglage d'export de bureau de chaque plateforme (`export_presets.cfg`), son modèle d'export en release dans
  *  l'archive des modèles (`platform/linuxbsd/export/export_plugin.cpp`, `platform/windows/export/export_plugin.cpp`,
- *  Godot 4.7-stable), l'exécutable qu'il écrit, et le nom sous lequel il cherche le Node du noyau embarqué
- *  (`projet/scripts/transport_du_processus.gd`). */
+ *  Godot 4.7-stable), l'exécutable qu'il écrit, le nom sous lequel il cherche le Node du noyau embarqué
+ *  (`projet/scripts/transport_du_processus.gd`), et le `LICENSE` de la distribution de Node de la plateforme, relatif
+ *  au dossier de son exécutable (archives `node-v<version>-linux-x64.tar.xz`, `bin/node`, et
+ *  `node-v<version>-win-x64.zip`, `node.exe`, que pose aussi `actions/setup-node`). */
 const BUREAU = {
-  linux: { preset: 'Linux', modele: 'templates/linux_release.x86_64', executable: 'wfrp.x86_64', node: 'node' },
-  win32: { preset: 'Windows Desktop', modele: 'templates/windows_release_x86_64.exe', executable: 'wfrp.exe', node: 'node.exe' },
+  linux: { preset: 'Linux', modele: 'templates/linux_release.x86_64', executable: 'wfrp.x86_64', node: 'node', licenceDeNode: '../LICENSE' },
+  win32: { preset: 'Windows Desktop', modele: 'templates/windows_release_x86_64.exe', executable: 'wfrp.exe', node: 'node.exe', licenceDeNode: 'LICENSE' },
 }
 
 /** Le dossier du noyau embarqué, à côté de l'exécutable de bureau (`projet/scripts/transport_du_processus.gd`). */
@@ -392,23 +405,54 @@ function scriptsDe(dossier, sous = dossier) {
 /** Les erreurs que Godot écrit parmi `lignes`. */
 const erreursDe = (lignes) => lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.trim()))
 
-/** `commande` (l'éditeur, un exécutable du projet, ou l'écran virtuel qui les porte) lancée sur `args` : les lignes de
- *  sa sortie, sans séquences de terminal, dans l'ordre où elle les écrit (sa sortie et sa sortie d'erreur vont au même
- *  fichier), et son échec, s'il y en a un : sa cause (le signal qui l'a tuée, ou son code de sortie) et la fin de sa
- *  sortie (`FIN_DE_SORTIE` lignes). */
+/** Un journal neuf pour un lancement de `commande` sur `args`, qui y écrit sa sortie et sa sortie d'erreur (`fd`, le
+ *  même fichier pour les deux). `bilan(r)`, `r` disant comment il finit (`{ error?, signal, status }`), rend les lignes
+ *  du journal, sans séquences de terminal, dans l'ordre où il les écrit, et son échec, s'il y en a un : sa cause (le
+ *  signal qui l'a tué, ou son code de sortie) et la fin de sa sortie (`FIN_DE_SORTIE` lignes). `clore()` l'efface. */
 const FIN_DE_SORTIE = 40
-function lancer(commande, args) {
+function journaliser(commande, args) {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-sortie-'))
   const journal = join(dossier, 'sortie.log')
   const fd = openSync(journal, 'a')
-  try {
-    const r = spawnSync(commande, args, { stdio: ['ignore', fd, fd], timeout: 600_000 })
+  const clore = () => {
+    closeSync(fd)
+    rmSync(dossier, { recursive: true, force: true })
+  }
+  const bilan = (r) => {
     const lignes = stripVTControlCharacters(readFileSync(journal, 'utf8')).split('\n')
     const cause = r.error ? r.error.message : r.signal ? `tué par ${r.signal}` : r.status !== 0 ? `code de sortie ${r.status}` : null
     return { lignes, echec: cause ? [`${basename(commande)} ${args.join(' ')} : ${cause}\n${lignes.slice(-FIN_DE_SORTIE).join('\n')}`] : [] }
+  }
+  return { fd, bilan, clore }
+}
+
+/** L'échéance d'un lancement attendu, ou mené de front avec d'autres. */
+const ECHEANCE_MS = 600_000
+
+/** `commande` (l'éditeur, un exécutable du projet, ou l'écran virtuel qui les porte) lancée sur `args`, attendue : les
+ *  lignes de sa sortie et son échec (`journaliser`). */
+function lancer(commande, args) {
+  const { fd, bilan, clore } = journaliser(commande, args)
+  try {
+    return bilan(spawnSync(commande, args, { stdio: ['ignore', fd, fd], timeout: ECHEANCE_MS }))
   } finally {
-    closeSync(fd)
-    rmSync(dossier, { recursive: true, force: true })
+    clore()
+  }
+}
+
+/** `commande` lancée sur `args` sans tenir le fil, `env` ajouté à son environnement : `lance(tuer)` appelé une fois
+ *  lancée, `tuer()` la tuant, puis, à sa sortie, les lignes de sa sortie et son échec (`journaliser`). */
+async function lancerSansTenirLeFil(commande, args, env, lance) {
+  const { fd, bilan, clore } = journaliser(commande, args)
+  try {
+    const enfant = spawn(commande, args, { stdio: ['ignore', fd, fd], env: { ...process.env, ...env } })
+    enfant.once('spawn', () => lance(() => enfant.kill()))
+    const [status, signal] = await once(enfant, 'exit')
+    return bilan({ status, signal })
+  } catch (error) {
+    return bilan({ error })
+  } finally {
+    clore()
   }
 }
 
@@ -418,6 +462,32 @@ function godot(binaire, projet, args) {
   return { lignes, erreurs: [...erreursDe(lignes), ...echec] }
 }
 
+/** La variable d'environnement d'où Godot tire le dossier des données de l'utilisateur (`user://`) sous Linux
+ *  (`OS_Unix::get_data_path`). Une recette menée de front y reçoit SON dossier ; là où elle manque, les recettes
+ *  partagent `user://` et se jouent à la suite. */
+const DONNEES_DE_L_UTILISATEUR = process.platform === 'linux' ? 'XDG_DATA_HOME' : null
+
+/** Chaque recette de `recettes` jouée par l'éditeur `binaire` sans écran sur le projet importé `copie`, menées de
+ *  front (`enFileBornee`), une par cœur, là où chacune a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`) ;
+ *  chacune reçoit `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier à
+ *  elle>`, pour qu'aucune ne touche aux sauvegardes de l'utilisateur ni à celles d'une autre, et s'arrête à
+ *  `ECHEANCE_MS`. Sa sortie s'imprime à sa fin, d'un bloc ; rend les erreurs de toutes. */
+async function jouerLesRecettes(binaire, copie, recettes) {
+  const erreurs = await enFileBornee(recettes.map((recette, i) => async (signal) => {
+    const donnees = join(copie, 'donnees', String(i))
+    mkdirSync(donnees, { recursive: true })
+    const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
+    const { lignes, echec } = await lancerSansTenirLeFil(
+      binaire, ['--headless', '--path', copie, '--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(donnees, 'stockage.json')}`],
+      DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
+      (tuer) => arret.addEventListener('abort', tuer, { once: true }),
+    )
+    console.log(`[godot] recette autonome : ${recette}\n${lignes.join('\n')}`)
+    return [...erreursDe(lignes), ...echec]
+  }), { deFront: DONNEES_DE_L_UTILISATEUR ? availableParallelism() : 1 })
+  return erreurs.flat()
+}
+
 /** Le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json` du projet `projet`, que lit `projet/scripts/dessin.gd`. */
 function deposerLesDessins(projet, figerLesDessins) {
   writeFileSync(join(projet, 'art', 'dessins.json'), JSON.stringify(figerLesDessins()))
@@ -425,13 +495,13 @@ function deposerLesDessins(projet, figerLesDessins) {
 
 /** Joue `faire(copie)` sur une copie du projet, le catalogue des dessins déposé (`deposerLesDessins`), importée par
  *  `binaire`, sous le dossier temporaire ; rend ses erreurs. */
-function surUneCopie(binaire, figerLesDessins, faire) {
+async function surUneCopie(binaire, figerLesDessins, faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
     cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
     deposerLesDessins(copie, figerLesDessins)
     const { erreurs } = godot(binaire, copie, ['--import'])
-    return erreurs.length ? erreurs : faire(copie)
+    return erreurs.length ? erreurs : await faire(copie)
   } finally {
     rmSync(copie, { recursive: true, force: true })
   }
@@ -443,11 +513,9 @@ function surUneCopie(binaire, figerLesDessins, faire) {
  *  repos (`figerLeRepos`) sous `recettes/vues/repos.json`, les échantillons de l'atelier figés (`figerLeDecor`) sous
  *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
  *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
- *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes ; chaque recette reçoit
- *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier de la copie>`,
- *  pour qu'aucune ne touche aux sauvegardes de l'utilisateur. */
+ *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes (`jouerLesRecettes`). */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
-  return surUneCopie(binaire, figerLesDessins, (copie) => {
+  return surUneCopie(binaire, figerLesDessins, async (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
     writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
     const modeles = listage(DOSSIER_DES_MODELES)
@@ -464,12 +532,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
     console.log(`[godot] ${VERSION_IMPRIMEE} : projet importé, ${scripts.length} scripts contrôlés (${scripts.join(', ')})`)
     const recettes = scripts.filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
-    for (const recette of recettes) {
-      console.log(`[godot] recette autonome : ${recette}`)
-      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(copie, 'stockage.json')}`])
-      console.log(resultat.lignes.join('\n'))
-      erreurs.push(...resultat.erreurs)
-    }
+    erreurs.push(...await jouerLesRecettes(binaire, copie, recettes))
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) autonome(s) exécutée(s)`)
     return erreurs
   })
@@ -510,6 +573,35 @@ function rendre(binaire, { figerLesDessins }) {
   })
 }
 
+/** Le pilote d'une recette native (`projet/recettes/pilote.gd`), et la ligne qu'il écrit avant de quitter. */
+const PILOTE = 'res://recettes/pilote.gd'
+const FIN_DU_PILOTE = '[pilote] fin'
+
+/** Le jeu piloté par une recette (#3945) : le projet importé sur une copie par l'éditeur épinglé (`surUneCopie`), puis
+ *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, sans tenir le
+ *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ECRAN_VIRTUEL` sans lui).
+ *  `lance(tuer)` est appelé une fois le jeu lancé, `tuer()` le tuant ; à sa sortie, il est relancé sur la même copie
+ *  tant que `encore()` le demande. Rend les lignes de chaque sortie jusqu'à `FIN_DU_PILOTE` (ce que le moteur écrit
+ *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. */
+export async function piloter({ args, env, rendu, lance, encore }) {
+  const a = await deposerLesAssets()
+  const binaire = await editeur()
+  const lignes = []
+  const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
+    const [commande, ...prefixe] = rendu ? [...ECRAN_VIRTUEL, binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
+    const erreurs = []
+    do {
+      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], env, lance)
+      const fin = joue.lignes.findLastIndex((l) => l.trim() === FIN_DU_PILOTE)
+      const jouees = fin < 0 ? joue.lignes : joue.lignes.slice(0, fin)
+      lignes.push(...jouees)
+      erreurs.push(...erreursDe(jouees), ...joue.echec)
+    } while (encore())
+    return erreurs
+  })
+  return { lignes, erreurs }
+}
+
 /** La fabrique des modèles du projet (`projet/outils/fabrique_de_modeles.gd`), et la commande que `fabriquer` lui écrit. */
 const FABRIQUE = 'res://outils/fabrique_de_modeles.gd'
 const COMMANDE = 'fabrique.json'
@@ -524,10 +616,15 @@ function fabriquer(binaire, copie, modeles) {
   return erreurs
 }
 
+/** Le script du projet qui écrit ce que le moteur rend de ses licences (`avisDeGodot`). */
+const AVIS_DU_MOTEUR = 'res://outils/avis_du_moteur.gd'
+
 /** L'export en release du préréglage `preset` du projet vers `fichier` de `sortie`, sur le modèle `modele` : le
  *  préréglage de la copie le reçoit par `custom_template/release` ; puis, à côté, le dossier des modèles
- *  `DOSSIER_DES_MODELES` déposé, ses scènes fabriquées sur la même copie. */
-function exporter(binaire, { preset, fichier, modele }, sortie, { DOSSIER_DES_MODELES, figerLesDessins }) {
+ *  `DOSSIER_DES_MODELES` déposé, ses scènes fabriquées sur la même copie, et les avis de licence de ce que l'export
+ *  embarque (`deposerLesAvis`) : ceux du moteur, des assets du projet, et `embarques`, ceux de ce que la fabrication
+ *  ajoute à côté. */
+function exporter(binaire, { preset, fichier, modele }, sortie, { DOSSIER_DES_MODELES, figerLesDessins }, embarques) {
   return surUneCopie(binaire, figerLesDessins, (copie) => {
     const presets = join(copie, PRESETS)
     const sections = readFileSync(presets, 'utf8').split(/^(?=\[preset\.\d+\]\r?$)/m)
@@ -537,26 +634,33 @@ function exporter(binaire, { preset, fichier, modele }, sortie, { DOSSIER_DES_MO
     sections[rang] = sections[rang].replace(release, `custom_template/release=${JSON.stringify(modele.split(sep).join('/'))}`)
     writeFileSync(presets, sections.join(''))
     const { erreurs } = godot(binaire, copie, ['--export-release', preset, join(sortie, fichier)])
-    return erreurs.length ? erreurs : deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
+    if (erreurs.length) return erreurs
+    const fabrication = deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
+    if (fabrication.length) return fabrication
+    const moteur = join(copie, 'avis-du-moteur.json')
+    const lancement = godot(binaire, copie, ['--script', AVIS_DU_MOTEUR, '--', moteur])
+    if (lancement.erreurs.length) return lancement.erreurs
+    return deposerLesAvis(sortie, [avisDeGodot(existsSync(moteur) ? JSON.parse(readFileSync(moteur, 'utf8')) : null), ...avisDesAssets(copie), ...embarques])
   })
 }
 
 const octets = (n) => `${n.toLocaleString('fr-FR')} o`
 
-/** Le bundle bâti, mesuré, puis exécuté : 0, ou 1 s'il ne tient pas son contrat. */
+/** Le bundle bâti, mesuré, puis exécuté : son `statut`, 0, ou 1 s'il ne tient pas son contrat, et les ids des modules
+ *  qu'il porte. */
 async function pont(sortie) {
   const debut = performance.now()
-  const code = await empaqueter(sortie, 'production')
+  const { code, modules } = await empaqueter(sortie, 'production')
   const brut = Buffer.byteLength(code)
   console.log(`[pont] ${PONT} : ${octets(brut)} brut, ${octets(gzipSync(code).length)} gzip, bâti en ${Math.round(performance.now() - debut)} ms${sortie ? `, écrit dans ${sortie}` : ''}`)
   const ecarts = executer(code)
   if (ecarts.length) {
     console.error(`[pont] le bundle lu et exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) ne tient pas son contrat :\n  ${ecarts.join('\n  ')}`)
-    return 1
+    return { statut: 1, modules }
   }
   console.log(`[pont] lu : chaque nom de navigateur lu est porté (API : ${API_DU_NAVIGATEUR.join(', ')}) ou compté hors du processus (${Object.entries(HORS_DU_PROCESSUS).map(([nom, { lectures }]) => `${nom} ${lectures}`).join(', ')})`)
   console.log(`[pont] exécuté : demarrer ${SCENARIO}, vue, sauvegardes et salon ok, second demarrer refusé, erreursGlobales vide`)
-  return 0
+  return { statut: 0, modules }
 }
 
 /** Les erreurs de Godot dites, et le code de sortie qu'elles valent. */
@@ -604,19 +708,21 @@ function jouerLExecutable(executable) {
 
 /** L'exécutable de bureau de cette plateforme dans `sortie` (#3951) : sous `NOYAU`, le bundle du pont, le point d'entrée
  *  embarqué (`empaqueterLeProcessus`) et le Node qui joue cet export ; l'export de son préréglage (`BUREAU`) sur son
- *  modèle épinglé, les modèles déposés à côté ; puis la partie vivante jouée par l'exécutable (`jouerLExecutable`).
- *  Son code de sortie : 0, ou 1 à la première étape qui échoue. */
+ *  modèle épinglé, les modèles déposés à côté, et les avis de licence (#4063), ceux des paquets npm des deux bundles et
+ *  de Node compris ; puis la partie vivante jouée par l'exécutable (`jouerLExecutable`). Son code de sortie : 0, ou 1
+ *  à la première étape qui échoue. */
 async function bureau(sortie) {
   const plateforme = BUREAU[process.platform]
   if (!plateforme) throw new Error(`aucun préréglage de bureau pour ${process.platform} (${Object.keys(BUREAU).join(', ')})`)
   const noyau = join(sortie, NOYAU)
   mkdirSync(noyau, { recursive: true })
-  const code = await pont(noyau)
-  if (code) return code
-  await empaqueterLeProcessus(noyau)
+  const bundle = await pont(noyau)
+  if (bundle.statut) return bundle.statut
+  const processus = await empaqueterLeProcessus(noyau)
   cpSync(process.execPath, join(noyau, plateforme.node))
+  const embarques = [...avisDesPaquets([...bundle.modules, ...processus.modules]), avisDeNode(process.execPath, plateforme.licenceDeNode, process.version)]
   const a = await deposerLesAssets()
-  const exporte = verdict(exporter(await editeur(), { preset: plateforme.preset, fichier: plateforme.executable, modele: await modeleDExport(plateforme.modele) }, sortie, a))
+  const exporte = verdict(await exporter(await editeur(), { preset: plateforme.preset, fichier: plateforme.executable, modele: await modeleDExport(plateforme.modele) }, sortie, a, embarques))
   if (exporte) return exporte
   const joue = verdict(jouerLExecutable(join(sortie, plateforme.executable)))
   if (joue) return joue
@@ -630,23 +736,23 @@ async function principal() {
     console.error(`${erreur}\n${USAGE}`)
     return 2
   }
-  if (options.mode === 'pont') return pont(options.sortie)
+  if (options.mode === 'pont') return (await pont(options.sortie)).statut
   if (options.mode === 'sonde') {
     const a = await deposerLesAssets()
-    return verdict(sonder(await editeur(), a))
+    return verdict(await sonder(await editeur(), a))
   }
-  if (options.mode === 'rendus') return verdict(rendre(await editeur(), await deposerLesAssets()))
+  if (options.mode === 'rendus') return verdict(await rendre(await editeur(), await deposerLesAssets()))
   if (options.mode === 'ouvrir') {
     deposerLesDessins(PROJET, (await deposerLesAssets()).figerLesDessins)
     return ouvrir(await editeur())
   }
   if (options.mode === 'bureau') return bureau(options.sortie)
   mkdirSync(options.sortie, { recursive: true })
-  const code = await pont(options.sortie)
-  if (code) return code
+  const bundle = await pont(options.sortie)
+  if (bundle.statut) return bundle.statut
   const a = await deposerLesAssets()
   const modele = await modeleDExport(modeleDuPreset(readFileSync(join(PROJET, PRESETS), 'utf8')))
-  const sortie = verdict(exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a))
+  const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a, avisDesPaquets(bundle.modules)))
   if (sortie) return sortie
   deposerLesPlanches(options.sortie)
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)

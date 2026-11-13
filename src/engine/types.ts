@@ -1,20 +1,19 @@
 /** Types partagés du moteur de règles WFRP v4. */
-import type { IconId } from '../data/icons';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
 import type { EntreeDe } from '../data/datasets';
 import type * as structuresDef from '../data/schemas/defs/structures';
+import type * as vehiclesDef from '../data/schemas/defs/vehicles';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
-import type { Money } from './money';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { CibleEtendue, NatureDeMention, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, NatureDeMention } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 import type { ActionId, NightStakeId } from '../data/index';
 
@@ -170,9 +169,6 @@ export const APPRAISED_AVAILABILITIES = ['rare', 'exotique'] as const satisfies 
  *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */
 export type Propulsion = 'terrestre' | 'fluvial' | 'maritime';
 
-/** Classe de voyage payant d'un véhicule : prix RAW en sous (PA) par km ET par passager (LDB 51 l.180-189). */
-export interface VehicleTravelClass { id: string; label: string; brassPerKm: number; }
-
 /**
  * Véhicule / embarcation à coque — FOYER UNIQUE de la donnée (`src/data/vehicles.json`), data-driven.
  * Le même enregistrement porte TROIS facettes indépendantes (fin des doublons transports/trappings) :
@@ -190,65 +186,7 @@ export interface VehicleTravelClass { id: string; label: string; brassPerKm: num
  *  (résolu pour l'affichage via `findNavalTrait(id)?.label`). Même esprit que `TraitInstance`, registre distinct. */
 export type NavalTraitRef = import('zod').z.input<typeof import('../data/schemas/grammaire/reference').navalTraitRefSchema>;
 
-export interface VehicleData {
-  /** id STABLE (slug) — cible de `TravelMode`/réfs de scène. */
-  id: string;
-  type: 'vehicles';
-  label: string;
-  /** Pictogramme d'affichage (registre `src/data/icons/`, famille `voyage/*`) — donnée, pas de ternaire
-   *  par id en dur. */
-  icon?: IconId;
-  source?: { book: string; page: number };
-  /** Encombrement de l'objet véhicule (LDB 61) — généralement `null` (on ne porte pas une diligence) ;
-   *  un coracle se porte (`enc` chiffré). */
-  enc?: number | null;
-  /** Chargement (EDOC 07 l.233-243) : Points d'Enc que la section bagages contient — véhicules
-   *  TERRESTRES uniquement (charrette 25, chariot 30, diligence 80). Capacité de porteur (`CargoCarrier`,
-   *  engine/cargo.ts) ; champ parallèle à `ship.capacity` (Contenance navale), même concept. */
-  chargement?: number;
-  /** Description (LDB) — reprise sur l'`ItemInstance` à l'achat/possession. */
-  desc?: string;
-  /** Facette ACHAT (marché / possession de carrière). `availability` absent pour les navires (MDG ne
-   *  donne pas de Disponibilité). */
-  purchase?: { price: Money; availability?: Availability };
-  /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `movement` = Déplacement du véhicule (km/h).
-   *  `medium` = milieu du TRAJET PAYÉ — INDÉPENDANT de `hull.propulsion` (un véhicule peut être
-   *  bi-milieu : la Barge navigue le fleuve, LDB 51 l.185/197, tout en figurant à la table navale MDG 12
-   *  avec `propulsion:'maritime'` — jamais l'un dérivé de l'autre) ; absent = terrestre implicite.
-   *  `draft` = ATTELAGE (bêtes qui tirent, réf `montures.json`) — requis pour l'allure forcée EDOC 07
-   *  l.229 (« pas de course ») ; `count` = nombre de bêtes (Tests de Résistance sur échec du conducteur). */
-  travel?: { movement: number; medium?: Propulsion; draft?: { montureId: string; count: number }; classes: VehicleTravelClass[] };
-  /** Facette COQUE (entité à PV). `char.endurance` = Endurance, `char.B` = Blessures. `bodyShape` = 'vehicule'.
-   *  `locationTable`/`criticalTable` = réfs de tables data-driven (branchées aux dalles fluvial/maritime). */
-  hull?: {
-    char: { endurance: number; B: number };
-    bodyShape: 'vehicule';
-    propulsion: Propulsion;
-    traits?: { id: string; value?: number; arg?: string }[];
-    locationTable?: string | null;
-    criticalTable?: string | null;
-  };
-  /** Facette NAVIRE (profil naval MDG 12) : caractéristiques de navigation/équipage du vaisseau.
-   *  `manoeuvre` = modificateur de DR (Man) ; `sail`/`oars` = Mouvement (M) + équipage minimum (É) ;
-   *  `lengthM` = Taille (longueur, m) ; `capacity` = Contenance ; `traits` = Traits de construction (réfs par id). */
-  ship?: {
-    crew: number;
-    manoeuvre: number;
-    lengthM: number;
-    /** EMPREINTE du navire sur la grille (côté N×N), AUTORÉE par navire (≈ sa longueur à l'échelle Mer : ~10 m → 1,
-     *  ~20 m → 2, ~30 m → 3, ~40 m+ → 4). Posée sur `c.footprint` par `vehicleCombatant`. DÉCOUPLÉE de la Taille
-     *  créature : un navire occupe ses cases (grille + rendu) sans être une créature (aucune Peur de Taille). */
-    footprint?: number;
-    capacity: number;
-    sail?: ProfilDeVoile;
-    oars?: ProfilDePropulsion;
-    traits: NavalTraitRef[];
-  };
-  /** Ponts d'un navire qu'on visite (#3686) : les cartes box-drawing de ses ponts, du plus bas au plus haut
-   *  (`MOTS_DES_PONTS`, `src/data/schemas/grammaire/carte-ascii.ts`), et la hauteur (m, depuis la flottaison) de
-   *  chaque glyphe de case (`defautsDesPonts`). */
-  ponts?: [cartes: string[], hauteurs: Record<string, number>];
-}
+export type VehicleData = EntreeDe<typeof vehiclesDef>;
 
 /**
  * Structure DESTRUCTIBLE de siège (ADE II 8 « Le théâtre de la guerre », table « Barricades et
@@ -361,7 +299,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   subType?: string;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
-   *  Résolu par `acceptableSpecs` (`weaponGroup ?? subType`) → Spé de tir du chef ET décompte d'équipage
+   *  Résolu par `acceptableSpecs` (`groupeDeLArme`) → Spé de tir du chef ET décompte d'équipage
    *  (servants à la bonne Projectiles, AA 10 l.230). Absent = `subType` EST le Groupe (armes normales). */
   weaponGroup?: string;
   /** Bloque la fusion des qualités de FAMILLE du Groupe (`resolveQualities`, `WeaponGroupData.qualities`)
@@ -1749,8 +1687,10 @@ export interface Combatant {
   /** Case occupée. `z` = étage (cf. `SceneEntity.z` / `path.ts:Pt`) ; ABSENT = sol (z=0). `h` = hauteur
    *  RÉELLE de la surface sous le combattant, en MÈTRES (relief, `scene.heightAt`) — STAMPÉE au spawn et
    *  RAFRAÎCHIE à chaque déplacement (`placeCombatant`), pour que la distance de combat (composante
-   *  verticale métrique) et le −10 « en contrebas » restent justes après tout mouvement. Absent = 0 m. */
-  pos?: { x: number; y: number; z?: number; h?: number };
+   *  verticale métrique) et le −10 « en contrebas » restent justes après tout mouvement. Absent = 0 m.
+   *  `plafond` = le plus haut des plafonds des cases de son empreinte, en MÈTRES (`plafondDe`), posé avec `h` ;
+   *  absent = ciel ouvert. */
+  pos?: { x: number; y: number; z?: number; h?: number; plafond?: number };
   initiative?: number;
   /** A gagné de l'Avantage durant le Round courant (upkeep de fin de Round, LDB Dépl. l.40). */
   gainedAdvThisRound?: boolean;

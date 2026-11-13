@@ -321,7 +321,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({
       party: [hero],
       pendingTest: {
-        actorId: 'h1', actorName: 'Lest', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+        actorId: 'h1', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: null, success: false, sl: 0, isDouble: undefined,
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
@@ -342,7 +342,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({
       party: [hero], flags: {}, journal: [],
       pendingTest: {
-        actorId: 'h1', actorName: 'Lest', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+        actorId: 'h1', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 1, target: 50, roll: 48, success: false, sl: 0, isDouble: false, itemUid: 't1',
         onSuccess: flowFromEffects([{ type: 'setFlag', flag: 'reussi', value: true }]),
         onFailure: flowFromEffects([{ type: 'setFlag', flag: 'rate', value: true }]),
@@ -694,7 +694,6 @@ describe('Boucle de jeu (store)', () => {
       flags: {},
       pendingTest: {
         actorId: hero.id,
-        actorName: hero.label,
         label: 'Test de Force',
         skillValue: 95,
         difficulty: 'intermediaire',
@@ -2101,7 +2100,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     hero.fortune = 2;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 20, success: true, sl: 3, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetRelancer('test');
@@ -2114,7 +2113,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     hero.fortune = 2;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 5, difficulty: 'intermediaire',
+      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 5, difficulty: 'intermediaire',
         requireSL: 0, target: 5, roll: 95, success: false, sl: -9, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetRelancer('test'); // 1re relance OK (jet raté)
@@ -2129,7 +2128,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     hero.fortune = 3;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 2, target: 50, roll: 45, success: false, sl: 0, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetAjouterUnDR('test'); // DR 0 → 1 (< 2)
@@ -2147,7 +2146,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     banc.setState({
       party: [hero],
       // d100 95 > cible 50 : l'issue tient au dé (LDB 12 l.90-94), `requireSL` 0 = aucun seuil de DR exigé.
-      pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 95, success: false, sl: -5, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetAjouterUnDR('test');
@@ -2602,7 +2601,7 @@ describe('Résilience — « Je ne faillirai pas ! » (LDB 17 l.68)', () => {
     hero.resilience = 1;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 30, difficulty: 'intermediaire',
+      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 30, difficulty: 'intermediaire',
         requireSL: 0, target: 30, roll: 95, success: false, sl: -6, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetForcerLaReussite('test');
@@ -2878,7 +2877,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).ammoUid = 'am2';
     banc.setState({
       pendingReload: {
-        actorId: H.id, actorName: H.label, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
+        actorId: H.id, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
@@ -2898,7 +2897,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).ammoUid = 'am2';
     banc.setState({
       pendingReload: {
-        actorId: H.id, actorName: H.label, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
+        actorId: H.id, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
@@ -2969,7 +2968,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).reloadProgress = 1;
     banc.setState({
       pendingReload: {
-        actorId: H.id, actorName: H.label, weaponUid: 'w-arb', reload: 2, progressBefore: 1,
+        actorId: H.id, weaponUid: 'w-arb', reload: 2, progressBefore: 1,
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 95, target: 40, sl: -2, success: false,
       },
     });

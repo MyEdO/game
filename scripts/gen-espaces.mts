@@ -141,10 +141,13 @@ const litteralDePas = (pas: PasResolu): string =>
 /** Catégories à dataset dont la collection n'est pas une liste d'entrées `{ id, label }`, et pourquoi :
  *  hors de la porte `entreeDeCategorie`. */
 const HORS_DE_LA_PORTE: Readonly<Record<string, string>> = {
+  dispersion: 'rangées sans `label` : une face du dé, que son décalage désigne (LDB 14 l.146-149)',
   navalProgression: 'entrées sans `label`',
   obsessions: 'rangées sans `label` : leur `id` est un Groupe (`groups.json`), qui porte le libellé',
+  reactionAuStatut: 'rangées sans `label` : leur `issue` (`issueDeReactionSchema`) porte le libellé (LDB 08 l.43-45)',
   shipConstructionTraits: 'entrées sans `label`',
   shipHullSizes: 'entrées sans `label`',
+  tableauCapricieux: 'rangées sans `label` : une fourchette du dé, que son modificateur de DR désigne (MSRC 15 l.153-159)',
 };
 
 /** `suite` résolue contre `schema` en pas lisibles sans lui (`suivreLeChemin`) : un pas `[clé]` y porte
@@ -398,8 +401,7 @@ export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TA
 
 /** Les deux autres modules de la phase 2, importés par `src/data/overrides.ts`,
  *  `src/data/versionDataset.ts` et `src/data/index.ts` que la phase 2 charge : posés VIDES quand ils
- *  manquent (clone neuf, #2203 A2) ou qu'il leur manque un export de l'amorce (module rendu avant que
- *  la phase 2 n'en rende un de plus), puis rendus. */
+ *  manquent (clone neuf, #2203 A2) ou ne se chargent pas (`moduleChargeable`, #4161), puis rendus. */
 const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
   [SORTIE_CLES, TYPE_DATASET_DE_CATEGORIE + 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\nconst CATEGORIES = {} as const;\nexport const CATEGORIE_CODEX_DU_FICHIER: Readonly<Record<string, string>> = CATEGORIES;\nexport type CategorieCodexDuFichier = typeof CATEGORIES;\nexport const CLES_CODEX = [] as const;\nexport type CleCodex = (typeof CLES_CODEX)[number];\nexport const DATASET_DE_LA_CATEGORIE: Readonly<Record<string, DatasetDeCategorie>> = {};\nexport const DATASET_DE_L_ESPACE: Readonly<Record<string, DatasetDeCategorie>> = {};\n'],
   [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
@@ -408,11 +410,13 @@ const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
 /** Les noms exportés d'un module en texte (`export const|type <nom>`). */
 const exportsDe = (texte: string): Set<string> => new Set([...texte.matchAll(/^export (?:const|type) (\w+)/gm)].map((m) => m[1]));
 
-/** Le module `chemin` existe-t-il, avec chaque export de son `amorce` ? */
-function porteLesExports(chemin: string, amorce: string): boolean {
-  if (!existsSync(chemin)) return false;
-  const presents = exportsDe(readFileSync(chemin, 'utf8'));
-  return [...exportsDe(amorce)].every((nom) => presents.has(nom));
+/** Le module en texte se charge-t-il : il porte chaque export de son `amorce` (module rendu avant que la phase 2
+ *  n'en rende un de plus), et chaque document JSON qu'il importe `existe` encore, au chemin relatif à lui (dataset
+ *  supprimé depuis son rendu) ? */
+export function moduleChargeable(texte: string, amorce: string, existe: (relatif: string) => boolean): boolean {
+  const presents = exportsDe(texte);
+  return [...exportsDe(amorce)].every((nom) => presents.has(nom))
+    && [...texte.matchAll(/^import \w+ from '([^']+\.json)';$/gm)].every((m) => existe(m[1]));
 }
 
 /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs), phase 2 : module → texte, sans
@@ -433,7 +437,10 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     }
     writeFileSync(SORTIE, TABLE_VIDE);
   }
-  for (const [chemin, amorce] of AMORCES_DES_MODULES) if (!porteLesExports(chemin, amorce)) writeFileSync(chemin, amorce);
+  for (const [chemin, amorce] of AMORCES_DES_MODULES) {
+    const present = existsSync(chemin) && moduleChargeable(readFileSync(chemin, 'utf8'), amorce, (relatif) => existsSync(join(dirname(chemin), relatif)));
+    if (!present) writeFileSync(chemin, amorce);
+  }
   const { textes, table, clesDeDataset, racines } = await rendu();
   let changed = false;
   for (const [chemin, texte] of textes) changed = ecrire(chemin, texte, check) || changed;

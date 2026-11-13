@@ -45,6 +45,7 @@ import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladi
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from '../data/versionDataset';
+import type { EntreeVivante } from '../data/datasets';
 import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];
@@ -150,7 +151,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     expect(mutationTablePlayerLabel('physique')).toBe('Tableau de Corruption physique');
     const idsAvant = mutationTableIds().length;
 
-    const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
+    const neuve: EntreeVivante<MutationTable> = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
     setDataset('mutationTables', [
       ...tables.map((t) => (t.id === 'physique'
         ? { ...t, label: 'physique révisée QC (LDB)', entries: [{ ...t.entries[0], max: 99 }, ...t.entries.slice(1)] }
@@ -186,9 +187,8 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   });
 
   it('un véhicule de voyage ÉDITÉ ou NEUF : `travelVehicles` et les libellés de mode le servent', () => {
-    // `engine/travel.ts` atteint `vehicles.json` par IMPORT JSON DIRECT + alias (`VEHICLES_LIST`) :
-    // ses transports payants et sa table de libellés étaient figés à l'import, donc une diligence
-    // renommée au Codex gardait son ancien nom à l'écran de voyage, et un véhicule neuf n'existait pas.
+    // Les transports payants et la table de libellés de `engine/travel.ts` se lisent sur le dataset vivant
+    // `vehicles` : une diligence renommée au Codex garde son nouveau nom à l'écran de voyage, un véhicule neuf y entre.
     const diligence = vehicles.find((v) => v.id === 'diligence')!;
     expect(travelModeLabels().diligence).toBe(diligence.label);
     const neuf = { ...diligence, id: 'coche-1692', label: 'Coche 1692' };

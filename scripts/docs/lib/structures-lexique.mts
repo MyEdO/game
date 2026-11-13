@@ -135,7 +135,7 @@ export const MANDAT_SLOTS =
  * garde les référence, les autres sites y RENVOIENT.
  */
 export const ANGLES_MORTS_SLOTS: readonly string[] = [
-  'Une occurrence de référence dont AUCUNE case ne porte de chaîne (`{random:N}`, `{choice:[{…}]}`) n’ouvre aucune case (`inscrireReference`, `structures-scan.mts`) : un couple ne compte que ses occurrences à case, et les feuilles d’un choix comptent sous leur propre couple (`careerLevels.json | choice`).',
+  'Une occurrence de référence dont AUCUNE case ne porte de chaîne (`{random:N}`, `{pick:N,of:[{…}]}`) n’ouvre aucune case (`inscrireReference`, `structures-scan.mts`) : un couple ne compte que ses occurrences à case, et les feuilles d’un choix comptent sous le couple du champ qui porte le choix (`careerLevels.json | trappings`, `parcourir`).',
   'Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.',
 ];
 
@@ -279,11 +279,11 @@ export const ciblesDesPoses = (concept: string, poses: ReadonlySet<IdConceptPose
 /**
  * Graphies ENVELOPPANTES : une clé de graphie sous laquelle pend un OBJET (ou un tableau d'objets)
  * plutôt qu'un id nu. L'intérieur porte le CHEMIN de graphie dans sa signature (`ref>id`,
- * `wildcard>id`, `choice>id`) et HÉRITE du statut de l'enveloppe : `{ref:{id}}` se lit
+ * `wildcard>id`) et HÉRITE du statut de l'enveloppe : `{ref:{id}}` se lit
  * `ref>id / historique`, jamais `id / cible` (#1463, commentaire « Arbitrages de design L0
  * (2026-08-23, orchestrateur — suite à la contre-passe du commit 3a6017ebb) », point 4).
  */
-export const GRAPHIES_ENVELOPPANTES = ['ref', 'wildcard', 'choice', 'random'] as const;
+export const GRAPHIES_ENVELOPPANTES = ['ref', 'wildcard', 'random'] as const;
 
 /** Concepts, du plus discriminant au plus général (le premier qui matche gagne). */
 export const CONCEPTS: readonly Concept[] = [
@@ -345,7 +345,6 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'talentId', statut: 'historique' },
       { sig: 'trappingId', statut: 'historique' },
       { sig: 'career', statut: 'historique' },
-      { sig: 'choice', statut: 'historique' },
       { sig: 'random', statut: 'historique' },
       { sig: 'text', statut: 'declaree', note: 'dotation narrative — occurrence de référence seulement quand le texte normalisé résout vers un `label` (#1463, #624)' },
       { sig: 'id-nu', statut: 'historique', note: 'référence portée par un CHAMP SCALAIRE d’un document (`species: "humain"`) — la cible est un objet de référence' },

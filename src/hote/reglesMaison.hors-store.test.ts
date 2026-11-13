@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { chargerLesReglesMaison, prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleMaison } from './reglesMaison';
-import { loadRuleOverrides, OPTIONAL_RULES, rule } from '../engine/policy';
+import { loadRuleOverrides, OPTIONAL_RULES, rule, type OptionalRule } from '../engine/policy';
 import { initialNet, reglesMaisonMutables, type Jeu } from '../noyau/index';
 import { t } from '../i18n';
 import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
@@ -15,9 +15,9 @@ import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
 const CLE = 'wfrp4.house-rules';
 const REGLE_INCONNUE = 'regle-hors-registre';
 const FLAG = OPTIONAL_RULES.find((r) => r.kind === 'flag')!;
-const MODE = OPTIONAL_RULES.find((r) => r.kind === 'mode' && r.options?.some((o) => o !== r.default))!;
-const PARAM = OPTIONAL_RULES.find((r) => r.kind === 'param' && r.max !== undefined)!;
-const AUTRE_MODE = MODE.options!.find((o) => o !== MODE.default)!;
+const MODE = OPTIONAL_RULES.find((r): r is Extract<OptionalRule, { kind: 'mode' }> => r.kind === 'mode' && r.options.some((o) => o !== r.default))!;
+const PARAM = OPTIONAL_RULES.find((r): r is Extract<OptionalRule, { kind: 'param' }> => r.kind === 'param')!;
+const AUTRE_MODE = MODE.options.find((o) => o !== MODE.default)!;
 
 type Verrou = Pick<Jeu, 'battle' | 'net'>;
 const HORS_COMBAT: Verrou = { battle: null, net: initialNet() };
@@ -78,7 +78,7 @@ describe('le chargement des règles maison d’un stockage', () => {
     const cas = [
       { magasin: { [FLAG.id]: 'oui', [MODE.id]: AUTRE_MODE }, retiree: FLAG.id, attendu: [FLAG.default, AUTRE_MODE, PARAM.default] },
       { magasin: { [MODE.id]: 'inconnu', [FLAG.id]: !FLAG.default }, retiree: MODE.id, attendu: [!FLAG.default, MODE.default, PARAM.default] },
-      { magasin: { [PARAM.id]: PARAM.max! + 1, [FLAG.id]: !FLAG.default }, retiree: PARAM.id, attendu: [!FLAG.default, MODE.default, PARAM.default] },
+      { magasin: { [PARAM.id]: PARAM.max + 1, [FLAG.id]: !FLAG.default }, retiree: PARAM.id, attendu: [!FLAG.default, MODE.default, PARAM.default] },
     ];
     for (const { magasin, retiree, attendu } of cas) {
       const s = stockageEnMemoire();

@@ -7,12 +7,6 @@
       "date": "2026-09-08",
       "quoi": "L'Ennemi dans l'Ombre, ch.10 (compétences) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
-    "EDOC 9": {
-      "sites": ["src/engine/disease.ts", "src/noyau/travelFlow.ts", "src/noyau/travel.hors-store.test.ts"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "L'Ennemi dans l'Ombre — Compagnon, ch.9 (maladies, voyage) — aucune fiche de l'Atlas ne cite ce chapitre."
-    },
     "MDG 3": {
       "sites": ["src/noyau/restFlow.ts", "src/noyau/riverVoyageFlow.ts", "src/noyau/seaActivities.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",

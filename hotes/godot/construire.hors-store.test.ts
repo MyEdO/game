@@ -54,10 +54,10 @@ beforeAll(async () => {
 const { writeFileSync } = await import('node:fs');
 const etat = () => ('NODE_ENV' in process.env ? process.env.NODE_ENV : null);
 process.env.NODE_ENV = 'development';
-const production = await empaqueter(null, 'production');
+const { code: production } = await empaqueter(null, 'production');
 const apres = [etat()];
 delete process.env.NODE_ENV;
-const developpement = await empaqueter(null, 'development');
+const { code: developpement } = await empaqueter(null, 'development');
 apres.push(etat());
 writeFileSync(${JSON.stringify(join(dossier, 'production.js'))}, production);
 writeFileSync(${JSON.stringify(join(dossier, 'developpement.js'))}, developpement);

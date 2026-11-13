@@ -1,11 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as mapSpec from './mapSpec';
 import { buildScene } from './mapSpec';
-import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, provenanceDesNavires } from './planDeNavire';
+import { bumperDataset } from '../data/versionDataset';
+import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, provenanceDesNavires, stationsDuNavire } from './planDeNavire';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
 import { heightAt, isWalkable, tileAt, wallBetween, type Scene } from './monde/scene';
 import { walkReachableFrom } from './monde/path';
-import { VEHICLES_LIST } from '../engine/travel';
+import { vehicles } from '../data';
 import { estAbsent } from './monde/terrain';
 import { edgeKey } from './monde/facades';
 import { aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene } from './monde/aretes';
@@ -180,6 +182,41 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
   });
 });
 
+describe('les ponts d’un navire se compilent une fois par scène (#3975)', () => {
+  /** Les compilations de scène (`buildScene`, espionnée sur son namespace) pendant `f`. */
+  const compilations = (f: () => void): number => {
+    let n = 0;
+    const vrai = mapSpec.buildScene;
+    vi.spyOn(mapSpec as unknown as Record<string, unknown>, 'buildScene', 'get').mockReturnValue((...a: Parameters<typeof vrai>) => (n++, vrai(...a)));
+    f();
+    vi.restoreAllMocks();
+    return n;
+  };
+  /** Tous les lecteurs des ponts posés de `scene`. */
+  const lireLesPonts = (scene: Scene) => {
+    poserLesNavires(scene);
+    provenanceDesNavires(scene);
+    naviresDeLaScene(scene);
+    stationsDuNavire(scene, 'c1', {});
+  };
+
+  it('une scène neuve compile les ponts de son navire ; relue, aucun de leurs lecteurs ne les recompile', () => {
+    const s = bassinDeLaCaraque('O');
+    expect(compilations(() => lireLesPonts(s))).toBeGreaterThan(0);
+    expect(compilations(() => lireLesPonts(s))).toBe(0);
+  });
+
+  it('une écriture au seam des datasets les recompile et repose la scène à la lecture suivante', () => {
+    const s = bassinDeLaCaraque('O');
+    lireLesPonts(s);
+    const posee = poserLesNavires(s);
+    bumperDataset('vehicles');
+    expect(compilations(() => lireLesPonts(s))).toBeGreaterThan(0);
+    expect(poserLesNavires(s)).not.toBe(posee);
+    expect(compilations(() => lireLesPonts(s))).toBe(0);
+  });
+});
+
 describe('le navire combattant ne tient pas ses propres ponts', () => {
   /** La caraque `c1` de `scene` en combattant, placée à sa case. */
   const combattant = (scene: Scene) => {
@@ -205,7 +242,7 @@ describe('le navire combattant ne tient pas ses propres ponts', () => {
 });
 
 describe('chaque navire à ponts se parcourt d’un bout à l’autre (#3772)', () => {
-  const navires = VEHICLES_LIST.filter((v) => v.ponts).map((v) => v.id);
+  const navires = vehicles.filter((v) => v.ponts).map((v) => v.id);
   /** Le navire `ref` posé au cap `cap` dans un bassin de 30 × 30 cases. */
   const bassin = (ref: string, cap: 'N' | 'E' | 'S' | 'O') => poserLesNavires(buildScene({
     id: 'bassin', label: 'Bassin', size: [30, 30], terrain: 'eau',

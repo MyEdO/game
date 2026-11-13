@@ -998,7 +998,7 @@ journée (`purpose:travelDay`) gardent, eux, leur défaut de routine. Dérouler 
 
 **Constater une carte-parchemin de ROUTINE** : `forceEncounter()` tire par défaut
 `cogue-pirate`, un événement DÉCISIONNEL (le drive s'arrête sur la décision, pas sur une carte
-racontée). Pour observer une carte-parchemin de routine (`sea.events`, `SeaVoyageBody`), NE PAS
+racontée). Pour observer une carte-parchemin de routine (`travelPlan.evenements`, rangé au jour clos que lit `SeaVoyageBody`), NE PAS
 forcer : laisser le tirage d100/Manann jouer et rouler avec `advanceSeaDay({stopOnEveryEvent:true})`
 — le drive s'arrête au recap dès qu'un événement raconté vient d'être résolu.
 

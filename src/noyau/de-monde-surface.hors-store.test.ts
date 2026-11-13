@@ -39,6 +39,7 @@ import type { GenreDEtape, GenreDeCascade } from './tablesPosees';
 import { tablesDuJeu } from './tablesDuJeu';
 import { deFixe } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -521,7 +522,7 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
       const tableId = `stage-weather-${saison.id}`;
       const def = tableStepDef(tableId)!;
       for (const row of def.rows) {
-        const nat = naturalRollForTableRow({ tableId, spec: { n: 1, sides: 100 } }, row);
+        const nat = naturalRollForTableRow({ tableId }, row);
         if (nat == null) inatteignables.push(`${tableId}/${row.id}`);
         else expect(weatherFromRoll(nat, saison.id as Season)).toBe(row.id); // le naturel proposé DONNE bien cette ligne
       }
@@ -533,7 +534,7 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
     for (const saison of weather) {
       const tableId = `stage-weather-${saison.id}`;
       for (const face of [1, 25, 50, 75, 100]) {
-        const r = rollTableStep({ tableId, spec: { n: 1, sides: 100 }, forcedRoll: face }, deFixe(face));
+        const r = rollTableStep({ tableId, forcedRoll: face }, deFixe(face));
         expect(r.id).toBe(weatherFromRoll(face, saison.id as Season));
       }
     }
@@ -547,14 +548,14 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
     // (une Humeur très haute rend le naufrage inatteignable, une très basse rend la manne impossible).
     const visable = (mod: number, id: string) => {
       const row = def.rows.find((r) => r.id === id)!;
-      return naturalRollForTableRow({ tableId: 'evenements-de-bord', spec: { n: 1, sides: 100 }, ...(mod ? { mod } : {}) }, row) != null;
+      return naturalRollForTableRow({ tableId: 'evenements-de-bord', ...(mod ? { mod } : {}) }, row) != null;
     };
     expect(visable(0, 'triton'), 'sans Humeur, les lignes très négatives sont hors du d100').toBe(false);
     expect(visable(-200, 'triton'), 'Humeur très basse : le triton devient atteignable').toBe(true);
     expect(visable(0, 'manne-de-manann'), 'sans Humeur, la manne est hors d’atteinte').toBe(false);
     expect(visable(200, 'manne-de-manann'), 'Humeur très haute : la manne s’ouvre').toBe(true);
     // Et à Humeur nulle, la tranche 1..100 offre bien des lignes à viser (la pose n'est pas morte).
-    const offertes = def.rows.filter((r) => naturalRollForTableRow({ tableId: 'evenements-de-bord', spec: { n: 1, sides: 100 } }, r) != null);
+    const offertes = def.rows.filter((r) => naturalRollForTableRow({ tableId: 'evenements-de-bord' }, r) != null);
     expect(offertes.length, 'au moins une ligne visable sans Humeur').toBeGreaterThan(0);
   });
 });
@@ -798,7 +799,7 @@ const TABLE_SONDE = 'table-sonde-porteur';
 /** Étape à TABLE portée par le MONDE (aucun acteur nommé). Le `kind` route l'applier de sonde. */
 const etapeTableMonde = (id: string, kind: GenreDEtape = cleDeFixture('sonde-table')): CascadeStep => tableStep({
   id, kind, worldOwner: true,
-  label: fixtureText('Table de monde'), table: { tableId: TABLE_SONDE, spec: { n: 1, sides: 100 } },
+  label: fixtureText('Table de monde'), table: { tableId: TABLE_SONDE },
   stake: { key: { dataset: 'combat', kind: 'mutation' } },
 })!;
 /** Étape d'AFFICHAGE (rien à lancer) — `kind` libre : c'est lui qui route l'applier de sonde. */
@@ -816,7 +817,7 @@ beforeEach(() => {
   avecLesTables({
     tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE_SONDE]: {
       label: fixtureText('Table de sonde'),
-      die: 100,
+      die: deDeLaTableTiree({ die: 'd100' }),
       rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
       lines: () => ['ligne de sonde'],
     } },
@@ -952,7 +953,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(a) MER — même règle pour l’Événement de bord : tiré sans arrêt, raconté à la clôture du jour (#3534)', () => {
     ouvreJourMaritime(4);
     expect(draineJour(false), 'aucune table ne retient la journée').toBeUndefined();
-    // Le jour CLOS déplace ses events dans sa carte de récap (`sea.events` repart à vide).
+    // Le jour CLOS déplace ses events dans sa carte de récap (`travelPlan.evenements` se vide).
     expect(get().travelPlan!.log![0].events, 'l’événement de bord a été raconté').toHaveLength(1);
   });
 
@@ -1046,7 +1047,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     set({ party: [heros], pendingCascade: null, suspendedCascades: [], battle: null });
     const etape = tableStep({
       id: 'ctrl-1', kind: cleDeFixture('ctrl-table'), actorId: heros.id,
-      label: fixtureText('Table d’acteur'), table: { tableId: TABLE_SONDE, spec: { n: 1, sides: 100 } },
+      label: fixtureText('Table d’acteur'), table: { tableId: TABLE_SONDE },
       stake: { key: { dataset: 'combat', kind: 'mutation' } },
     })!;
     startCascade(get, set, { title: 'Contrôle', purpose: 'test', steps: [etape] });
