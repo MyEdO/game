@@ -4858,7 +4858,7 @@
   {
     "id": "ration",
     "type": "trappings",
-    "label": "Ration",
+    "label": "Vivres, 1 jour",
     "capabilities": {
       "isRations": true
     },
@@ -4873,7 +4873,6 @@
     "pa": null,
     "damage": null,
     "qualities": [],
-    "desc": "(1 jour)",
     "price": {
       "gold": 0,
       "silver": 2,
