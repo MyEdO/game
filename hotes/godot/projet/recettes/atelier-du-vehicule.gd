@@ -174,10 +174,7 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 			"« Attaquer » : arbre actif %s à l'état %s, clip marqué %s, lecteur brut en lecture %s ; attendu l'arbre actif au tir, le lecteur brut arrêté" % [etats.active, etats.lecture().get_current_node(), lecteur.assigned_animation, lecteur.is_playing()])
 	var vers_le_repos := await FonduDeLArbre.fondre(self, etats, "repos")
 	_verifier(FonduDeLArbre.tenu(vers_le_repos, "tir"), "« Attaquer » vers le repos : états quittés %s, attendu tir puis rien" % [vers_le_repos])
-	for i in FonduDeLArbre.IMAGES_D_ATTENTE:
-		if not etats.active:
-			break
-		await FonduDeLArbre.pas(self, etats)
+	await FonduDeLArbre.rendre(self, etats)
 	_verifier(not etats.active and etats.anim_player.is_empty() and lecteur.is_playing() and lecteur.current_animation == montage.clips.repos,
 			"après « Attaquer » : arbre actif %s à l'état %s, lecteur brut en lecture %s sur %s ; attendu l'arbre débranché, le lecteur brut au repos %s" % [etats.active, etats.lecture().get_current_node(), lecteur.is_playing(), lecteur.current_animation, montage.clips.repos])
 	print("[atelier-du-vehicule] « Attaquer » : fondu repos → tir %s, tir → repos %s, puis le lecteur brut au repos" % [vers_le_tir, vers_le_repos])

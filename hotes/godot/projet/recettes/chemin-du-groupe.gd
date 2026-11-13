@@ -130,10 +130,7 @@ func _l_atelier() -> void:
 	_passer_par(releve.points, lieux, "l'atelier")
 	var vers_le_repos := await FonduDeLArbre.fondre(self, etats, "repos")
 	_verifier(FonduDeLArbre.tenu(vers_le_repos, "marche"), "l'atelier vers le repos : états quittés %s, attendu marche puis rien" % [vers_le_repos])
-	for i in IMAGES_D_ATTENTE:
-		if not etats.active:
-			break
-		await FonduDeLArbre.pas(self, etats)
+	await FonduDeLArbre.rendre(self, etats)
 	_verifier(not etats.active and etats.anim_player.is_empty() and montage.lecteur.is_playing() and montage.lecteur.current_animation == montage.clip("repos"),
 			"au repos retrouvé : arbre actif %s, lecteur brut en lecture %s sur %s, attendu l'arbre débranché et le repos %s" % [etats.active, montage.lecteur.is_playing(), montage.lecteur.current_animation, montage.clip("repos")])
 	print("[chemin-du-groupe] atelier : %d cases en %.2f s, fondu repos → marche %s, marche → repos %s" % [lieux.size(), releve.duree, vers_la_marche, vers_le_repos])

@@ -30,6 +30,14 @@ static func fondre(arbre: SceneTree, etats: EtatsDuCorps, etat: String) -> Array
 	return quittes
 
 
+## L'horloge de `etats` avancée jusqu'à ce que l'atelier le débranche, l'action revenue au repos.
+static func rendre(arbre: SceneTree, etats: EtatsDuCorps) -> void:
+	for i in IMAGES_D_ATTENTE:
+		if not etats.active:
+			break
+		await pas(arbre, etats)
+
+
 ## Si le fondu `quittes` (`fondre`) nomme `quitte` sur plusieurs images, puis se vide.
 static func tenu(quittes: Array[String], quitte: String) -> bool:
 	var fondues := quittes.count(quitte)
