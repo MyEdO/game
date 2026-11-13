@@ -500,9 +500,9 @@ export const ECRIT_LU = {
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
       '`godot --headless --import`, puis chaque recette sous `recettes/` déclarant `const RECETTE_RENDUE := true` jouée ' +
-      'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front (hotes/godot/construire.mjs, #3951), ' +
+      'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
       'sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, et sur un écran (`xvfb-run` sans `DISPLAY`) ; ' +
-      'aucune recette rendue ne reçoit le pont vivant ; LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
+      'LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
       'constructeur), scripts/, les zones du noyau chargées par `chargerAssets`, leurs catalogues et Source/, ' +
       'tsconfig.json et package.json. Écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`) ; ' +
       '`deposerLesAvis` (hotes/godot/avis.mjs, #4063) n’écrit que sous `--export` et `--bureau`, dans leur `--sortie` ; ' +

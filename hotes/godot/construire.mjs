@@ -469,10 +469,11 @@ function godot(binaire, projet, args) {
 const DONNEES_DE_L_UTILISATEUR = process.platform === 'linux' ? 'XDG_DATA_HOME' : null
 
 /** Chaque lancement de `lancements` (`{ commande, args(donnees), juger({ lignes, echec }) }`) mené de front
- *  (`enFileBornee`), un par cœur, là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), à la suite
- *  ailleurs : chacun reçoit un dossier `donnees` neuf sous le projet `copie`, s'arrête à `ECHEANCE_MS`, et `juger` rend
- *  ses erreurs à sa sortie. Rend les erreurs de tous. */
-async function menerDeFront(copie, lancements) {
+ *  (`enFileBornee`), autant que la machine a de fois `coeurs` cœurs, ce qu'un lancement en tient (au moins un, #3950),
+ *  là où chacun a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`), à la suite ailleurs : chacun reçoit un
+ *  dossier `donnees` neuf sous le projet `copie`, s'arrête à `ECHEANCE_MS`, et `juger` rend ses erreurs à sa sortie.
+ *  Rend les erreurs de tous. */
+async function menerDeFront(copie, lancements, coeurs = 1) {
   const erreurs = await enFileBornee(lancements.map(({ commande, args, juger }) => async (signal) => {
     const donnees = mkdtempSync(join(copie, 'donnees-'))
     const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
@@ -480,7 +481,7 @@ async function menerDeFront(copie, lancements) {
       commande, args(donnees), DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
       (tuer) => arret.addEventListener('abort', tuer, { once: true }),
     ))
-  }), { deFront: DONNEES_DE_L_UTILISATEUR ? availableParallelism() : 1 })
+  }), { deFront: DONNEES_DE_L_UTILISATEUR ? Math.max(1, Math.floor(availableParallelism() / coeurs)) : 1 })
   return erreurs.flat()
 }
 
@@ -564,9 +565,12 @@ const RENDUS = ['forward_plus', 'gl_compatibility']
 /** L'écran virtuel qui porte un rendu réel là où aucun écran n'est ouvert (la CI, un conteneur). */
 const ECRAN_VIRTUEL = process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', '-screen 0 1280x720x24'] : []
 
+/** Les cœurs que tient une recette rendue : son moteur en rendu réel et son pont (#3950). */
+const COEURS_D_UNE_RECETTE_RENDUE = 2
+
 /** Le projet importé par l'éditeur `binaire`, puis chaque recette déclarant `const RECETTE_RENDUE := true` jouée en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
- *  (`menerDeFront`) avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
+ *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
  *  pas, et que Godot remplace, est une erreur. Son verdict est son code de sortie et ce qu'elle écrit jusqu'à sa ligne
  *  de clôture (`erreurs=<n>`) ; ce que le moteur écrit ensuite en se fermant n'en est pas. */
 function rendre(binaire, { figerLesDessins }) {
@@ -588,7 +592,7 @@ function rendre(binaire, { figerLesDessins }) {
           ...(lignes.some((l) => l.includes(` rendu=${rendu}`)) ? [] : [`${recette} : le rendu ${rendu} demandé n'est pas celui qui a rendu`]),
         ]
       },
-    }))))
+    }))), COEURS_D_UNE_RECETTE_RENDUE)
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) rendue(s) sous ${RENDUS.join(' et ')}`)
     return erreurs
   })
