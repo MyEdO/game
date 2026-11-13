@@ -7,7 +7,19 @@
 // REFUS quand elle est rompue, l'IDEMPOTENCE, et le recalage d'une entrée de stock AVEC sa `preuve`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { aUneCleDeSection, carteDesSlugs, entreesScindees, rapporteeEnLigne, suiviBloque, contenuDe, fluxDe, indexDe, planDe, recalerStock, recouper } from './recouper-source.mjs'
+import {
+  aUneCleDeSection,
+  carteDesSlugs,
+  entreesScindees,
+  rapporteeEnLigne,
+  suiviBloque,
+  contenuDe,
+  fluxDe,
+  indexDe,
+  planDe,
+  recalerStock,
+  recouper,
+} from './recouper-source.mjs'
 import { carteDeLignes } from './lib/carte-lignes.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 

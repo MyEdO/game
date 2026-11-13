@@ -24,7 +24,22 @@ import '../index';
 import { dansLaSousListe, espacesDesignes, idDe, mesureDuParse, porteeDeLaFeuille, refOuSpec, TYPES } from './grammaire/ref';
 import { collectionsDuDocument, listeCle, porteesOuvertes } from './grammaire/collection-cle';
 import { descendre } from './grammaire/descente';
-import { HORS_DE_LA_GRAPHIE, baseDe, cleDeLaLecture, cleFiltree, cleDesLibelles, cleDesSpecs, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, vocabulaireDuFichier, type PasDeSuite, type SousListeMarquee } from './grammaire/cle-d-espace';
+import {
+  HORS_DE_LA_GRAPHIE,
+  baseDe,
+  cleDeLaLecture,
+  cleFiltree,
+  cleDesLibelles,
+  cleDesSpecs,
+  estPrefixeDeSuite,
+  lireCleDEspace,
+  pasDeLaSuite,
+  porteLeChampMarqueur,
+  suiteAvecPas,
+  vocabulaireDuFichier,
+  type PasDeSuite,
+  type SousListeMarquee,
+} from './grammaire/cle-d-espace';
 import { VOCABULAIRES } from './grammaire/vocabulaires';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './grammaire/sourcesDeSpecs';
 

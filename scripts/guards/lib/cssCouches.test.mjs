@@ -8,7 +8,26 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { admisAuRetour, CHEMIN_COUCHES, declarations, decoupeSelecteurs, estPlacement, FEUILLE_LAYOUT, FEUILLES_PARTAGEES, feuillesPartageesDe, fichiersReutilises, ligneDeVentilation, manifesteDe, moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, valeurHorsEchelle, ventiler } from './cssCouches.mjs'
+import {
+  admisAuRetour,
+  CHEMIN_COUCHES,
+  declarations,
+  decoupeSelecteurs,
+  estPlacement,
+  FEUILLE_LAYOUT,
+  FEUILLES_PARTAGEES,
+  feuillesPartageesDe,
+  fichiersReutilises,
+  ligneDeVentilation,
+  manifesteDe,
+  moduleHorsCouche,
+  modulesExemptes,
+  partitionCss,
+  physique,
+  reglesCss,
+  valeurHorsEchelle,
+  ventiler,
+} from './cssCouches.mjs'
 import { regenerations } from './cssCouchesAudit.ts'
 import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES } from './cssImages.mjs'
 import { croissanceDesStocks } from './stocksNominatifs.mjs'

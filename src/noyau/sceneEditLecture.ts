@@ -5,9 +5,32 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { dialoguesDeLaScene, sceneMetresPerTile, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, canonEdge, porteAuteur } from './monde/scene';
+import {
+  dialoguesDeLaScene,
+  sceneMetresPerTile,
+  type EntityKind,
+  type FaceDArete,
+  type Scene,
+  type SceneEffectZone,
+  type SceneEntity,
+  type Trigger,
+  type WallSeg,
+  type WallSide,
+  type ZoneArea,
+  type CellSide,
+  canonEdge,
+  porteAuteur,
+} from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import {
+  faceDAreteSchema,
+  optionalDeSceneSchema,
+  sceneEffectZoneSchema,
+  sceneEntitySchema,
+  sceneSchema,
+  triggerSchema,
+  type Terrain,
+} from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
@@ -23,7 +46,21 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, estUnNavireAPonts, findCreatureById, findTrappingById, profilsStandard, refEstVolumique, siegeEngines, spells, trappingsInstanciables, structureAppearances, structures, traits, type CreatureData } from '../data';
+import {
+  creatures,
+  estUnNavireAPonts,
+  findCreatureById,
+  findTrappingById,
+  profilsStandard,
+  refEstVolumique,
+  siegeEngines,
+  spells,
+  trappingsInstanciables,
+  structureAppearances,
+  structures,
+  traits,
+  type CreatureData,
+} from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';

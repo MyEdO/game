@@ -15,7 +15,15 @@
  * `containedSocialMod`) et les résolveurs génériques — aucune entité nommée dans le moteur.
  */
 import { describe, it, expect } from 'vitest';
-import { fearSourceFor, psychImmuneToFrom, refreshDefendedPsych, targetedTrigger, targetCausedSourcesFor, psychBranchOps, sourceCombattant } from './psychology';
+import {
+  fearSourceFor,
+  psychImmuneToFrom,
+  refreshDefendedPsych,
+  targetedTrigger,
+  targetCausedSourcesFor,
+  psychBranchOps,
+  sourceCombattant,
+} from './psychology';
 import { socialPsychMod, socialPsychLabel } from './skills';
 import { findPsychologyById } from '../data';
 import type { Combatant } from './types';

@@ -17,7 +17,20 @@ import { EMPTY_FLOW, type EffectOp } from '../../engine/flowCore';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, genreDeCible, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import {
+  spells,
+  trappingDesObjetsPuisDuCatalogue,
+  refLabel,
+  WATER_EXPOSURE,
+  vehicles,
+  findVehicleById,
+  crewRoles,
+  memoParVersion,
+  creatureSemee,
+  vehiculeSeme,
+  libelleOuAbsence,
+  type TrappingData,
+} from '../../data';
 import { useId } from 'react';
 import { ObjetDonneField } from './ObjetDonneField';
 import { type Effect } from '../../data/schemas/defs-scenes/effets';

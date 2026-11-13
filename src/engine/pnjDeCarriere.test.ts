@@ -3,7 +3,16 @@
  * parcours sur les carrières réelles du Livre de base.
  */
 import { describe, it, expect } from 'vitest';
-import { argentDuPnj, carriereActuelle, designationsDeCarriere, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
+import {
+  argentDuPnj,
+  carriereActuelle,
+  designationsDeCarriere,
+  parcoursRetouche,
+  porterAuParcours,
+  refusDuParcours,
+  talentsDuParcours,
+  type ParcoursDeCarriere,
+} from './pnjDeCarriere';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import { actorStatus } from './social';

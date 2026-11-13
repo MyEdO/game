@@ -17,14 +17,30 @@ import { z } from 'zod';
 import { validerApparenceDonnee } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
+import {
+  cell2Schema,
+  chaosAlignSchema,
+  enumNomme,
+  exposureLevelSchema,
+  hitLocationSchema,
+  moneyPartialSchema,
+  natureDInfluenceSchema,
+} from '../grammaire/valeurs';
 import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import {
+  customStatblockSchema,
+  DIALOGUES_DE_LA_SCENE,
+  MARCHANDS_DE_LA_SCENE,
+  PERSONNAGES_DE_LA_SCENE,
+  ptSchema,
+  SCENES_DU_PROJET,
+  wallSideSchema,
+} from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';

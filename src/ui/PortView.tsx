@@ -12,7 +12,15 @@ import { findCargoEntryById } from '../engine/cargo';
 import { toMoney, priceToMoney, fromBrass, formatMoney, PA_PER_CO, type Money } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
-import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement, devisDAvitaillement } from '../noyau/portFlow';
+import {
+  devisDAchatEnPort,
+  caleALEscale,
+  refusDeBradageEnPort,
+  rolesRecrutables,
+  refusDEmbauche,
+  refusDeDebarquement,
+  devisDAvitaillement,
+} from '../noyau/portFlow';
 import { devisDeChantier, ameliorationsAuChantier, type PendingShoreLeave } from '../noyau/seaVoyageFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';

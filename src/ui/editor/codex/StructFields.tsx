@@ -7,14 +7,35 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
-import { ChoixDeSpec, ChoixDeSpecs, RefField, reposerLId, typeDuDataset, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg, type SuggestionsPartagees } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  ChoixDeSpecs,
+  RefField,
+  reposerLId,
+  typeDuDataset,
+  useSuggestionsPartagees,
+  useValeursDistinctes,
+  type RefFieldCfg,
+  type SuggestionsPartagees,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
-import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
+import type {
+  AdvancementRef,
+  DotationDePossession,
+  TrappingRef,
+  CountSpec,
+  DomainData,
+  HarvestRarity,
+  HarvestDanger,
+  TalentTest,
+  TestMatch,
+  SpecEntry,
+} from '../../../data';
 import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
 import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';

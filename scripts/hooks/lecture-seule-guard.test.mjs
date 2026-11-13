@@ -9,7 +9,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { repartir } from './repartition.mjs'
-import { BUDGET_ANALYSE_MS, COUT_SCRIPT_MS, COUT_SESSION_MS, DEBIT_ANALYSE_JS, MARGE_BUDGET, choisieParVitest, garde, scratchpadDeSession } from './lecture-seule-guard.mjs'
+import {
+  BUDGET_ANALYSE_MS,
+  COUT_SCRIPT_MS,
+  COUT_SESSION_MS,
+  DEBIT_ANALYSE_JS,
+  MARGE_BUDGET,
+  choisieParVitest,
+  garde,
+  scratchpadDeSession,
+} from './lecture-seule-guard.mjs'
 import { ATTENTE_BARRIERE } from './barriere-outil.mjs'
 import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
 import { REGISTRE } from './registre.mjs'

@@ -21,7 +21,15 @@ import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { acteDeDeverrouillageSchema, chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, OP_LABEL, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  SUJETS_DE_VERROU,
+  CHAMPS_EXCLUS_DE_CARRIED,
+  OP_LABEL,
+  armourBypassCategorieSchema,
+  banishNarrationSchema,
+  gameOpSchema,
+  tablesDeCiblesSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
 import { opsMissingRefs } from '../../data/refsDOp';
 import { opSummary } from './interne/resumeDOp';
@@ -45,7 +53,14 @@ import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import type { IconId } from '../../data/icons';
-import { NATURES_D_INFLUENCE, TERMES_DE_JET, admetLePeche, estSansTirage, formuleSansTirageSchema, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import {
+  NATURES_D_INFLUENCE,
+  TERMES_DE_JET,
+  admetLePeche,
+  estSansTirage,
+  formuleSansTirageSchema,
+  type NatureDInfluence,
+} from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { FORME_DE_CLE, contientLePeche, formulaForShape, newOp, paramsDeRegle, shapeOf, type FormulaShape } from '../../noyau/valeursNeuves';
 

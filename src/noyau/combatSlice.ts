@@ -7,7 +7,15 @@ import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type EtatDeLaBarre } from './actionRegistry';
+import {
+  ACTION_GATES,
+  actionGate,
+  armeADistanceParDefaut,
+  etatDeLaBarre,
+  refusDeLOffreHorsDuTour,
+  type ContexteDOffre,
+  type EtatDeLaBarre,
+} from './actionRegistry';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
@@ -21,8 +29,98 @@ import { rollLine, type RollLineParts } from './ligneDeJet';
 import { toRecapLines } from './recapLine';
 import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, poursuivreLaSerie, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
-import { auContactEligible, grappleActionEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, attaqueImmediate, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
+import {
+  activeCombatant,
+  jetDeRecharge,
+  appliquerLaRecharge,
+  advanceCombatJet,
+  STANCE_BLOCK,
+  firedWeapon,
+  openAttackCascade,
+  poserLeTestDeMain,
+  poserLEtapeDAttaque,
+  startDisengage,
+  completeFlee,
+  startAuContact,
+  startGrapple,
+  resolveGrappleWin,
+  applyAttackResult,
+  jouerLesTirsDeBordee,
+  openSurfacedDefense,
+  castSpell,
+  applyCast,
+  effectiveSpellOf,
+  finishPlayerAction,
+  applyMiscast,
+  useSpellComponent,
+  checkBattleOver,
+  resumeEnemyTurn,
+  poursuivreLaSerie,
+  advanceTurn,
+  resolveRoundBoundary,
+  enterRoundStartPause,
+  lancerLeRound,
+  inFiringBand,
+  maybeRunEnemyTurn,
+  resumeSuspendedAI,
+  resumeManeuverDefense,
+  attackerFumbled,
+  applyOups,
+  jouerLApresCoup,
+  ciblesDuBalayage,
+  ciblesDeLaDoubleFrappe,
+  resolveDualSecond,
+  overcastTargetCandidates,
+  overcastReset,
+  drainerLesGratuites,
+  attackWeaponOf,
+  victimeDuCoup,
+  applyWail,
+  spellSightOf,
+  castZoneSpell,
+  castCommitZone,
+  zoneRadiusTilesAt,
+  routeCounterspell,
+  applyCounterspellOutcome,
+  applyCounterspellFallback,
+  counterspellJoinable,
+  counterspellDeclarePhase,
+  counterspellRolls,
+  resumeAfterCounterspell,
+  openCastOppositionStep,
+  castExtraTargets,
+  resolveCastChain,
+  applySurprise,
+  resolveMovement,
+  retenuParLaPeur,
+  markActed,
+  noteApproachMove,
+  clearApproachMoves,
+  frenzyTarget,
+  finishCombatEnd,
+  battleAreaTargets,
+  siegeBlastRadiusTiles,
+  startleOnStormAtCombatStart,
+  stampEnvWeatherAtCombatStart,
+  windsOfMagicAtCombatStart,
+  releaseSeatsOfCombatants,
+} from './combatFlow';
+import {
+  auContactEligible,
+  grappleActionEligible,
+  hasFreeWeaponAttack,
+  resolveManeuver,
+  availableAttacks,
+  attaqueImmediate,
+  startBattement,
+  startDistraire,
+  resolveBattement,
+  resolveDistraire,
+  battementFoes,
+  distraireFoes,
+  adversairesDuBattement,
+  adversairesADistraire,
+} from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
@@ -46,7 +144,16 @@ import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIn
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
 import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
-import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, drainPendingLog } from './combatEffects';
+import {
+  nePeutPasDifferer,
+  jouerFlowEntier,
+  OPS_DIFFEREES,
+  entityPickables,
+  cleFeuilleRamassee,
+  applyEffects,
+  openSkillTest,
+  drainPendingLog,
+} from './combatEffects';
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
@@ -59,7 +166,17 @@ import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
-import { isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, castAfterCrit, focusCriticalDR, consumeMalepierre, malepierreItemOf, castingNumberOf } from '../engine/magic';
+import {
+  isArcaneSpell,
+  isMagicMissile,
+  castBlockedBy,
+  spellTargetCount,
+  castAfterCrit,
+  focusCriticalDR,
+  consumeMalepierre,
+  malepierreItemOf,
+  castingNumberOf,
+} from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
@@ -74,8 +191,38 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { modesDOuverture, HEAL_MODES, raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN } from '../engine/healing';
+import {
+  isOutOfAction,
+  addCondition,
+  removeCondition,
+  canTakeAction,
+  peutEntrerEnFrenesie,
+  stacks,
+  recoveredStacks,
+  COND,
+  releaseConditionLocks,
+  raisonRefusDetermination,
+  refusDeDetermination,
+  fenetreDetermination,
+  syncDerivedConditions,
+  isConditionLocked,
+  soinDeDetermination,
+} from '../engine/conditions';
+import {
+  modesDOuverture,
+  HEAL_MODES,
+  raisonDeModeDeSoinEnCombat,
+  resolveWoundsHeal,
+  resolveBleedHeal,
+  resolveExtractLodgedAmmo,
+  applyHealWounds,
+  soinDOuverture,
+  refusDuTestDeSoin,
+  difficulteDuSoin,
+  actePanse,
+  retirerUnBandage,
+  IDS_DU_TEST_DE_SOIN,
+} from '../engine/healing';
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -85,13 +232,44 @@ import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
-import { applyShipPostes, autoFormCrews, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, rechargeDuTour, posteDeLaBataille } from './monde/shipPostes';
+import {
+  applyShipPostes,
+  autoFormCrews,
+  shipOfCrew,
+  servablePostes,
+  serveAtPoste,
+  leaveChef,
+  isPosteManned,
+  rechargeDuTour,
+  posteDeLaBataille,
+} from './monde/shipPostes';
 import { pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
-import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
+import {
+  crewTestContributors,
+  navigationDuNavire,
+  shipCrewAssignments,
+  shipMoraleScore,
+  shipUndercrew,
+  shipSaboteurDR,
+  applyShantyToCrew,
+  quartIndex,
+  quartChante,
+  chanteurDuNavire,
+  withCrewActed,
+  chansonsDuChanteur,
+} from './shipCrew';
 import { freeActFirst } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
-import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
+import {
+  resolveSteamSave,
+  continueSeaDayAfterCascade,
+  continueSeaDayAfterScorbut,
+  continueSeaDayAfterExposure,
+  continueSeaDayAfterExhaustion,
+  runSeaDay,
+  finalizePortArrival,
+} from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
@@ -130,7 +308,17 @@ import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, reprendreLaPile, poserCurseurCascade, sortirDeLHote } from './cascade';
+import {
+  advanceCascade,
+  maladresseCourante,
+  finalizeCascade,
+  setCascadeChoice,
+  setCascadeAmount,
+  suspendActiveCascade,
+  reprendreLaPile,
+  poserCurseurCascade,
+  sortirDeLHote,
+} from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, jetImmunise, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';

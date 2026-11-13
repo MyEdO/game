@@ -17,7 +17,19 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { avertissementsDeLaSession, cadreDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
+import {
+  avertissementsDeLaSession,
+  cadreDeLaSession,
+  champDuMessage,
+  editer,
+  groupesDuLieu,
+  ouvrirLEdition,
+  planDeLaVolee,
+  sceneEditee,
+  vueDeLaScene,
+  type GesteDEdition,
+  type SessionDEdition,
+} from './session';
 import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
 import { validateScene } from '../validateScene';
 import { bumperDataset } from '../../data/versionDataset';

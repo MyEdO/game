@@ -5,7 +5,23 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { cheminDEcriture, commandeDe, ecrituresDe, normaliserNomOutil, nomLeanCtx, outilCouvert, OUTILS_ECRITURE, OUTILS_CREATION, OUTILS_SHELL, MOTIF_LEAN_CTX, texteAvant, texteNeuf, texteRemplace, ecritLeFichierEntier, remplaceResoluble } from './contratGarde.mjs'
+import {
+  cheminDEcriture,
+  commandeDe,
+  ecrituresDe,
+  normaliserNomOutil,
+  nomLeanCtx,
+  outilCouvert,
+  OUTILS_ECRITURE,
+  OUTILS_CREATION,
+  OUTILS_SHELL,
+  MOTIF_LEAN_CTX,
+  texteAvant,
+  texteNeuf,
+  texteRemplace,
+  ecritLeFichierEntier,
+  remplaceResoluble,
+} from './contratGarde.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
 
 /** Graphie MSYS (`/c/Users/…`) d'un chemin win32 absolu. */

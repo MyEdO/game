@@ -5,11 +5,13 @@
 ## même maillage, dans une matière standard, une surface par matière, texturée ou colorée par sommet, rendue des deux
 ## côtés hors des surfaces d'un navire, la mer de chaque navire bordée par sa coque (`border_la_mer`) ; ce que le regard
 ## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; ce que le
-## groupe en voit, voilé de même case par case et fondu d'une vision à la suivante (`voir`) ; les nappes de toit et les
-## couronnes crénelées des murs, de même forme qu'un morceau, voilées comme lui mais jamais masquées, réconciliées de
-## même par clé et empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`)
-## que l'arête nomme, sinon sa boîte, en groupes d'instances (`poser_les_aretes`), chaque instance vue teinte par l'état
-## de la meilleure des cases qu'elle sépare ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en retire
+## groupe en voit, voilé de même case par case et fondu d'une vision à la suivante (`voir`) ; le voile de cette vision
+## sur chaque navire (`voile`, jusqu'à `oublier_le_voile`, `art/voile.gdshader`), lié au sol de chaque case des morceaux
+## posés, en texture rangée comme la vision (`_batir_les_sols`) ; les nappes de toit et les couronnes crénelées des
+## murs, de même forme qu'un morceau, voilées comme lui mais jamais masquées, réconciliées de même par clé et
+## empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`) que l'arête
+## nomme, sinon sa boîte, en groupes d'instances (`poser_les_aretes`), chaque instance vue teinte par l'état de la
+## meilleure des cases qu'elle sépare ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en retire
 ## (`retirer_les_couronnes`).
 class_name VolumeDeScene
 extends Node3D
@@ -26,6 +28,10 @@ const NETTETE_DU_MOTIF := 4.0
 const KIT := "res://kit/kit.glb"
 ## La durée, en secondes, du fondu d'une vision posée à la suivante (`voir`).
 const DUREE_DU_FONDU_S := 0.3
+## Le voile de la vision sur un navire (`voile`), et le sol, dans sa texture (`_batir_les_sols`), d'une couche d'une
+## colonne qui n'y a pas de case.
+const VOILE := preload("res://art/voile.gdshader")
+const SANS_CASE := INF
 
 ## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
 ## d'une porte ouverte ou d'une brèche.
@@ -74,6 +80,10 @@ var _teintes := Vector3.ONE
 ## Les rangées d'un plan de la vision posée (`rangeesParPlan`), un plan par couche : la hauteur `h`, en cases.
 var _rangees_par_plan := 1
 var _vision_en_attente: Variant = null
+## Le sol de chaque case du volume posé (`_batir_les_sols`), et, par id de navire, la matière de son voile (`voile`),
+## liée à la vision comme les nappes.
+var _sols: ImageTexture = null
+var _voiles := {}
 ## Les groupes d'arêtes à teindre à la prochaine image dessinée (`_teindre_le_pose`), chacun en clé, et ceux que chaque
 ## pas du fondu reteint (`avancer_le_fondu`) : ceux dont une case change d'état d'une vision à l'autre
 ## (`_change_d_etat`), tous quand la vision se pose sans fondu (`_mesurer_le_fondu`).
@@ -141,6 +151,7 @@ func poser(monde: Dictionary, recus: Dictionary) -> void:
 	reconcilier(_morceaux, monde.monde.morceaux, par_cle(recus.volume), _morceau)
 	reconcilier(_toits, monde.toits, par_cle(recus.toits), _nappe)
 	reconcilier(_couronnes, monde.couronnes, par_cle(recus.couronnes), _nappe)
+	_batir_les_sols(monde.monde.hauteurs)
 	_lier_la_vision()
 	_montrer_le_pose()
 
@@ -223,7 +234,7 @@ func avancer_le_fondu(secondes: float) -> void:
 	if _part_du_fondu == 1.0:
 		return
 	_part_du_fondu = MiseEnPage.part_du_fondu(_part_du_fondu, secondes, DUREE_DU_FONDU_S)
-	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes]:
+	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
 		for matiere: ShaderMaterial in matieres.values():
 			matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
 	_a_teindre.merge(_du_fondu)
@@ -237,9 +248,9 @@ func avancer_le_fondu(secondes: float) -> void:
 	voir(attendue)
 
 
-## La vision posée (`voir`) liée à chaque matière des morceaux et des nappes (`_lier_la_vision_a`).
+## La vision posée (`voir`) liée à chaque matière des morceaux, des nappes et des voiles des navires (`_lier_la_vision_a`).
 func _lier_la_vision() -> void:
-	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes]:
+	for matieres: Dictionary in [_matieres_masquees, _matieres_des_nappes, _voiles]:
 		for matiere: ShaderMaterial in matieres.values():
 			_lier_la_vision_a(matiere)
 
@@ -275,6 +286,39 @@ func _lier_la_vision_a(matiere: ShaderMaterial) -> void:
 	matiere.set_shader_parameter("vision_teintes", _teintes)
 	matiere.set_shader_parameter("vision_rangees_par_plan", _rangees_par_plan)
 	matiere.set_shader_parameter("vision_cases_par_metre", MiseEnPage.echelle_metrique(metres_par_case))
+
+
+## La matière du voile de la vision du navire `navire` (`art/voile.gdshader`), liée à la vision posée (`voir`) et au sol
+## de chaque case du volume posé (`_batir_les_sols`), la même tant que `oublier_le_voile` ne l'a pas oubliée.
+func voile(navire: String) -> ShaderMaterial:
+	if not _voiles.has(navire):
+		var matiere := ShaderMaterial.new()
+		matiere.shader = VOILE
+		matiere.set_shader_parameter("sols", _sols)
+		_lier_la_vision_a(matiere)
+		_voiles[navire] = matiere
+	return _voiles[navire]
+
+
+## Le voile du navire `navire` (`voile`) oublié.
+func oublier_le_voile(navire: String) -> void:
+	_voiles.erase(navire)
+
+
+## Le sol de chaque case de chaque couche du volume posé, de hauteurs `hauteurs` (`VolumeDuMonde.hauteurs`, en mètres),
+## en texture d'un flottant par case au rangement de la vision (`MiseEnPage.texel_de_vision`), en unités de plateau :
+## une case est une case d'un triangle d'un morceau posé (méta `cases`), `SANS_CASE` ailleurs ; liée aux voiles.
+func _batir_les_sols(hauteurs: Array) -> void:
+	var taille := MiseEnPage.taille_du_masque(hauteurs[0].rangees[0].size(), hauteurs.size(), _rangees_d_une_couche)
+	var image := Image.create_empty(taille.x, taille.y, false, Image.FORMAT_RF)
+	image.fill(Color(SANS_CASE, 0.0, 0.0))
+	for morceau: Node3D in _morceaux.get_children():
+		for c: Vector3i in morceau.get_meta("cases"):
+			var couche: int = _couches[c.z]
+			image.set_pixelv(MiseEnPage.texel_de_vision(Vector2i(c.x, c.y), couche, _rangees_d_une_couche), Color(MiseEnPage.hauteur_au_plateau(hauteurs[couche].rangees[c.y][c.x], metres_par_case), 0.0, 0.0))
+	_sols = ImageTexture.create_from_image(image)
+	for matiere: ShaderMaterial in _voiles.values():
+		matiere.set_shader_parameter("sols", _sols)
 
 
 ## Rien de posé : ni morceau, ni nappe, ni arête.
@@ -355,6 +399,10 @@ func _morceau(morceau: Dictionary) -> Node3D:
 		noeud.add_child(des_luminaires)
 	var flottaisons: Array = morceau.surfaces.filter(func(surface: Dictionary) -> bool: return surface.has("flottaison")).map(func(surface: Dictionary) -> String: return surface.flottaison)
 	noeud.set_meta("flottaisons", flottaisons)
+	var cases := {}
+	for c in PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array():
+		cases[Vector3i(c)] = true
+	noeud.set_meta("cases", cases.keys())
 	if not flottaisons.is_empty():
 		noeud.set_meta("geometrie", morceau)
 	_mailler(noeud, morceau)
