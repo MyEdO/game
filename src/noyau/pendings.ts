@@ -2388,8 +2388,9 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  `attackerId` (attaques gratuites restantes puis avance) au lieu du `resumeSuspendedAI` générique. */
   maneuverResume?: { attackerId: string };
   /** Séquence PARQUÉE par le pilote IMMÉDIAT (`cascade.runCascadeImmediate`) sur un choix sans défaut,
-   *  ou derrière un combat ouvert en plein vol : le choix validé ou le combat clos, la suite reprend par ce
-   *  même pilote (`cascade.avanceUnPas`), jamais en fenêtre, avec le CONTEXTE de son lancement
+   *  ou derrière ce que l'applier d'une étape a ouvert (séquence ou combat) : le choix validé, ou ce qui
+   *  a été ouvert clos, la suite reprend par ce même pilote (`cascade.avanceUnPas`,
+   *  `cascade.resumeSuspendedCascade`), jamais en fenêtre, avec le CONTEXTE de son lancement
    *  (`ReprisePilote`). */
   piloteImmediat?: ReprisePilote;
   /** ACCOSTAGE à finaliser À LA CLÔTURE (MDG 15 l.245) : une cascade dont la fermeture doit résoudre

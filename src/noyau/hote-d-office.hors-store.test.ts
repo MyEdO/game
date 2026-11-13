@@ -92,19 +92,21 @@ describe('Étape hôte hors bataille : tenue, elle parque ; non tenue, ses verbe
     expect(banc.getState().journal.some((l) => l.startsWith('Enfoncer la porte : échoué'))).toBe(true);
   });
 
-  it('slot VIVANT d’un autre contexte : la cascade qui le tenait est suspendue, pas écrasée, puis reprise à la sortie de l’hôte (#4006)', () => {
-    const autre = heros(false);
-    const c = heros(true);
-    banc.setState({ party: [autre, c] });
-    startCascade(banc.getState, banc.setState, {
-      title: 'Autre', purpose: 'upkeep',
-      steps: [{ id: 'autre-1', kind: cleDeFixture('note'), actorId: autre.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] }],
+  for (const m of MEMBRES) {
+    it(`${m.jet} — slot VIVANT d’un autre contexte : la cascade qui le tenait est suspendue, pas écrasée, puis reprise à la sortie de l’hôte (#4006)`, () => {
+      const autre = heros(false);
+      const c = m.porteur(true);
+      banc.setState({ party: [autre, c] });
+      startCascade(banc.getState, banc.setState, {
+        title: 'Autre', purpose: 'upkeep',
+        steps: [{ id: 'autre-1', kind: cleDeFixture('note'), actorId: autre.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] }],
+      });
+      m.ouvrir(c);
+      expect(banc.getState()[m.slot], 'le jet s’est joué d’office').toBeNull();
+      expect(banc.getState().suspendedCascades, 'la pile est vide').toEqual([]);
+      expect(banc.getState().pendingCascade?.participants.map((x) => x.id), 'la cascade qui tenait le slot y revient, intacte').toEqual(['autre-1']);
     });
-    MEMBRES[0].ouvrir(c);
-    expect(banc.getState().pendingTest, 'le Test s’est joué d’office').toBeNull();
-    expect(banc.getState().suspendedCascades, 'la pile est vide').toEqual([]);
-    expect(banc.getState().pendingCascade?.participants.map((x) => x.id), 'la cascade qui tenait le slot y revient, intacte').toEqual(['autre-1']);
-  });
+  }
 });
 
 describe('Étape hôte en bataille : le héros IA qui incante (#3892)', () => {

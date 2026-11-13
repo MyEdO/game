@@ -3134,7 +3134,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     }
   };
 
-  it('Ouragan NATUREL (graines 4 et 11) : le Test d’équipage passe avant la Progression du jour, jouée une fois, une journée comptée', () => {
+  it('Ouragan NATUREL (graines 4 et 11) : le Test d’équipage passe avant le choix de Progression du jour, présenté une fois, une journée comptée', () => {
     for (const cadence of CADENCES) for (const graine of [4, 11]) {
       const cas = `${cadence}, graine ${graine}`;
       jourNaturel(graine, cadence);
@@ -3145,7 +3145,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       jouerLEvenement(cas, affalerRate);
       const { etapes } = jusquAuSlotLibre(affalerRate);
       // En traversée commandée, le pilote joue la Progression sans fenêtre : le jour unique (`uneJourneeComptee`) la porte.
-      if (cadence === 'jourParJour') expect(etapes.filter((k) => k === 'merProgressionChoix'), `la Progression jouée une fois (${cas})`).toHaveLength(1);
+      if (cadence === 'jourParJour') expect(etapes.filter((k) => k === 'merProgressionChoix'), `le choix de Progression présenté une fois, après le Test (${cas})`).toHaveLength(1);
       uneJourneeComptee(cas);
     }
   });

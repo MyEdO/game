@@ -10,7 +10,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { Set as SetFn } from './flowTypes';
 import { seedBattleRng } from './battleRng';
 import { setCadence } from '../engine/cadence';
-import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
+import { herosDeScenario, tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { voyageStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -266,6 +266,40 @@ describe('#4006 — la sortie d’hôte d’un Test de scène reprend la séquen
     parquerSous(porte);
     get().jetAnnuler('enfoncerLaPorte');
     expect(get().pendingForceDoor).toBeNull();
+    reprise();
+  });
+
+  /** Une graine où le Test d'Incantation du Sorcier réussit sans Critique ni Maladresse. */
+  const SEMIS_INCANTATION_SANS_SUITE = 7;
+  /** Le Sorcier, tenu par le siège local, incante sous la séquence parquée : l'hôte d'incantation tient le slot. */
+  function parquerSousLIncantation(): void {
+    const w = herosDeScenario(idsDeTest, 'sorcier');
+    const langue = w.skills.find((s) => s.id === 'langue');
+    if (langue) langue.advances = Math.max(langue.advances, 10);
+    else w.skills.push({ id: 'langue', spec: 'magick', advances: 10 } as never);
+    w.aiControlled = false;
+    set({ party: [get().party[0], w] });
+    parquerSous({ kind: 'effet', effet: { type: 'castSpell', casterId: w.id, spellId: 'armure-aethyrique', mode: 'jet' } });
+    expect(get().pendingCast, 'prémisse : la fenêtre d’incantation vit').not.toBeNull();
+    const hote = get().pendingCascade!;
+    expect(hote.participants[hote.cursor].jet, 'prémisse : l’hôte d’incantation tient le slot').toBe('incantation');
+  }
+
+  it('incantation validée : la séquence parquée est reprise', () => {
+    parquerSousLIncantation();
+    seedBattleRng(SEMIS_INCANTATION_SANS_SUITE);
+    get().jetLancer('incantation');
+    const r = get().pendingCast!.result!;
+    expect(r.cast && !r.isCritical && !r.isFumble, 'prémisse : le sort est lancé, sans conséquence appendue').toBe(true);
+    get().jetValider('incantation');
+    expect(get().pendingCast).toBeNull();
+    reprise();
+  });
+
+  it('incantation renoncée : la séquence parquée est reprise', () => {
+    parquerSousLIncantation();
+    get().jetAnnuler('incantation');
+    expect(get().pendingCast).toBeNull();
     reprise();
   });
 

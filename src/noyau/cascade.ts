@@ -128,7 +128,8 @@ export type CascadeTableFold = (step: CascadeStep, get: Get) => CascadeStep;
 
 /** La clôture de cascade (`dispatchCascadeDone`, `combatSlice`), qui ferme sur le propriétaire de
  *  l'état : `brancherLeJeu` la pose. Lue par la reprise d'une séquence que le pilote immédiat a
- *  parquée derrière un combat (`resumeSuspendedCascade`). */
+ *  parquée (`resumeSuspendedCascade`), par « Tout résoudre » (`toutResoudre`) et par la journée de
+ *  route allée au bout (`jouerLaJournee`). */
 type ClotureDeCascade = (done: PendingCascade) => void;
 let clotureInjectee: ClotureDeCascade | undefined;
 export function setClotureDeCascade(fn: ClotureDeCascade | undefined): void { clotureInjectee = fn; }
@@ -1736,9 +1737,9 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
     reconcileSuspended(get, set, p, { ...fondu, participants: steps, seq, cursor: Math.min(next, steps.length) });
     return null;
   }
-  // Séquence parquée par le pilote IMMÉDIAT sur une décision ou derrière un combat : la décision
-  // validée ou le combat clos, la suite revient à CE pilote, avec le contexte de son lancement —
-  // l'appelant l'avait lancée sans fenêtre.
+  // Séquence parquée par le pilote IMMÉDIAT sur une décision : la décision validée, la suite revient à
+  // CE pilote, avec le contexte de son lancement — l'appelant l'avait lancée sans fenêtre. Parquée
+  // derrière ce qu'un applier a ouvert (séquence ou combat), elle revient par `resumeSuspendedCascade`.
   const reprise = next < steps.length ? p.piloteImmediat : undefined;
   if (next >= steps.length || reprise) {
     set({ pendingCascade: null });
@@ -1756,8 +1757,9 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
 }
 
 /**
- * LA REPRISE du pilote immédiat, depuis le `cursor` d'une séquence qu'il a parquée — UNE pour ses deux
- * parcages : la décision validée (`avanceUnPas`) et le combat clos (`resumeSuspendedCascade`). Jamais de
+ * LA REPRISE du pilote immédiat, depuis le `cursor` d'une séquence qu'il a parquée — UNE pour ses trois
+ * parcages : la décision validée (`avanceUnPas`), puis, clos, ce que l'applier d'une étape a ouvert
+ * (séquence) et le combat (`resumeSuspendedCascade`). Jamais de
  * fenêtre : l'appelant l'avait lancée sans. Le pilote repart des bornes de la séquence ; ce qu'il
  * collecte, la séquence finalisée le porte au dénouement (`dispatchCascadeDone`) — c'est le porteur
  * qu'un pilote LANCÉ n'a pas. `null` : reparquée, ou interrompue par la clôture hors combat.
