@@ -95,6 +95,12 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	return true
 
 
+## Sorti de l'arbre avec son combattant, son atelier ou ses navires, qui n'y reviennent pas (#4195) : le chargement en
+## vol est jeté (`_chargement`, `monter`).
+func _exit_tree() -> void:
+	_chargement = null
+
+
 ## Aucun véhicule : la scène posée retirée, le corps reçu oublié et le chargement en vol jeté.
 func vider() -> void:
 	_recu = ""
