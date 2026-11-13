@@ -55,7 +55,7 @@ import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
-import { findQualityById, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
+import { findQualityById, findTrappingById, idDObjet, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
@@ -422,17 +422,18 @@ function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atou
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const metier = h && metierOf(h);
+  const id = idDObjet(trappingId);
   const t = findTrappingById(trappingId);
   // Gamme/Disponibilité/matériaux : dérivation PARTAGÉE avec le catalogue UI (craftSpecOf).
   const spec = t && craftSpecOf(t);
-  if (!st || !h || !metier || !t || !spec) return;
+  if (!st || !h || !metier || !id || !t || !spec) return;
   const { tier, avail, materialsBrass: materials } = spec;
   const target = craftTarget(tier, avail, atouts.length, defauts.length);
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(materials)), recipient: heroId, purpose: 'artisanat' });
   // `payWithAllocation` remplace l'entrée `party` du héros débité (nouvelle référence) — re-résoudre
   // AVANT de muter `craft`, sinon la mutation porterait sur l'objet PÉRIMÉ (perdue au `set` suivant).
   const h2 = get().party.find((x) => x.id === heroId)!;
-  h2.craft = { trappingId, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
+  h2.craft = { trappingId: id, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
   set({ party: [...get().party] });
   get().ecrireAuJournal(msg('if.craftStart', {
     name: h.label, cost: formatMoney(fromBrass(materials)), label: t.label, dr: target.dr, skill: skillInstanceLabel(metier),

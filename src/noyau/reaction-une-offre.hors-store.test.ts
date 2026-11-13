@@ -22,6 +22,7 @@ import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import type { Combatant, Weapon } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';
+import { triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -177,7 +178,7 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
     if (Array.isArray(n)) { n.forEach((x, i) => parcourir(x, `${ou}[${i}]`)); return; }
     if (!n || typeof n !== 'object') return;
     const o = n as Record<string, unknown>;
-    if (typeof o.trigger === 'string' && o.flow && JSON.stringify(o.flow).includes('"grantFreeAttack"')) out.push({ ou, eff: o as unknown as TriggeredEffect });
+    if (typeof o.trigger === 'string' && o.flow && JSON.stringify(o.flow).includes('"grantFreeAttack"')) out.push({ ou, eff: triggeredEffectSchema.parse(o) });
     for (const [k, v] of Object.entries(o)) parcourir(v, `${ou}.${k}`);
   };
   for (const fichier of listerDossier(dir).filter((x: string) => x.endsWith('.json'))) parcourir(JSON.parse(readFileSync(join(dir, fichier), 'utf8')), fichier);

@@ -14,7 +14,7 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
-import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type Flow, type FlowTestNode } from '../../../engine/flowCore';
 import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
@@ -1379,17 +1379,42 @@ export const effectOnSchema = enumNomme({
   empoigne: 'la victime empoignée (absorbée)',
 });
 
-/** `EffectTargeting` (`engine/flowCore.ts`). */
+/** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
+ *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
+ *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
+ *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
+ *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
+ *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
+ *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
+ *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
+ *  par tout effet « happe le plus proche petit ennemi engagé ». */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
   nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
   nommerChamps(z.strictObject({ pick: z.literal('engages'), sizeAtMost: z.literal('soi').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 
-/** DÉCLENCHEUR d'un `TriggeredEffect` (`EffectTrigger`, `engine/flowCore.ts`). Le `satisfies` garde
- *  l'exhaustivité de COMPILATION que le Record d'affichage tenait : un trigger ajouté à l'union sans
- *  son libellé ici ne compile pas. La taxonomie du recensement d'événements de combat
- *  (`src/combat-event-emission-coverage.test.ts`) en dérive. */
+/** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
+ *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une
+ *  touche réussie (du porteur ou de l'arme) ; `onWoundLoss` : quand le porteur PERD des PB ;
+ *  `onRoundStart` : au début de son Round ; `onStartled` : magie / bruit fort ; `onKill` : adversaire
+ *  mis hors de combat ; `onGainCondition` : le porteur vient de GAGNER un État (filtré par `condition` —
+ *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
+ *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
+ *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
+ *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
+ *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
+ *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
+ *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
+ *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
+ *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
+ *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de
+ *  Round, après l'entretien), `onTurnStart`/`onTurnEnd` (début/fin du tour du porteur).
+ *  Cycle de l'HORLOGE de campagne (émis par `noyau/clockHooks`, au franchissement de jour de
+ *  `runDailyUpkeep`) : `onDayStart` — une fois par JOUR calendaire franchi, rattrapage compris (trois
+ *  jours sautés = trois émissions) ; `onWake` — au RÉVEIL, c'est-à-dire le jour d'une nuit JOUÉE
+ *  (`lastNightDay`) seulement : une avance d'horloge de 24 h sans sommeil ne l'émet pas.
+ *  La taxonomie du recensement d'événements de combat (`src/combat-event-emission-coverage.test.ts`) en dérive. */
 export const effectTriggerSchema = enumNomme({
   onHit: 'À la touche',
   onCrit: 'Sur un Critique',
@@ -1410,8 +1435,13 @@ export const effectTriggerSchema = enumNomme({
   onAttackResolved: 'Après une attaque résolue',
   onCastResolved: 'Après une incantation résolue',
   onMiscast: 'Sur une Imparfaite',
+  /** Le PORTEUR vient d'ÉCHOUER un Test (n'importe lequel : combat, scène, entretien) — `ctx.margin` = le
+   *  DR de l'échec (négatif). Les paliers de gravité s'expriment en DONNÉE via la Condition `slThreshold`
+   *  (jamais de bande codée en dur au moteur) : Crampes abdominales (MSRC 16 l.152-158) réagissent à
+   *  `slThreshold(≤-2)`/`(≤-4)`/`(≤-6)`. Émis par `fireOwnTestFailed` (noyau/triggeredEffects), qui garde
+   *  la RÉ-ENTRANCE (un Test résolu PENDANT le traitement ne ré-émet jamais). */
   onOwnTestFailed: 'En échouant à un Test',
-} satisfies Record<EffectTrigger, string>);
+});
 
 
 /** `StageOutcome` (`src/engine/activities.ts:82-84`) — effet de portée Étape (Activités + Rencontres

@@ -24,7 +24,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
+import { loadSource, firstSentence, jsdocBody, readSchemaUnionMembers } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { champsDuSchemaObjet, schemaInfere } from './lib/canauxMecaniques.mjs'
 
@@ -109,29 +109,16 @@ function rendu() {
 
   // ── `EffectTrigger` / `EffectTargeting` / `TriggeredEffect` ──────────────────────────────────────
 
-  const { text: FC_SRC, sf: FC_SF } = loadSource(FLOWCORE)
+  const { text: MC_SRC, sf: MC_SF } = loadSource(MECANIQUE)
 
-  function aliasUnion(nom) {
-    let alias
-    FC_SF.forEachChild((n) => {
-      if (ts.isTypeAliasDeclaration(n) && n.name.text === nom) alias = n
-    })
-    if (!alias || !ts.isUnionTypeNode(alias.type)) abandon(`\`${nom}\` n'est plus une union nommée dans ${FLOWCORE}`)
-    return { alias, membres: alias.type.types }
-  }
+  const TRIGGER_U = readSchemaUnionMembers(MC_SF, MC_SRC, 'effectTriggerSchema', OUTIL)
+  const TRIGGERS_LIST = TRIGGER_U.rows.map((m) => ({ nom: m.name, note: m.role ? plat(m.role) : null }))
+  if (TRIGGERS_LIST.length < 10) abandon(`moins de 10 déclencheurs lus dans \`effectTriggerSchema\` — l'énumération a dérivé`)
+  const LIGNE_TRIGGER = ligne(MC_SF, TRIGGER_U.decl.name.getStart(MC_SF))
 
-  const TRIGGER_U = aliasUnion('EffectTrigger')
-  const TRIGGERS_LIST = TRIGGER_U.membres.map((m) => {
-    if (!ts.isLiteralTypeNode(m) || !ts.isStringLiteral(m.literal)) abandon(`membre non littéral dans \`EffectTrigger\``)
-    const doc = jsdocBody(FC_SRC.slice(m.getFullStart(), m.getStart(FC_SF)))
-    return { nom: m.literal.text, note: doc ? plat(firstSentence(doc)) : null }
-  })
-  if (TRIGGERS_LIST.length < 10) abandon(`moins de 10 déclencheurs lus dans \`EffectTrigger\` — l'union a dérivé`)
-  const LIGNE_TRIGGER = ligne(FC_SF, TRIGGER_U.alias.name.getStart(FC_SF))
-
-  const CIBLAGE_U = aliasUnion('EffectTargeting')
-  const CIBLAGES = CIBLAGE_U.membres.map((m) => plat(m.getText(FC_SF)))
-  const LIGNE_CIBLAGE = ligne(FC_SF, CIBLAGE_U.alias.name.getStart(FC_SF))
+  const CIBLAGE_U = readSchemaUnionMembers(MC_SF, MC_SRC, 'effectTargetingSchema', OUTIL)
+  const CIBLAGES = CIBLAGE_U.rows.map((m) => plat(m.texte))
+  const LIGNE_CIBLAGE = ligne(MC_SF, CIBLAGE_U.decl.name.getStart(MC_SF))
 
   const EFFET = (() => {
     const d = declaration(FLOWCORE, 'TriggeredEffect')
@@ -288,7 +275,7 @@ function rendu() {
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : le SITE réel du lecteur de
 chaque canal (\`${PASSIF.site}\`, \`${DECLENCHE.site}\`, \`${CAPACITE.site}\`), les
 ${TRIGGERS_LIST.length} membres d'\`EffectTrigger\` et les ${CIBLAGES.length} formes d'\`EffectTargeting\`
-(\`${FLOWCORE}\`), les ${EFFET.champs.length} champs de \`TriggeredEffect\`, les ${SOURCES.kinds.length} kinds
+(lus à leurs schémas, \`${MECANIQUE}\`), les ${EFFET.champs.length} champs de \`TriggeredEffect\`, les ${SOURCES.kinds.length} kinds
 de source réunis par \`effectSourcesOf\`, les ${CAPACITES.length} types de capacités et leur nombre de
 drapeaux, les documents PORTEURS de chaque canal (def zod + population réelle du \`.json\`), le site
 de l'annulation \`suppressesCapabilities\` avec ses porteurs, les trois sites de l'Indice de qualité,
@@ -355,12 +342,12 @@ produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'enti
 
 ${table(EFFET.champs, ['Champ', 'Schéma ou type', 'Rôle (JSDoc)'], (c) => `| \`${c.nom}\` | \`${c.type}\` | ${c.role ?? '—'} |`)}
 
-### Les ${TRIGGERS_LIST.length} déclencheurs (\`EffectTrigger\`, \`${FLOWCORE}:${LIGNE_TRIGGER}\`)
+### Les ${TRIGGERS_LIST.length} déclencheurs (\`EffectTrigger\`, \`effectTriggerSchema\`, \`${MECANIQUE}:${LIGNE_TRIGGER}\`)
 
 ${TRIGGERS_LIST.map((t) => `\`${t.nom}\``).join(' · ')}
 
 ${TRIGGERS_LIST.filter((t) => t.note).length ? `${table(TRIGGERS_LIST.filter((t) => t.note), ['Déclencheur', 'Ce que le JSDoc en dit'], (t) => `| \`${t.nom}\` | ${t.note} |`)}\n` : ''}
-### Les ${CIBLAGES.length} formes de ciblage (\`EffectTargeting\`, \`${FLOWCORE}:${LIGNE_CIBLAGE}\`)
+### Les ${CIBLAGES.length} formes de ciblage (\`EffectTargeting\`, \`effectTargetingSchema\`, \`${MECANIQUE}:${LIGNE_CIBLAGE}\`)
 
 ${CIBLAGES.map((c) => `- \`${c}\``).join('\n')}
 

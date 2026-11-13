@@ -6,7 +6,7 @@
  * choix du joueur (`ChoixDeCreation.trappingChoices`) ou de l'auteur d'un PNJ sont rangés par ces adresses. Seul ce
  * module LIT la valeur d'un choix (`brancheChoisie`, `idChoisi`).
  */
-import { armesChoisissables, fabricationAtouts, findCareerById, findClassById, findQualityById, findTrappingById, firstLevel, levelsForCareer, trappingRefLabel, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality, type BrancheDeDotation, type JokerDArme, type TrappingRef } from '../data/index';
+import { armesChoisissables, fabricationAtouts, findCareerById, findClassById, findQualityById, findTrappingById, firstLevel, levelsForCareer, trappingRefLabel, idDObjet, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality, type BrancheDeDotation, type JokerDArme, type TrappingRef } from '../data/index';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 
 /** Choix de dotation : index de branche d'un `{pick, of}`, id d'objet d'un `{wildcard}`, id d'Atout d'un
@@ -157,7 +157,7 @@ function resoudre(ref: BrancheDeDotation, chemin: readonly number[], choices: Ch
     return j === undefined ? [ref] : resoudre(e.ref.of[j], [...chemin, j], choices);
   }
   if (e.sorte === 'joker') {
-    const id = idChoisi(e, choices);
+    const id = idDObjet(idChoisi(e, choices));
     const atout = sousEmplacementActif(e, choices);
     return [id ? { id, ...(atout ? { qualities: atoutPose(atout, choices) } : {}) } : ref];
   }

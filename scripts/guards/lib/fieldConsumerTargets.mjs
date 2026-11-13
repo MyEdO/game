@@ -24,7 +24,7 @@ export const CIBLES_DE_GRAMMAIRE = [
   { schema: valeurs.secondarySourceRefSchema, type: 'SecondaryRef', home: 'src/data/schemas/grammaire/valeurs.ts' },
   { schema: valeurs.detailRecipeSchema, type: 'DetailRecipe', home: 'src/data/materials.types.ts' },
   { schema: valeurs.diceSpecSchema, type: 'DiceSpec', home: 'src/engine/dice.ts' },
-  { schema: reference.qualityRefSchema, type: 'QualityRef', home: 'src/data/index.ts' },
+  { schema: reference.qualityRefSchema, type: 'QualityRef', home: 'src/data/schemas/grammaire/reference.ts' },
   { schema: valeurs.castingNumberModSchema, type: 'CastingNumberMod', home: 'src/engine/castingNumber.ts' },
   { schema: valeurs.countSpecSchema, type: 'CountSpec', home: 'src/data/schemas/grammaire/valeurs.ts' },
   { schema: reference.trappingRefSchema, type: 'TrappingRef', home: 'src/data/schemas/grammaire/reference.ts' },

@@ -8,13 +8,13 @@ import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppe
 import type { PlayerText } from '../i18n/playerText';
 import { listeEt, t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
-import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
+import { dansLaSousListe, espaceDe, idDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type Id, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { DotationDeMention, DotationDePossession, Somme, TrappingRef } from './schemas/grammaire/reference';
+import type { DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema, type specsSourceSchema, type CountSpec } from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
@@ -1902,7 +1902,7 @@ const qualiteParId = indexParId('qualities', qualities);
 /** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
  *  Compétence Métier produit, donc hors qualités MAGIQUES (`capabilities.magic` : Maudit, VDM 12
  *  folio 170, est un Atout d'objet qu'aucun artisan ne fabrique). */
-export const fabricationAtouts = memoParVersion('qualities', (): string[] =>
+export const fabricationAtouts = memoParVersion('qualities', (): QualityData['id'][] =>
   qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !q.capabilities?.magic).map((q) => q.id),
 );
 /** Atout de fabrication par DÉFAUT (fallback maison quand le joueur ne choisit pas ; le RAW n'en fixe
@@ -1910,7 +1910,7 @@ export const fabricationAtouts = memoParVersion('qualities', (): string[] =>
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
 /** `QualityRef` d'un Atout de fabrication résolu au registre, `undefined` hors registre — une qualité INDICÉE
  *  (`indice`) prend l'Indice 1 par défaut d'un Atout UNIQUE de fabrication (LDB 60 l.30). */
-export function fabricationAtoutQuality(id: string): { id: QualityData['id']; value?: number } | undefined {
+export function fabricationAtoutQuality(id: string): QualityRef | undefined {
   const q = qualiteParId(id);
   return q && (q.indice ? { id: q.id, value: 1 } : { id: q.id });
 }
@@ -2997,10 +2997,6 @@ export function chaosSpellsOf(god: string): string[] {
   return findGodById(god)?.chaosSpells ?? [];
 }
 
-/** Référence à une Qualité d'objet (`RefDesignee` + Indice éventuel : « Solide 3 » → value 3). */
-export interface QualityRef extends RefDesignee {
-  value?: number;
-}
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
  *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
@@ -3016,7 +3012,7 @@ export interface QualityRef extends RefDesignee {
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). Annotation de
  *  `trappingRefSchema` (`schemas/grammaire/reference.ts`). */
-export type { CountSpec, DotationDePossession, DotationDeMention, Somme, TrappingRef };
+export type { CountSpec, DotationDePossession, DotationDeMention, QualityRef, Somme, TrappingRef };
 /** Une option d'un « 1 parmi » de dotation : une dotation, ou un lot. */
 export type BrancheDeDotation = Extract<TrappingRef, { pick: 1 }>['of'][number];
 /** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, son Atout au choix. */
@@ -3201,11 +3197,18 @@ export function qualityInstance(q: QualityRef): import('../engine/types').Qualit
     ...(q.value != null ? { value: q.value } : {}),
   };
 }
+const idDObjetSchema = idDe('trapping');
+/** L'id d'objet du catalogue que désigne `v`, `undefined` hors catalogue : la porte d'un id saisi (choix de dotation,
+ *  Artisanat, atelier du Codex). */
+export function idDObjet(v: string | undefined): Id<'trapping'> | undefined {
+  const lu = idDObjetSchema.safeParse(v);
+  return lu.success ? lu.data : undefined;
+}
 /** Libellé d'affichage d'une `QualityRef` (ou `QualityInstance` runtime) : « Tranchante », « Solide 3 »,
  *  « Taillade (1A) ». La FORME de l'Indice est pilotée par la DONNÉE (`QualityData.indice.unite`) : sans
  *  unité, le livre accole la valeur nue (`LDB 62 l.33` « Protectrice 2 », l.66 « Recharge 1 ») ; avec unité,
  *  il la parenthèse (`AA 08 l.136` « Taillade (1A) », l.304 « Taillade (2A) »). Zéro branche par id. */
-export function qualityRefLabel(q: QualityRef): PlayerText {
+export function qualityRefLabel(q: import('../engine/types').QualityInstance): PlayerText {
   const base = refLabel('qualities', q);
   if (q.value == null) return base;
   const unite = qualiteParId(q.id)?.indice?.unite;
@@ -3287,7 +3290,8 @@ export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
           : ref.type === 'vehicle'
             ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
             : dataLabel(findCreatureById(ref.id)?.label, ref.id);
-  const count = 'count' in ref && ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
+  const quantite: CountSpec | undefined = 'count' in ref ? ref.count : undefined;
+  const count = quantite ? ('fixed' in quantite ? ` (${quantite.fixed})` : ` (${formatDice(quantite.roll)})`) : '';
   if ('qualityChoice' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
   const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
   const libelle = base + count + quality;

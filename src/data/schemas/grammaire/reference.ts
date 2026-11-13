@@ -6,7 +6,7 @@ import { libelleDeValeur, metaDesChamps, nommerChamps, nommerNoeud } from './met
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { caracteristiqueChiffreeSchema, countSpecSchema, type CountSpec, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
+import { caracteristiqueChiffreeSchema, countSpecSchema, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
 import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, parmi, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec, type Parmi } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
@@ -223,13 +223,13 @@ const refIndicee = <T extends 'quality' | 'navalTrait'>(type: T) => ref(type, { 
  *  créature aux navires. */
 export const navalTraitRefSchema = refIndicee('navalTrait');
 
-/** `QualityRef` (`src/data/index.ts`) — id + Indice éventuel (« Solide 3 », « Taillade (1A) » →
- *  `value`). Vue COMMUNE du joker de qualité d'une dotation (`TrappingRef.qualities`, #657 Lot 1) ET du
- *  catalogue `trappings.json` lui-même, qui l'importe (#1463 L-gram-2). C'est la référence INDICÉE
- *  ci-dessus : ce que le livre imprime entre parenthèses (`AA 08 l.87` « Taillade (XA) ») est une
- *  MAGNITUDE, portée par `value` et déclarée par la qualité (`QualityData.indice`) ; `spec` y était une
- *  seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */
+/** `QualityRef` — id + Indice éventuel (« Solide 3 », « Taillade (1A) » → `value`). Vue COMMUNE du joker de
+ *  qualité d'une dotation (`TrappingRef.qualities`, #657 Lot 1) ET du catalogue `trappings.json` lui-même, qui
+ *  l'importe (#1463 L-gram-2). C'est la référence INDICÉE ci-dessus : ce que le livre imprime entre parenthèses
+ *  (`AA 08 l.87` « Taillade (XA) ») est une MAGNITUDE, portée par `value` et déclarée par la qualité
+ *  (`QualityData.indice`) ; aucune `spec`. */
 export const qualityRefSchema = refIndicee('quality');
+export type QualityRef = z.infer<typeof qualityRefSchema>;
 
 /** `ManiementAlternatif` (`src/data/index.ts`), keyé par les Groupes de Corps à corps qui manient aussi
  *  l'arme : `TrappingData.manieAussi`, `GroupeDArme.manieAussi`. AA 08 l.188 ; AA 08 l.194 ; AA 08 l.343 */
@@ -254,7 +254,6 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
  *  dont une option peut aussi être un lot `{ lot }`), ou joker d'arme (`wildcard`, + `groupe`, + `qualityChoice`). Composé
  *  par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`, sans texte, mention, joker ni lot. Sa `spec` est la PRÉCISION d'un objet, nommée comme telle : `trappings.json` ne
  *  déclare aucun catalogue de Spécialisations. */
-type QualityRefInfer = z.infer<typeof qualityRefSchema>;
 /** Une somme : `count` pièces de `monnaie` (`Somme`, tirée par `sommeTiree`, `engine/possessionGrants.ts`). Dotation
  *  d'argent, valeur d'un objet doté, Richesse de départ d'un prétiré. LDB 57 */
 export const sommeSchema = nommerChamps(z.strictObject({ monnaie: monnaieSchema, count: countSpecSchema }), { monnaie: { label: 'monnaie' }, count: { label: 'nombre de pièces' } });
@@ -292,12 +291,11 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
-type ObjetDeCatalogue = { id: string; spec?: string; count?: CountSpec; qualities?: QualityRefInfer[]; valeur?: Somme };
+export type ObjetDeCatalogue = z.infer<typeof objetDeCatalogueSchema>;
 type FormeSansTexte =
   | (ObjetDeCatalogue & { qualityChoice?: true })
   | DotationDePossession
   | Somme;
-type JokerDeDotation = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: true };
 type LotDeDotation = { lot: (ObjetDeCatalogue | DotationDePossession)[] };
 type DotationSansTexte = FormeSansTexte | Parmi<1, FormeSansTexte>;
 type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
@@ -310,6 +308,7 @@ const jokerDeDotationSchema = nommerChamps(z.strictObject({
   groupe: ref('weaponGroup', undefined, 'weapon').optional(),
   qualityChoice: z.literal(true).optional(),
 }), { wildcard: { label: "choix libre" }, groupe: { label: "Groupe d’armes" }, qualityChoice: { label: 'qualité au choix' } });
+type JokerDeDotation = z.infer<typeof jokerDeDotationSchema>;
 
 /** Plusieurs objets ou possessions dotés ENSEMBLE, option d'un « 1 parmi » : ni emplacement, ni somme, ni mention, ni texte. */
 const lotDeDotationSchema = nommerChamps(z.strictObject({

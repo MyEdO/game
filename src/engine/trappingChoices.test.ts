@@ -11,7 +11,7 @@ import {
 } from './trappingChoices';
 import { adresseDeCreation } from './adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
-import { careerLevels, findTrappingById, groupeDeLArme, trappingRefLabel, fabricationAtouts, qualities, trappings, type BrancheDeDotation, type QualityData, type TrappingRef } from '../data/index';
+import { careerLevels, findTrappingById, groupeDeLArme, trappingRefLabel, fabricationAtouts, qualities, trappings, type BrancheDeDotation, type JokerDArme, type QualityData, type TrappingRef } from '../data/index';
 import { setDataset } from '../data/overrides';
 import type { EntreeVivante } from '../data/datasets';
 
@@ -210,7 +210,7 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
   });
 
   it('chaque Groupe d’armes nommé par un joker de la donnée offre au moins une arme', () => {
-    const groupes = new Set<string>();
+    const groupes = new Set<NonNullable<JokerDArme['groupe']>['id']>();
     const lire = (refs: readonly BrancheDeDotation[]): void => refs.forEach((r) => ('pick' in r ? lire(r.of) : 'wildcard' in r && r.groupe && groupes.add(r.groupe.id)));
     careerLevels.forEach((l) => lire(l.trappings));
     expect(groupes.size).toBeGreaterThan(0);

@@ -451,7 +451,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory n’équipe qu’UNE pièce par couche × localisation (meilleure PA)', () => {
-    const items = buildInventory(['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'].map((id) => ({ id })), makeRNG(1), idsDeTest);
+    const items = buildInventory((['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'] as const).map((id) => ({ id })), makeRNG(1), idsDeTest);
     const worn = items.filter((i) => i.equipped).map((i) => i.trappingId);
     // Justaucorps et Veste sont tous deux Cuir souple sur le Corps → une seule des deux portée.
     expect(worn).toContain('chemise-de-mailles');
@@ -475,7 +475,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
 
 describe('buildInventory — vêtements et accessoires portés par défaut (LDB 61 l.21)', () => {
   it('vêtements, première cape et bottes portés, seconde cape au sac ; Encombrement réduit de 1 par objet porté', () => {
-    const items = buildInventory(['vetements', 'cape', 'cape', 'bottes'].map((id) => ({ id })), makeRNG(1), idsDeTest);
+    const items = buildInventory((['vetements', 'cape', 'cape', 'bottes'] as const).map((id) => ({ id })), makeRNG(1), idsDeTest);
     expect(items.map((i) => [i.trappingId, !!i.equipped])).toEqual([['vetements', true], ['cape', true], ['cape', false], ['bottes', true]]);
     const attendu = items.reduce((s, i) => s + Math.max(0, (i.enc ?? 0) - (i.equipped ? 1 : 0)), 0);
     expect(itemsEncumbrance(items)).toBe(attendu);

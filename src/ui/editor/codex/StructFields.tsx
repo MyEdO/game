@@ -16,10 +16,10 @@ import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
 import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
-import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
+import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById } from '../../../data';
+import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, idDObjet, trappings } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
@@ -478,6 +478,10 @@ function ChoiceList({ ds, value, onChange }: { ds: 'skills' | 'talents'; value: 
 
 const isText = (t: TrappingRef): t is { text: string; count?: CountSpec } => 'text' in t;
 const isPossession = (t: TrappingRef): t is DotationDePossession => 'type' in t;
+/** L'id que rend un `RefField` à fiche unique : l'id nu, ou la référence `{ id, spec? }`. */
+const idDuChoix = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'object' && v !== null && 'id' in v && typeof v.id === 'string' ? v.id : '');
+/** L'objet d'une rangée « Réf. (catalogue) » neuve : le premier du catalogue, que l'auteur remplace au sélecteur. */
+const premierObjet = (): Id<'trapping'> | undefined => idDObjet(trappings[0]?.id);
 
 export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | undefined; onChange: (v: TrappingRef[]) => void }) {
   const list = value ?? [];
@@ -502,7 +506,13 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
           <div className="fieldrow">
             <select
               value={kindOf(t)}
-              onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' || e.target.value === 'creature' ? { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
+              onChange={(e) => {
+                const c = 'count' in t ? t.count : undefined;
+                const id = premierObjet();
+                if (e.target.value === 'text') set(i, { text: '', count: c });
+                else if (e.target.value === 'vehicle' || e.target.value === 'creature') set(i, { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) });
+                else if (id) set(i, { id, count: c });
+              }}
             >
               <option value="ref">Réf. (catalogue)</option>
               <option value="vehicle">Véhicule (vehicles.json)</option>
@@ -517,21 +527,21 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
             : isPossession(t) && t.type === 'vehicle'
               ? (
                 <>
-                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                   <label className="dr">nom<input placeholder={findVehicleById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                 </>
               )
               : isPossession(t)
                 ? (
                   <>
-                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                     <label className="dr">nom<input placeholder={findCreatureById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                   </>
                 )
-                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}
+                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => { const id = idDObjet(idDuChoix(v)); if (id) set(i, { id, count: 'count' in t ? t.count : undefined }); }} />}
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Possession</button>
+      <button className="btn small" onClick={() => { const id = premierObjet(); if (id) onChange([...list, { id }]); }}>+ Possession</button>
     </div>
   );
 }

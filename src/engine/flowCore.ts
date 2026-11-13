@@ -25,7 +25,7 @@
  */
 import type { z } from 'zod';
 import type { IconId } from '../data/icons';
-import type { triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
+import type { effectTargetingSchema, effectTriggerSchema, triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
@@ -622,50 +622,12 @@ export type NoeudDecideAuPorteur<E = EffectOp> = Omit<FlowTestNode<E>, 'test'> &
  *  par la donnée comme par l'état : gelé à sa définition (#2097). */
 export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'sequence', etapes: [] });
 
-/** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
- *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une
- *  touche réussie (du porteur ou de l'arme) ; `onWoundLoss` : quand le porteur PERD des PB ;
- *  `onRoundStart` : au début de son Round ; `onStartled` : magie / bruit fort ; `onKill` : adversaire
- *  mis hors de combat ; `onGainCondition` : le porteur vient de GAGNER un État (filtré par `condition` —
- *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
- *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
- *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
- *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
- *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
- *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
- *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
- *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
- *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
- *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de
- *  Round, après l'entretien), `onTurnStart`/`onTurnEnd` (début/fin du tour du porteur).
- *  Cycle de l'HORLOGE de campagne (émis par `noyau/clockHooks`, au franchissement de jour de
- *  `runDailyUpkeep`) : `onDayStart` — une fois par JOUR calendaire franchi, rattrapage compris (trois
- *  jours sautés = trois émissions) ; `onWake` — au RÉVEIL, c'est-à-dire le jour d'une nuit JOUÉE
- *  (`lastNightDay`) seulement : une avance d'horloge de 24 h sans sommeil ne l'émet pas. */
-export type EffectTrigger =
-  | 'onHit' | 'onCrit' | 'onWoundLoss' | 'onSlain' | 'onRoundStart' | 'onStartled' | 'onKill' | 'onCharged' | 'onGainCondition'
-  | 'onCombatStart' | 'onCombatEnd' | 'onRoundEnd' | 'onTurnStart' | 'onTurnEnd'
-  | 'onDayStart' | 'onWake'
-  | 'onAttackResolved' | 'onCastResolved' | 'onMiscast'
-  /** Le PORTEUR vient d'ÉCHOUER un Test (n'importe lequel : combat, scène, entretien) — `ctx.margin` = le
-   *  DR de l'échec (négatif). Les paliers de gravité s'expriment en DONNÉE via la Condition `slThreshold`
-   *  (jamais de bande codée en dur au moteur) : Crampes abdominales (MSRC 16 l.152-158) réagissent à
-   *  `slThreshold(≤-2)`/`(≤-4)`/`(≤-6)`. Émis par `fireOwnTestFailed` (noyau/triggeredEffects), qui garde
-   *  la RÉ-ENTRANCE (un Test résolu PENDANT le traitement ne ré-émet jamais). */
-  | 'onOwnTestFailed';
+/** DÉCLENCHEUR d'un effet déclenché : la sortie d'`effectTriggerSchema` (`data/schemas/grammaire/mecanique.ts`). */
+export type EffectTrigger = z.output<typeof effectTriggerSchema>;
 
-/** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
- *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
- *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
- *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
- *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
- *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
- *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
- *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
- *  par tout effet « happe le plus proche petit ennemi engagé ». */
-export type EffectTargeting = 'soi' | 'victime' | 'engages' | 'empoigne'
-  | { near: 'victime' | 'soi'; radiusMeters: number }
-  | { pick: 'engages'; sizeAtMost?: 'soi'; max: number };
+/** CIBLE(S) d'un effet déclenché : la sortie d'`effectTargetingSchema` (`data/schemas/grammaire/mecanique.ts`). */
+export type EffectTargeting = z.output<typeof effectTargetingSchema>;
+
 /** Effet DÉCLENCHÉ : la sortie de `triggeredEffectSchema` (`data/schemas/grammaire/mecanique.ts`), plus ce que le
  *  jeu lui pose. */
 export type TriggeredEffect = z.output<typeof triggeredEffectSchema> & {

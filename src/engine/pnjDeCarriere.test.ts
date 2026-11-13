@@ -158,7 +158,7 @@ describe('armes au choix du PNJ : joker d’un Groupe d’armes, joker à Atout 
     avecFixture(() => {
       const items = porte({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([0])]: 'fouet', [dot([2])]: 0, [dot([2, 0])]: 0, [dot([4])]: 0, [dot([6])]: 'rapiere' } }).items!;
       expect(items.filter((i) => groupeDeLArme(findTrappingById(i.trappingId!)!)?.id === 'deux-mains')).toHaveLength(1);
-      expect(items.find((i) => i.trappingId === 'rapiere')!.qualities.filter((q) => fabricationAtouts().includes(q.id))).toHaveLength(1);
+      expect(items.find((i) => i.trappingId === 'rapiere')!.qualities.filter((q) => fabricationAtouts().some((a) => a === q.id))).toHaveLength(1);
     });
   });
   it('refuse une arme hors du Groupe du joker, admet une arme du Groupe et un Atout de Fabrication', () => {
