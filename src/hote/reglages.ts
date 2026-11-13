@@ -3,7 +3,7 @@
  * (`engine/policy.ts`) en zones, chaque entrée rendue par la forme de son contrôle (`kind`), et le geste qui en règle
  * une, persisté dans le `Stockage` de l'hôte (`hote/preferences.ts`, `hote/reglesMaison.ts`).
  */
-import { OPTIONAL_RULES, PREFERENCES, preferenceDef, refusDesSurcharges, reglesMaisonMutables, nommerLesRetraits, ruleOverrides, type Jeu as Partie, type OptionalRule, type Preference, type PrefValue, type RuleValue } from '../noyau/index';
+import { initialNet, OPTIONAL_RULES, PREFERENCES, preferenceDef, refusDesSurcharges, reglesMaisonMutables, nommerLesRetraits, ruleOverrides, type Jeu as Partie, type OptionalRule, type Preference, type PrefValue, type RuleValue } from '../noyau/index';
 import { t } from '../i18n';
 import type { Stockage } from '../lib/stockage';
 import { ligne, SANS_BORNE, type Bouton, type Element, type Entite, type Ligne } from './elements';
@@ -25,8 +25,8 @@ export interface ZonesDesReglages {
   /**
    * chaque sous-système des règles optionnelles en entité, dans l'ordre du registre ; sous lui, pour chaque règle, la
    * ligne de sa référence au livre (son aide et la justification d'une valeur maison au détail), son contrôle, et
-   * « Défaut » quand elle est surchargée, dont le `jeu` est `{ type: 'retablir', args: [id] }`. En combat, chaque
-   * contrôle est refusé avec la raison du noyau (`reglesMaisonMutables`).
+   * « Défaut » quand elle est surchargée, dont le `jeu` est `{ type: 'retablir', args: [id] }`. En combat et chez un
+   * invité, chaque contrôle est refusé avec la raison du noyau (`reglesMaisonMutables`).
    */
   'reglages.regles': Entite[];
   /** les règles maison que le registre a refusées à leur chargement, dites une fois. */
@@ -69,8 +69,8 @@ function elementsDeLaRegle(r: OptionalRule, surcharges: Readonly<Record<string, 
 }
 
 /** Les zones des réglages sur `stockage` ; `etat` : la partie ouverte, `null` sans partie. */
-export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, 'battle'> | null): ZonesDesReglages {
-  const verrou = reglesMaisonMutables(etat ?? { battle: null });
+export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, 'battle' | 'net'> | null): ZonesDesReglages {
+  const verrou = reglesMaisonMutables(etat ?? { battle: null, net: initialNet() });
   const refus = verrou.mutable ? null : verrou.reason;
   const surcharges = ruleOverrides();
   const groupes = [...new Set(OPTIONAL_RULES.map((r) => r.group))];
@@ -88,8 +88,8 @@ export function zonesDesReglages(stockage: Stockage | null, etat: Pick<Partie, '
 
 /** Joue le geste des réglages `geste` sur `stockage` et le persiste ; `etat` : la partie ouverte, `null` sans partie.
  *  Lève l'erreur de validation d'un geste, d'un id ou d'une valeur que la table ou le registre refuse, et l'erreur de
- *  règle du verrou du noyau (`reglesMaisonMutables` : un combat en cours). */
-export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'battle'> | null, geste: { type: unknown; args: unknown }): void {
+ *  règle du verrou du noyau (`reglesMaisonMutables` : un combat en cours, un invité). */
+export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'battle' | 'net'> | null, geste: { type: unknown; args: unknown }): void {
   const args = Array.isArray(geste.args) ? geste.args : [];
   const [id, valeur] = args;
   const refuser = (categorie: 'validation' | 'regle', raison: string): never => {
@@ -106,7 +106,7 @@ export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'ba
   if (!regle || args.length !== (geste.type === 'regle' ? 2 : 1)) return refuser('validation', t('houseRules.refus.inconnue', { id }));
   const [refus] = geste.type === 'regle' ? refusDesSurcharges({ [regle.id]: valeur }) : [];
   if (refus) return refuser('validation', refus.raison);
-  const jeu = etat ?? { battle: null };
+  const jeu = etat ?? { battle: null, net: initialNet() };
   const verrou = reglesMaisonMutables(jeu);
   if (!verrou.mutable) return refuser('regle', verrou.reason);
   if (geste.type === 'regle') reglerUneRegleMaison(stockage, jeu, regle.id, valeur as RuleValue);

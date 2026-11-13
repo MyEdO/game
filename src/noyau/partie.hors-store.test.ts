@@ -3,7 +3,7 @@
  * jusqu'à la clôture du combat, puis une intention de siège sans verdict. Les dés viennent des entrées
  * (graine, dés fixés). Le duel est celui de `combatDeTest.testkit.ts`, dans la scène de fixture.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { creerPartie, etatInitialDuJeu, previewAttack, type EntreesDeLaPartie, type EtatDeJeu, type Intention, type Jeton, type Partie, type ResultatDeLAppel } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { BRUNA, etatAttable, rangsAssis } from './taverneAttablee.testkit';
@@ -85,6 +85,54 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       expect(partie.etat().localIntent, 'le clic du siège a dissous l’intention du propriétaire').toEqual({ actionId: 'course' });
       expect(partie.etat().pendingRun ?? partie.etat().pendingCascade, 'le siège a couru sur la case du propriétaire').toBeFalsy();
       expect(combattant(partie, H.id).pos).toEqual({ x: 10, y: 10 });
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('creerPartie — l’intention sans siège joue l’action de l’état (#3009)', () => {
+  const chezLInvite = (etat: EtatDeJeu): EtatDeJeu => ({ ...etat, net: { ...etat.net, mode: 'invite', mySeat: 1, roomCode: 'ABCDEF' } });
+
+  it('chez un invité, un verbe de l’allowlist part à l’hôte par l’enrobage, rien ne se joue chez lui', () => {
+    const partie = creerPartie(chezLInvite(etatAttable()), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      partie.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id] });
+      expect(envoi.mock.calls).toEqual([['renvoyerLeHeros', [BRUNA.id]]]);
+      expect(partie.etat().party.map((h) => h.id), 'l’invité a renvoyé le héros dans sa copie').toContain(BRUNA.id);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('chez un invité, l’intention armée (verbe `local`) se pose chez lui sans partir, puis le clic du champ part avec son `intentionId`', () => {
+    const { H, partie: ouverte } = duel();
+    const garde = ouverte.etat();
+    ouverte.fermer();
+    const partie = creerPartie(chezLInvite({ ...garde, net: { ...garde.net, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } }), ENTREES);
+    try {
+      const envoi = vi.fn();
+      partie.etat().transmettreLesIntentions(envoi);
+      partie.envoyer({ type: 'armerLIntention', args: ['course'] });
+      expect(partie.etat().localIntent, 'l’intention armée se pose chez l’invité').toEqual({ actionId: 'course' });
+      expect(envoi, 'un verbe `local` ne part pas').not.toHaveBeenCalled();
+      const loin = { x: H.pos!.x - 6, y: H.pos!.y };
+      partie.envoyer({ type: 'cliquerLaCase', args: [loin, undefined, { confirm: true }] });
+      expect(envoi.mock.calls).toEqual([['cliquerLaCase', [loin, undefined, { confirm: true, intentionId: 'course' }]]]);
+      expect(combattant(partie, H.id).pos, 'le clic ne s’est pas joué chez l’invité').toEqual(H.pos);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('chez l’hôte d’une session, le verbe se joue chez lui comme en partie locale', () => {
+    const etat = etatAttable();
+    const partie = creerPartie({ ...etat, net: { ...etat.net, mode: 'hote', roomCode: 'ABCDEF' } }, ENTREES);
+    try {
+      partie.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id] });
+      expect(partie.etat().party.map((h) => h.id)).not.toContain(BRUNA.id);
     } finally {
       partie.fermer();
     }

@@ -41,8 +41,8 @@ export interface ZonesDeLaPartie {
   'groupe.avis': Ligne[];
   /**
    * chaque campagne du jeu en entité : son nom, sa description, et « Lancer », dont le `jeu` `{ lancer }` porte l'id
-   * que la méthode `lancer` reçoit, refusé avec la raison du noyau (`refusDeLancer` : groupe vide, siège invité à
-   * pourvoir).
+   * que la méthode `lancer` reçoit, refusé avec la raison du noyau (`refusDeLancer` : chez un invité, groupe vide,
+   * siège invité à pourvoir).
    */
   'groupe.campagnes': Entite[];
   /**

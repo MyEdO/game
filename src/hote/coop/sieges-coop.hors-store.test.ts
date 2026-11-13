@@ -1,8 +1,8 @@
 /**
  * LES SIÈGES EN COOP (#3059 F10), sur transport en mémoire (`FakeTransport`) : l'hôte et l'invité lisent les MÊMES
- * emplacements du groupe (`emplacementsDuGroupe`) et le MÊME refus de lancer (`refusDeLancer`), de l'instantané que
- * l'hôte diffuse et que l'invité applique (`appliquerLInstantane`) ; l'invité compose dans SON emplacement, et
- * l'attribution d'un emplacement lui est refusée.
+ * emplacements du groupe (`emplacementsDuGroupe`), de l'instantané que l'hôte diffuse et que l'invité applique
+ * (`appliquerLInstantane`) ; le refus de lancer (`refusDeLancer`) se lit chez l'hôte, l'invité ne lance pas (#3009) ;
+ * l'invité compose dans SON emplacement, et l'attribution d'un emplacement lui est refusée.
  */
 import { idsDeTest, rosterDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -41,20 +41,20 @@ function table() {
   return { hote, invite, host, guest };
 }
 
-const lecture = (s: EtatDeJeu) => ({ emplacements: emplacementsDuGroupe(s), refus: refusDeLancer(s) });
-
 describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité', () => {
-  it('avant et après la composition de l’invité : mêmes emplacements, même refus de lancer', () => {
+  it('avant et après la composition de l’invité : mêmes emplacements ; l’hôte garde ses verdicts de lancement, l’invité ne lance pas', () => {
     poserLesPretires();
     const { hote, invite, host, guest } = table();
-    expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
-    expect(lecture(hote.getState()).refus).toBe(t('party.action.start.guestPending'));
+    expect(emplacementsDuGroupe(invite.etat)).toEqual(emplacementsDuGroupe(hote.getState()));
+    expect(refusDeLancer(hote.getState())).toBe(t('party.action.start.guestPending'));
+    expect(refusDeLancer(invite.etat)).toBe(t('party.guest.waiting'));
 
     guest.sendIntent('recruterLeHeros', [{ pretire: PRETIRE_DE_TEST.id }]);
     host.broadcastSnapshot();
-    expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
-    expect(lecture(hote.getState()).emplacements[2]).toEqual({ rang: 2, siege: 1, heroId: idDuPretire(PRETIRE_DE_TEST.id), proprietaire: 1 });
-    expect(lecture(hote.getState()).refus).toBeNull();
+    expect(emplacementsDuGroupe(invite.etat)).toEqual(emplacementsDuGroupe(hote.getState()));
+    expect(emplacementsDuGroupe(hote.getState())[2]).toEqual({ rang: 2, siege: 1, heroId: idDuPretire(PRETIRE_DE_TEST.id), proprietaire: 1 });
+    expect(refusDeLancer(hote.getState())).toBeNull();
+    expect(refusDeLancer(invite.etat), 'son emplacement rempli, l’invité ne lance toujours pas').toBe(t('party.guest.waiting'));
   });
 
   it('un `affecterLEmplacementAuSiege` émis par l’invité est refusé ; le même joué par l’hôte déplace l’emplacement', () => {

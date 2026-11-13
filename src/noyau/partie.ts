@@ -63,6 +63,8 @@ export interface ResultatDeLAppel {
 
 export interface Partie {
   etat: Get;
+  /** Joue l'intention : au nom de son `siege` s'il est posé (`appliquerLIntentionDUnSiege`), sinon par l'action de
+   *  l'état (`get()[type]`), celle qu'un invité a enrobée pour la demander à l'hôte (`transmettreLesIntentions`). */
   envoyer: (intention: Intention) => ResultatDeLAppel;
   /** Lance un scénario construit par l'hôte (`lancerLeScenario`), comme tout appel : ce que le lancement émet
    *  et écrit revient dans SON résultat. */
@@ -141,7 +143,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     envoyer: (intention) => appeler('envoyer', () => {
       if (LANCERS_DU_JOUEUR.has(verbeDeJetDe(intention.type))) bus.emit(EVT.DICE_ROLL);
       if (intention.siege !== undefined) return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args);
-      (proprietaire.actions[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
+      (get()[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
       return 'appliquee';
     }),
     lancer: (lancement) => appeler('lancer', () => {

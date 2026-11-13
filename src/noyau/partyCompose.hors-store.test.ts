@@ -231,6 +231,15 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
     expect(banc.getState().scene).toBeNull();
   });
 
+  it('un invité ne lance pas, son groupe complet compris : `party.guest.waiting`, aucune scène n’est posée ; le même groupe se lance en partie locale', () => {
+    banc.setState({ party: ['a', 'b', 'c', 'd'].map(hero) });
+    expect(refusDeLancer(banc.getState()), 'témoin : le groupe complet se lance en partie locale').toBeNull();
+    banc.setState({ net: { ...initialNet(), mode: 'invite', mySeat: 1, roomCode: 'ABCDEF' } });
+    expect(refusDeLancer(banc.getState())).toBe(t('party.guest.waiting'));
+    expect(lancerCampagne(banc.getState, null)).toBe(t('party.guest.waiting'));
+    expect(banc.getState().scene).toBeNull();
+  });
+
   it('un groupe dont chaque siège invité a rempli ses emplacements se lance', () => {
     banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));

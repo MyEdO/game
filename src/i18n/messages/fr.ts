@@ -1057,6 +1057,7 @@ export const fr = {
   'houseRules.refus.inconnue': 'règle optionnelle inconnue : « {id} »',
   'houseRules.refus.valeur': 'valeur {valeur} non conforme à la règle « {id} »',
   'houseRules.retirees': 'Règles maison enregistrées que cette version du jeu refuse, retirées : {liste}. Les autres restent appliquées.',
+  'houseRules.lockedForGuest': 'L’hôte règle les règles maison.',
   'houseRules.lockedInBattle': 'Règles verrouillées : un combat est en cours. Le moteur les lit en direct — les changer maintenant réécrirait un combat déjà commencé (réserves d’Avantage, Initiative, Blessures). Terminez le combat pour les modifier.',
   'menu.compendium': 'Compendium',
   'menu.compendium.title': 'Consulter les règles, sorts, talents, bestiaire et lore (sourcés du Livre de base)',
