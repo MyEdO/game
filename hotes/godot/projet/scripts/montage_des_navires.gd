@@ -51,6 +51,12 @@ func poser(navires: Dictionary, coupes: Dictionary, metres_par_case: float) -> v
 		_monter(id)
 
 
+## Sorti de l'arbre avec son plateau ou son éditeur, qui n'y reviennent pas (#4195) : ses navires sont oubliés, et le
+## montage en vol de chacun ne poursuit rien (`_montes`, `_monter`).
+func _exit_tree() -> void:
+	_montes.clear()
+
+
 ## Les ids des navires dont le modèle est posé.
 func poses() -> Array:
 	return _montes.keys().filter(func(id: String) -> bool: return _montes[id].scene != null)

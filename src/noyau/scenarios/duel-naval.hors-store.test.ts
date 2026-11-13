@@ -67,7 +67,7 @@ function shipAct(shipId: string, targetId: string): 'fire' | 'maneuver' {
     ? headingToBear(primary, facingToward(sh.pos!, tg.pos!))
     : facingToward(sh.pos!, tg.pos!);
   const d = (DIR8_ORDER.indexOf(desired) - DIR8_ORDER.indexOf(heading) + 8) % 8;
-  maneuverShip(banc.getState, shipId, Math.max(-2, Math.min(2, d <= 4 ? d : d - 8)));
+  maneuverShip(banc.getState, banc.setState, shipId, Math.max(-2, Math.min(2, d <= 4 ? d : d - 8)));
   settleCascade();
   checkBattleOver(banc.getState, banc.setState); // fin de tour : le vrai flux passe par advanceTurn
   return 'maneuver';

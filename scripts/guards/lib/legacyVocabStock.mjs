@@ -182,13 +182,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/schemas/grammaire/reference.ts",
-    motif: "désormais",
-    ancre: "seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/variants-integrity.test.ts",
     motif: "désormais",
     ancre: "désormais adoptés : aucun ne se lit plus au nœud zod. */",

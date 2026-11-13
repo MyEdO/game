@@ -36,7 +36,7 @@ describe('apparence décidée à la naissance', () => {
     expect(itemFromTrappingRef({ id: 'arme-simple' }, idsDeTest, undefined, contexte)?.apparence).toBe('naissance-naine');
   });
 
-  it.each(['raffine', 'laid'])('les qualités finales de la ref et du give sont prises en compte : %s', (id) => {
+  it.each(['raffine', 'laid'] as const)('les qualités finales de la ref et du give sont prises en compte : %s', (id) => {
     poserVariantesDeNaissance(varianteDeNaissance({ especes: undefined, qualites: [id] }));
     expect(itemFromTrappingRef({ id: 'arme-simple', qualities: [{ id }] }, idsDeTest, undefined, {})?.apparence).toBe('naissance-naine');
     expect(itemFromGive({ trappingId: 'arme-simple', qualities: [id] }, idsDeTest, undefined, undefined, {}).apparence).toBe('naissance-naine');

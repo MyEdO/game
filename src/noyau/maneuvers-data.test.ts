@@ -17,7 +17,7 @@ import { idDeFixture } from '../data/idDeFixture.testkit';
 import { makeRNG } from '../engine/dice';
 import { buildWeapon } from '../engine/items';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({

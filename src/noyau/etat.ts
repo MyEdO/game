@@ -293,6 +293,8 @@ export interface CampaignVessel {
   upgrades?: import('../engine/types').NavalTraitRef[];
   /** Salissures (MDG 13 l.144-159) : niveau 0-5 + garde hebdomadaire du Test. */
   fouling?: { level: number; lastWeek: number };
+  /** Coque tenue par une réparation temporaire, jusqu'à la réparation au port (`portRepairVessel`). MDG 13 l.651 */
+  reparationTemporaire?: true;
   /** Humeur de Manann (MDG 15 l.83-125) — par navire, registre des facteurs déjà appliqués. */
   manann?: import('../engine/seaVoyage').ManannMood;
   /** SABOTAGE authoré sur cette coque (MDG 14 l.45-47) — clampé [-5,0] par `shipSaboteurDR`,

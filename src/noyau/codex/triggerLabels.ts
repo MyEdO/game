@@ -1,4 +1,4 @@
-import type { TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { effectOnSchema } from '../../data/schemas/grammaire/mecanique';
 import { t } from '../../i18n';

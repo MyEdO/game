@@ -31,7 +31,7 @@ import { shipConstruction } from '../data';
 import steamBreakdownJson from '../data/steam-breakdown.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { roll, rollDice, tirer, type RNG, type Tirage } from './dice';
+import { rollDice, tirer, type RNG, type Tirage } from './dice';
 import { REPARATION } from './seaNavigation';
 import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as panneDeVapeur from '../data/schemas/defs/steam-breakdown';
@@ -267,20 +267,6 @@ export function rollPortRepair(skillValue: number, woundsMissing: number, rng: R
   if (!t.success) return { roll: t.roll, target: t.target, success: false, wounds: 0, hours, costGold: 0 };
   const wounds = Math.min(woundsMissing, tirer(REPARATION.woundsPerTest, rng));
   return { roll: t.roll, target: t.target, success: true, wounds, hours, costGold: prixDeLaReparation(wounds, !!opts.lissage) };
-}
-
-/** UNE réparation TEMPORAIRE en mer (l.647-649) : Complexe (−10) à Très Difficile (−30) selon les
- *  conditions ; réussie → 1 heure, 1d10 Blessures. Le navire devra tester son Endurance par jour de
- *  voyage et à chaque Manœuvre (l.651) — suivi par l'appelant (`temporaryPatched`). PUR. */
-export function rollTemporaryRepair(skillValue: number, woundsMissing: number, difficulty: Difficulty, rng: RNG): RepairTick {
-  const t = rollTest(skillValue, difficulty, rng);
-  return { roll: t.roll, target: t.target, success: t.success, wounds: t.success ? Math.min(woundsMissing, roll(1, 10, rng)) : 0, hours: 1, costGold: 0 };
-}
-
-/** Dégâts d'une réparation temporaire qui CÈDE (l.651 : « Chaque Test raté inflige 1d10–4 Dégâts »),
- *  plancher 0. PUR. */
-export function temporaryRepairFailureDamage(rng: RNG): number {
-  return Math.max(0, roll(1, 10, rng) - 4);
 }
 
 // ── Panne de Vapeur (MDG 12 l.313-352) ────────────────────────────────────────────────────────

@@ -78,6 +78,8 @@ var _campagne := ""
 var _planches := {}
 ## La publication de l'écran, attendue jusqu'à ce que l'interface soit mise en page (`_publier_l_ecran`).
 var _publication: PublicationDeLEcran
+## Les attentes au pont en vol : la planche, le chapitre, le dépôt. Une reprise dont l'attente n'y est plus rend la main.
+var _en_vol := {}
 
 
 func _ready() -> void:
@@ -197,6 +199,11 @@ func _suivre(reponse: Dictionary) -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/Combat.tscn")
 
 
+## Sorti de l'arbre (l'essai, `_suivre`), il n'y revient pas (#4195) : ses attentes en vol sont abandonnées (`_en_vol`).
+func _exit_tree() -> void:
+	_en_vol.clear()
+
+
 ## Le fichier des calques gardés de la campagne ouverte.
 func _fichier_des_calques() -> String:
 	return "%s/%s.json" % [CALQUES, _campagne]
@@ -229,7 +236,11 @@ func _garder(memoire: Dictionary) -> void:
 ## La planche `image` choisie sur le disque de l'auteur, écrite en `user://<image>.png`, puis sa taille rendue au pont ;
 ## rien s'il renonce ou si l'image ne se lit pas.
 func _charger_la_planche(image: String) -> void:
+	var jeton := RefCounted.new()
+	_en_vol[jeton] = true
 	var choisie := await _pont.choisir_un_fichier(PontDuNoyau.IMAGES)
+	if not _en_vol.erase(jeton):
+		return
 	var lue := Image.new()
 	var issue := ERR_FILE_UNRECOGNIZED
 	match choisie.get("type", ""):
@@ -251,7 +262,11 @@ func _charger_la_planche(image: String) -> void:
 ## s'il ne se charge pas.
 func _charger_le_chapitre(chapitre: Dictionary) -> void:
 	var recueil: Array[String] = []
+	var jeton := RefCounted.new()
+	_en_vol[jeton] = true
 	var lu := await _pont.requeter("source/%s/%s.md" % [chapitre.book, chapitre.ch], recueil)
+	if not _en_vol.erase(jeton):
+		return
 	_jouer({edition = {geste = "chapitre", book = chapitre.book, ch = chapitre.ch, texte = lu.get_string_from_utf8() if recueil.is_empty() else null}})
 
 
@@ -259,7 +274,11 @@ func _charger_le_chapitre(chapitre: Dictionary) -> void:
 ## écriture qui échoue dit pourquoi.
 func _deposer(depot: Dictionary) -> void:
 	var recueil: Array[String] = []
+	var jeton := RefCounted.new()
+	_en_vol[jeton] = true
 	await _pont.requeter("depot/%s" % depot.id, recueil, HTTPClient.METHOD_PUT, depot.texte)
+	if not _en_vol.erase(jeton):
+		return
 	_jouer({edition = {geste = "enregistrement", reussi = recueil.is_empty()}})
 	if not recueil.is_empty():
 		_refus.text = "\n".join(recueil)

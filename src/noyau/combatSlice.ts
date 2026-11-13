@@ -2886,7 +2886,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR); // Σ DR (essentiel ×2) + Moral + Manque de bras + sabotage
       const result = deriveManeuverFromCrew(ship, total, milieuDuVoyage(get().travelPlan)); // virage si le Test d'équipage est réussi (MDG 14 l.13)
       set({ pendingShipManeuver: null });
-      applyShipManeuver(get, p.shipId, result, p.turnSteps); // vire (si succès) + avance ; logue
+      applyShipManeuver(get, set, p.shipId, result, p.turnSteps); // vire (si succès) + avance ; logue ; Test de la réparation temporaire
       const bM = get().battle!;
       set({ battle: { ...markActed(get, set), action: null, preview: null, crewActed: withCrewActed(bM.crewActed, p.shipId, p.participants.map((x) => x.id)) } }); // un jet = une Action ; marins engagés ce Round
       bus.emit(EVT.SCENE_DIRTY);

@@ -9003,7 +9003,7 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
   const primary = mostArmedSide(ship);
   const inRange = shipMaxPosteRange(ship) > 0 && distMetres <= shipMaxPosteRange(ship);
   const desired = inRange && primary ? headingToBear(primary, bearing) : bearing;
-  maneuverShip(get, ship.id, shipTurnToward(heading, desired)); // vire (si Test réussi) + avance ; journalise
+  maneuverShip(get, set, ship.id, shipTurnToward(heading, desired)); // vire (si Test réussi) + avance ; journalise
   endShipTurn(get, set, ship);
 }
 

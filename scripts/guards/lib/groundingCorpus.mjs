@@ -123,7 +123,7 @@ function sectionRemoved(text, heading) {
 }
 
 const CONCEPT_HEADING = '## Index par concept (français)';
-const TRAPPING_REF_HEADING = '### `TrappingRef` (src/data/index.ts)';
+const TRAPPING_REF_HEADING = '### `TrappingRef` (src/data/schemas/grammaire/reference.ts)';
 const CAS_FONDATEUR_HEADING = '## Cas fondateur';
 
 export const GROUNDING_CASES = [

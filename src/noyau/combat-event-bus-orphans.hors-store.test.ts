@@ -12,7 +12,7 @@ import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import type { EffectTrigger } from '../engine/flowCore';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/combattantDeTest.testkit';
 
