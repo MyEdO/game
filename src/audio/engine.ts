@@ -2,8 +2,8 @@
  * Moteur audio minimal (Jalon 8 — arbitrage « assets libres CC0 », packs Kenney.nl +
  * pistes OpenGameArt dans `public/audio/`). SFX par `HTMLAudioElement` jetable (variante au
  * hasard, registre `defs/`) ; MUSIQUE sur un canal dédié (boucle + fondu enchaîné, contexte
- * résolu par `data/sons/musique.ts`). Le volume d'un son est celui de son canal (`brancherLeVolumeDesCanaux`) fois
- * son volume propre ; la sourdine est PERSISTANTE.
+ * résolu par `data/sons/musique.ts`). Le volume d'un son est celui de son canal fois son volume propre, et la coupure
+ * de tout le son se lit au même mixage (`brancherLeMixage`, préférences `noyau/volumes.ts`).
  * Les erreurs de lecture (politique d'autoplay avant la première interaction) sont silencieuses ;
  * la musique se relance au premier geste utilisateur.
  */
@@ -11,56 +11,32 @@ import { SOUND_DEFS } from '../data/sons/_registry.generated';
 import { canalDuSon, findSonById } from '../data/sons/registre';
 import type { CanalDeSon, SoundDef } from '../data/sons/types';
 import { musicDefsFor, type MusicSelection } from '../data/sons/musique';
-import { lireDictionnaire } from '../lib/stockage';
-import { stockageWeb } from '../hote/stockageWeb';
 import { entierDEntropie } from '../hote/entropie';
 
-const LS_KEY = 'wfrp4.audio';
-
-export interface AudioPrefs {
-  muted: boolean; // coupe TOUT (effets + musique)
-}
-
-const AUDIO_PAR_DEFAUT: AudioPrefs = { muted: false };
-
-/** Les réglages persistés ; une sourdine non booléenne est ignorée : son défaut s'applique. */
-export function loadAudioPrefs(): AudioPrefs {
-  const p = lireDictionnaire(stockageWeb('localStorage'), LS_KEY) ?? {};
-  return { muted: typeof p.muted === 'boolean' ? p.muted : AUDIO_PAR_DEFAUT.muted };
-}
-
-let prefs = loadAudioPrefs();
-
-function savePrefs(): void {
-  try {
-    stockageWeb('localStorage')?.setItem(LS_KEY, JSON.stringify(prefs));
-  } catch {
-    // stockage indisponible : préférences de session seulement
-  }
-}
-
-/** Le volume d'un canal (0..1), lu à chaque lecture d'un son ; 1 tant qu'aucun lecteur n'est branché. */
+/** Le volume d'un canal (0..1), lu à chaque lecture d'un son ; 1 tant qu'aucun mixage n'est branché. */
 let volumeDuCanal: (canal: CanalDeSon) => number = () => 1;
+/** Tout le son est-il coupé, lu à chaque lecture d'un son ; non tant qu'aucun mixage n'est branché. */
+let sonCoupe: () => boolean = () => false;
 
-/** Branche la lecture du volume d'un canal, que l'hôte tient (`state/audioWiring.ts`). */
-export function brancherLeVolumeDesCanaux(lecteur: (canal: CanalDeSon) => number): void {
-  volumeDuCanal = lecteur;
+/** Branche la lecture du mixage, que l'hôte tient (`state/audioWiring.ts`) : le volume d'un canal et la coupure de tout
+ *  le son. */
+export function brancherLeMixage(volume: (canal: CanalDeSon) => number, coupe: () => boolean): void {
+  volumeDuCanal = volume;
+  sonCoupe = coupe;
 }
 
 /** Le volume auquel la def `def` joue : celui de son canal fois son volume propre. */
 const volumeDe = (def: SoundDef): number => Math.min(1, volumeDuCanal(canalDuSon(def)) * (def.volume ?? 1));
 
-export const isMuted = (): boolean => prefs.muted;
-export function setMuted(m: boolean): void {
-  prefs = { ...prefs, muted: m };
-  savePrefs();
-  if (m) stopMusic();
+/** Arrête la musique en cours si le son est coupé, rejoue la sélection courante sinon. */
+export function appliquerLaCoupure(): void {
+  if (sonCoupe()) stopMusic();
   else replayMusic();
 }
 
-/** Joue un son du registre (variante au hasard). No-op : sourdine, id inconnu, hors navigateur. */
+/** Joue un son du registre (variante au hasard). No-op : son coupé, id inconnu, hors navigateur. */
 export function playSfx(id: string): void {
-  if (prefs.muted || typeof Audio === 'undefined') return;
+  if (sonCoupe() || typeof Audio === 'undefined') return;
   const def = findSonById(id);
   if (!def || !def.files.length) return;
   const volume = volumeDe(def);
@@ -115,7 +91,7 @@ function stopMusic(): void {
   fadeTo(el, 0, () => el.pause());
 }
 
-/** (Re)joue la sélection courante — après une sourdine levée ou un déblocage d'autoplay. */
+/** (Re)joue la sélection courante — après le son rétabli ou un déblocage d'autoplay. */
 function replayMusic(): void {
   const sel = music.sel;
   if (sel === null) return;
@@ -141,7 +117,7 @@ export function playMusic(sel: MusicSelection): void {
     music.def = null;
     fadeTo(old, 0, () => old.pause());
   }
-  if (!sel || prefs.muted) return;
+  if (!sel || sonCoupe()) return;
   const defs = 'def' in sel ? SOUND_DEFS.filter((d) => d.music && d.id === sel.def) : musicDefsFor(sel.ctx);
   if (!defs.length) return; // id inconnu ou contexte sans piste → silence (validation côté éditeur)
   const def = defs[entierDEntropie(defs.length)];
