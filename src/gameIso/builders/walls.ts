@@ -566,7 +566,7 @@ export function buildWalls(scene: Scene, lecture: LectureDArete, visible?: Reado
   return murs(scene, visible, { lecture, view });
 }
 
-const murs = viewedBuilder<WallEl, { lecture: LectureDArete; view?: FloorView }>({
+const murs = viewedBuilder<Scene, WallEl, { lecture: LectureDArete; view?: FloorView }>({
   derive: (scene, v) => wallGeometry(scene, v!.lecture, v!.view),
   // `view` ABSENT (toutes les couches) ≠ `view` fourni à activeZ 0 (une seule) : la clé les sépare.
   key: (v) => `${v!.lecture}|${v!.view ? 1 : 0}|${v!.view?.activeZ ?? 0}|${v!.view?.viewZ ?? null}`,

@@ -27,6 +27,7 @@
  */
 import { propFootTiles } from './footprint';
 import { memoByRefDeps } from './sceneMemo';
+import { versionDesDatasets } from '../../data/versionDataset';
 import { sceneMetresPerTile, type Scene, type SceneEntity } from './scene';
 
 interface IndexDecor {
@@ -66,7 +67,7 @@ const index = memoByRefDeps<readonly SceneEntity[], IndexDecor>();
 
 const indexDe = (scene: Scene): IndexDecor => {
   const mpt = sceneMetresPerTile(scene);
-  return index(scene.entities, [mpt], () => bati(scene.entities, mpt));
+  return index(scene.entities, [mpt, versionDesDatasets()], () => bati(scene.entities, mpt));
 };
 
 /** Les décors dont l'empreinte couvre la case (x, y), TOUS étages confondus, dans l'ordre du document. */

@@ -393,12 +393,24 @@ export interface Scene {
   groups?: string[];
 }
 
-/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : sa projection et
- *  les dépendances de son mémo en sont tirées. */
+/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : le type de sa vue
+ *  (`SceneDuVolume`), sa projection et les dépendances de son mémo en sont tirés. */
 export const CHAMPS_DU_VOLUME = ['dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags'] as const;
+
+/** Les champs de la scène que lisent ses nappes de toit (`toitsDuMonde`) et ses couronnes (`couronnesDuMonde`,
+ *  `src/noyau/monde/volume/volume.ts`) : le type de leur vue (`SceneDesToits`, `SceneDesCouronnes`) et les dépendances
+ *  de leurs mémos en sont tirés. */
+export const CHAMPS_DES_TOITS = ['architecture', 'dimensions', 'effectZones', 'layers', 'metresPerTile', 'roofDefaults', 'walls'] as const satisfies readonly (keyof Scene)[];
+export const CHAMPS_DES_COURONNES = ['architecture', 'dimensions', 'entities', 'layers', 'metresPerTile', 'walls'] as const satisfies readonly (keyof Scene)[];
 
 /** La scène vue par son volume (`CHAMPS_DU_VOLUME`). */
 export type SceneDuVolume = Pick<Scene, (typeof CHAMPS_DU_VOLUME)[number]>;
+
+/** La scène vue par ses nappes de toit (`CHAMPS_DES_TOITS`). */
+export type SceneDesToits = Pick<Scene, (typeof CHAMPS_DES_TOITS)[number]>;
+
+/** La scène vue par ses couronnes (`CHAMPS_DES_COURONNES`). */
+export type SceneDesCouronnes = Pick<Scene, (typeof CHAMPS_DES_COURONNES)[number]>;
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
@@ -421,7 +433,7 @@ export function isMerScene(scene: { metresPerTile?: number } | null | undefined)
 }
 
 /** Grille de tuiles d'une couche (défaut z=0 = base). Repli sur la 1ʳᵉ couche si `z` absent. */
-export function layerTiles(scene: SceneDuVolume, z = 0): Terrain[] {
+export function layerTiles(scene: Pick<Scene, 'dimensions' | 'layers'>, z = 0): Terrain[] {
   return (scene.layers.find((l) => l.z === z) ?? scene.layers[0]).tiles;
 }
 
@@ -438,7 +450,7 @@ export function startOf(scene: Scene): Pt | null {
   return e.z ? { x: e.pos.x, y: e.pos.y, z: e.z } : { x: e.pos.x, y: e.pos.y };
 }
 
-export function tileAt(scene: SceneDuVolume, x: number, y: number, z = 0): Terrain {
+export function tileAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number, y: number, z = 0): Terrain {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return terrainHorsGrille();
   // Aucun repli de tuile : le schéma exige `tiles.length === w×h` sur chaque couche (#1789), donc
   // toute case DANS la grille porte son terrain.
@@ -448,7 +460,7 @@ export function tileAt(scene: SceneDuVolume, x: number, y: number, z = 0): Terra
 /** Hauteur RÉELLE (mètres) de la surface de la case (x,y) sur la couche `z` : >0 surélevée, <0 en
  *  contrebas. Hors-grille ou sans tableau `height` → 0. Repli sur la 1ʳᵉ couche si `z` absent, comme
  *  `tileAt`. PORTEUSE : pilote rampe/falaise (`surfaceLink`), distance verticale et chute. */
-export function heightAt(scene: SceneDuVolume, x: number, y: number, z = 0): number {
+export function heightAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number, y: number, z = 0): number {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return 0;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
   return layer.height?.[y * scene.dimensions.w + x] ?? 0;
@@ -525,7 +537,7 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
  *  sol sur sa couche ; sans sol de part et d'autre, le plus bas sol de sa couche ; sur une couche sans sol, sa case. Un
  *  mur contre une volée reste debout sur le sol d'en bas ; le mur du pourtour d'un étage, sur son plancher, non sur le
  *  vide d'à côté ; celui qui borde une trémie, au niveau de son étage. */
-export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
+export function piedDeLArete(scene: Pick<Scene, 'dimensions' | 'layers'>, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
   const z = seg.z ?? 0;
   const solsDe = (cases: readonly Pt[]) => cases
     .filter(({ x, y }) => x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h && !estAbsent(tileAt(scene, x, y, z)))

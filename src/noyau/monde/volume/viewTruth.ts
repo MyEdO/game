@@ -1,7 +1,7 @@
 /**
  * VÉRITÉ DE VUE ⟂ GÉOMÉTRIE (#808) — la couture prévue par `./types` (cf. `ElStates`) : un builder
- * dérive la GÉOMÉTRIE de la scène UNE fois (mémoïsée par l'identité de la scène, patron canonique
- * `memoByRef`) et n'y applique, au pas, que la VÉRITÉ DE VUE de chaque élément.
+ * dérive la GÉOMÉTRIE de la scène UNE fois (mémoïsée par l'identité de la scène et la version des datasets,
+ * `memoByRefDeps`) et n'y applique, au pas, que la VÉRITÉ DE VUE de chaque élément.
  *
  * Chaque entrée porte sa RÈGLE — les `visKeys` du ticket : les cases `"x,y,z"` dont dépend SA
  * visibilité, jamais l'ensemble `visible` entier. La résolution ne réalloue que les éléments dont la
@@ -9,12 +9,12 @@
  * bougé : `floorEls`/`wallEls`/`roofEls` survivent alors au pas, et les memos du stage qui en
  * dépendent avec eux (zéro re-projection, zéro re-tri, zéro réconciliation React).
  *
- * AUCUNE invalidation manuelle : les deux seules clés sont l'IDENTITÉ de la scène observée et une clé
- * de vue DÉRIVÉE de ses paramètres — une scène mutée (porte, décor, structure) arrive par une
- * nouvelle référence et re-dérive d'elle-même.
+ * AUCUNE invalidation manuelle : les seules clés sont l'IDENTITÉ de la scène observée, la version des datasets
+ * (`versionDesDatasets`) et une clé de vue DÉRIVÉE de ses paramètres — une scène mutée (porte, décor, structure)
+ * arrive par une nouvelle référence et re-dérive d'elle-même.
  */
-import type { Scene } from '../scene';
-import { memoByRef } from '../sceneMemo';
+import { memoByRefDeps } from '../sceneMemo';
+import { versionDesDatasets } from '../../../data/versionDataset';
 
 /** RÈGLE de vue d'un élément — d'où sa vérité (`states.visible`, `roofOccupied`…) est tirée.
  *  `enVue`/`horsVue` portent les `visKeys` : les seules cases qui la déterminent. */
@@ -61,15 +61,15 @@ function truthOf<E, C>(entry: Viewed<E, C>, inView: (key: string) => boolean, ct
  *  - `key` : la clé de VUE dont dépend la GÉOMÉTRIE (étage actif, isolement debug) — jamais le brouillard ;
  *  - `context` : le contexte non tuilé des règles `contexte`, résolu UNE fois par appel ;
  *  - `withTruth` : l'élément à vérité VRAIE, dérivé de l'élément à vérité fausse. */
-export function viewedBuilder<E, V, C = never>(opts: {
-  derive: (scene: Scene, view: V | undefined) => Viewed<E, C>[];
+export function viewedBuilder<S extends object, E, V, C = never>(opts: {
+  derive: (scene: S, view: V | undefined) => Viewed<E, C>[];
   key: (view: V | undefined) => string;
   withTruth: (off: E) => E;
-  context?: (scene: Scene, view: V | undefined) => C;
-}): (scene: Scene, visible?: ReadonlySet<string>, view?: V) => E[] {
-  const bucketOf = memoByRef((_scene: Scene) => new Map<string, { geom: Viewed<E, C>[]; last?: E[] }>());
+  context?: (scene: S, view: V | undefined) => C;
+}): (scene: S, visible?: ReadonlySet<string>, view?: V) => E[] {
+  const bucketOf = memoByRefDeps<S, Map<string, { geom: Viewed<E, C>[]; last?: E[] }>>();
   return (scene, visible, view) => {
-    const bucket = bucketOf(scene);
+    const bucket = bucketOf(scene, [versionDesDatasets()], () => new Map());
     const k = opts.key(view);
     let slot = bucket.get(k);
     if (!slot) {

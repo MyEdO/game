@@ -64,7 +64,7 @@ describe('areteOcculte — les défauts OCCULTENT, seul un arbitrage déclaré l
 
   it('une PORTE FERMÉE occulte ; OUVERTE elle laisse voir (les deux modes d’ouverture restent ceux de `wallIsOpen`)', () => {
     // `closed: true` est REQUIS : une porte authorée sans lui est OUVERTE par défaut (`doorIsOpen`,
-    // scene.ts:542) — la fermeture est l'état explicite, pas l'inverse.
+    // scene.ts) — la fermeture est l'état explicite, pas l'inverse.
     const fermee = sceneAvec({ door: true, closed: true });
     expect(areteOcculte(fermee, ARETE(fermee))).toBe(true);
     const ouverte = setDoorOpen(fermee, 0, 1, 'E', 0, true);

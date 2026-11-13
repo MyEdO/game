@@ -24,7 +24,8 @@ import { chebyshev } from '../../engine/grid';
 import { effectiveTalents, type PorteurDeTalents } from '../../engine/talentEffects';
 import { findLightLevelById, findTraitById, findPropById } from '../../data';
 import { rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
-import { memoByRef } from './sceneMemo';
+import { memoByRef, memoByRefDeps } from './sceneMemo';
+import { versionDesDatasets } from '../../data/versionDataset';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
  *  vision nocturne (cases qu'il distingue même dans le noir). */
@@ -85,15 +86,17 @@ export const LIT_THRESHOLD = 0.18;
  *  Terrain opaque + décor opaque (`props.json`). Les cloisons de bâtiment sont des `WallSeg` (arêtes),
  *  prises en compte séparément ci-dessous. PUR. */
 export interface Occ { g: Uint8Array; topH: Float32Array; w: number; h: number; walls: Set<string> }
-/** Mémoïsé par IDENTITÉ de `scene` (`memoByRef`, patron unique) : sûr car `buildOpaqueUncached` ne
- *  lit QUE des champs de `scene` (`dimensions`, `entities`, `walls` — et `tileAt`/`heightAt` qui lisent
- *  `layers`/`relief`), et TOUTE mutation de l'un de ces champs (porte/structure/tuile effondrée via
+/** Mémoïsé par IDENTITÉ de `scene` et version des datasets (`memoByRefDeps`) : `buildOpaqueUncached` lit des
+ *  champs de `scene` (`dimensions`, `entities`, `walls` — et `tileAt`/`heightAt` qui lisent
+ *  `layers`/`relief`) et les catalogues des terrains et des décors (`terrainOpaque`, `findPropById`) ; TOUTE
+ *  mutation de l'un de ces champs (porte/structure/tuile effondrée via
  *  `setDoorOpen`/`toggleDoorIn`/`setStructureDown`/`setTileCollapsed` `scene.ts`, mais aussi tout
  *  changement d'`entities`/`walls`/`layers`) renvoie une NOUVELLE réf `{ ...scene, … }` — jamais une
  *  mutation en place. La clé du cache est `scene` (pas un sous-champ) : un re-keying futur sur un
  *  sous-champ (ex. `scene.flags` seul) devrait réétablir cette même garantie pour CHAQUE champ lu
  *  ci-dessus, pas seulement les flags de porte/structure/tuile — garde AST `scene-mutation-guard.test.ts`. */
-export const buildOpaque = memoByRef(buildOpaqueUncached);
+const opacitesParScene = memoByRefDeps<Scene, Occ>();
+export const buildOpaque = (scene: Scene): Occ => opacitesParScene(scene, [versionDesDatasets()], () => buildOpaqueUncached(scene));
 function buildOpaqueUncached(scene: Scene): Occ {
   const { w, h } = scene.dimensions;
   const g = new Uint8Array(w * h);

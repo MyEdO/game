@@ -26,7 +26,7 @@ export const groundTerrains = (): Set<string> => new Set(tousLesTerrains().filte
 /** Terrain d'une case pour l'AUDIT DE PLAN : hors bornes et étage absent y valent la tuile ABSENTE
  *  (`terrainAbsent`) — un plan n'a rien à auditer là où rien n'est bâti. Lecture distincte de
  *  `tileAt`, qui rend le terrain du BORD DU MONDE hors grille (#1789). */
-export function terrainAt(scene: Scene, x: number, y: number, z: number): string {
+export function terrainAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number, y: number, z: number): string {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return terrainAbsent();
   const layer = scene.layers.find((l) => l.z === z);
   if (!layer) return terrainAbsent();
@@ -47,7 +47,7 @@ function canonical(x: number, y: number, side: CellSide): { x: number; y: number
 }
 
 /** Un mur (plein, porte ou structure) existe-t-il sur cette arête, à cet étage ? */
-function edgeExists(scene: Scene, x: number, y: number, side: CellSide, z: number): boolean {
+function edgeExists(scene: Pick<Scene, 'walls'>, x: number, y: number, side: CellSide, z: number): boolean {
   const c = canonical(x, y, side);
   return (scene.walls ?? []).some((w) => (w.z ?? 0) === z && w.side === c.side && w.x === c.x && w.y === c.y);
 }
@@ -236,7 +236,7 @@ const SIDES4: readonly CellSide[] = ['N', 'E', 'S', 'O'];
  *
  *  Distinct de `exteriorVoidCells`, qui inonde le VIDE d'un étage (les cases sans dalle) et ignore les
  *  murs : là c'est le SURPLOMB d'une dalle qui est en cause, ici l'ENCLOSURE d'une pièce. */
-export function outdoorCells(scene: Scene, z: number): Set<string> {
+export function outdoorCells(scene: Pick<Scene, 'dimensions' | 'walls'>, z: number): Set<string> {
   const { w, h } = scene.dimensions;
   const outdoor = new Set<string>();
   const stack: [number, number][] = [];
@@ -285,7 +285,7 @@ export function outdoorLookup(scene: Scene): (x: number, y: number, z: number) =
 
 /** Cache par SCÈNE (`memoByRef`, patron canonique unique) des cellules INTÉRIEURES déjà dérivées,
  *  indexées par étage — une scène immuable ne recalcule jamais deux fois le même étage. */
-const interiorCellsByScene = memoByRef((_scene: Scene) => new Map<number, ReadonlySet<string>>());
+const interiorCellsByScene = memoByRef((_scene: Pick<Scene, 'dimensions' | 'effectZones' | 'walls'>) => new Map<number, ReadonlySet<string>>());
 
 /** Cellules INTÉRIEURES d'un étage — LA source unique de « où est le bâtiment » (#881), consommée par
  *  la toiture (`realFloorAt`, `sceneEdit.ts`) et par l'enveloppe de rendu (`envelopeEdgesOf`).
@@ -302,7 +302,7 @@ const interiorCellsByScene = memoByRef((_scene: Scene) => new Map<number, Readon
  *  Zéro perte aux deux niveaux : sans le filtre `exterior`, les deux cours, le passage couvert et le
  *  potager (472 cases au rez) recevraient une toiture. Le sens de l'authoring s'INVERSE : l'auteur ne
  *  déclare plus le bâtiment (déjà tracé en murs), il déclare seulement ce qui est à ciel ouvert. */
-export function interiorCells(scene: Scene, z: number): ReadonlySet<string> {
+export function interiorCells(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'walls'>, z: number): ReadonlySet<string> {
   const byZ = interiorCellsByScene(scene);
   const cached = byZ.get(z);
   if (cached) return cached;
@@ -336,7 +336,7 @@ const SHIFT: Record<CellSide, [number, number][]> = {
  *  jamais un « bâti dans le vide ». La case de `aboveZ` doit être vide : MÊME invariant que le plan de
  *  volée de l'éditeur (`stairFlight.ts`, refus « trémie bouchée »). Le seuil de cran vient de
  *  `gradeBetween` — foyer unique, aucune copie ici. */
-export function stairFlightCells(scene: Scene, belowZ: number, aboveZ: number): Set<string> {
+export function stairFlightCells(scene: Pick<Scene, 'dimensions' | 'layers'>, belowZ: number, aboveZ: number): Set<string> {
   const baseBelow = belowZ * METRES_PER_LEVEL;
   const floorAbove = aboveZ * METRES_PER_LEVEL;
   const { w, h } = scene.dimensions;
