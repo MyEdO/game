@@ -2,6 +2,8 @@
 
 export function empaqueter(sortie: string | null, mode: 'production' | 'development'): Promise<{ code: string; modules: string[] }>;
 
+export function lecturesDuBundle(code: string): Record<string, number>;
+
 export function empaqueterLeProcessus(sortie: string): Promise<{ chemin: string; modules: string[] }>;
 
 export function piloter(options: {

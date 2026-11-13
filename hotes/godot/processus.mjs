@@ -10,7 +10,7 @@ import { stockageDuProcessus } from './stockage.mjs'
 /** Le fichier du bundle du pont. */
 export const PONT = 'wfrp-pont.js'
 
-/** Les API de navigateur que le bundle lit, et que la page de Godot porte : chacune prise au global de Node, rien de plus. */
+/** Les API de navigateur que le bundle lit, et que la page de Godot porte : chacune prise au global de Node, sauf celles que donne `pontDuBundle`. */
 export const API_DU_NAVIGATEUR = ['structuredClone', 'console', 'performance', 'URL', 'atob', 'btoa', 'setTimeout', 'clearTimeout', 'queueMicrotask', 'localStorage',
   'WebSocket', 'fetch', 'CompressionStream', 'DecompressionStream', 'Blob', 'Response', 'TextEncoder', 'TextDecoder', 'URLSearchParams', 'sessionStorage']
 

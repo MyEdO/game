@@ -16,10 +16,10 @@ export interface ProcessusDuPont {
   reste: () => Promise<Buffer>;
 }
 
-/** L'environnement `env` sans `NODE_ENV` ni `VITE_RELAY_URL`, que Vitest ou le poste posent : le mode d'un bundle et
- *  son adresse du relay viennent alors de son appelant seul. */
-export function sansModeNiRelais(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-  return Object.fromEntries(Object.entries(env).filter(([nom]) => nom !== 'NODE_ENV' && nom !== 'VITE_RELAY_URL'));
+/** `process.env` sans `NODE_ENV` ni `VITE_RELAY_URL`, que Vitest ou le poste posent : le mode d'un bundle et son
+ *  adresse du relay viennent alors de son appelant seul. */
+export function sansModeNiRelais(): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(process.env).filter(([nom]) => nom !== 'NODE_ENV' && nom !== 'VITE_RELAY_URL'));
 }
 
 /** Lance `script` avec ses `options`, sous l'environnement `env`. */

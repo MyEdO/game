@@ -17,7 +17,7 @@ import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBu
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
 
-/** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, en parallèle de `--pont-seul` : ~40 s. */
+/** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
 const CONSTRUIRE = new URL('./construire.mjs', import.meta.url);
 
@@ -48,7 +48,7 @@ let code = '';
 
 /** D1 et C1 : un processus à lui (la passe du `Linter` tient ~1,5 Go, hors du tas du worker) bâtit en production sous
  *  `NODE_ENV=development`, puis en développement, `NODE_ENV` retiré. D2 et C3 : `--pont-seul --sortie`, le chemin de
- *  ce qui se livre, en même temps. */
+ *  ce qui se livre, après lui : deux passes du `Linter` à la fois ne tiennent pas sur tout poste. */
 beforeAll(async () => {
   const script = `const { empaqueter, lecturesDuBundle } = await import(${JSON.stringify(CONSTRUIRE.href)});
 const { writeFileSync } = await import('node:fs');
@@ -62,7 +62,8 @@ apres.push(etat());
 writeFileSync(${JSON.stringify(join(dossier, 'production.js'))}, production);
 writeFileSync(${JSON.stringify(join(dossier, 'developpement.js'))}, developpement);
 process.stdout.write(JSON.stringify({ lectures: lecturesDuBundle(production), apres }));`;
-  const [d1, d2] = await Promise.all([enfant(['--input-type=module', '-e', script]), enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie])]);
+  const d1 = await enfant(['--input-type=module', '-e', script]);
+  const d2 = await enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie]);
   if (d1.code !== 0) throw new Error(`l’enfant de D1 sort en ${d1.code} :\n${d1.stderr}`);
   const lu = JSON.parse(d1.stdout) as { lectures: Record<string, number>; apres: (string | null)[] };
   lectures = lu.lectures;

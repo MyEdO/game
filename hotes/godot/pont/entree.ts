@@ -18,7 +18,7 @@ import { portsDeLaPage } from '../../../src/hote/coop/page';
  *   (`processus.mjs`), dont `localStorage`, le stockage du pont, où vivent les sauvegardes, et celles du salon ; la
  *   construction le lit (`lecturesDuBundle`, `construire.mjs`) et la CI rougit sur un nom de navigateur lu qui n'est ni
  *   déclaré ni compté à son nombre de lectures dans `HORS_DU_PROCESSUS` ; elle l'exécute dans un contexte qui ne porte
- *   que les API déclarées, et rougit si `demarrer`, `vue`, `sauvegardes` ou `salon` n'y répondent pas `ok: true`.
+ *   que les API déclarées, et rougit sur tout écart aux appels qu'y joue `executer` (`construire.mjs`).
  */
 (globalThis as typeof globalThis & { wfrpPont: Pont & { choisirUnFichier: typeof choisirUnFichier; resoudreLaPile: typeof resoudreLaPile } }).wfrpPont = { ...creerPont(stockageWeb('localStorage'), {
   ...portsDeLaPage(),
