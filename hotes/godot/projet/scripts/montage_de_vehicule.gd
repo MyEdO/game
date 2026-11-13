@@ -2,11 +2,14 @@
 ## (`hotes/godot/pont/CONTRAT.md`, « Corps d'un combattant », `CorpsDuVehicule`), peinte de sa palette et de son emblème,
 ## les pièces de ses postes montées à leur bord (`monter_au_poste`), celles de ses Améliorations à leur place
 ## (`monter_l_amelioration`), les nœuds que changent ses Améliorations cachés (`cacher_selon`), coupé à une hauteur
-## (`couper`). Chaque combattant du plateau (`combattant.gd`) et l'atelier (`atelier.gd`) en sont deux porteurs : l'un le
-## pose sur son empreinte, tourné vers son cap, l'autre au sol, sous un cadrage à sa taille ; le plateau y monte aussi
-## chaque navire de la scène, coupé sous les ponts que le regard retire.
+## (`couper`), voilé à une part de lumière (`voiler`). Chaque combattant du plateau (`combattant.gd`) et l'atelier
+## (`atelier.gd`) en sont deux porteurs : l'un le pose sur son empreinte, tourné vers son cap, l'autre au sol, sous un
+## cadrage à sa taille ; le plateau y monte aussi chaque navire de la scène, coupé sous les ponts que le regard retire.
 class_name MontageDeVehicule
 extends Node3D
+
+## Le voile de la vision sur un véhicule (`voiler`).
+const VOILE := preload("res://art/voile.gdshader")
 
 ## L'id de l'élément posé (`null` : aucun).
 var element: Variant = null
@@ -32,6 +35,12 @@ var coupe: Variant = null
 var _boite_de_coupe: Variant = null
 ## Les meshes de sa scène dont les sommets portent leur hauteur (`_porter_la_hauteur`), que la coupe écarte.
 var _coupees: Array[MeshInstance3D] = []
+## Le seuil d'opacité que la coupe pose sur chaque matière de sa scène (`_appliquer_la_coupe`), 0 : rien n'est écarté.
+var _seuil := 0.0
+## La part de lumière de sa scène (`voiler`), 1 : aucun voile.
+var part := 1.0
+## Le voile de sa scène (`art/voile.gdshader`), un seul pour toutes ses pièces, `null` avant le premier `voiler` sous 1.
+var _voile: ShaderMaterial = null
 
 
 ## Le corps `vehicule` (`null` : aucun), s'il a changé depuis le dernier reçu : le GLB de son élément tiré par `montage`
@@ -92,6 +101,7 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	cacher_selon(posee, vehicule.caches)
 	element = vehicule.element
 	_appliquer_la_coupe()
+	_poser_le_voile()
 	return true
 
 
@@ -113,6 +123,7 @@ func _retirer() -> void:
 	scene = null
 	_boite_de_coupe = null
 	_coupees.clear()
+	_seuil = 0.0
 	lecteur = null
 	clips = {}
 	_meshes.clear()
@@ -141,10 +152,36 @@ func _appliquer_la_coupe() -> void:
 		_coupees.assign(scene.find_children("*", "MeshInstance3D", true, false))
 		for piece in _coupees:
 			_porter_la_hauteur(piece, _boite_de_coupe)
-	var seuil := 0.0 if coupe == null else MiseEnPage.opacite_de_coupe(coupe, _boite_de_coupe.position.y, _boite_de_coupe.end.y)
+	_seuil = 0.0 if coupe == null else MiseEnPage.opacite_de_coupe(coupe, _boite_de_coupe.position.y, _boite_de_coupe.end.y)
 	for piece in _coupees:
 		for rang in piece.mesh.get_surface_count():
-			(piece.get_surface_override_material(rang) as BaseMaterial3D).alpha_scissor_threshold = seuil
+			(piece.get_surface_override_material(rang) as BaseMaterial3D).alpha_scissor_threshold = _seuil
+	_poser_le_voile()
+
+
+## Sa scène voilée à la part de lumière linéaire `lumiere` (de 0 à 1) : 1, aucun voile ; sinon chaque mesh de sa scène,
+## pièces de ses postes et de ses Améliorations comprises, multiplie ce qu'il dessine par cette part (`art/voile.gdshader`,
+## un seul `ShaderMaterial` en `material_overlay`), sans toucher à son ombre, et le voile écarte ce que la coupe écarte.
+## La part vaut pour chaque scène que `monter` pose ensuite. Sous Forward+, la part rendue est exacte ; sous le rendu de
+## compatibilité, qui mélange après l'encodage sRGB, un pixel de luminance linéaire `x` prend
+## lin(srgb(x)·srgb(part)) / x de sa lumière (`recettes/voile-du-navire.gd`).
+func voiler(lumiere: float) -> void:
+	part = lumiere
+	_poser_le_voile()
+
+
+## Le voile (`voiler`) et le seuil de la coupe (`_seuil`) sur chaque mesh de sa scène : aucun à la part 1. Rien sans scène.
+func _poser_le_voile() -> void:
+	if scene == null:
+		return
+	if part != 1.0 and _voile == null:
+		_voile = ShaderMaterial.new()
+		_voile.shader = VOILE
+	if _voile != null:
+		_voile.set_shader_parameter("part", part)
+		_voile.set_shader_parameter("coupe", _seuil)
+	for piece: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
+		piece.material_overlay = null if part == 1.0 else _voile
 
 
 ## Le mesh de `piece` recopié, chaque sommet blanc, d'opacité sa hauteur dans la boîte `boite` de son repère
