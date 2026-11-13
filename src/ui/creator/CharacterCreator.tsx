@@ -1851,7 +1851,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
   const { adresse } = emplacement;
   if (emplacement.sorte === 'branches') {
     const choisie = brancheChoisie(emplacement, choices);
-    const options = emplacement.ref.choice.map((branche, j) => ({
+    const options = emplacement.ref.of.map((branche, j) => ({
       key: String(j),
       label: trappingRefLabel(branche),
       selected: choisie === j,

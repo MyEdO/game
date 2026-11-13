@@ -40,7 +40,7 @@ import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField
 import { type DiceSpec, formatDice, parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
-import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
+import { raceKeySchema, type RaceKey } from '../../../data/schemas/grammaire/valeurs';
 import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../ReglagesApparence';
 import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
@@ -53,7 +53,7 @@ import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
-import type { ManeuverDef, ManeuverMeasure } from '../../../data';
+import type { DetailText, ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
@@ -1623,12 +1623,9 @@ function EffectTableRowsField({ domaine, value, onChange }: { domaine: PlageDoma
   );
 }
 
-/** Texte d'aide LDB 05 (« Détails ») : global + par espèce (HTML léger). Clé de `bySpecies` = id
- *  d'espèce `RaceKey` (#1467 L1b V-P4) ; le sceau du dataset refuse toute autre clé. */
-interface DetailText { all: string; bySpecies: Record<string, string>; }
 /** Bloc `details.texts` : 5 entrées d'aide (nom/âge/taille/Ambitions courte & longue). Clés OUVERTES
  *  (un nouveau texte ajouté à la donnée apparaît tout seul). */
-type DetailsTexts = Record<string, DetailText>;
+export type DetailsTexts = Record<string, DetailText>;
 
 const RACE_KEYS = raceKeySchema.options;
 
@@ -1643,14 +1640,16 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   const texts = value ?? {};
   const EMPTY_TEXT: DetailText = { all: '', bySpecies: {} };
   const setText = (key: string, patch: Partial<DetailText>) => onChange({ ...texts, [key]: { ...EMPTY_TEXT, ...texts[key], ...patch } });
-  const setSpecies = (key: string, sp: string, v: string) => setText(key, { bySpecies: { ...texts[key]?.bySpecies, [sp]: v } });
-  const renameSpecies = (key: string, oldSp: string, newSp: string) => {
+  const setSpecies = (key: string, sp: RaceKey, v: string) => setText(key, { bySpecies: { ...texts[key]?.bySpecies, [sp]: v } });
+  const renameSpecies = (key: string, oldSp: RaceKey, newSp: string) => {
     const by = { ...texts[key]?.bySpecies };
-    const v = by[oldSp]; delete by[oldSp]; if (newSp) by[newSp] = v ?? '';
+    const v = by[oldSp]; delete by[oldSp];
+    const cible = RACE_KEYS.find((k) => k === newSp);
+    if (cible) by[cible] = v ?? '';
     setText(key, { bySpecies: by });
   };
-  const clesLibres = (key: string, sauf?: string) => RACE_KEYS.filter((k) => k === sauf || !(k in (texts[key]?.bySpecies ?? {})));
-  const removeSpecies = (key: string, sp: string) => {
+  const clesLibres = (key: string, sauf?: RaceKey) => RACE_KEYS.filter((k) => k === sauf || !(k in (texts[key]?.bySpecies ?? {})));
+  const removeSpecies = (key: string, sp: RaceKey) => {
     const by = { ...texts[key]?.bySpecies }; delete by[sp];
     setText(key, { bySpecies: by });
   };
@@ -1665,7 +1664,7 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
             <ProseField label="global" value={t.all} onChange={(all) => setText(key, { all })} />
             <span className="ed-hint">par espèce</span>
             <Grid min="md" stackBelow={700}>
-              {Object.keys(t.bySpecies ?? {}).map((sp) => (
+              {RACE_KEYS.filter((sp) => sp in (t.bySpecies ?? {})).map((sp) => (
                 <div className="ed-field" key={sp}>
                   <div className="fieldrow">
                     <select aria-label={`Espèce de la surcharge — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={sp} onChange={(e) => renameSpecies(key, sp, e.target.value)}>
@@ -1674,7 +1673,7 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
                     <div className="de-spacer" />
                     <button className="btn small danger" title="Retirer l'espèce" onClick={() => removeSpecies(key, sp)}>✕</button>
                   </div>
-                  <ProseField nu label={`Surcharge de l'espèce ${sp} — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={t.bySpecies[sp]} onChange={(txt) => setSpecies(key, sp, txt)} />
+                  <ProseField nu label={`Surcharge de l'espèce ${sp} — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={t.bySpecies[sp] ?? ''} onChange={(txt) => setSpecies(key, sp, txt)} />
                 </div>
               ))}
             </Grid>

@@ -11,7 +11,7 @@ import { hasWeaponGroupSkill } from '../../engine/combat';
 import { exposedCrew } from '../../engine/shipCritical';
 import { canTakeAction, isOutOfAction } from '../../engine/conditions';
 import { aRecharger } from '../../engine/weaponLoad';
-import { combatDistance, footprintN, footprintTiles } from './footprint';
+import { distanceDeContact, footprintN, footprintTiles } from './footprint';
 import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../../geometry/dir8';
 import { isWalkable, tileAt, type Scene } from './scene';
 import { pointDeCase, tileKey } from './path';
@@ -402,7 +402,7 @@ export function servablePostes(actor: Combatant, combatants: Combatant[]): { hul
   if (!actor.pos || isOutOfAction(actor)) return [];
   const out: { hull: Combatant; poste: ShipPoste }[] = [];
   for (const hull of combatants) {
-    if (!hull.postes?.length || !hull.pos || combatDistance(actor, hull) > 1) continue;
+    if (!hull.postes?.length || !hull.pos || distanceDeContact(actor, hull) > 1) continue;
     for (const poste of hull.postes) if (!(poste.crewIds ?? []).includes(actor.id)) out.push({ hull, poste });
   }
   return out;

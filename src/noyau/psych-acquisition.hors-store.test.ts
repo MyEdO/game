@@ -19,6 +19,7 @@ import { groupLabel, psychologyLabel } from '../data';
 import { t } from '../i18n';
 import { ciblePsy } from '../engine/psych/ciblage';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -213,7 +214,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
   /** Les `porteurs` du combat ratent leur Calme de 1 DR face à `foe` (Terreur 1 → 2 Brisé), en une bande ;
    *  `result` en donne un autre. */
   const bandeRatee = (foe: Combatant, porteurs: readonly string[], result = { success: false, sl: -1 }) => {
-    const decl = { kind: 'terreur' as const, sourceId: foe.id, sourceName: foe.label, indice: 1, round: banc.getState().battle!.round };
+    const decl = { kind: 'terreur' as const, sourceId: foe.id, sourceName: nomDe(foe), indice: 1, round: banc.getState().battle!.round };
     const step = bandStep({ id: `psychologieDeCombat-${foe.id}`, kind: 'psychologieDeCombat', psychologieDeCombat: decl }, porteurs.map((id) => ({ id, interactive: true, result }) as never))!;
     applierDe(step.kind)!(banc.getState, banc.setState, step, undefined, { steps: [step], index: 0 });
     return step;
@@ -328,7 +329,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
     const [banshee] = sceneFearSources(banc.getState().scene!, presetDuNarratif(banc.getState().campaignNarratif));
     const groupes = groupesPercus(banshee);
     expect(groupes.length).toBeGreaterThan(0);
-    const decl = { kind: 'terreur' as const, sourceId: banshee.id, sourceName: banshee.label, indice: 1 };
+    const decl = { kind: 'terreur' as const, sourceId: banshee.id, sourceName: nomDe(banshee), indice: 1 };
     const step = bandStep({ id: 'psychologieDeRencontre', kind: 'psychologieDeRencontre', psychologieDeRencontre: decl }, [{ id: 'h1', interactive: true, result: { success: false, sl: -1 } } as never])!;
     applierDe(step.kind)!(banc.getState, banc.setState, step, undefined, { steps: [step], index: 0 });
     expect(banc.getState().party[0].terreursSubies).toEqual([{ brise: 2, groupes }]);

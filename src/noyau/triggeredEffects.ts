@@ -9,6 +9,7 @@
  * place et renvoie le journal. Le référent des formules « (X) » est le PORTEUR (`caster` = la créature
  * qui frappe) — donc « Force de la source » = sa Force.
  */
+import { nomDe } from '../engine/nom';
 import { type Combatant, type Weapon, type HitLocation, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
@@ -27,7 +28,7 @@ import { surfaceOf } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { isEngagedWith, isEngaged } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat } from './monde/footprint';
 import { chebyshev } from '../engine/grid';
 import { tileSeenByFoe } from './monde/lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
@@ -220,7 +221,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
         c.id !== actor.id && c.kind !== actor.kind && !isOutOfAction(c)
         && isEngagedWith(c, actor.id) && !held.includes(c.id)
         && (on.sizeAtMost !== 'soi' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
-      eligible.sort((a, b) => combatDistance(actor, a) - combatDistance(actor, b)); // les plus proches d'abord
+      eligible.sort((a, b) => distanceDeCombat(actor, a) - distanceDeCombat(actor, b)); // les plus proches d'abord
       return eligible.slice(0, capacity);
     }
     // GÉOMÉTRIE : tous les combattants à portée d'un centre (arc d'Azyr, Trait/Talent d'aire)
@@ -232,7 +233,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
     // de GameOps à TOUTES les cibles du rayon — MÊME collecte que munitions/zoneBlast/manœuvres.
     return combatantsWithinRadius(center.pos, radius, battle.combatants,
       (c) => c.id !== center.id && c.id !== actor.id && !isOutOfAction(c),
-      (_ctr, c) => combatDistance(center, c));
+      (_ctr, c) => distanceDeCombat(center, c));
   }
   return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
 }
@@ -340,7 +341,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const rng = ctx.rng;
   const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.reussite : flow.echec;
-  const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
+  const lines = [traceLineOf({ who: nomDe(c), label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes
   // abdominales, MSRC 16 l.152). La garde de RÉ-ENTRANCE de `fireOwnTestFailed` empêche un sous-Test résolu
   // ICI pendant le traitement (FM de palier 2) de ré-émettre. `get` absent (appelant sans store) ⇒ inerte.

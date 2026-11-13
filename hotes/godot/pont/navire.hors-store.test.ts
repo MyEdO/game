@@ -11,7 +11,7 @@ import { garanti } from '../../../src/lib/garanti';
 import { casesDeLAreteDePont, grilleDesPonts, MOTS_DES_PONTS } from '../../../src/data/schemas/grammaire/carte-ascii';
 import { EYE_H, MARGE_SOUS_PLAFOND_M } from '../../../src/noyau/monde/iso';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 const { appel } = table();
 
 describe('la caraque posée dans la scène À bord de la caraque', () => {

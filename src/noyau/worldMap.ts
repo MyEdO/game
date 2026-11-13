@@ -660,8 +660,9 @@ export function documentDeProjet(
   };
 }
 
-/** Vue TS du document PROUVÉ par `projetSchema`. La fabrique `document()` scelle ses nœuds — `z.infer`
- *  y vaut `unknown` (cf. `grammaire/document.ts`) —, la vue se pose donc ici, une fois. */
+/** Vue TS du document PROUVÉ par `projetSchema`. Le type se dérive par `DatasetDe`/`EntreeDe`
+ *  (`data/datasets.ts`) ; la vue `ProjectDoc` reste parce qu'aucun sens d'assignation ne tient entre
+ *  elle et le dérivé (`layers` optionnel au schéma, requis dans `Scene` ; `effectZones` divergent). */
 type ProjetProuve = { [K in keyof ProjectDoc]: ProjectDoc[K] };
 
 /** Étape de la porte qui a refusé : document d'un autre format ou mal formé (`projetSchema`), prose

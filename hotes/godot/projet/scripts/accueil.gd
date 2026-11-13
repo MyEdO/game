@@ -55,4 +55,4 @@ func _publier() -> void:
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
-	_pont.publier_l_ecran(func() -> Dictionary: return {boutons = PontDuNoyau.boutons_a_l_ecran([_menu, _reglages.racine()])})
+	_pont.publier_l_ecran(func() -> Dictionary: return {boutons = PontDuNoyau.boutons_a_l_ecran([_menu, _reglages.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()])})

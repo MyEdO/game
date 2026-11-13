@@ -15,7 +15,7 @@
  * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
  * targeting.ts, combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
-import type { BattleActionMode } from './actionRegistry';
+import type { IdDeModeDeCiblage } from '../data/schemas/defs/actions';
 import type { Get, Set } from './flowTypes';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { Combatant } from '../engine/types';
@@ -40,7 +40,7 @@ import { isStructure, structureImmune } from '../engine/structures';
 import { overcastSourceOf } from '../engine/overcast';
 import { tileKey, type Pt } from './monde/path';
 import { sceneMetresPerTile } from './monde/scene';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
 import { bearingPostes } from './monde/shipBattery';
 import { serveTargetPoste, isPosteManned, translaterFormation, posteDeLaBataille } from './monde/shipPostes';
@@ -62,8 +62,9 @@ import {
   attackPlan, previewAttack, previewCast, firedAttackBlock, outOfSightTargetIds, castOutOfSightTargetIds, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, armerLaSuite, declarerLaCharge, type AttackPreview, type AttackPlan,
 } from './combatFlow';
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
-import { captureMoveSnapshot } from './monde/combatGeometry';
+import { captureMoveSnapshot, campAuContact } from './monde/combatGeometry';
 import { displaceSmaller, applyZoneCrossings } from './combatPlacement';
+import { placeCombatant } from './monde/spawn';
 import type { IdDIntention } from './designations';
 
 export type HoverTargeting =
@@ -87,8 +88,6 @@ export type HoverTargeting =
       line: 'dashed' | 'solid';
       /** Nom de l'arme ou du sort. */
       title: string;
-      /** Nom AFFICHÉ du combattant ciblé (retour playtest #201) — la cible déjà résolue par l'affordance. */
-      targetName: string;
       /** Libellé de la compétence employée (« Projectiles (Arcs) », « Langue (Magick) »…). */
       skill: string;
       /** Valeur de compétence NUE, et l'écart `base → cible` que le réticule affiche à côté : `mod`
@@ -125,9 +124,6 @@ export interface TilePreview {
  * par défaut « les combattants dont l'affordance est 'ok' » — un mode ne le surcharge que s'il a une
  * liste propre (soin, surincantation…). Tout est PUR (lit l'état) sauf les commit (mutent via set).
  */
-/** L'id d'un mode de ciblage : un mode armé de la barre (`BattleActionMode`), l'attaque par défaut, ou une fenêtre qui
- *  détient le ciblage (`detenteurDuCiblage`). */
-export type IdDeModeDeCiblage = BattleActionMode | 'attaque' | 'surincantation' | 'frappeMortelle' | 'deuxArmes' | 'poseDeLaZone';
 
 export interface TargetingMode {
   id: IdDeModeDeCiblage;
@@ -241,7 +237,7 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   const mpt = sceneMetresPerTile(get().scene);
   const gbf = () => bonusDeForce(ship); // paresseux : la portée navale est fixe (number) → BF jamais évalué
   const maxRange = Math.max(...postes.map((p) => effectiveRange(p.item.range, gbf) ?? 0)); // mètres — la plus longue pièce du bord
-  if (maxRange && rangeBandModifier(combatDistance(ship, target), maxRange, mpt) == null)
+  if (maxRange && rangeBandModifier(distanceDeCombat(ship, target), maxRange, mpt) == null)
     return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: ship.label }) };
   return null;
 }
@@ -253,7 +249,7 @@ function batteryAffordance(get: Get, active: Combatant, target: Combatant): Hove
   const block = batteryBlock(get, active, target);
   if (block) return { kind: 'invalid', reason: block.reason };
   const side = targetArc(get().facing[active.id] ?? 'N', active.pos!, target.pos!);
-  return { kind: 'ok', line: 'dashed', title: `Bordée ${side}`, targetName: target.label, skill: 'Tir de batterie', base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'dashed', title: `Bordée ${side}`, skill: 'Tir de batterie', base: 0, mod: 0, dmg: null };
 }
 
 /** Mode incantation : mêmes gates que castSpell (équipe → portée → LdV). */
@@ -287,7 +283,6 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
     kind: 'ok',
     line: 'dashed',
     title: spell.label,
-    targetName: target.label,
     skill: testSkillLabel(castInfo(spell)),
     base: pv.base,
     mod: pv.target - pv.base,
@@ -397,7 +392,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
     const p = serveTargetPoste(active, target, battle.combatants);
     if (!p) return { kind: 'none' };
     const join = isPosteManned(p, battle.combatants);
-    return { kind: 'ok', line: 'solid', title: `${join ? 'Renfort' : 'Servir'} : ${p.item.label}`, targetName: target.label, skill: join ? "Renfort d'équipe" : 'Chef de pièce', base: 0, mod: 0, dmg: null };
+    return { kind: 'ok', line: 'solid', title: `${join ? 'Renfort' : 'Servir'} : ${p.item.label}`, skill: join ? "Renfort d'équipe" : 'Chef de pièce', base: 0, mod: 0, dmg: null };
   }
   const option = selectedAttackOption(active, battle);
   if (!option) return { kind: 'none' }; // mode non-attaque (cast/heal/…) ou aucune attaque abordable
@@ -415,14 +410,14 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   const refus = refusDAttaque(get, active, target, option, plan, { approche: chargeArmee(intentionLocale(get)) });
   if (refus) return { kind: 'invalid', reason: refus.reason };
   if (option.targeting === 'zone') // Souffle/Vomi/Langue/Regard/Étreinte : réticule simple (portée/LdV au résolveur moteur)
-    return { kind: 'ok', line: 'dashed', title: option.label, targetName: target.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null };
+    return { kind: 'ok', line: 'dashed', title: option.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null };
   if (option.targeting === 'aucontact') // « Au Contact » (LDB 62 l.176) : Test opposé de Corps à corps, pas une frappe
     return auContactEligible(active, target)
-      ? { kind: 'ok', line: 'dashed', title: 'Au contact', targetName: target.label, skill: 'Corps à corps', base: 0, mod: 0, dmg: null }
+      ? { kind: 'ok', line: 'dashed', title: 'Au contact', skill: 'Corps à corps', base: 0, mod: 0, dmg: null }
       : { kind: 'none' };
   if (option.targeting === 'grapple') // Empoignade (LDB 14 l.161) : Test opposé de Force, pas une frappe
     return grappleActionEligible(active, target)
-      ? { kind: 'ok', line: 'dashed', title: 'Empoignade', targetName: target.label, skill: 'Force', base: 0, mod: 0, dmg: null }
+      ? { kind: 'ok', line: 'dashed', title: 'Empoignade', skill: 'Force', base: 0, mod: 0, dmg: null }
       : { kind: 'none' };
   // === MÊLÉE (Arme + gratuites) : approche-puis-frappe — chemin réel + réticule au survol (le clic commet) ;
   // l'aperçu est calculé depuis la case d'ARRIVÉE. Seul geste dont la Difficulté se compose depuis une arme
@@ -437,7 +432,6 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
     // Gratuite (Morsure/Caudale/Tentacule) = toujours mêlée (trait solide) ; Arme = tir pointillé si à distance.
     line: option.freeKind ? 'solid' : p.kind === 'distance' ? 'dashed' : 'solid',
     title: p.weapon.label,
-    targetName: target.label,
     skill: attackTestLabel(active, p.weapon, p.kind),
     base: p.base,
     // L'aperçu porte DÉJÀ sa cible plafonnée et écrêtée (`previewAttack` → `rollLine`) : le réticule
@@ -452,9 +446,11 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   };
 }
 
-/** Alliés soignables à portée de `active` (soi + adjacents, son camp). */
-const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] =>
-  healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true });
+/** Alliés soignables à portée de `active` (soi et son camp au contact). */
+const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] => {
+  const battle = get().battle;
+  return battle ? healableTargets(campAuContact(battle, active)) : [];
+};
 
 /** Mode SOIN (Guérison, LDB 09 ; Dextérité sous Bandages, LDB 74 l.41) : réticule « Soigner » sur soi + alliés
  *  adjacents qu'un soin de combat ouvert par `active` atteint (`modesDOuverture`) ; à portée sans soin de combat, la
@@ -464,7 +460,7 @@ function healAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   const mode = modesDOuverture(target, active)[0];
   if (!mode) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
   const test = garanti(soinDOuverture(active, mode), mode, 'soin ouvert').test;
-  return { kind: 'ok', line: 'solid', title: 'Soigner', targetName: target.label, skill: libelleDeTest(test), base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'solid', title: 'Soigner', skill: libelleDeTest(test), base: 0, mod: 0, dmg: null };
 }
 
 /** Sorts permanents dissipables PORTÉS par un combattant donné (regroupés par (sort, lanceur) —
@@ -481,7 +477,7 @@ export function dispellableOnCarrier(get: Get<Jeu>, carrierId: string): Dispella
  *  tait, et le clic dit sa raison (`DISPEL_MODE.commitCombatant`). */
 function dispelAffordance(get: Get, _active: Combatant, target: Combatant): HoverTargeting {
   if (dispellableOnCarrier(get, target.id).length === 0) return { kind: 'invalid', reason: 'sans-sort-dissipable' };
-  return { kind: 'ok', line: 'dashed', title: 'Dissiper', targetName: target.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'dashed', title: 'Dissiper', skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
 /** Mode SURINCANTATION (+Cible, LDB 47 l.28) : cibles supplémentaires éligibles (portée/éveillées/LdV). */
@@ -492,7 +488,7 @@ function overcastAffordance(get: Get, _active: Combatant, target: Combatant): Ho
   const caster = pool.find((c) => c.id === pc.casterId);
   const spell = findSpellById(pc.spellId);
   if (!caster || !spell || !overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
-  return { kind: 'ok', line: 'dashed', title: spell.label, targetName: target.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
+  return { kind: 'ok', line: 'dashed', title: spell.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
 /** Mode FRAPPE MORTELLE (cleave, LDB 14 l.9) : enchaînements adjacents non encore frappés. */
@@ -506,7 +502,7 @@ function cleaveAffordance(get: Get, _active: Combatant, target: Combatant): Hove
   // L'enchaînement est une VRAIE frappe : son réticule porte la valeur et la Difficulté du jet qu'il
   // ouvrira, comme le ciblage ordinaire (`attackAffordance`) — un interlude n'est pas un ciblage aveugle.
   const p = previewAttack(get, atk, target);
-  return { kind: 'ok', line: 'solid', title: 'Frappe Mortelle', targetName: target.label, skill: attackTestLabel(atk, weapon, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
+  return { kind: 'ok', line: 'solid', title: 'Frappe Mortelle', skill: attackTestLabel(atk, weapon, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
 }
 
 /** Mode 2ᵉ FRAPPE (deux armes, LDB 10 l.767-773) : cibles à portée de la main secondaire. */
@@ -520,7 +516,7 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
   // 2ᵉ frappe = une frappe : le réticule porte la valeur et la Difficulté de SON jet — celui de la main
   // SECONDAIRE (`LDB 14 l.181`, pénalité comprise), pas celui de l'arme principale déjà résolue.
   const p = previewAttack(get, atk, target, undefined, { weaponUid: off.uid });
-  return { kind: 'ok', line: 'solid', title: 'Deux armes', targetName: target.label, skill: attackTestLabel(atk, off, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
+  return { kind: 'ok', line: 'solid', title: 'Deux armes', skill: attackTestLabel(atk, off, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -591,7 +587,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Résilience) → il DIFFÈRE la déclaration derrière `pendingWard`. `wardCleared` = ce gate a déjà été
   // franchi pour CE clic (relance) → on le saute.
   if (!opts?.wardCleared && hasActiveFlag(target, 'attackWardFM')) {
-    set({ pendingWard: { attackerId: active.id, targetId: target.id, targetName: target.label, intentionId: opts?.intentionId, result: null }, battle: { ...get().battle!, preview: null } });
+    set({ pendingWard: { attackerId: active.id, targetId: target.id, intentionId: opts?.intentionId, result: null }, battle: { ...get().battle!, preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
     return;
   }
@@ -621,8 +617,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const geom = mountOf(battle, active) ?? active;
     approachPath = plan.path;
     const chargeFrom = { ...active.pos! };
-    active.pos = { ...plan.dest };
-    if (geom !== active) geom.pos = { ...plan.dest }; // la monture charge sous le cavalier
+    placeCombatant(active, get().scene, plan.dest);
+    if (geom !== active) placeCombatant(geom, get().scene, plan.dest); // la monture charge sous le cavalier
     displaceSmaller(get, geom); // charge d'un grand : idem dégage les plus petits (85 l.373-374)
     get().orienterSelonLeChemin(active.id, approachPath);
     if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
@@ -642,8 +638,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       const geom = mountOf(b, active) ?? active;
       approachPath = plan.path;
       const moveFrom = { ...active.pos! };
-      active.pos = { ...plan.dest };
-      if (geom !== active) geom.pos = { ...plan.dest };
+      placeCombatant(active, get().scene, plan.dest);
+      if (geom !== active) placeCombatant(geom, get().scene, plan.dest);
       displaceSmaller(get, geom);
       get().orienterSelonLeChemin(active.id, approachPath);
       if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
@@ -665,7 +661,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       // sinon un héros mixte mêlée+distance ne pourrait jamais tirer une cible éloignée (LDB Armes l.297-298).
       const battleNow = get().battle!;
       const w = pickAttackWeapon(battleNow, active, target, option.weaponUid);
-      if (w.type === 'melee' && combatDistance(attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
+      if (w.type === 'melee' && distanceDeContact(attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
         refuserGesteDuSiege(get, set, t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
         return;
       }
@@ -716,8 +712,8 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   if (!battle.reachable.has(k)) return;
   const from = { ...active.pos! };
   const mount = mountOf(battle, active);
-  active.pos = { ...pt };
-  if (mount) mount.pos = { ...pt }; // couple cavalier↔monture solidaire (comme le déplacement)
+  placeCombatant(active, get().scene, pt);
+  if (mount) placeCombatant(mount, get().scene, pt); // couple cavalier↔monture solidaire (comme le déplacement)
   displaceSmaller(get, mount ?? active); // un grand qui se téléporte dégage aussi les plus petits sous son empreinte (LDB 85 l.373-374)
   get().orienterSelonLeChemin(active.id, [from, pt]);
   bus.emit(EVT.ANIM_MOVE, { id: active.id, path: [{ ...pt }] });
@@ -787,23 +783,23 @@ function placingCommitCombatant(get: Get, _set: Set, _active: Combatant, id: str
 
 /** Mode ATTAQUE (mode neutre) — exporté pour son IDENTITÉ, comme `CAST_MODE` : les anneaux de cibles du
  *  mode neutre se peignent quand c'est LUI qui tient le ciblage (`gameIso/stage/highlightLayer`). */
-export const ATTACK_MODE: TargetingMode = { id: 'attaque', affordance: attackAffordance, commitCombatant: attackClickCommit };
+export const ATTACK_MODE = { id: 'attaque', affordance: attackAffordance, commitCombatant: attackClickCommit } satisfies TargetingMode;
 /** Mode INCANTATION — exporté parce que son IDENTITÉ est ce que `battle.action` porte quand le geste
  *  est armé : tout consommateur qui demande « le mode incantation est-il armé ? » compare à CE mode
  *  (`CAST_MODE.id`). L'entrée du registre d'actions qui l'arme (`armed`) est libre de son propre id. */
-export const CAST_MODE: TargetingMode = {
+export const CAST_MODE = {
   id: 'incantation', affordance: castAffordance, commitCombatant: castClickCommit, commitTile: castCommitTile,
-};
-const BATTERY_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const BATTERY_MODE = {
   id: 'bordee', label: 'Bordée', consigne: 'consigne.bordee', affordance: batteryAffordance,
   commitCombatant: (get, _set, active, id) => { get().ouvrirLaBordee(active.id, id); },
-};
-const HEAL_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const HEAL_MODE = {
   id: 'soins', affordance: healAffordance, anneauCandidats: 'ami',
   candidates: (get, active) => soignablesAPortee(get, active).filter((c) => modesDOuverture(c, active).length > 0),
   // L'acte d'ouverture et son refus vivent dans `ouvrirLaGuerison` ; la modale bascule l'acte (`jetRegler('soins', 'mode')`).
   commitCombatant: (get, _set, _active, id) => get().ouvrirLaGuerison(id),
-};
+} satisfies TargetingMode;
 /** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la
  *  console). Prédicat PARTAGÉ par l'élection locale et par le commit — une seule mesure. */
 const dispelParametreADemander = (get: Get, id: string): boolean => dispellableOnCarrier(get, id).length > 1;
@@ -819,7 +815,7 @@ const dispelParametreADemander = (get: Get, id: string): boolean => dispellableO
  * porteur élu vit hors instantané (`coop.instantaneDeLaCoop`), et seul le COMMIT `dissiperLeSort`
  * voyage. Sans cette déclaration, l'intent d'un invité faisait naître le panneau chez L'HÔTE.
  */
-const DISPEL_MODE: TargetingMode = {
+const DISPEL_MODE = {
   id: 'dissipation', affordance: dispelAffordance,
   candidates: (get) => (get().battle?.combatants ?? []).filter((c) => dispellableOnCarrier(get, c.id).length > 0),
   electionLocale: dispelParametreADemander,
@@ -829,8 +825,8 @@ const DISPEL_MODE: TargetingMode = {
     if (dispelParametreADemander(get, id)) { get().designerLeSupport(id); return; }
     get().dissiperLeSort(active.id, porte[0].spellId, porte[0].casterId);
   },
-};
-const OVERCAST_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const OVERCAST_MODE = {
   id: 'surincantation', label: 'Surincantation', consigne: 'consigne.surincantation', affordance: overcastAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
@@ -842,8 +838,8 @@ const OVERCAST_MODE: TargetingMode = {
     return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
   },
   commitCombatant: (get, _set, _active, id) => { get().jetRegler('incantation', 'ciblesSupplementaires', ciblesBasculees(get().pendingCast?.extraTargetIds, id)); },
-};
-const CLEAVE_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const CLEAVE_MODE = {
   id: 'frappeMortelle', label: 'Frappe Mortelle', consigne: 'consigne.frappeMortelle', affordance: cleaveAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
@@ -853,8 +849,8 @@ const CLEAVE_MODE: TargetingMode = {
     return battle && pc && atk ? cleaveTargets(battle, atk, pc.hitIds) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperEnBalayage(id); },
-};
-const DUAL_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const DUAL_MODE = {
   id: 'deuxArmes', label: 'Des deux armes', consigne: 'consigne.deuxArmes', affordance: dualAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
@@ -865,16 +861,16 @@ const DUAL_MODE: TargetingMode = {
     return battle && atk && off ? dualStrikeTargets(battle, atk, off) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperDeLaSecondeArme(id); },
-};
-const TELEPORT_MODE: TileTargetingMode = {
+} satisfies TargetingMode;
+const TELEPORT_MODE = {
   id: 'teleportation', label: 'Téléportation', consigne: 'consigne.teleportation',
   tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
   commitTile: teleportCommitTile,
   tilePreview: (_get, active, pt) => (active.pos ? { target: pt, path: [active.pos, pt], label: 'Téléporter' } : null),
-};
+} satisfies TileTargetingMode;
 /** POUSSÉE d'un engin de siège (ADE II 8 l.258, Lot 2 #156) : case-cible parmi `battle.reachable`
  *  (posé par `pousserLEngin`), MÊME gabarit que TELEPORT_MODE. */
-const PUSH_MODE: TileTargetingMode = {
+const PUSH_MODE = {
   id: 'poussee',
   tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
   commitTile: pushCommitTile,
@@ -883,35 +879,38 @@ const PUSH_MODE: TileTargetingMode = {
     const cost = get().battle?.reachable.get(tileKey(pt.x, pt.y, pt.z)) ?? 0;
     return { target: pt, path: [active.pos, pt], cost, label: `Pousser (${cost})` };
   },
-};
+} satisfies TileTargetingMode;
 /** Pose libre d'un gabarit de zone (sort de ZdE après jet OU pilonnage indirect de siège). */
-const PLACING_MODE: TileTargetingMode = {
+const PLACING_MODE = {
   id: 'poseDeLaZone', label: 'Pose de la zone', consigne: 'consigne.poseDeLaZone',
   tileValidAt: (get, _active, pt) => { const pz = placingZoneOf(get()); return !!pz && placedZoneValidAt(get, pz, pt); },
   commitTile: (get, set, _active, pt) => commitPlacedZone(get, set, pt),
   commitCombatant: placingCommitCombatant,
   tilePreview: (_get, _active, pt) => ({ target: pt, label: 'Poser la zone' }),
-};
+} satisfies TileTargetingMode;
 
 /** Catalogue des modes-CASE (#198) — SOURCE UNIQUE pour la garde exhaustive (test qui les itère et
  *  vérifie un aperçu non-vide sur une tuile valide) et pour tout consommateur générique (aperçu au
  *  survol, adressabilité DOM des cases valides). */
 export const TILE_MODES: readonly TileTargetingMode[] = [TELEPORT_MODE, PUSH_MODE, PLACING_MODE];
 
-/** Catalogue de TOUS les modes — source unique d'ÉNUMÉRATION (parité avec le `mode` des entrées du
- *  registre des actions, libellé de phase d'un interlude). L'aiguilleur ci-dessous garde SA priorité :
- *  ce tableau ne décide de rien, il rend les modes énumérables à l'exécution. */
-export const TARGETING_MODES: readonly TargetingMode[] = [
-  ATTACK_MODE, CAST_MODE, BATTERY_MODE, HEAL_MODE, DISPEL_MODE, OVERCAST_MODE, CLEAVE_MODE, DUAL_MODE, TELEPORT_MODE, PUSH_MODE, PLACING_MODE,
-];
+/** Chaque mode, par son id (`MODES_DE_CIBLAGE`) : un id sans mode, ou un mode rangé sous un autre id, ne compile pas.
+ *  L'aiguilleur ci-dessous garde SA priorité : cette table ne décide de rien. */
+const MODE_PAR_ID: { readonly [M in IdDeModeDeCiblage]: TargetingMode & { readonly id: M } } = {
+  attaque: ATTACK_MODE, incantation: CAST_MODE, bordee: BATTERY_MODE, soins: HEAL_MODE, dissipation: DISPEL_MODE,
+  surincantation: OVERCAST_MODE, frappeMortelle: CLEAVE_MODE, deuxArmes: DUAL_MODE, teleportation: TELEPORT_MODE,
+  poussee: PUSH_MODE, poseDeLaZone: PLACING_MODE,
+};
+
+/** Catalogue de TOUS les modes, énumérables à l'exécution (libellé de phase d'un interlude). */
+export const TARGETING_MODES: readonly TargetingMode[] = Object.values(MODE_PAR_ID);
 
 /** Nom d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans bandeau). */
-export const targetingModeLabel = (modeId: IdDeModeDeCiblage): string | undefined =>
-  TARGETING_MODES.find((m) => m.id === modeId)?.label;
+export const targetingModeLabel = (modeId: IdDeModeDeCiblage): string | undefined => MODE_PAR_ID[modeId].label;
 
 /** Consigne d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans consigne). */
 export const targetingModeConsigne = (modeId: IdDeModeDeCiblage): PlayerText | undefined => {
-  const cle = TARGETING_MODES.find((m) => m.id === modeId)?.consigne;
+  const cle = MODE_PAR_ID[modeId].consigne;
   return cle ? t(cle) : undefined;
 };
 

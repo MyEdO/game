@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.309-436 */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import {
   cibleEtendueSchema,
   difficultySchema,
@@ -153,4 +153,3 @@ export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
-export type SeaCargoData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

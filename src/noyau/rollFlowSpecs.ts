@@ -31,6 +31,7 @@ import { rollOups } from '../engine/oups';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId, porteurParId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import {
   lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
   resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset, withPreRollFixedDie,
@@ -49,7 +50,7 @@ import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
+import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady, sortirDeLHote } from './cascade';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -228,6 +229,9 @@ function deDuSoin<P extends PendingBase & { roll: number | null; target: number;
     write: (s: Jeu, p: P, actor: Combatant | undefined, _get: Get, tr: TestResult) => issueDuSoin(s, actor, test(p), tr) as Partial<P>,
   };
 }
+
+/** Le nom de l'acteur `id` du jet tel que le groupe le connaît (`nomEnVue`, #4017). */
+const nomDeLActeur = (s: Jeu, id: string): string => garanti(nomEnVue(s, id), id, 'acteur du jet');
 
 function currentStepFreeze(s: Jeu) {
   const p = s.pendingCascade;
@@ -1197,8 +1201,9 @@ export const FLOWS = paresseux({
    */
   testEtendu: () => makeRollFlow<PendingExtendedTest, ExtendedTestRound>({
     key: 'pendingExtendedTest',
-    // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
-    onCancel: (get, set, p) => { set({ pendingExtendedTest: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
+    // Renoncer CLÔT le Test (sans réussite) par la sortie d'hôte : la suite du Flow qui l'a ouvert se joue, comme après un
+    // Test raté, puis la pile reprend.
+    onCancel: (get, set, p) => sortirDeLHote(get, set, { pendingExtendedTest: null }, () => reprendreLaSuite(get, set, p.suite)),
     // Le Round porte {roll, sl, success} SANS cible (elle vit sur le pending) : accesseur explicite.
     die: {
       read: (r, _a, p) => (r.result && p ? { roll: r.result.roll, target: p.target, critable: false } : null),
@@ -1407,8 +1412,9 @@ export const FLOWS = paresseux({
    */
   enfoncerLaPorte: () => makeRollFlow<PendingForceDoor, ForceDoorParticipant>({
     key: 'pendingForceDoor',
-    // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
-    onCancel: (get, set, p) => { set({ pendingForceDoor: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
+    // Renoncer CLÔT l'enfoncement (la porte tient) par la sortie d'hôte : la suite du Flow qui l'a ouvert se joue, puis la
+    // pile reprend.
+    onCancel: (get, set, p) => sortirDeLHote(get, set, { pendingForceDoor: null }, () => reprendreLaSuite(get, set, p.suite)),
     clotures: { valider: 'toujours', annuler: 'toujours' },
     die: roll3Die<ForceDoorParticipant, PendingForceDoor>(),
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },
@@ -2109,7 +2115,7 @@ export const FLOWS = paresseux({
     // `ctx` : le DR cumulé RÉALISÉ (bonus de Talent compris) et le NOM résolu de l'arme, connus de la
     // seule application. La voie IA (aucune fenêtre) acquitte le MÊME goulot avec son pending fourni.
     issueChannel: 'battle',
-    issue: (p, _s, ctx: { after: number; weapon: string }) => describeReload(p, ctx.after, ctx.weapon),
+    issue: (p, s, ctx: { after: number; weapon: string }) => describeReload(p, nomDeLActeur(s, p.actorId), ctx.after, ctx.weapon),
   }),
 
   /** Main ensanglantée (AA 07 l.117) : Test de Dextérité Accessible (+20) PAR ACTION, AVANT d'ouvrir une
@@ -2174,7 +2180,7 @@ export const FLOWS = paresseux({
     bonus: { derive: (_s, p) => ({ netSL: p.netSL + 1, success: p.requireSl != null ? (p.netSL + 1 >= p.requireSl) : p.success }) },
     // ISSUE au goulot (`apply`) — canal COMBAT : `jetValider('recuperation')` la tisse dans ses lignes d'Action.
     issueChannel: 'battle',
-    issue: (p, s) => describeStateRecovery(p, actorIn(s, p.actorId)?.label ?? p.actorName),
+    issue: (p, s) => describeStateRecovery(p, nomDeLActeur(s, p.actorId)),
   }),
 
   /** Test de compétence interactif (Effet de scène `test`). `requireSL` = seuil de DR exigé. */
@@ -2186,11 +2192,11 @@ export const FLOWS = paresseux({
     actor: (s, p) => actorIn(s, p.actorId),
     touch: touchActors,
     // ISSUE au goulot (`apply`) — canal NARRATIF : `jetValider('test')` acquitte, il ne compose plus sa ligne.
-    issue: (p) => describeTest(p),
+    issue: (p, s) => describeTest(p, nomDeLActeur(s, p.actorId)),
     caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
       const tDR = actor ? drDeReussiteDuTest(_s, actor, p.sujet ?? {}) : 0;
-      // Capricieux (MSRC 15 l.149-159) : delta de DR de la table du d10 de l'interlocuteur, tiré à
+      // Capricieux (MSRC 15 l.149-159) : delta de DR de la table de l'interlocuteur, tiré à
       // l'ouverture du Test (`openSkillTest`) et appliqué ICI, au DR du Test RÉSOLU.
       const capDR = p.capriciousDR ?? 0;
       // Le gate de DR exigé est la SOURCE UNIQUE `meetsRequiredSL` (également Chance et inversion).

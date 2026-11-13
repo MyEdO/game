@@ -123,7 +123,7 @@ export function effetsDeLaPeriode(s: Pick<Jeu, 'interlude'>, heroId: string): Ef
  *  pourcentage cumulé : chacun vise le gain de base, ils s'additionnent. LDB 22 l.40, l.44, l.83, l.91 */
 export function revenusDeLaPeriode(s: EtatDInterlude, heroId: string): { effets: EffetDeLaPeriode[]; pct: number } {
   const h = s.party.find((x) => x.id === heroId);
-  const effets = h ? effetsDeLaPeriode(s, heroId).filter(({ fx }) => fx.revenuePct && (!fx.revenueClasses || fx.revenueClasses.includes(heroClass(h)))) : [];
+  const effets = h ? effetsDeLaPeriode(s, heroId).filter(({ fx }) => fx.revenuePct && (!fx.revenueClasses || fx.revenueClasses.some((c) => c === heroClass(h)))) : [];
   return { effets, pct: effets.reduce((n, e) => n + e.fx.revenuePct!, 0) };
 }
 

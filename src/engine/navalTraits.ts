@@ -115,7 +115,7 @@ export function navalSkillTestDR(traits: NavalTraitRef[] | undefined, skillId: s
  *  avirons). Ne matche QUE les ops portant un `testType` correspondant. PUR. */
 export function navalTestTypeDR(traits: NavalTraitRef[] | undefined, testTypeId: string): number {
   return navalPassiveOps(traits).reduce(
-    (n, op) => (op.op === 'skillDRBonus' && op.testType === testTypeId && typeof op.bonus === 'number' ? n + op.bonus : n),
+    (n, op) => (op.op === 'skillDRBonus' && op.testType?.id === testTypeId && typeof op.bonus === 'number' ? n + op.bonus : n),
     0,
   );
 }

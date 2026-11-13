@@ -35,7 +35,7 @@ const construireScene = (): Scene => buildScene({
   label: 'Embuscade fluviale',
   size: [18, 12],
   terrain: 'planches',
-  heroStart: [3, 7],
+  heroStart: { x: 4, y: 6, z: 1 },
   startMessage:
     { texte: 'Le batelier hurle et pointe l’aval : « Pirates à bâbord — et quelque chose de gros remue sous l’eau ! » Une ' +
     'barque hérissée de rames fond sur la barge, son équipage prêt à l’abordage. Entre les deux coques, l’onde se ' +

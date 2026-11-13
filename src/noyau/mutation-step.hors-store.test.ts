@@ -1,19 +1,20 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyMutation, gainCorruption, mutationNatureTableId, mutationTableIdFor } from './corruptionFlow';
+import { applyMutation, gainCorruption, mutationTableIdFor } from './corruptionFlow';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
-import { facesDuDe } from '../engine/tables';
+import { deDeLaTableTiree } from '../engine/tables';
 import {
-  mutationKindFor, mutationNatureRows, attachMutation, mutationLimitExceeded, corruptionThresholdExceeded,
+  mutationKindFor, attachMutation, mutationLimitExceeded, corruptionThresholdExceeded,
 } from '../engine/corruption';
 import {
   mutationTableIds, mutationAt, mutationSubTableFor, mutationTableDie, mutationTableRows, rollMutation,
 } from '../data/mutations';
-import { species } from '../data';
+import { mutationNature, natureDeMutationDe, species } from '../data';
+import { setDataset, resetData } from '../data/overrides';
 import { createHero } from '../engine/character';
 import { setDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from './netOwnership';
@@ -75,29 +76,56 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
       const def = tableStepDef(id)!;
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(mutationTableRows(id)); // par RÉFÉRENCE : zéro duplication de fourchettes
-      expect(def.die).toBe(facesDuDe(mutationTableDie(id))); // le dé de la DONNÉE (`die`)
+      expect(def.die).toEqual(mutationTableDie(id)); // le dé de la DONNÉE (`die`)
       // La ligne d'affichage est le libellé de la mutation atteinte par le dé (lookup moteur).
       const row = def.rows[0];
       expect(def.lines(row.min)[0]).toBe(mutationAt(id, row.min).label);
     }
   });
 
-  it('registre : une table « corps ou esprit » par SEUIL d’espèce, et son dé concorde avec le lookup moteur', () => {
-    // Toutes les espèces de la donnée (Elfe 0, Nain 5, Halfling/Ogre 10, Humain 50…) ont leur table.
-    for (const sp of species) {
-      const def = tableStepDef(mutationNatureTableId(sp.id))!;
-      expect(def, `espèce « ${sp.id} » sans table de nature`).toBeDefined();
-      expect(def.rows).toBe(mutationNatureRows(sp.id)); // les lignes du Tableau viennent du MOTEUR
+  it('registre : une table « corps ou esprit » par document de mutation-nature.json, à son dé, et son dé concorde avec le lookup moteur (LDB 19 l.76-81)', () => {
+    for (const doc of mutationNature) {
+      const def = tableStepDef(doc.id)!;
+      expect(def, `document « ${doc.id} » sans table de nature`).toBeDefined();
+      expect(def.rows).toBe(doc.entries); // les lignes du tableau sont celles de la DONNÉE, par référence
+      expect(def.die).toEqual(deDeLaTableTiree(doc));
     }
-    // Elfe : « Esprit 01-100 » — une seule ligne, aucune ligne Corps (LDB 19 l.78-81).
-    const elfe = tableStepDef(mutationNatureTableId('hauts-elfes'))!;
-    expect(elfe.rows.map((r) => r.id)).toEqual(['mentale']);
-    // Sur TOUT le dé et pour chaque seuil distinct, l'id de ligne EST la nature du moteur.
-    for (const sp of ['hauts-elfes', 'nains', 'halflings', HUMAIN]) {
-      const decl = { tableId: mutationNatureTableId(sp), spec: { n: 1, sides: 100 } };
+    // Chaque espèce tire au document de sa race (`refChar`).
+    for (const sp of species) expect(natureDeMutationDe(sp.id).race, sp.id).toBe(sp.refChar);
+    // Sur TOUT le dé et pour chaque race, l'id de ligne EST la nature du moteur.
+    for (const sp of ['hauts-elfes', 'nains', 'halflings', 'ogres', 'gnomes', HUMAIN]) {
+      const doc = natureDeMutationDe(sp);
+      const decl = { tableId: doc.id };
       for (let die = 1; die <= 100; die++) {
         expect(rollTableStep({ ...decl, forcedRoll: die }, makeRNG(1)).id, `${sp} @${die}`).toBe(mutationKindFor(sp, die));
       }
+    }
+  });
+
+  it('le dé de l’étape de nature est celui du document de la race : surchargé à d10, le naturel reste ≤ 10 (#1667)', () => {
+    const hero = heroSolo('nains');
+    const doc = natureDeMutationDe(hero.species);
+    setDataset('mutationNature', mutationNature.map((d) => (d.id === doc.id ? { ...d, die: 'd10' } : d)));
+    try {
+      applyMutation(banc.getState, banc.setState, hero);
+      const nature = banc.getState().pendingCascade!.participants[0];
+      expect(nature.table).toMatchObject({ tableId: doc.id });
+      const naturels = Array.from({ length: 40 }, (_, s) => rollTableStep(nature.table!, makeRNG(s + 1)).roll);
+      expect(Math.max(...naturels)).toBeLessThanOrEqual(10);
+      expect(Math.min(...naturels)).toBeGreaterThanOrEqual(1);
+    } finally {
+      resetData();
+    }
+  });
+
+  it('registre : surchargé à d10, `TableStepDef.die` = 1d10 ; un id renommé est tirable sous son id neuf (#1667)', () => {
+    const doc = natureDeMutationDe('nains');
+    const avant = tableStepDef(doc.id)!.die;
+    setDataset('mutationNature', mutationNature.map((d) => (d.id === doc.id ? { ...d, id: 'nature-neuve', die: 'd10' } : d)));
+    try {
+      expect([avant, tableStepDef('nature-neuve')?.die]).toEqual([{ n: 1, sides: 100 }, { n: 1, sides: 10 }]);
+    } finally {
+      resetData();
     }
   });
 
@@ -164,7 +192,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('mutationNature');
     expect(stepInteraction(step)).toBe('table'); // dé À POSER → les deux affordances de la modale
-    expect(step.table).toMatchObject({ tableId: mutationNatureTableId(hero.species), spec: { n: 1, sides: 100 } });
+    expect(step.table).toMatchObject({ tableId: natureDeMutationDe(hero.species).id });
     expect(step.table!.result).toBeUndefined();
     expect(hero.mutations ?? []).toHaveLength(0);
   });

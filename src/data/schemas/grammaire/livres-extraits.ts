@@ -9,11 +9,13 @@
  */
 import booksJson from '../../books.json';
 import { memoParVersion } from '../../versionDataset';
-import { estLivreExtrait, type EntreeDeLivre } from '../../source/livre-extrait';
+import { estLivreExtrait } from '../../source/livre-extrait';
+import { datasetDe } from '../../datasets';
+import type * as booksDef from '../defs/books';
 
 /** Ids des livres EXTRAITS du registre vivant. */
 export const extraits = memoParVersion('books', (): ReadonlySet<string> => new Set(
-  (booksJson as (EntreeDeLivre & { id: string })[])
+  datasetDe<typeof booksDef>(booksJson)
     .filter(estLivreExtrait)
     .map((b) => b.id),
 ));

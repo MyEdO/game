@@ -232,7 +232,7 @@ export type EncounterDef = z.infer<typeof encounterDefSchema>;
 /** Une COUCHE. `tiles` est ÉLARGI à `Terrain` (= `string`) : `refs('terrain')` BRANDE les ids qu'il rend,
  *  et cette marque est un verdict de PARSE (une tuile hors de `terrains.json` est refusée nommément) —
  *  l'authoring TS (`asciiMap`, `legend`, `terrainRects`) n'est pas parsé et écrit des chaînes nues.
- *  Même patron d'élargissement que `EnveloppeDocument` (`grammaire/document.ts`) et `AxesData`. */
+ *  Même patron d'élargissement que `EnveloppeDocument` (`grammaire/document.ts`). */
 export type Layer = Omit<z.infer<typeof layerSchema>, 'tiles'> & { tiles: Terrain[] };
 
 export type ZoneArea = z.infer<typeof zoneAreaSchema>;
@@ -400,6 +400,14 @@ export const CHAMPS_DU_VOLUME = ['dimensions', 'metresPerTile', 'reliefDefaults'
 /** La scène vue par son volume (`CHAMPS_DU_VOLUME`). */
 export type SceneDuVolume = Pick<Scene, (typeof CHAMPS_DU_VOLUME)[number]>;
 
+/** Les champs de la scène que lisent ses audits d'auteur spatiaux — défauts de plan (`scenePlanDefects`) et pièces
+ *  inatteignables (`unreachableDescriptiveZones`) : ceux du volume (marche, relief, murs, décors, drapeaux) et les zones
+ *  d'effet. Les dépendances de leurs mémos en sont tirées (`champsDuPlan`). */
+export const CHAMPS_DU_PLAN = [...CHAMPS_DU_VOLUME, 'effectZones'] as const;
+
+/** Les valeurs des `CHAMPS_DU_PLAN` de `scene`, dans leur ordre : une écriture qui n'en touche aucun les rend identiques. */
+export const champsDuPlan = (scene: Scene): readonly unknown[] => CHAMPS_DU_PLAN.map((c) => scene[c]);
+
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
 /** Échelle métrique d'une case (m/case), LDB 15 l.12 : source UNIQUE, que lisent la couche Mer et le plateau d'un hôte. PUR. */
@@ -452,6 +460,17 @@ export function heightAt(scene: SceneDuVolume, x: number, y: number, z = 0): num
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return 0;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
   return layer.height?.[y * scene.dimensions.w + x] ?? 0;
+}
+
+/** Le plafond (m) de la case `p` : le plus bas des sols posés plus haut que le sien sur une couche au-dessus de la
+ *  sienne, dans sa colonne ; `Infinity` à ciel ouvert. PUR. */
+export function plafondDe(scene: SceneDuVolume, p: Pt): number {
+  const sol = heightAt(scene, p.x, p.y, p.z ?? 0);
+  const dessus = scene.layers
+    .filter((l) => l.z > (p.z ?? 0) && !estAbsent(tileAt(scene, p.x, p.y, l.z)))
+    .map((l) => heightAt(scene, p.x, p.y, l.z))
+    .filter((h) => h > sol);
+  return Math.min(Infinity, ...dessus);
 }
 
 /**
@@ -828,6 +847,14 @@ function structureOccultante(id?: string): boolean {
  *  (`wallBetween` ne lit jamais ce prédicat — on voit à travers une herse, on ne la traverse pas). */
 export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
   return !wallIsOpen(scene, seg) && !(seg.window && !seg.shuttered) && structureOccultante(seg.structure);
+}
+
+/** Arête (case, side N/E/S/O) → forme CANONIQUE de stockage (case, N|E) : le `S` de (x,y) est le `N` de (x,y+1), le `O`
+ *  de (x,y) le `E` de (x-1,y). */
+export function canonEdge(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
+  if (side === 'S') return { x, y: y + 1, side: 'N' };
+  if (side === 'O') return { x: x - 1, y, side: 'E' };
+  return { x, y, side };
 }
 
 /** Arête CANONIQUE (cellule + side N/E) séparant deux cases ADJACENTES en cardinal — null si non

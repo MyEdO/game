@@ -38,7 +38,7 @@ import type { CrewTarget } from '../../../data/shipCriticals';
 import { NumberField } from '../../NumberField';
 import { ProseField } from '../../ProseField';
 import { OptionChooser } from '../../OptionChooser';
-import type { OptionalRule, RuleValue } from '../../../engine/policy';
+import type { OptionalRule, RuleKind, RuleValue } from '../../../engine/policy';
 import { IconField } from '../worldMapPickers';
 
 const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
@@ -849,8 +849,8 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /** Le sous-ensemble de la règle qui pilote le contrôle rendu (jamais l'entrée entière : cet éditeur
- *  ne lit ni ne modifie autre chose que la valeur). */
-export type RuleShape = Pick<OptionalRule, 'kind' | 'options' | 'min' | 'max' | 'step'>;
+ *  ne lit ni ne modifie autre chose que la valeur), lâche : elle décrit l'entrée en cours d'édition, avant sa validation. */
+export type RuleShape = { kind: RuleKind; options?: readonly string[]; min?: number; max?: number; step?: number };
 
 export function RuleValueField({ id, label, rule, value, onChange }: {
   id: string; label: string; rule: RuleShape; value: RuleValue | undefined; onChange: (v: RuleValue) => void;

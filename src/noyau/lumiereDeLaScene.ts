@@ -7,6 +7,7 @@
  * règle ne les chiffre. Repère des builders : X = est, Y = haut, Z = sud, en cases.
  */
 import { ambiance, DEFAULT_LIGHT_TONE_ID, findLightToneById, type LightToneDef, type VisuelDeLumiere } from '../data';
+import type { EntreeVivante } from '../data/datasets';
 import { sonDEffet, type SonDEffet } from '../data/sons/registre';
 import { parseHex } from '../lib/couleurHex';
 import type { Regard } from './monde/aretes';
@@ -37,7 +38,7 @@ const AMBIANTE_INTERIEURE = '#e8c9a0';
 /** Énergie d'une source de ton d'intensité 1. */
 const ENERGIE_DES_SOURCES = 2.5;
 /** Le ton de repli visible d'un id hors de `lightTones.json` : la couleur d'alarme, sans vacillement. */
-const TON_HORS_CATALOGUE: LightToneDef = { id: MISSING_ID, type: 'lightTones', label: MISSING_LABEL, color: MISSING_TONE, intensity: 1 };
+const TON_HORS_CATALOGUE: EntreeVivante<LightToneDef> = { id: MISSING_ID, type: 'lightTones', label: MISSING_LABEL, color: MISSING_TONE, intensity: 1 };
 
 export interface SourceDeLumiere {
   /** Sa clé, la même d'une vue à l'autre : ce qui la porte (`LightSource.srcId`), posé (`posee/<id>`) ou qui se
@@ -59,7 +60,7 @@ export interface SourceDeLumiere {
 }
 
 /** La source du ton `ton` (`lightTones.json`) au foyer `foyer`, sous sa clé, qui éclaire `rayonCases` cases. */
-export function sourceDuTon(ton: LightToneDef, foyer: Pick<SourceDeLumiere, 'cle' | 'x' | 'y' | 'z' | 'hM'>, rayonCases: number): SourceDeLumiere {
+export function sourceDuTon(ton: EntreeVivante<LightToneDef>, foyer: Pick<SourceDeLumiere, 'cle' | 'x' | 'y' | 'z' | 'hM'>, rayonCases: number): SourceDeLumiere {
   return {
     ...foyer,
     rayonCases,

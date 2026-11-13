@@ -60,7 +60,7 @@ describe('reposAsPoste — « Repos » est une LIGNE ÉPINGLABLE du roster', () 
   });
 
   it('il reste HORS du catalogue MDG 14 : aucun rôle du livre ne porte son id', () => {
-    expect(crewRoles.some((r) => r.id === BENCHED), 'le dataset d’un livre ne reçoit pas d’entrée maison').toBe(false);
+    expect(crewRoles.map((r) => r.id), 'le dataset d’un livre ne reçoit pas d’entrée maison').not.toContain(BENCHED);
   });
 
   it('son libellé est « Repos »', () => {

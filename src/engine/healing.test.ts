@@ -69,20 +69,16 @@ describe('engine/healing — gate compétence & cibles', () => {
     expect(availableHealModes({ ...t, soinRencontreUtilise: true })).toEqual(['hemorragie']);
   });
 
-  it('healableTargets (combat) : soi + alliés adjacents (Chebyshev ≤ 1), inconscient inclus', () => {
-    const healer = hero({ wounds: blessuresDeBase(12), pos: { x: 2, y: 2 } }); // plein PB → pas auto-soignable
-    const adj = hero({ id: 'a', wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], pos: { x: 3, y: 2 } });
-    const far = hero({ id: 'f', wounds: blessuresDeBase(12, 1), pos: { x: 8, y: 8 } });
-    const ids = healableTargets(healer, [healer, adj, far], { adjacency: true }).map((c) => c.id);
-    expect(ids).toContain('a');
-    expect(ids).not.toContain('f');
-    expect(ids).not.toContain('h'); // healer plein PB, pas hémorragique → pas soignable
+  it('healableTargets : les soignables du pool, inconscient inclus', () => {
+    const healer = hero({ wounds: blessuresDeBase(12) }); // plein PB → pas auto-soignable
+    const blesse = hero({ id: 'a', wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }] });
+    const ids = healableTargets([healer, blesse]).map((c) => c.id);
+    expect(ids).toEqual(['a']);
   });
 
   it('healableTargets : un soigneur blessé peut se soigner lui-même (auto-soin)', () => {
-    const healer = hero({ wounds: blessuresDeBase(12, 8), pos: { x: 2, y: 2 } });
-    const ids = healableTargets(healer, [healer], { adjacency: true }).map((c) => c.id);
-    expect(ids).toContain('h');
+    const healer = hero({ wounds: blessuresDeBase(12, 8) });
+    expect(healableTargets([healer]).map((c) => c.id)).toContain('h');
   });
 });
 

@@ -5,7 +5,7 @@ import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES, mecaniqueDe } from './mecanique';
-import { applyOps, messageRecurrenceHorloge, SELF_REF } from '../../../engine/ops';
+import { applyOps, messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
 import type { Combatant } from '../../../engine/types';
@@ -146,8 +146,8 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('`skillDRBonus` : cible EXCLUSIVE — `skill` OU `testType`, jamais les deux, jamais aucune, refus NOMMÉ', () => {
     expect(gameOpSchema.safeParse({ op: 'skillDRBonus', skill: { id: 'calme' }, bonus: 1 }).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: 'progression-poursuite', bonus: 1 }).success).toBe(true);
-    for (const cible of [{ skill: { id: 'calme' }, testType: 'progression-poursuite' }, {}]) {
+    expect(gameOpSchema.safeParse({ op: 'skillDRBonus', testType: { id: 'progression-poursuite' }, bonus: 1 }).success).toBe(true);
+    for (const cible of [{ skill: { id: 'calme' }, testType: { id: 'progression-poursuite' } }, {}]) {
       const res = gameOpSchema.safeParse({ op: 'skillDRBonus', ...cible, bonus: 1 });
       expect(res.success).toBe(false);
       expect(res.error!.issues.map((i) => i.code)).toEqual(['invalid_union']);
@@ -175,6 +175,15 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     // Les ops de rangée sont PARSÉES : une op fantôme sous `entries` est refusée à son chemin.
     const imbriquee = gameOpSchema.safeParse({ op: 'rollTable', die: 'd10', entries: [{ min: 1, max: 10, ops: [{ op: 'contractDisease', disease: 'maladie-fantome' }] }] });
     expect(imbriquee.error!.issues.map((i) => i.path.join('.'))).toEqual(['entries.0.ops.0.disease']);
+  });
+
+  // VDM 12 l.920 ; #4095 : sous `tableId`, le dé est celui de la table.
+  it('`rollTable` à `tableId` ne porte pas de `die`, au type comme au schéma', () => {
+    // @ts-expect-error -- `die?: never` sur la variante `tableId`.
+    const op: GameOp = { op: 'rollTable', die: 'd10', tableId: 'vdm-maladie-coups-de-poing-maudits' };
+    const res = gameOpSchema.safeParse(op);
+    expect(res.success).toBe(false);
+    expect(JSON.stringify(res.error!.issues)).toMatch(/die/);
   });
 
   /** `withArg` (`noyau/triggeredEffects`) écarte l'op dont l'instance n'a pas le paramètre : seul un champ
@@ -225,7 +234,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       expect(champs.has(k), k).toBe(true);
     }
     // `entries`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
-    for (const k of ['rollTable.entries', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'skillDRBonus.testType']) {
+    for (const k of ['rollTable.entries', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive']) {
       expect(champs.has(k), k).toBe(false);
     }
   });

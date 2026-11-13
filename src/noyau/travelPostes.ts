@@ -24,7 +24,6 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel, testSkillLabel, weatherStakeRef, voyageStakeRef } from '../data';
 import { stageEncounterCategory } from '../engine/travelEncounter';
 import { encounterTable, rollEncounter, encounterDie, type EncounterCategory } from '../engine/travelTables';
-import { facesDuDe } from '../engine/tables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
@@ -425,7 +424,7 @@ export const TABLES = {
       if (bilan.pleinAir && jours.length) jours[jours.length - 1].pleinAir = true;
       const rencontre = bilan.rencontre ? tableStep({
         id: 'etape-rencontre', kind: 'etapeRencontre', worldOwner: true, icon: 'interface/attention', label: t(ENCOUNTER_KEY[bilan.rencontre]),
-        table: { tableId: tableDeRencontre(bilan.rencontre), spec: encounterDie() },
+        table: { tableId: tableDeRencontre(bilan.rencontre) },
         stake: voyageStakeRef('etape-rencontre'),
       }) : undefined;
       return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert: [...(rencontre ? [rencontre] : []), ...(bilan.pleinAir ? [] : buildExposureSteps(get(), plan.stage))] };
@@ -470,7 +469,7 @@ export const TABLES = {
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   tablesTirables: Object.fromEntries(CATEGORIES_DE_RENCONTRE.map((c) => [tableDeRencontre(c), {
     label: t(ENCOUNTER_KEY[c]),
-    get die() { return facesDuDe(encounterDie()); },
+    get die() { return encounterDie(); },
     get rows() { return encounterTable(c).map(({ id, min, max, label }) => ({ id, min, max, label })); },
     lines: (roll: number) => {
       const e = rollEncounter(c, roll);

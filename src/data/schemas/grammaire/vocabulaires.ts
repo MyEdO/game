@@ -26,15 +26,22 @@ function tableDe(noeud: unknown, nom: string): Readonly<Record<string, string>> 
 }
 
 /** Chaque vocabulaire, par son nom d'espace. Difficultés : `LDB 12 l.143-151` ; Expositions :
- *  `LDB 19 l.33-56` ; Tailles : `LDB 85 l.348-354`. */
+ *  `LDB 19 l.33-56` ; Tailles : `LDB 85 l.348-354`. Colonnes du marchand : `merchantFamilies.json › columns`,
+ *  rendues par `MERCHANT_COL_RENDERERS` (`src/noyau/colonnesDuMarchand.ts`). */
 export const VOCABULAIRES = {
   difficultes: DIFFICULTY_NAMES,
   expositions: tableDe(exposureLevelSchema, 'expositions'),
   tailles: SIZE_LABEL,
+  colonnesDuMarchand: {
+    damage: 'Dégâts', reach: 'Allonge', range: 'Portée', protection: 'Protection', pa: 'PA', availability: 'Disponibilité', capacity: 'Capacité',
+  },
   ...VOCABULAIRES_D_ART,
 } as const satisfies Record<string, Readonly<Record<string, string>>>;
 
 export type NomDeVocabulaire = keyof typeof VOCABULAIRES;
+
+/** Id d'une colonne de stats du marchand. */
+export type IdDeColonneDuMarchand = keyof typeof VOCABULAIRES.colonnesDuMarchand;
 
 /** Lecture de l'espace `cle` quand c'est un vocabulaire : ses ids, ou ses libellés (sans doublon), dans
  *  l'ordre de la table ; `undefined` pour une clé de document. LÈVE sur un vocabulaire inconnu, une

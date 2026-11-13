@@ -65,7 +65,7 @@ describe('Classe Côtier — swap Riverains ↔ Côtiers (MDG 09 l.9, table l.21
     for (const swap of [false, true]) {
       for (let r = 1; r <= 100; r++) {
         const ids = tire('humains-reiklander', swap, r);
-        const classes = new Set(ids.map((id) => findCareerById(id)!.class.id));
+        const classes = new Set<string>(ids.map((id) => findCareerById(id)!.class.id));
         expect(classes.has('riverains') && classes.has('cotiers'), `d100=${r} swap=${swap}`).toBe(false);
       }
     }

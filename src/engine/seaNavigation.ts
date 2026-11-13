@@ -37,6 +37,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { d10, rollDice, type RNG, type Tirage } from './dice';
 import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
+import type { Id } from '../data/schemas/grammaire/ref';
 import { testValue } from './skills';
 
 type Per = 'heure' | 'minute' | 'round';
@@ -54,7 +55,7 @@ const DATA = seaNavJson as unknown as {
     changementDeCap: { die: string; entries: (BandeOuverte & { outcome: CourseChangeOutcome; delayPct?: number; desc: string })[] };
   };
   phares: { voirLaLumiere: (BandeOuverte & { difficulty: Difficulty })[]; perilSpotBonus: number; clocher: { orientationDR: number; distanceDiviseur: number } };
-  longsVoyages: { millesParJourParM: number; sansVoguerDeNuitDiviseur: number; progressionPctParDR: number; rationDeCale: { id: string }; tonneauDeCale: { id: string } };
+  longsVoyages: { millesParJourParM: number; sansVoguerDeNuitDiviseur: number; progressionPctParDR: number; vivresDeCale: { id: Id<'trapping'> }[]; tonneauDeCale: { id: string } };
   poursuite: {
     distanceUnitM: number;
     escapeDistances: { id: string; label: string; distance: number }[];
@@ -84,8 +85,8 @@ const tables = memoParVersion('seaNavigation', () => ({
 
 export const WORK_PERIOD_HOURS = DATA.workPeriodHours;
 export const REPARATION = DATA.reparation;
-/** Les objets que le port vend pour la cale du navire : la ration-jour et le tonneau d'eau douce. MDG 14 l.248-252 */
-export const VIVRES_DE_CALE = { ration: DATA.longsVoyages.rationDeCale.id, tonneau: DATA.longsVoyages.tonneauDeCale.id };
+/** Les vivres de la cale, dans l'ordre où l'équipage les mange, et le tonneau d'eau douce. MDG 14 l.238, l.248-252, l.263 */
+export const VIVRES_DE_CALE = { vivres: DATA.longsVoyages.vivresDeCale.map((v) => v.id), tonneau: DATA.longsVoyages.tonneauDeCale.id };
 
 /** Bonus de Savoir (Océans) aux Tests de NAVIGATION en mer (MDG 13 l.20) : « le premier chiffre de leur score
  *  de Compétence » (36 → +3). 0 si la Compétence n'est pas ACQUISE (le bonus récompense une formation,

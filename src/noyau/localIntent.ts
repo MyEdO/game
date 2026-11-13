@@ -24,6 +24,7 @@ import { armerLOffre, refusDuGeste } from './actionRegistry';
 import type { VerbesDeLaBarre } from './actionsDuNoyau';
 import type { IdDIntention } from './designations';
 import type { OptionsDuClic } from './targetingModes';
+import type { PorteeDIntention } from '../data/schemas/defs/actions';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
 export interface LocalIntent {
@@ -40,7 +41,7 @@ export interface LocalIntent {
  *  module y valait `undefined`, et toute portée d'intention se peignait VIDE (mesuré 2026-08-19 :
  *  `intention-portee` rouge, « expected [] to deeply equal [207 cases] »). Résolues à l'APPEL, elles
  *  sont insensibles à l'ordre d'évaluation des modules. */
-export const INTENT_REACH: Record<string, ((get: Get<Jeu>) => Map<string, number>) | null> = {
+export const INTENT_REACH: Record<PorteeDIntention, ((get: Get<Jeu>) => Map<string, number>) | null> = {
   'portee-mouvement': (get) => displayedReach(get),
   'portee-course': null,
   'portee-charge': (get) => computeChargeReach(get),
@@ -63,12 +64,12 @@ export function intentionLocale(get: Get<Jeu>): IdDIntention | null {
 
 /** Id de PORTÉE de l'offre `actionId` (`intent` de son action), ou `null` : la seule lecture par laquelle le champ et
  *  le clic apprennent ce qu'une intention arme. */
-function porteeDeLIntention(actionId: string | null): string | null {
+function porteeDeLIntention(actionId: string | null): PorteeDIntention | null {
   return (actionId ? findActionById(actionId)?.intent : undefined) ?? null;
 }
 
 /** Id de PORTÉE de l'intention armée du propriétaire (`intentionDuProprietaire`), ou `null`. */
-export function armedIntentPortee(get: Get<Jeu>): string | null {
+export function armedIntentPortee(get: Get<Jeu>): PorteeDIntention | null {
   return porteeDeLIntention(intentionDuProprietaire(get)?.actionId ?? null);
 }
 
@@ -82,12 +83,12 @@ export function intentReach(get: Get<Jeu>): Map<string, number> {
 
 /** Portée d'ARME : l'intention qui délègue son affichage aux BANDES DE TIR existantes (`rangeBand`),
  *  au lieu d'ouvrir une 2ᵉ écriture de la même vérité. */
-export const PORTEE_ARME = 'portee-arme';
+export const PORTEE_ARME = 'portee-arme' satisfies PorteeDIntention;
 
 /** Portée de COURSE : même délégation, vers la ZONE DE COURSE du champ (`HighlightsView.runReach`,
  *  nature `run`). Depuis l'arbitrage du 2026-08-19 cette zone ne se peint plus d'office : elle est
  *  l'affordance de l'intention armée, et se peint EXACTEMENT quand cette intention l'est. */
-export const PORTEE_COURSE = 'portee-course';
+export const PORTEE_COURSE = 'portee-course' satisfies PorteeDIntention;
 
 /** L'intention `intentionId` débloque-t-elle la zone de COURSE (spec § 2026-08-19) ? Lue par le champ (peinture) sur
  *  l'intention locale, par le clic (commit) sur celle du clic (`intentionDuClic`). */
@@ -107,7 +108,7 @@ export function porteesDuTour(get: Get<Jeu>, monTour: boolean): { intention: Map
 }
 
 /** L'intention `intentionId` arme-t-elle l'APPROCHE vers un ennemi (Charge, spec § 2026-08-19) ? */
-export const PORTEE_CHARGE = 'portee-charge';
+export const PORTEE_CHARGE = 'portee-charge' satisfies PorteeDIntention;
 export function chargeArmee(intentionId: IdDIntention | null): boolean {
   return porteeDeLIntention(intentionId) === PORTEE_CHARGE;
 }
