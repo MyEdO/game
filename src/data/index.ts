@@ -14,16 +14,17 @@ import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { DotationDeMention, DotationDePossession, Somme } from './schemas/grammaire/reference';
+import type { DotationDeMention, DotationDePossession, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema, type specsSourceSchema } from './schemas/grammaire/valeurs';
+import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema, type specsSourceSchema, type CountSpec } from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { z } from 'zod';
 import type { traitCapabilitiesSchema } from './schemas/defs/traits';
-import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
+import type { Flow } from './schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { estObjet } from '../lib/objet.mjs';
@@ -99,6 +100,7 @@ import type * as booksDef from './schemas/defs/books';
 import { books } from './livres';
 import type * as vehiclesDef from './schemas/defs/vehicles';
 import type * as qualitiesDef from './schemas/defs/qualities';
+import type { qualityCapabilitiesSchema } from './schemas/defs/qualities';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
 import { datasetDe, type DatasetDe, type EntreeDe } from './datasets';
@@ -225,7 +227,7 @@ import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availabi
 import type { MutationData } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from './schemas/defs/maladies';
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
-import { type DiceSpec, formatDice } from '../engine/dice';
+import { formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
 import { sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
 import type { VarianteDeCible } from './schemas/grammaire/valeurs';
@@ -968,7 +970,7 @@ export interface TrappingData {
    *  enchantements d'arme et les traits) : Canon à flammes nain — « 2 + DR États En flammes à chaque cible
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
-  onHitEffects?: import('../engine/flowCore').TriggeredEffect[];
+  onHitEffects?: TriggeredEffect[];
   /** PORTÉE MINIMALE de tir (bande) : la cible plus proche que cette bande REFUSE le tir (≠ malus). Machines
    *  de siège à distance = `'courte'` (pas de Bout Portant, ADE II 8 l.253) ; trébuchet/mortier =
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
@@ -1510,77 +1512,10 @@ export interface TraitData {
    *  alors que sa prose donne une mécanique (#1011). Jamais lu par le moteur. */
   maison?: string;
 }
-/** Drapeaux/marqueurs de CAPACITÉ IRRÉDUCTIBLES d'une qualité d'arme/armure/objet (LDB 62-63) — règles
- *  que le moteur INTERROGE (résolution de combat, économie d'artisanat) : NI un modificateur (`passive`)
- *  NI un effet déclenché (`effects`). Lus PAR ID par `engine/qualities/dispatch`.
- *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) sont portés par l'instance (`QualityInstance.value`)
- *  — la capability n'est qu'un marqueur de PRÉSENCE, jamais le porteur de l'Indice. Édité au Codex. */
-export interface QualityCapabilities {
-  // Résolution de combat (mêlée)
-  fastStrike?: boolean;   // Rapide : pré-emption d'initiative + −10 parade adverse non-Rapide
-  slowStrike?: boolean;   // Lente : frappe en dernier
-  fumbleOn9?: boolean;    // Dangereuse : Maladresse sur tout Test raté incluant un 9
-  fumbleDigits?: number[]; // Seuil de Maladresse paramétrable (chiffre en dizaines OU unités) — AA 08 l.544
-  pushback?: boolean;     // Perturbante : repousse au lieu de blesser
-  piegeALame?: boolean;    // Piège-lame : piéger/briser une lame sur un Critique défensif
-  damagesArmour?: boolean;// Taille : endommage l'armure/le bouclier frappé
-  // (Taillade « État sur Critique » n'est PLUS une capability : `effects:[{trigger:'onCrit'}]` data-driven.)
-  // Armes à feu / chargeurs
-  firearm?: boolean;            // Poudre noire / Explosion : Incident de Tir + terreur (Nerveux)
-  canFireWhileEngaged?: boolean;// Pistolet : tir au contact
-  magazine?: boolean;           // À Répétition : chargeur (Indice)
-  salvo?: number;               // Salve : chargeur (Indice), pénalité de chaque tir suivant du Round
-  areaFire?: boolean;           // Tir de zone : nuage de projectiles (Indice)
-  explosion?: boolean;          // À Explosion : tous à Indice m du point cible subissent DR+Dégâts + États de l'arme (LDB 62 l.254)
-  crewedTeam?: number;          // Arme d'équipe : sous-effectif (Indice), pénalité par Défaut redoublé
-  parryAP?: boolean;            // Protectrice : Indice PA en opposant (Indice)
-  // Objet / artisanat (LDB 60)
-  encDelta?: number;            // Léger −1 / Volumineux +1 Encombrement
-  // Armure (LDB 63)
-  layerable?: boolean;          // Flexible : superposition sous une couche non Flexible
-  apIgnoredOnEven?: boolean;    // Partielle : PA ignorés sur jet pair ou Critique
-  apIgnoredOnImpaleCrit?: boolean; // Points faibles : PA ignorés sur Critique Empaleuse
-  // Siège (ADE II 8)
-  siege?: boolean;              // Atout Siège : double les Dégâts aux structures, outrepasse Résistant/Impénétrable
-  ram?: boolean;                // Bélier : la pièce n'endommage QUE les portes (ADE II 8 l.249) — lu par engine/structures
-  // Marqueurs
-  unbreakable?: boolean;        // Incassable : insensible aux dégâts/destruction
-  magic?: boolean;              // Magique : attaques magiques (blesse l'Éthéré)
-  withheldOnRestraint?: boolean; // Retirée quand on Retient ses coups (AA 07 l.61 — Empaleuse/Percutante/Perforante)
-  /** Préséance : cette qualité l'emporte sur les `beats` (ids) si toutes deux présentes (Imprécise > Précise, Lente > Rapide). */
-  beats?: string[];
-}
-/** Atout/Défaut d'arme (LDB 62-63) : libellé + desc VERBATIM + effets déclenchés authorés (mêmes
- *  `TriggeredEffect` que les Traits — un Atout « à la touche : 1d10 + Empêtré » s'édite au Codex). */
-export interface QualityData {
-  /** id STABLE (slug du libellé) — cible des `RefDesignee` de qualité, robuste au renommage. */
-  id: string;
-  type: 'qualities';
-  label: string;
-  /** POLARITÉ : Atout (bénéfique) / Défaut (handicap) — `id` de `qualityTypes.json`. Trois PAIRES de
-   *  rubriques : objet `LDB 60 l.9`/`l.40`, arme `LDB 62 l.217`/`l.309`, armure `LDB 63 l.68`/`l.80`. */
-  polarite: 'atout' | 'defaut';
-  subType: EntreeDe<typeof qualitiesDef>['subType'];
-  desc: string;
-  source?: SourceRef;
-  /** Emplacement SECONDAIRE (#563) — même Qualité réimprimée/à cheval ailleurs (ex. Tir de zone :
-   *  AA 89 + MDG 102). Accessors `allLocations`/`sourceBooks` (`src/data/sourceRefs.ts`). */
-  alsoIn?: SecondaryRef[];
-  effects?: TriggeredEffect[];
-  /** Modificateurs PASSIFS continus (objet Laid : −10 aux Tests de Soc ; PASSIFS d'arme : weaponRollMod/
-   *  weaponDamageMod/armourPierce/critOnRoll) en `OpPassive[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
-   *  traits et les sorts ; lus par `engine/qualities/dispatch` (par id) et le collecteur passif. */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Drapeaux/marqueurs de CAPACITÉ irréductibles (résolution combat, artisanat) — lus PAR ID par
-   *  `engine/qualities/dispatch`. Édité au Codex. */
-  capabilities?: QualityCapabilities;
-  /** Cette qualité est INDICÉE (LDB 60 l.28) — forme de `TraitData.indice`, plus l'UNITÉ imprimée avec
-   *  la valeur quand le livre en pose une (`AA 08 l.87` « Taillade (XA) » ; `LDB 62 l.66` « Recharge 1 »
-   *  n'en a pas). Lue par `qualityRefLabel`. */
-  indice?: { label: string; unite?: string };
-  /** Qualité d'ASPECT (LDB 60 l.24 ; LDB 60 l.52) : une apparence d'objet peut naître d'elle (`defs/apparences.ts`). */
-  aspect?: true;
-}
+/** Capacités irréductibles d'une qualité (`qualityCapabilitiesSchema`, `schemas/defs/qualities.ts`). */
+export type QualityCapabilities = z.output<typeof qualityCapabilitiesSchema>;
+/** Atout/Défaut d'arme, d'armure ou d'objet. LDB 60 ; LDB 62-63 */
+export type QualityData = EntreeDe<typeof qualitiesDef>;
 /** Capacités IRRÉDUCTIBLES d'un symptôme de maladie — drapeaux lus par la machinerie de cycle
  *  (`engine/disease`), pour les comportements non exprimables en GameOp continu. */
 export interface SymptomCapabilities {
@@ -1961,7 +1896,7 @@ export const traitIdByLabel = (label: string): string | undefined => traitParLab
 const traitParId = indexParId('traits', traits);
 /** Trait par `id` STABLE (slug) — lookup runtime indépendant de la langue. */
 export const findTraitById: (id: string) => TraitData | undefined = traitParId;
-export const qualities = qualitiesJson as QualityData[];
+export const qualities = datasetDe<typeof qualitiesDef>(qualitiesJson);
 /** Index des Atouts/Défauts par `id` STABLE (slug) — lookup runtime indépendant de la langue (dispatch). */
 const qualiteParId = indexParId('qualities', qualities);
 /** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
@@ -1973,10 +1908,11 @@ export const fabricationAtouts = memoParVersion('qualities', (): string[] =>
 /** Atout de fabrication par DÉFAUT (fallback maison quand le joueur ne choisit pas ; le RAW n'en fixe
  *  aucun — un objet de qualité a toujours UN Atout, LDB 60 l.11). */
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
-/** `QualityRef` d'un Atout de fabrication résolu — une qualité INDICÉE (`indice`) prend l'Indice 1
- *  par défaut d'un Atout UNIQUE de fabrication (Solide « encaisse Indice PdD », LDB 60 l.30). */
-export function fabricationAtoutQuality(id: string): { id: string; value?: number } {
-  return qualiteParId(id)?.indice ? { id, value: 1 } : { id };
+/** `QualityRef` d'un Atout de fabrication résolu au registre, `undefined` hors registre — une qualité INDICÉE
+ *  (`indice`) prend l'Indice 1 par défaut d'un Atout UNIQUE de fabrication (LDB 60 l.30). */
+export function fabricationAtoutQuality(id: string): { id: QualityData['id']; value?: number } | undefined {
+  const q = qualiteParId(id);
+  return q && (q.indice ? { id: q.id, value: 1 } : { id: q.id });
 }
 /** Symptômes de maladie (LDB 20) — entités de DONNÉE éditables au Codex (passive/onTick/capabilities). */
 export const symptoms = symptomsJson as SymptomData[];
@@ -3065,8 +3001,6 @@ export function chaosSpellsOf(god: string): string[] {
 export interface QualityRef extends RefDesignee {
   value?: number;
 }
-/** Quantité d'une possession conférée : nombre fixe (« (3) ») ou jet de dés structuré (« (1d10) »). */
-export type CountSpec = { fixed: number } | { roll: DiceSpec };
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
  *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
@@ -3080,24 +3014,13 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
  *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
- *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
-export type { DotationDePossession, DotationDeMention, Somme };
-/** Un objet du catalogue doté tel quel, sans emplacement. */
-type ObjetDote = RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; valeur?: Somme };
-/** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, son Atout au choix. */
-export type JokerDArme = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: true };
-/** Objets et possessions dotés ensemble, option d'un « 1 parmi ». */
-export type LotDeDotation = { lot: (ObjetDote | DotationDePossession)[] };
-export type TrappingRef =
-  | (ObjetDote & { qualityChoice?: true })
-  | { text: string; count?: CountSpec }
-  | DotationDePossession
-  | Somme
-  | DotationDeMention
-  | { pick: 1; of: BrancheDeDotation[] }
-  | JokerDArme;
+ *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). Annotation de
+ *  `trappingRefSchema` (`schemas/grammaire/reference.ts`). */
+export type { CountSpec, DotationDePossession, DotationDeMention, Somme, TrappingRef };
 /** Une option d'un « 1 parmi » de dotation : une dotation, ou un lot. */
-export type BrancheDeDotation = TrappingRef | LotDeDotation;
+export type BrancheDeDotation = Extract<TrappingRef, { pick: 1 }>['of'][number];
+/** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, son Atout au choix. */
+export type JokerDArme = Extract<TrappingRef, { wildcard: 'arme' }>;
 /** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni somme, ni mention, ni texte, ni emplacement ? */
 export const estDotationDObjet = (ref: TrappingRef): ref is Extract<TrappingRef, { id: string; type?: never }> => 'id' in ref && !('type' in ref);
 /** La dotation est-elle une somme d'argent ? */

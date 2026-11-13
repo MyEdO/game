@@ -5,12 +5,12 @@
  * contrat, et rien ne l'empêche de retomber à `unknown` — auquel cas les 9 datasets qui composent
  * la grammaire ne typent plus rien tout en restant verts. Ce test tient donc l'ÉGALITÉ entre
  * l'infer de chaque schéma et le type manuscrit du moteur : `Condition`, `Flow<EffectOp>`,
- * `EffectOp`, `FlowTest`, `GameOp`.
+ * `EffectOp`, `FlowTest`, `GameOp` ; `TriggeredEffect` est, lui, la sortie de son schéma.
  */
 import { describe, it, expectTypeOf } from 'vitest';
 import type { z } from 'zod';
 import type { conditionSchema, flowSchema, gameOpSchema, effectOpSchema, flowTestSchema, triggeredEffectSchema } from './mecanique';
-import type { Condition, EffectOp, EffectTrigger, Flow, FlowTest, TriggeredEffect } from '../../../engine/flowCore';
+import type { Condition, EffectOp, EffectTargeting, EffectTrigger, Flow, FlowTest } from '../../../engine/flowCore';
 import type { GameOp } from '../../../engine/ops';
 
 type InfCondition = z.infer<typeof conditionSchema>;
@@ -36,10 +36,9 @@ describe('grammaire — l\'infer de chaque schéma EST le type du moteur (jamais
 
   // L'énumération des Triggers est DUPLIQUÉE ici (le schéma ne peut pas dériver d'un type) : sans ce
   // verrou, un Trigger ajouté au moteur et oublié au schéma (ou l'inverse) passerait vert.
-  it('`triggeredEffectSchema` infère `TriggeredEffect<EffectOp>`, et son énumération EST `EffectTrigger`', () => {
+  it('l\'énumération de `triggeredEffectSchema` EST `EffectTrigger`, et sa cible EST `EffectTargeting`', () => {
     expectTypeOf<InfTriggeredEffect['trigger']>().toEqualTypeOf<EffectTrigger>();
-    expectTypeOf<InfTriggeredEffect>().toExtend<TriggeredEffect<EffectOp>>();
-    expectTypeOf<TriggeredEffect<EffectOp>>().toExtend<InfTriggeredEffect>();
+    expectTypeOf<InfTriggeredEffect['on']>().toEqualTypeOf<EffectTargeting>();
   });
 
   it('`effectOpSchema` reste MUTUELLEMENT assignable à `EffectOp` ; l\'infer de `flowTestSchema` ÉTEND `FlowTest` (sens unique)', () => {

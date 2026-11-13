@@ -23,7 +23,9 @@
  * délègue (appliquer une feuille, ouvrir une modale de Test, suspendre, reprendre) vit chez ses hôtes
  * du noyau (`runFlow`, `runCombatFlow`…).
  */
+import type { z } from 'zod';
 import type { IconId } from '../data/icons';
+import type { triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
@@ -652,11 +654,6 @@ export type EffectTrigger =
    *  la RÉ-ENTRANCE (un Test résolu PENDANT le traitement ne ré-émet jamais). */
   | 'onOwnTestFailed';
 
-/** Effet DÉCLENCHÉ authoré (donnée éditable) : un Flow d'ops appliqué à `on` quand `trigger` se produit.
- *  GÉNÉRIQUE — porté indifféremment par `TraitData.effects` (Toile, Sang corrosif…) ET `QualityData.effects`
- *  (Atout d'arme : « à la touche, 1d10 + Empêtré »). Même vocabulaire que les sorts (réutilise
- *  `runPureFlowLines`/`applyOps`), jamais un handler en dur. `on` : le porteur lui-même (`soi`), la victime
- *  touchée (`victime`), ou les adversaires Engagés du porteur (`engages`). */
 /** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
  *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
  *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
@@ -669,30 +666,14 @@ export type EffectTrigger =
 export type EffectTargeting = 'soi' | 'victime' | 'engages' | 'empoigne'
   | { near: 'victime' | 'soi'; radiusMeters: number }
   | { pick: 'engages'; sizeAtMost?: 'soi'; max: number };
-export interface TriggeredEffect<E = EffectOp> {
-  trigger: EffectTrigger;
-  on: EffectTargeting;
-  flow: Flow<E>;
-  /** Filtre du déclencheur `onGainCondition` : ne réagit que si l'État GAGNÉ a cet `id` (Mâchoires
-   *  d'acier : `condition:'sonne'`). Absent = réagit à n'importe quel État gagné. Inerte pour les
-   *  autres triggers. */
-  condition?: string;
-  /** Filtre par TYPE d'attaque (`onHit`/`onWoundLoss`) : ne réagit que si la touche/perte provient d'une
-   *  attaque de ce type (`melee`/`distance`). Absent = tout type (Sang corrosif : « chaque fois qu'elle subit
-   *  des Blessures », LDB 85 l.310 → aucune restriction). Lu via `ctx.attackType`. */
-  attackType?: 'melee' | 'distance';
-  /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
-  coupCritique?: boolean;
-  /** Effet OPT-IN (RAW « Vous pouvez… » — Contrôle de la Frénésie, LDB 10 l.251-255) : le porteur CHOISIT
-   *  de le déclencher. Héros en cadence MANUELLE → proposé (étape de CHOIX de fin de Round, skippable) ;
-   *  IA / cadence auto → JAMAIS exercé (défaut conservateur : pas de décision silencieuse ni de jet caché
-   *  — la sortie rationnelle de l'IA, « plus d'ennemi en vue », est déjà l'effet auto de psychology.json). */
-  optional?: boolean;
+/** Effet DÉCLENCHÉ : la sortie de `triggeredEffectSchema` (`data/schemas/grammaire/mecanique.ts`), plus ce que le
+ *  jeu lui pose. */
+export type TriggeredEffect = z.output<typeof triggeredEffectSchema> & {
   /** ENTITÉ SOURCE — JAMAIS authorée : posée à l'ÉNUMÉRATION par `effectSourcesOf`
-   *  (`src/noyau/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. Voyage
-   *  jusqu'à l'`OpsCtx` du dispatch → ancre les `ActiveEffect` posés sur leur fiche de règle. */
+   *  (`src/noyau/triggeredEffects.ts`), qui seule sait de quelle entité l'effet est tiré. Voyage jusqu'à
+   *  l'`OpsCtx` du dispatch → ancre les `ActiveEffect` posés sur leur fiche de règle. */
   source?: EffectSource;
-}
+};
 
 /** Enveloppe une liste d'effets-feuilles (`Effect[]`) en un Flow `sequence` de `effet` — pont de
  *  migration des consommateurs (`Trigger.effects`, `DialogueChoice.effects`) vers le Flow, sans réécrire
@@ -1118,6 +1099,14 @@ export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, che
     case 'choix': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
     case 'effet': break;
   }
+}
+
+/** `flow` ne porte-t-il QUE des feuilles `F` ? Rétrécit le Flow de scène qu'écrit l'éditeur au Flow d'un porteur à
+ *  feuilles restreintes (effet déclenché : `EffectOp`). */
+export function flowDeFeuilles<E, F extends E>(flow: Flow<E>, estFeuille: (e: E) => e is F): flow is Flow<F> {
+  let toutes = true;
+  walkFlow(flow, (n) => { if (n.kind === 'effet' && !estFeuille(n.effet)) toutes = false; });
+  return toutes;
 }
 
 /** Arrêt d'une exécution de Flow : `executerFlow` rend `arret` sans jouer le reste de sa pile. */

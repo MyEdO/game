@@ -26,7 +26,7 @@ import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
+import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -571,10 +571,6 @@ export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow
 /** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE. Spécialise le `Flow<E>`
  *  générique de `engine/flowCore`. */
 export type Flow = CoreFlow<Effect>;
-
-/** Effet DÉCLENCHÉ de scène : son `flow` peut porter tout `Effect` (≠ `EffectOp`, défaut du noyau).
- *  Spécialise le `TriggeredEffect<E>` générique de `engine/flowCore`. */
-export type TriggeredEffect = CoreTriggeredEffect<Effect>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 

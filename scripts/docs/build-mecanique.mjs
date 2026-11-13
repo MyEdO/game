@@ -7,7 +7,7 @@
  *    `hasCapability`) — le manuscrit figeait des numéros de ligne dans `trauma.ts`,
  *    `triggeredEffects.ts` et `dispatch.ts`, tous faux depuis longtemps ;
  *  - l'union `EffectTrigger` et les formes d'`EffectTargeting` (`src/engine/flowCore.ts`), plus les
- *    champs de `TriggeredEffect` ;
+ *    champs de `TriggeredEffect`, lus à son schéma (`effetDeclencheSur`, `src/data/schemas/grammaire/mecanique.ts`) ;
  *  - les KINDS de source réunis par `effectSourcesOf` — lus dans son corps, dans l'ordre du code ;
  *  - les types de capacités (`src/data/index.ts`, interface ou inférence d'un schéma) et leur nombre de drapeaux ;
  *  - les documents PORTEURS de chaque canal, lus au def zod, avec leur population réelle ;
@@ -32,6 +32,7 @@ import { champsDuSchemaObjet, schemaInfere } from './lib/canauxMecaniques.mjs'
 function rendu() {
   const OUTIL = 'build-mecanique'
   const FLOWCORE = 'src/engine/flowCore.ts'
+  const MECANIQUE = 'src/data/schemas/grammaire/mecanique.ts'
   const TRIGGERS = 'src/noyau/triggeredEffects.ts'
   const TRAUMA = 'src/engine/trauma.ts'
   const CAPS = 'src/engine/capabilities.ts'
@@ -48,7 +49,7 @@ function rendu() {
     return p
   }
   const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-  for (const p of [FLOWCORE, TRIGGERS, TRAUMA, CAPS, INDEX, DEFS]) ancre(p, 'source du générateur')
+  for (const p of [FLOWCORE, MECANIQUE, TRIGGERS, TRAUMA, CAPS, INDEX, DEFS]) ancre(p, 'source du générateur')
 
   const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
@@ -134,19 +135,38 @@ function rendu() {
 
   const EFFET = (() => {
     const d = declaration(FLOWCORE, 'TriggeredEffect')
+    const fabrique = declaration(MECANIQUE, 'effetDeclencheSur')
     const champs = []
-    let prevEnd = d.noeud.members.pos
-    for (const m of d.noeud.members) {
-      if (!ts.isPropertySignatureDeclaration(m)) continue
-      const doc = jsdocBody(FC_SRC.slice(prevEnd, m.getStart(FC_SF)))
-      champs.push({
-        nom: m.name.getText(FC_SF) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''),
-        type: m.type ? plat(m.type.getText(FC_SF)) : '—',
-        role: doc ? plat(firstSentence(doc)) : null,
-      })
-      prevEnd = m.getEnd()
+    /** Les membres d'une liste de nœuds (`props`), leur JSDoc lue entre le membre précédent et lui. */
+    const lire = (props, sf, text, nomDe, typeDe) => {
+      let prevEnd = props.pos
+      for (const m of props) {
+        const nom = nomDe(m)
+        if (nom) {
+          const doc = jsdocBody(text.slice(prevEnd, m.getStart(sf)))
+          champs.push({ nom, type: typeDe(m), role: doc ? plat(firstSentence(doc)) : null })
+        }
+        prevEnd = m.getEnd()
+      }
     }
-    if (!champs.length) abandon(`\`TriggeredEffect\` sans propriété lisible dans ${FLOWCORE}`)
+    let objet
+    const cherche = (n) => {
+      if (objet) return
+      if (ts.isCallExpression(n) && n.expression.getText(fabrique.sf) === 'z.strictObject' && n.arguments[0] && ts.isObjectLiteralExpression(n.arguments[0])) objet = n.arguments[0]
+      else n.forEachChild(cherche)
+    }
+    cherche(fabrique.noeud)
+    if (!objet) abandon(`\`effetDeclencheSur\` ne déclare plus son \`z.strictObject\` dans ${MECANIQUE}`)
+    lire(objet.properties, fabrique.sf, fabrique.text,
+      (m) => (ts.isPropertyAssignment(m) || ts.isShorthandPropertyAssignment(m)) && m.name ? m.name.getText(fabrique.sf) + (/\.optional\(\)$/.test(m.getText(fabrique.sf)) ? '?' : '') : null,
+      (m) => plat(ts.isPropertyAssignment(m) ? m.initializer.getText(fabrique.sf) : m.name.getText(fabrique.sf)))
+    const ajoutes = ts.isIntersectionTypeNode(d.noeud.type) ? d.noeud.type.types.filter(ts.isTypeLiteralNode) : []
+    for (const t of ajoutes) {
+      lire(t.members, d.sf, d.text,
+        (m) => ts.isPropertySignatureDeclaration(m) ? m.name.getText(d.sf) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : '') : null,
+        (m) => (m.type ? plat(m.type.getText(d.sf)) : '—'))
+    }
+    if (!champs.length) abandon(`\`TriggeredEffect\` sans champ lisible (${MECANIQUE}, ${FLOWCORE})`)
     return { ...d, champs }
   })()
 
@@ -333,7 +353,7 @@ ${tablePorteurs('passive')}
 Un \`TriggeredEffect\` (\`${EFFET.site}\`) est un Flow d'ops appliqué à \`on\` quand \`trigger\` se
 produit — le MÊME Flow que les sorts, jamais un handler en dur par nom d'entité.
 
-${table(EFFET.champs, ['Champ', 'Type', 'Rôle (JSDoc)'], (c) => `| \`${c.nom}\` | \`${c.type}\` | ${c.role ?? '—'} |`)}
+${table(EFFET.champs, ['Champ', 'Schéma ou type', 'Rôle (JSDoc)'], (c) => `| \`${c.nom}\` | \`${c.type}\` | ${c.role ?? '—'} |`)}
 
 ### Les ${TRIGGERS_LIST.length} déclencheurs (\`EffectTrigger\`, \`${FLOWCORE}:${LIGNE_TRIGGER}\`)
 

@@ -13,6 +13,7 @@ import { adresseDeCreation } from './adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
 import { careerLevels, findTrappingById, groupeDeLArme, trappingRefLabel, fabricationAtouts, qualities, trappings, type BrancheDeDotation, type QualityData, type TrappingRef } from '../data/index';
 import { setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
 
 const dot = adresseDeCreation.dotation;
 const avecFixture = <T>(fn: () => T): T => avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, fn);
@@ -136,7 +137,7 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
 
   it('fabricationAtouts() est DÉRIVÉ de qualities.json (atout/objet, hors magie), pas une liste codée', () => {
     const modele = qualities.find((q) => q.polarite === 'atout' && q.subType === 'objet')!;
-    const fixture = (id: string, patch: Partial<QualityData> = {}): QualityData => ({ ...modele, id, label: id, capabilities: undefined, ...patch });
+    const fixture = (id: string, patch: Partial<QualityData> = {}): EntreeVivante<QualityData> => ({ ...modele, id, label: id, capabilities: undefined, ...patch });
     const initiales = qualities.slice();
     try {
       setDataset('qualities', [

@@ -14,7 +14,7 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
-import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode } from '../../../engine/flowCore';
 import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
@@ -999,7 +999,7 @@ const compareSubjectSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, condition: idDe('etat') }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
   charRefSchema,
 ]);
-/** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
+/** `CompareSubject & { factor?: number }` (`engine/flowCore.ts`) — un `z.intersection` d'un
  *  `z.union` de `strictObject` NE FONCTIONNE PAS avec zod (chaque branche strict rejette les clés des
  *  autres, cf. `domains.ts` avant ce rewire : `z.intersection(compareSubjectSchema, …)` échouait sur
  *  `etats.json` #14 « inondation » — `{who,characteristic:'endurance',factor:0.5}` — vérifié en isolation). La forme
@@ -1032,7 +1032,7 @@ const conditionDeTalentSchema = refOuSpec('talent', {
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
-/** `Condition` (`engine/flowCore.ts:112`) — algèbre CLOSE, récursive via `all`/`any`/`not`, où une Condition
+/** `Condition` (`engine/flowCore.ts`) — algèbre CLOSE, récursive via `all`/`any`/`not`, où une Condition
  *  RÉSERVÉE hors des `admises` de la famille est refusée nommément. Mémoïsée par ses `admises` ; chaque branche est
  *  un produit de la fabrique, de même classe d'une famille à l'autre. */
 function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition> {
@@ -1105,7 +1105,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
-/** `FlowTest` (`engine/flowCore.ts:335`) — jet différé (→ modale), tout le métier hors branches. */
+/** `FlowTest` (`engine/flowCore.ts`) — jet différé (→ modale), tout le métier hors branches. */
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
  *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
@@ -1329,7 +1329,7 @@ function kindDEmbranchement(flow: Flow<unknown>): string | null {
 }
 
 /**
- * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:559`) — jet ALÉATOIRE interactif dont l'issue
+ * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts`) — jet ALÉATOIRE interactif dont l'issue
  * choisit la branche `reussite` ou `echec`. Le nœud ne dépend PAS du type de la feuille `effet` de ses
  * branches : seul le schéma de BRANCHE change (`arbreDeFlow`, composé par `flowSchema` mécanique et
  * `sceneFlowSchema`, `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré
@@ -1379,7 +1379,7 @@ export const effectOnSchema = enumNomme({
   empoigne: 'la victime empoignée (absorbée)',
 });
 
-/** `EffectTargeting` (`engine/flowCore.ts:632`). */
+/** `EffectTargeting` (`engine/flowCore.ts`). */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
   nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
@@ -1653,7 +1653,7 @@ function refuserLaGratuiteNonTerminale(flow: Flow<EffectOp>, ctx: z.RefinementCt
   });
 }
 
-/** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
+/** `Flow<E>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
  *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
   const flow: z.ZodType<Flow<E>> = z.lazy(() =>
@@ -1672,6 +1672,30 @@ export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condi
     ]),
   );
   return flow;
+}
+
+/** Effet DÉCLENCHÉ authoré (`TriggeredEffect`, `engine/flowCore.ts`) : un Flow d'ops appliqué à `on` quand
+ *  `trigger` se produit, porté indifféremment par un Trait, un Atout, un talent, un État… Même vocabulaire
+ *  que les sorts (`runPureFlowLines`/`applyOps`), jamais un handler en dur. */
+function effetDeclencheSur(flow: z.ZodType<Flow<EffectOp>>) {
+  return marquerProduit(nommerChamps(z.strictObject({
+    trigger: effectTriggerSchema,
+    on: effectTargetingSchema,
+    flow: flow,
+    /** Filtre du déclencheur `onGainCondition` : ne réagit que si l'État GAGNÉ a cet `id` (Mâchoires
+     *  d'acier : `condition:'sonne'`). Absent = réagit à n'importe quel État gagné. Inerte pour les
+     *  autres triggers. */
+    condition: idDe('etat').optional(),
+    /** Filtre par TYPE d'attaque (`onHit`/`onWoundLoss`) : ne réagit que si la touche/perte provient d'une
+     *  attaque de ce type (`melee`/`distance`). Absent = tout type (LDB 85 l.310). Lu via `ctx.attackType`. */
+    attackType: genreDArmeSchema.optional(),
+    /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
+    coupCritique: z.boolean().optional(),
+    /** Effet OPT-IN (LDB 10 l.251-255) : le porteur CHOISIT de le déclencher. Héros en cadence MANUELLE →
+     *  proposé (étape de CHOIX de fin de Round, skippable) ; IA / cadence auto → JAMAIS exercé (ni décision
+     *  silencieuse ni jet caché). */
+    optional: z.boolean().optional(),
+  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 }
 
 function construire(regimes: Regimes) {
@@ -1704,7 +1728,7 @@ function construire(regimes: Regimes) {
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `effet` par
-   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
+   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 5 valeurs de
    *  l'interface TS : `'party'`/`'hero'`/`'navire'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
    *  ciblage `'soi'`/`'victime'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
@@ -1729,17 +1753,7 @@ function construire(regimes: Regimes) {
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
   const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE));
 
-  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:635`). `optional` (Contrôle de la Frénésie…)
-   *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
-  const triggeredEffect = marquerProduit(nommerChamps(z.strictObject({
-    trigger: effectTriggerSchema,
-    on: effectTargetingSchema,
-    flow: flow,
-    condition: idDe('etat').optional(),
-    attackType: genreDArmeSchema.optional(),
-    coupCritique: z.boolean().optional(),
-    optional: z.boolean().optional(),
-  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
+  const triggeredEffect = effetDeclencheSur(flow);
 
   /** Entrée d100 d'une table de voyage (`TravelTableEntry`, `src/engine/travelTables.ts`), partagée par
    *  `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
@@ -1895,7 +1909,7 @@ export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.
 }
 export const effectOpSchema = FERMEE.effectOp;
 export const flowSchema: z.ZodType<Flow<EffectOp>> = FERMEE.flow;
-export const triggeredEffectSchema: z.ZodType<TriggeredEffect<EffectOp>> = FERMEE.triggeredEffect;
+export const triggeredEffectSchema: ReturnType<typeof effetDeclencheSur> = FERMEE.triggeredEffect;
 export const travelTableEntrySchema = FERMEE.travelTableEntry;
 export const shipCrewHitSchema = FERMEE.shipCrewHit;
 export const shipCritEntrySchema = FERMEE.shipCritEntry;

@@ -6,7 +6,7 @@ import { libelleDeValeur, metaDesChamps, nommerChamps, nommerNoeud } from './met
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { caracteristiqueChiffreeSchema, countSpecSchema, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
+import { caracteristiqueChiffreeSchema, countSpecSchema, type CountSpec, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
 import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, parmi, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec, type Parmi } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
@@ -254,7 +254,6 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
  *  dont une option peut aussi être un lot `{ lot }`), ou joker d'arme (`wildcard`, + `groupe`, + `qualityChoice`). Composé
  *  par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`, sans texte, mention, joker ni lot. Sa `spec` est la PRÉCISION d'un objet, nommée comme telle : `trappings.json` ne
  *  déclare aucun catalogue de Spécialisations. */
-type CountSpecInfer = z.infer<typeof countSpecSchema>;
 type QualityRefInfer = z.infer<typeof qualityRefSchema>;
 /** Une somme : `count` pièces de `monnaie` (`Somme`, tirée par `sommeTiree`, `engine/possessionGrants.ts`). Dotation
  *  d'argent, valeur d'un objet doté, Richesse de départ d'un prétiré. LDB 57 */
@@ -293,7 +292,7 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
-type ObjetDeCatalogue = { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; valeur?: Somme };
+type ObjetDeCatalogue = { id: string; spec?: string; count?: CountSpec; qualities?: QualityRefInfer[]; valeur?: Somme };
 type FormeSansTexte =
   | (ObjetDeCatalogue & { qualityChoice?: true })
   | DotationDePossession
@@ -324,8 +323,10 @@ function formesDeDotation<F, O = never>(formes: readonly z.ZodType<F>[], enPlusD
 
 /** Dotation sans texte, mention, joker ni lot : `classes.json`. LDB 05 l.552 ; #4053 */
 export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation<FormeSansTexte>([dotationDeCatalogueSchema, dotationDePossessionSchema, sommeSchema]);
+/** Dotation de `careerLevels.json` et `creatures.json` (`trappingRefSchema`) : l'annotation de ce schéma récursif. */
+export type TrappingRef = FormeDeDotation | Parmi<1, FormeDeDotation | LotDeDotation>;
 /** Dotation de `careerLevels.json` et `creatures.json`. */
-export const trappingRefSchema: z.ZodType<FormeDeDotation | Parmi<1, FormeDeDotation | LotDeDotation>> = formesDeDotation<FormeDeDotation, LotDeDotation>(
+export const trappingRefSchema: z.ZodType<TrappingRef> = formesDeDotation<FormeDeDotation, LotDeDotation>(
   [dotationDeCatalogueSchema, dotationDeTexteSchema, dotationDeMentionSchema, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema],
   [lotDeDotationSchema],
 );

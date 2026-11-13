@@ -21,7 +21,7 @@ import { testScene } from '../scenes/test-fixture';
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

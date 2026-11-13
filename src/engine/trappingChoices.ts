@@ -143,7 +143,10 @@ export function resolveTrappingChoices(dotations: readonly TrappingRef[], choice
 }
 
 /** L'Atout que pose l'emplacement `atout` `e`. */
-const atoutPose = (e: EmplacementDeDotation, choices: ChoixDeDotation) => fabricationAtoutQuality(idChoisi(e, choices) ?? DEFAULT_FABRICATION_ATOUT);
+const atoutPose = (e: EmplacementDeDotation, choices: ChoixDeDotation) => {
+  const q = fabricationAtoutQuality(idChoisi(e, choices) ?? DEFAULT_FABRICATION_ATOUT);
+  return q ? [q] : [];
+};
 
 function resoudre(ref: BrancheDeDotation, chemin: readonly number[], choices: ChoixDeDotation): TrappingRef[] {
   if ('lot' in ref) return ref.lot;
@@ -156,7 +159,7 @@ function resoudre(ref: BrancheDeDotation, chemin: readonly number[], choices: Ch
   if (e.sorte === 'joker') {
     const id = idChoisi(e, choices);
     const atout = sousEmplacementActif(e, choices);
-    return [id ? { id, ...(atout ? { qualities: [atoutPose(atout, choices)] } : {}) } : ref];
+    return [id ? { id, ...(atout ? { qualities: atoutPose(atout, choices) } : {}) } : ref];
   }
-  return [{ id: e.ref.id, spec: e.ref.spec, count: e.ref.count, ...(e.ref.valeur ? { valeur: e.ref.valeur } : {}), qualities: [atoutPose(e, choices)] }];
+  return [{ id: e.ref.id, spec: e.ref.spec, count: e.ref.count, ...(e.ref.valeur ? { valeur: e.ref.valeur } : {}), qualities: atoutPose(e, choices) }];
 }

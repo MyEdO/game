@@ -55,7 +55,7 @@ import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
-import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
+import { findQualityById, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
@@ -617,7 +617,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!h.craft) return { lines: [] };
       const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible d’Artisanat');
       if (done) {
-        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
+        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].flatMap((id) => { const q = findQualityById(id); return q ? [{ id: q.id }] : []; }) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
           h.items = [...(h.items ?? []), it];
           autoStowNewItem(h, it); // #204 : rangement par défaut
@@ -1240,7 +1240,7 @@ export function choixDInterlude(get: Get, set: Set) {
       ouvrage: poser('ouvrage'),
       ajouterLaQualite: (q, pid) => {
         const c = composee(pid);
-        composer(pid, qualitesDArtisanat().atouts.includes(q) ? { ...c, atouts: [...c.atouts, q] } : { ...c, defauts: [...c.defauts, q] });
+        composer(pid, qualitesDArtisanat().atouts.some((a) => a === q) ? { ...c, atouts: [...c.atouts, q] } : { ...c, defauts: [...c.defauts, q] });
       },
       retirerLaQualite: (q, pid) => {
         const c = composee(pid);

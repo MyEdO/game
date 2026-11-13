@@ -50,8 +50,8 @@ import type { GameOp } from '../../../engine/ops';
 import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
-import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
+import type { Flow } from '../../../data/schemas/defs-scenes/effets';
+import { EMPTY_FLOW, flowDeFeuilles, type EffectOp, type EffectTrigger, type FlowTest, type TriggeredEffect } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
 import type { DetailText, ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
@@ -869,7 +869,7 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => { if (flowDeFeuilles(flow, (e): e is EffectOp => e.type === 'ops')) set(i, { flow }); }} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>
