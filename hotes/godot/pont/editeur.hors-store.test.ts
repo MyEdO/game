@@ -2035,12 +2035,45 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     expect(boutonDe(presser(boutonDe(seul, `logique/indices/${id}`)), 'stade/stade-1/supprimer').refus).toBe('Un indice garde au moins un stade.');
   });
 
-  it('un écart s’ajoute avec son entrée parmi les entrées libres, que la zone Logique offre', () => {
-    const { presser, narratif } = surLeNarratif();
-    const offre = narratif.vue.zones['editeur.logique'].find((el) => el.type === 'bouton' && el.id.startsWith('logique/ecart/ajouter/')) as Bouton;
-    const entree = offre.id.slice('logique/ecart/ajouter/'.length);
-    const ecarte = presser(offre);
-    expect([liste(ecarte, 'ecart'), boutonDe(ecarte, `logique/ecart/${entree}`).presse, ecarte.vue.zones['editeur.logique'].some((el) => el.id === offre.id)]).toEqual([[entree], true, false]);
+  it('un écart s’ajoute par la liste des entrées libres de la zone Logique ; son entrée se change au choix parmi la sienne et les libres', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const offre = narratif.vue.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter') as Choix;
+    expect([offre.type, offre.valeurs.every((b) => b.id.startsWith('logique/ecart/ajouter/'))]).toEqual(['liste', true]);
+    const [premiere, seconde] = offre.valeurs.map((b) => b.id.slice('logique/ecart/ajouter/'.length));
+    const ecarte = presser(offre.valeurs[0]);
+    const reste = (ecarte.vue.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter') as Choix).valeurs.map((b) => b.id);
+    expect([liste(ecarte, 'ecart'), boutonDe(ecarte, `logique/ecart/${premiere}`).presse, reste.includes(offre.valeurs[0].id)]).toEqual([[premiere], true, false]);
     expect(inspecte(ecarte, 'valeur/motif')).toMatchObject({ type: 'formulaire' });
+    const nom = (inspecte(ecarte, 'nommer') as Formulaire).champs[0];
+    expect(nom.type === 'saisieChoix' && [nom.valeurs.find((v) => v.presse)?.valeur, nom.valeurs.length, nom.valeurs.some((v) => v.valeur === seconde)]).toEqual([premiere, reste.length + 1, true]);
+    const deplace = editionDe(appel('editer', { type: 'nommer', args: [seconde] }));
+    expect([liste(deplace, 'ecart'), boutonDe(deplace, `logique/ecart/${seconde}`).presse]).toEqual([[seconde], true]);
+  });
+
+  it('un état change de forme par les boutons de son inspecteur, la courante pressée ; avec une identité, l’autre forme se refuse, dite', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));
+    expect([boutonDe(etat, 'etat/forme/heros').presse, boutonDe(etat, 'etat/forme/enum').refus]).toEqual([true, null]);
+    const enumere = presser(boutonDe(etat, 'etat/forme/enum'));
+    expect([boutonDe(enumere, 'etat/forme/enum').presse, inspecte(enumere, 'identifier/valeur/valeur-1')?.type]).toEqual([true, 'formulaire']);
+    const heros = presser(boutonDe(enumere, 'etat/forme/heros'));
+    const ajout = inspecte(heros, 'valeur/forme/identite/ajouter') as Choix;
+    const identite = presser(ajout.valeurs[0]);
+    const refus = boutonDe(identite, 'etat/forme/enum').refus;
+    expect(refus).toBe('Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.');
+    expect(erreurDe(appel('editer', boutonDe(identite, 'etat/forme/enum').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+  });
+
+  it('l’identité d’un état héros : ses repères s’ajoutent, s’identifient et se retirent par leurs gestes, le dernier refusé, dit', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));
+    const identite = presser((inspecte(etat, 'valeur/forme/identite/ajouter') as Choix).valeurs[0]);
+    expect(boutonDe(identite, 'repere/repere-1/supprimer').refus).toBe('Une identité garde au moins un repère.');
+    const ajoute = presser(boutonDe(identite, 'repere/ajouter'));
+    expect(inspecte(ajoute, 'identifier/repere/repere-2')).toMatchObject({ type: 'formulaire' });
+    const renomme = editionDe(appel('editer', { type: 'identifier', args: ['repere-2', 'titre'] }));
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['titre', 'repere-1'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « repere-1 » déjà porté par le repère 1' });
+    const retire = presser(boutonDe(renomme, 'repere/titre/supprimer'));
+    expect([inspecte(renomme, 'identifier/repere/titre')?.type, inspecte(retire, 'identifier/repere/titre')]).toEqual(['formulaire', undefined]);
   });
 });

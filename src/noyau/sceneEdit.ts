@@ -51,7 +51,7 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { ajouteEntree, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { ajouteEntree, etatCouvert, indiceCouple, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
@@ -1473,7 +1473,15 @@ const CORPS_NEUFS: { readonly [R in RegistreCreable]: (narratif: NarratifBlock) 
   etats: () => ({ label: tr('ecran.editeur.narratif.etatNeuf'), forme: { kind: 'heros' } }),
 };
 
-/** L'écriture d'une entrée du registre créable `registre` du narratif, sur le projet : son remplacement (`remplace`) ;
+/** Ce que l'écriture d'une entrée d'un registre du narratif lui fait porter, la règle de son écrivain web : chaque stade
+ *  d'un indice couplé à son document (`indiceCouple`), l'identité d'un état couverte (`etatCouvert`). */
+const REECRITURES: { readonly [R in RegistreCreable]?: (entree: NarratifBlock[R][number]) => NarratifBlock[R][number] } = {
+  indices: indiceCouple,
+  etats: etatCouvert,
+};
+
+/** L'écriture d'une entrée du registre créable `registre` du narratif, sur le projet : son remplacement (`remplace`),
+ *  réécrite par la règle de son registre (`REECRITURES`) ;
  *  sa création, son corps neuf (`CORPS_NEUFS`) sous un identifiant frais (`ajouteEntree`), refusée sans corps ; son
  *  renommage propagé au projet (`renommeAuProjet`), refusé (`refusDeRenommage`) ; son retrait (`retireDuProjet`),
  *  refusé tant qu'une référence la désigne (`refusDeRetrait`) ; du registre à sous-entrées (`SOUS_ENTREES`), le
@@ -1484,8 +1492,9 @@ function ecritureDuRegistre<R extends RegistreCreable>(registre: R): EcritureDuP
     renommerElement: (projet: ProjetDEdition, _sceneId: string, id: string, de: string, vers: string) => renommeAuProjet(projet, cible(id, de), vers),
     retirerElement: (projet: ProjetDEdition, _sceneId: string, id: string, element: string) => retireDuProjet(projet, cible(id, element)),
   };
+  const reecrite = (REECRITURES[registre] ?? ((entree) => entree)) as (entree: DonneeDuPorteur[R]) => DonneeDuPorteur[R];
   return {
-    ecrire: remplace(registre),
+    ecrire: (projet, sceneId, avant, apres) => remplace(registre)(projet, sceneId, avant, reecrite(apres)),
     creer: (projet) => {
       const corps = CORPS_NEUFS[registre](projet.narratif);
       if (typeof corps === 'string') return undefined;

@@ -38,6 +38,8 @@ import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
 import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } from './historique';
 import { appuyer, appuyerSurLaCarte, appuyerSurLePlanDuLieu, glisser, glisserSurLaCarte, glisserSurLePlanDuLieu, relacher, relacherSurLaCarte, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type EffetSurLaCarte, type EffetSurLePlanDuLieu, type GesteEnCours, type PointDeCarte } from './pointeur';
 import { orienterRoute, retirerPoi } from '../worldMapEdit';
+import { formeChangee } from '../narratifEdit';
+import type { FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-etat';
 import type { MapPlace, WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';
 import type { Manifeste } from '../../data/source/chapitres';
@@ -387,7 +389,7 @@ export interface SessionDEdition {
  *  sélectionner le porteur de formulaire `porteur` (`selDuPorteur`) ; en ajouter un neuf de sorte `sorte`, par la table
  *  d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`, `creer`), depuis la sélection, avec l'identifiant `avec` que sa
  *  table offre (`avecs`), sélectionné ; orienter la route sélectionnée depuis l'une de ses extrémités, ou dans les deux
- *  sens (`null`, `orienterRoute`) ; ouvrir le plan du lieu `lieu` de la carte du monde ouverte, sélectionné, ou le fermer (`null`, `planDuLieu`) ; retirer le point
+ *  sens (`null`, `orienterRoute`) ; donner à l'état sélectionné du narratif la forme neuve `kind` (`formeChangee`) ; ouvrir le plan du lieu `lieu` de la carte du monde ouverte, sélectionné, ou le fermer (`null`, `planDuLieu`) ; retirer le point
  *  d'intérêt désigné sur ce plan (`retirerPoi`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
@@ -425,6 +427,7 @@ export type GesteDEdition =
   | { geste: 'selectionner'; porteur: { sorte: SorteDePorteur; id: string } }
   | { geste: 'ajouter'; sorte: SorteDePorteur; avec?: string }
   | { geste: 'sens'; depuis: string | null }
+  | { geste: 'forme'; kind: FormeDEtatKind }
   | { geste: 'planDuLieu'; lieu: string | null }
   | { geste: 'retirerPoi' }
   | { geste: 'document'; document: SorteDeDocument }
@@ -954,7 +957,8 @@ export function refusDuRenommage(s: SessionDEdition, g: Extract<GesteDEdition, {
  *  élément d'un porteur, d'un nom vide ou déjà pris, supprimer un porteur dont le retrait est refusé (`refusDeRetrait`), copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
  *  dupliquer sans entité sélectionnée, poser une troupe sans personnage sélectionné ou sans case où en poser une copie, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, d'un chapitre qui n'est pas celui qu'elle attend, demander une planche pendant un chargement, régler ou retirer un calque
- *  absent, ouvrir le plan d'un lieu absent de la carte ouverte ou celui déjà ouvert, retirer un point d'intérêt sans point
+ *  absent, ouvrir le plan d'un lieu absent de la carte ouverte ou celui déjà ouvert, changer la forme d'un état
+ *  vers la sienne ou quand elle est refusée (`refusDeForme`), retirer un point d'intérêt sans point
  *  désigné) la rend telle quelle. Le plan d'un lieu ouvert reçoit le pointeur (`pointeurDeLaSession`), ses outils remis
  *  à la sélection. */
 function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
@@ -1067,6 +1071,11 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const route = s.sel && 'id' in s.sel && s.sel.type === FORMULAIRES.route.sel ? s.sel.id : undefined;
       const orientee = route !== undefined && carte ? orienterRoute(carte, route, g.depuis) : carte;
       return orientee === carte ? s : ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), orientee!), s.sel);
+    }
+    case 'forme': {
+      const etat = s.sel && 'id' in s.sel && s.sel.type === FORMULAIRES.etats.sel ? s.sel.id : undefined;
+      const changee = etat === undefined ? projetEdite(s) : formeChangee(projetEdite(s), etat, g.kind);
+      return changee === projetEdite(s) ? s : ecrireLeProjet(s, changee, s.sel);
     }
     case 'corps': {
       const corps = scene.architecture?.find((c) => c.id === g.id);

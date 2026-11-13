@@ -81,6 +81,8 @@ export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, planDuLieuOuvert, projetDuDepot, refusDOuvrage, refusDeLaValeur, refusDeRetrait, refusDuRenommage, idDeLaSceneEditee, projetEdite, sceneEditee, vueDeLaScene, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, BORNES_DE_LA_TROUPE, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, groupesDuLieu, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type SessionDEdition } from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
 export { orienterRoute } from './worldMapEdit';
+export { refusDeForme } from './narratifEdit';
+export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 export { FORMULAIRES, accesDe, formulaireDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, choixDuChamp, SOUS_ENTREES, type DonneeDuPorteur, type SorteDeDocument, type SorteDePorteur } from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
 export { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';

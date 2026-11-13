@@ -19,6 +19,7 @@ import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { emptyWorldMap, resolvePortRef, type WorldMap } from '../worldMap';
 import { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, editer, groupesDuLieu, idDeLaSceneEditee, ouvrirLEdition, planDeLaVolee, planDuLieuOuvert, projetEdite, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
+import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
 import { validateScene } from '../validateScene';
 import { bumperDataset } from '../../data/versionDataset';
@@ -38,6 +39,8 @@ import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../..
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
 import { refusDeLaValeur, refusDeRetrait, refusDuRenommage } from './session';
+import { identiteNeuve } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
+import { refusDeForme } from '../narratifEdit';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
@@ -1549,6 +1552,68 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     const avecPnj = { ...NARRATIF, presetsPnj: [{ id: 'pnj-1', base: { id: creatures[0].id }, profil: { descRef: { book: 'livre-de-base', ch: '01', parts: [] } } }] } as unknown as typeof NARRATIF;
     const s = jouer(ouvrirLEdition({ scenes: [RELAIS], narratif: avecPnj } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, manifeste), { geste: 'document', document: 'narratif' });
     expect([s.chapitreEnAttente, choisir(s, 'presetsPnj', 'pnj-1').chapitreEnAttente]).toEqual([null, { book: 'livre-de-base', ch: '01' }]);
+  });
+
+  it('la forme d’un état change par son geste, à la forme neuve de l’éditeur web, sur un cran ; refusée tant qu’une référence le désigne ou qu’il porte une identité, dite', () => {
+    const s = choisir(ouvert(), 'etats', 'humeur');
+    const heros = jouer(s, { geste: 'forme', kind: 'heros' });
+    expect([narratif(heros).etats[0].forme, heros.sel, heros.historique.passe.length]).toEqual([{ kind: 'heros' }, s.sel, s.historique.passe.length + 1]);
+    expect(narratif(jouer(heros, { geste: 'forme', kind: 'enum' })).etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }] });
+    expect(jouer(s, { geste: 'forme', kind: 'enum' }), 'sa forme').toBe(s);
+    const avecIdentite = jouer(heros, valeur('etats', 'humeur', ['forme', 'identite'], identiteNeuve()));
+    expect([refusDeForme(projetEdite(avecIdentite), 'humeur'), jouer(avecIdentite, { geste: 'forme', kind: 'enum' })]).toEqual(['Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.', avecIdentite]);
+    const pose: Scene = { ...RELAIS, triggers: [{ ...RELAIS.triggers[0], id: 't1', flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'poserEtat', etat: 'humeur', valeur: 'calme' } }] } }] } as Scene;
+    const designe = choisir(jouer(ouvrirLEdition({ scenes: [pose], narratif: NARRATIF } as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'narratif' }), 'etats', 'humeur');
+    expect(refusDeForme(projetEdite(designe), 'humeur')).toMatch(/^Encore désigné par : scène « Le relais »/);
+    expect(jouer(designe, { geste: 'forme', kind: 'heros' })).toBe(designe);
+  });
+
+  it('l’identité d’un état héros : neuve, celle de l’éditeur web ; une ligne neuve par espèce et sexe libres, couverte ; un repère s’ajoute couvert, se renomme et se retire dans chaque ligne ; saisi ou dernier, il ne se retire pas, dit', () => {
+    const s = jouer(choisir(ouvert(), 'etats', 'humeur'), { geste: 'forme', kind: 'heros' });
+    const etat = (x: SessionDEdition) => narratif(x).etats[0];
+    const identite = (x: SessionDEdition) => (etat(x).forme as { identite: ReturnType<typeof identiteNeuve> }).identite;
+    const ici = (...chemin: Segment[]) => ['forme', 'identite', ...chemin];
+    expect(choixDuChamp('etats', etat(s), ici(), cadreDeLaSession(s))?.map((c) => c.valeur)).toEqual([identiteNeuve()]);
+    const pose = jouer(s, valeur('etats', 'humeur', ici(), identiteNeuve()));
+    const lignes = choixDuChamp('etats', etat(pose), ici('lignes', 0), cadreDeLaSession(pose))!;
+    expect(lignes.slice(0, 2)).toEqual([
+      { valeur: { espece: 'humain', sexe: 'M', valeurs: [] }, libelle: 'Humain masculin', refus: null },
+      { valeur: { espece: 'humain', sexe: 'F', valeurs: [] }, libelle: 'Humain féminin', refus: null },
+    ]);
+    const ligne = jouer(pose, valeur('etats', 'humeur', ici('lignes', 0), lignes[0].valeur));
+    expect(identite(ligne).lignes).toEqual([{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'repere-1', valeur: '' }] }]);
+    expect(choixDuChamp('etats', etat(ligne), ici('lignes', 1), cadreDeLaSession(ligne))!.some((c) => jsonCanonique(c.valeur) === jsonCanonique(lignes[0].valeur)), 'une espèce et un sexe pris').toBe(false);
+    const repere = jouer(ligne, valeur('etats', 'humeur', ici('reperes', 1), { id: 'repere-2', fragment: '' }));
+    expect(identite(repere).lignes[0].valeurs).toEqual([{ repere: 'repere-1', valeur: '' }, { repere: 'repere-2', valeur: '' }]);
+    const renomme = jouer(repere, { geste: 'identifier', element: 'repere-2', id: 'titre' });
+    expect([identite(renomme).reperes.map((r) => r.id), identite(renomme).lignes[0].valeurs.map((v) => v.repere)]).toEqual([['repere-1', 'titre'], ['repere-1', 'titre']]);
+    expect(refusDuRenommage(renomme, { geste: 'identifier', element: 'titre', id: 'repere-1' })).toBe('Identifiant « repere-1 » déjà porté par le repère 1');
+    const saisi = jouer(renomme, valeur('etats', 'humeur', ici('lignes', 0, 'valeurs', 1, 'valeur'), 'Baron'));
+    expect([refusDeRetrait(saisi, 'titre'), jouer(saisi, { geste: 'supprimer', element: 'titre' })]).toEqual(['Valeur saisie pour : Humain masculin — videz-la d’abord.', saisi]);
+    const retire = jouer(renomme, { geste: 'supprimer', element: 'titre' });
+    expect([identite(retire).reperes.map((r) => r.id), identite(retire).lignes[0].valeurs]).toEqual([['repere-1'], [{ repere: 'repere-1', valeur: '' }]]);
+    expect(refusDeRetrait(retire, 'repere-1')).toBe('Une identité garde au moins un repère.');
+  });
+
+  it('un stade se couple à son document comme à l’éditeur web : sa prose vidée, le document croisé, se retire ; son document retiré sans prose lui rend une prose vide, que le narratif admet', () => {
+    const avecDocument = { ...NARRATIF, documents: [{ id: 'doc-lettre', titre: 'La lettre', prose: 'x' }] } as typeof NARRATIF;
+    const s = choisir(ouvert(avecDocument), 'indices', 'ind-lettre');
+    const croise = jouer(s, valeur('indices', 'ind-lettre', ['stades', 0, 'documentId'], 'doc-lettre'), valeur('indices', 'ind-lettre', ['stades', 0, 'prose'], ''));
+    expect(narratif(croise).indices[0].stades[0]).toEqual({ id: 'lue', documentId: 'doc-lettre' });
+    const sans = jouer(croise, valeur('indices', 'ind-lettre', ['stades', 0, 'documentId']));
+    expect([narratif(sans).indices[0].stades[0], avertissementsDeLaSession(sans)]).toEqual([{ id: 'lue', prose: '' }, avertissementsDeLaSession(s)]);
+  });
+
+  it('l’apparence des objets d’un PNJ se choisit parmi les armes de son profil fusionné à sa créature de base, comme celle d’un personnage (#2948)', () => {
+    const avecPnj = { ...NARRATIF, presetsPnj: [{ id: 'pnj-guet', base: { id: 'sergent-du-guet' } }] } as unknown as typeof NARRATIF;
+    const s = choisir(ouvert(avecPnj), 'presetsPnj', 'pnj-guet');
+    const preset = () => narratif(s).presetsPnj[0];
+    expect(choixDuChamp('presetsPnj', preset(), ['apparence', 'apparencesObjets'], cadreDeLaSession(s))?.map((c) => c.valeur)).toEqual(['arme-simple']);
+    const autres = apparencesAdmissiblesDObjet({ trappingId: 'arme-simple' }).filter((a) => a.id !== findTrappingById('arme-simple')!.shape!.id);
+    expect(choixDuChamp('presetsPnj', preset(), ['apparence', 'apparencesObjets', 'arme-simple'], cadreDeLaSession(s))?.map((c) => c.valeur)).toEqual(autres.map((a) => ({ id: a.id })));
+    const choisie = jouer(s, valeur('presetsPnj', 'pnj-guet', ['apparence'], {}), valeur('presetsPnj', 'pnj-guet', ['apparence', 'apparencesObjets'], {}), valeur('presetsPnj', 'pnj-guet', ['apparence', 'apparencesObjets', 'arme-simple'], { id: autres[0].id }));
+    expect(narratif(choisie).presetsPnj[0].apparence).toEqual({ apparencesObjets: { 'arme-simple': { id: autres[0].id } } });
+    expect(refusDeLaValeur(choisie, valeur('presetsPnj', 'pnj-guet', ['apparence', 'apparencesObjets', 'dague'], { id: autres[0].id })), 'un objet hors de ses armes').toBe('nonOffert');
   });
 
   it('le narratif écrit son ouverture et sa clôture, sans sélection', () => {

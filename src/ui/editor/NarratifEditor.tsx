@@ -1,5 +1,4 @@
 import { useEffect, useId, useState } from 'react';
-import type { z } from 'zod';
 import { ScreenShell } from '../ScreenShell';
 import { Tabs, type TabItem } from '../composites/Tabs';
 import { Icon } from '../Icon';
@@ -22,8 +21,8 @@ import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE, identiteSchema } from '../../data/schemas/grammaire/campagne';
 import type { RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { CibleNarrative, Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
-import { ajouteEntree, idFrais, type RegistreCreable } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
-import { refusDeRenommage, refusDeRetrait, refusDId, renommeAuProjet, retireDuProjet, type ProjetEdite } from '../../noyau/narratifEdit';
+import { ajouteEntree, idFrais, identiteCouverte, identiteNeuve, lignesNeuves, repereNeuf, stadeCouple, type Identite, type RegistreCreable } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
+import { formeNeuve, libelleDeLigne, refusDeForme, refusDeRenommage, refusDeRetrait, renommeAuProjet, retireDuProjet, type ProjetEdite } from '../../noyau/narratifEdit';
 import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
@@ -403,6 +402,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
                   etat={selectedEtat}
                   refusDe={refusDe('etats', selectedEtat.id)}
                   refus={refusDeRetirer('etats', selectedEtat.id)}
+                  refusDeForme={refusDeForme(projet, selectedEtat.id)}
                   refusDeRenommerValeur={(valeur) => refusDe('etats', selectedEtat.id, valeur)}
                   refusDeValeur={(valeur) => refusDeRetirer('etats', selectedEtat.id, valeur)}
                   onRemoveValeur={(valeur) => retire({ registre: 'etats', id: selectedEtat.id, sous: valeur })}
@@ -588,28 +588,25 @@ function DocumentForm({ porteur, doc, refusDe, refus, onRename, onPatch, onRemov
   );
 }
 
-/** La forme NEUVE d'un état de forme `kind` : une forme à valeurs déclarées en porte une, que l'auteur renomme. */
-function formeNeuve(kind: FormeDEtatKind): EtatNarratif['forme'] {
-  return (FORMES_D_ETAT[kind].valeursDeclarees ? { kind, valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }] } : { kind }) as EtatNarratif['forme'];
-}
-
 /** Formulaire d'un ÉTAT DE CAMPAGNE (#2539) : identité, libellé, provenance (source OU raison maison), forme (`FORMES_D_ETAT`)
  *  et, pour une forme qui les déclare, ses valeurs (id stable + libellé). Changer de forme est refusé tant
  *  qu'une référence désigne l'état (l'usage qu'elle en fait dépend de la forme). */
-function EtatForm({ porteur, etat, refusDe, refus, refusDeRenommerValeur, refusDeValeur, onRename, onRenameValeur, onRemoveValeur, onPatch, onRemove }: {
+function EtatForm({ porteur, etat, refusDe, refus, refusDeForme, refusDeRenommerValeur, refusDeValeur, onRename, onRenameValeur, onRemoveValeur, onPatch, onRemove }: {
   /** Identité STABLE de l'état, tenue par `NarratifEditor` à travers ses renommages. */
   porteur: string;
   etat: EtatNarratif;
   refusDe: (candidat: string) => string | null;
   refus: string | undefined;
-  /** Le refus de renommer une valeur en `candidat` (`refusDeRenommage`). */
+  /** Raison qui refuse de changer la forme (`refusDeForme`), ou `undefined`. */
+  refusDeForme: string | undefined;
+  /** Le refus de renommer une valeur, ou un repère de l'identité, en `candidat` (`refusDeRenommage`). */
   refusDeRenommerValeur: (valeur: string) => (candidat: string) => string | null;
-  /** Raison qui refuse de retirer cette valeur (`refusDeRetrait`), ou `undefined`. */
+  /** Raison qui refuse de retirer cette valeur, ou ce repère (`refusDeRetrait`), ou `undefined`. */
   refusDeValeur: (valeur: string) => string | undefined;
-  /** Retire une valeur (`retireDuProjet`). */
+  /** Retire une valeur, ou un repère (`retireDuProjet`). */
   onRemoveValeur: (valeur: string) => void;
   onRename: (nextId: string) => void;
-  /** Renomme une valeur ET propage le renommage aux références qui la nomment. */
+  /** Renomme une valeur, ou un repère, ET propage le renommage à ce qui le nomme (`renommeAuProjet`). */
   onRenameValeur: (from: string, nextId: string) => void;
   onPatch: (patch: Partial<EtatNarratif>) => void;
   onRemove: () => void;
@@ -617,8 +614,6 @@ function EtatForm({ porteur, etat, refusDe, refus, refusDeRenommerValeur, refusD
   const valeurs = valeursDeclarees(etat);
   const clesValeurs = useClesDeRangees(valeurs);
   const setValeurs = (vs: readonly { id: string; label: string }[]) => onPatch({ forme: { ...etat.forme, valeurs: [...vs] } as EtatNarratif['forme'] });
-  /** Changer de forme ne perd ni l'usage d'une référence, ni une identité. */
-  const refusDeForme = refus ?? (etat.forme.kind === 'heros' && etat.forme.identite ? 'Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.' : undefined);
   return (
     <div>
       <ChampIdStable libelle="Identifiant (id stable)" value={etat.id} refusDe={refusDe} onRename={onRename} />
@@ -662,7 +657,10 @@ function EtatForm({ porteur, etat, refusDe, refus, refusDeRenommerValeur, refusD
       )}
       {etat.forme.kind === 'heros' && (
         etat.forme.identite
-          ? <IdentiteForm porteur={porteur} identite={etat.forme.identite} onChange={(identite) => onPatch({ forme: identite ? { kind: 'heros', identite } : { kind: 'heros' } })} />
+          ? <IdentiteForm
+              porteur={porteur} identite={etat.forme.identite} onChange={(identite) => onPatch({ forme: identite ? { kind: 'heros', identite } : { kind: 'heros' } })}
+              refusDeRenommerRepere={refusDeRenommerValeur} onRenameRepere={onRenameValeur} refusDeRepere={refusDeValeur} onRemoveRepere={onRemoveValeur}
+            />
           : (
             <button type="button" className="btn small" onClick={() => onPatch({ forme: { kind: 'heros', identite: identiteNeuve() } })}>
               <Icon id="interface/ajouter" size="sm" /> Ajouter une identité
@@ -674,47 +672,35 @@ function EtatForm({ porteur, etat, refusDe, refus, refusDeRenommerValeur, refusD
   );
 }
 
-type Identite = z.infer<typeof identiteSchema>;
 type LigneDIdentite = Identite['lignes'][number];
 type ValeurDIdentite = LigneDIdentite['valeurs'][number];
-
-/** Une identité neuve : une ancre, le repère qui la porte, aucune ligne. */
-const identiteNeuve = (): Identite => ({ ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [] });
-
-const COUPLES_D_IDENTITE: readonly { espece: RaceKey; sexe: Sexe }[] = raceKeySchema.options.flatMap((espece) => sexeSchema.options.map((sexe) => ({ espece, sexe })));
-const libelleDeLigne = (l: { espece: RaceKey; sexe: Sexe }): string => `${t(`espece.individu.${l.espece}`)} ${libelleDeValeur(sexeSchema, l.sexe).toLowerCase()}`;
 
 /** IDENTITÉ d'un état `heros` (EDO 02 l.112-127) : ancres, repères (id stable + fragment verbatim du paquet) et, par
  *  espèce et sexe, la valeur de chaque repère et sa provenance. Un renommage de repère suit dans chaque ligne ; un
  *  repère dont une valeur est saisie ne se retire pas. */
-function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identite: Identite; onChange: (identite: Identite | undefined) => void }) {
+function IdentiteForm({ porteur, identite, onChange, refusDeRenommerRepere, onRenameRepere, refusDeRepere, onRemoveRepere }: {
+  porteur: string;
+  identite: Identite;
+  onChange: (identite: Identite | undefined) => void;
+  /** Le refus de renommer un repère en `candidat` (`refusDeRenommage`). */
+  refusDeRenommerRepere: (repere: string) => (candidat: string) => string | null;
+  /** Renomme un repère, dans chaque ligne aussi (`renommeAuProjet`). */
+  onRenameRepere: (de: string, vers: string) => void;
+  /** Raison qui refuse de retirer ce repère (`refusDeRetrait`), ou `undefined`. */
+  refusDeRepere: (repere: string) => string | undefined;
+  /** Retire un repère, et sa valeur de chaque ligne (`retireDuProjet`). */
+  onRemoveRepere: (repere: string) => void;
+}) {
   const clesAncres = useClesDeRangees(identite.ancres);
   const clesReperes = useClesDeRangees(identite.reperes);
   const clesLignes = useClesDeRangees(identite.lignes);
   const fautes = validateDocument(identiteSchema, identite) ?? [];
-  const poser = (patch: Partial<Identite>) => onChange({ ...identite, ...patch });
+  /** L'identité patchée, chaque ligne couverte (`identiteCouverte`). */
+  const poser = (patch: Partial<Identite>) => onChange(identiteCouverte({ ...identite, ...patch }));
   const setLigne = (j: number, ligne: LigneDIdentite) => poser({ lignes: identite.lignes.map((l, k) => (k === j ? ligne : l)) });
-  const renommerRepere = (de: string, vers: string) => poser({
-    reperes: identite.reperes.map((r) => (r.id === de ? { ...r, id: vers } : r)),
-    lignes: identite.lignes.map((l) => ({ ...l, valeurs: l.valeurs.map((v) => (v.repere === de ? { ...v, repere: vers } : v)) })),
-  });
-  const retirerRepere = (id: string) => poser({
-    reperes: identite.reperes.filter((r) => r.id !== id),
-    lignes: identite.lignes.map((l) => ({ ...l, valeurs: l.valeurs.filter((v) => v.repere !== id) })),
-  });
-  const ajouterRepere = () => {
-    const id = idFrais('repere', identite.reperes);
-    poser({ reperes: [...identite.reperes, { id, fragment: '' }], lignes: identite.lignes.map((l) => ({ ...l, valeurs: [...l.valeurs, { repere: id, valeur: '' }] })) });
-  };
-  const refusDuRepere = (id: string): string | undefined => {
-    if (identite.reperes.length <= 1) return 'Une identité garde au moins un repère.';
-    const saisies = identite.lignes.filter((l) => l.valeurs.some((v) => v.repere === id && v.valeur.trim())).map(libelleDeLigne);
-    return saisies.length ? `Valeur saisie pour : ${saisies.join(', ')} — videz-la d’abord.` : undefined;
-  };
-  const libre = COUPLES_D_IDENTITE.find((c) => !identite.lignes.some((l) => l.espece === c.espece && l.sexe === c.sexe));
+  const [libre] = lignesNeuves(identite);
   const ajouterLigne = () => {
-    if (!libre) return;
-    poser({ lignes: [...identite.lignes, { ...libre, valeurs: identite.reperes.map((r) => ({ repere: r.id, valeur: '' })) }] });
+    if (libre) poser({ lignes: [...identite.lignes, libre] });
   };
   return (
     <div className="ed-field">
@@ -735,17 +721,17 @@ function IdentiteForm({ porteur, identite, onChange }: { porteur: string; identi
         <div key={clesReperes[i]}>
           <ChampIdStable
             libelle={`Id du repère ${i + 1}`} className="ed-subfield" value={r.id}
-            refusDe={(c) => refusDId(r.id, c.trim(), (x) => { const j = identite.reperes.findIndex((y) => y.id !== r.id && y.id === x); return j >= 0 ? `le repère ${j + 1}` : null; })}
-            onRename={(id) => renommerRepere(r.id, id)}
+            refusDe={refusDeRenommerRepere(r.id)}
+            onRename={(id) => onRenameRepere(r.id, id)}
           />
           <label className="ed-subfield">
             {`Fragment du repère ${i + 1}`}
             <input value={r.fragment} onChange={(e) => poser({ reperes: identite.reperes.map((x) => (x.id === r.id ? { ...x, fragment: e.target.value } : x)) })} />
           </label>
-          <BoutonRetirer id={`supprimer-repere-${porteur}-${r.id}`} libelle={`Supprimer le repère ${i + 1}`} refus={refusDuRepere(r.id)} onRemove={() => retirerRepere(r.id)} />
+          <BoutonRetirer id={`supprimer-repere-${porteur}-${r.id}`} libelle={`Supprimer le repère ${i + 1}`} refus={refusDeRepere(r.id)} onRemove={() => onRemoveRepere(r.id)} />
         </div>
       ))}
-      <button type="button" className="btn small" onClick={ajouterRepere}>
+      <button type="button" className="btn small" onClick={() => poser({ reperes: [...identite.reperes, repereNeuf(identite)] })}>
         <Icon id="interface/ajouter" size="sm" /> Ajouter un repère
       </button>
       {identite.lignes.map((l, j) => (
@@ -842,8 +828,9 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, refusDe
 
   const setStades = (stades: IndiceStade[]) => onPatch({ stades });
   const addStade = () => setStades([...indice.stades, { id: idFrais('stade', indice.stades), prose: '' }]);
+  /** Le stade `id` patché, couplé à son document (`stadeCouple`). */
   const updateStade = (id: string, patch: Partial<IndiceStade>) => {
-    setStades(indice.stades.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    setStades(indice.stades.map((s) => (s.id === id ? stadeCouple({ ...s, ...patch }) : s)));
   };
   const clesStades = useClesDeRangees(indice.stades);
 
@@ -893,18 +880,17 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, refusDe
               libelle={`Id du stade ${idx + 1}`} className="ed-subfield" value={s.id}
               refusDe={refusDeRenommerStade(s.id)} onRename={(id) => onRenameStade(s.id, id)}
             />
-            {/* Au moins la prose ou le document (`raffineNarratif`). */}
             <ProseField
               label={`Prose (stade ${idx + 1}${s.documentId ? ', facultative : le stade croise un document' : ''})`}
               value={s.prose ?? ''}
-              onChange={(prose) => updateStade(s.id, { prose: prose || !s.documentId ? prose : undefined })}
+              onChange={(prose) => updateStade(s.id, { prose })}
             />
             <RefNarrativeField
               cle="documentId"
               narratif={narratif}
               label={`Document croisé du stade ${idx + 1}`}
               value={s.documentId}
-              onChange={(documentId) => updateStade(s.id, { documentId, prose: documentId ? s.prose : (s.prose ?? '') })}
+              onChange={(documentId) => updateStade(s.id, { documentId })}
               nullable
             />
             <ProvenanceDuTexte identite={`${porteur}/stade:${clesStades[idx]}`} copie sujet={`du stade ${idx + 1}`} value={s} onChange={(p) => updateStade(s.id, p)} />

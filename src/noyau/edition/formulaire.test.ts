@@ -805,6 +805,15 @@ describe('les porteurs du narratif : une entrée de chaque registre créable, un
     expect(valeurs('etats', NARRATIF.etats[0], ['forme', 'valeurs', 1])).toEqual([{ id: 'valeur-2', label: 'Valeur 2' }]);
     expect(avecLaValeurDuPorteur('indices', lettre, ['stades', 2], { id: 'autre', prose: '' }, cadre).ok, 'seul l’élément neuf s’ajoute').toBe(false);
   });
+
+  it('un état héros reçoit son identité neuve absente, puis le repère neuf au rang qui suit le dernier ; seul ce repère s’y ajoute', () => {
+    const heros = { id: 'elu', label: 'Élu', maison: 'fixture', forme: { kind: 'heros' } } as unknown as (typeof NARRATIF.etats)[number];
+    const [neuve] = valeurs('etats', heros, ['forme', 'identite']) as { reperes: unknown[] }[];
+    expect(neuve).toEqual({ ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [] });
+    const avec = { ...heros, forme: { kind: 'heros', identite: neuve } } as typeof heros;
+    expect([valeurs('etats', avec, ['forme', 'identite']), valeurs('etats', avec, ['forme', 'identite', 'reperes', 1])]).toEqual([undefined, [{ id: 'repere-2', fragment: '' }]]);
+    expect(avecLaValeurDuPorteur('etats', avec, ['forme', 'identite', 'reperes', 1], { id: 'autre', fragment: '' }, cadre).ok).toBe(false);
+  });
 });
 
 describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ du narratif (#3606 M6)', () => {

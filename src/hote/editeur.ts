@@ -27,7 +27,7 @@ import {
   findSpellById, listesDeSorts, sortsImprimes,
   aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
   PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition,
-  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, planDuLieuOuvert, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
+  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, refusDeForme, FORMES_D_ETAT, type FormeDEtatKind, planDuLieuOuvert, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
 } from '../noyau/index';
 import { pluriel, t, type MsgKey } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -227,10 +227,11 @@ export interface ZonesDeLEditeur {
    * `ECRITURES_DES_PORTEURS`), « Ajouter », `{ geste: 'ajouter', sorte }`, qui pose un porteur neuf et le sélectionne
    * (le dialogue : `addDialogue` ; la rencontre : `addEncounter` ; le lieu, au centre de la carte : `ajouterLieu` ;
    * l'entrée du narratif, le corps neuf de son registre sous un identifiant frais : `ajouteEntree`), refusé avec sa
-   * raison (`refusDeCreer` : l'indice sans affaire) ; de la route, à la place, `logique/route/ajouter/<lieu>`,
-   * « Relier à <lieu> », pour chaque lieu que le lieu sélectionné rejoint par une route neuve (`avecs`, `lierLieux`),
-   * `{ geste: 'ajouter', sorte: 'route', avec }` ; de l'écart, `logique/ecart/ajouter/<entrée>`, « Écarter <entrée> »,
-   * pour chaque entrée des fiches commitées qu'aucun écart n'écarte, `{ geste: 'ajouter', sorte: 'ecart', avec }`
+   * raison (`refusDeCreer` : l'indice sans affaire) ; de la sorte qui se crée avec un identifiant offert (`avecs`), à
+   * la place, la liste `logique/<sorte>/ajouter` de ses identifiants offerts, absente sans eux, chacun le bouton
+   * `logique/<sorte>/ajouter/<identifiant>`, `{ geste: 'ajouter', sorte, avec }` : de la route, « Relier à <lieu> »,
+   * chaque lieu que le lieu sélectionné rejoint par une route neuve (`lierLieux`) ; de l'écart, « Écarter <entrée> »,
+   * chaque entrée des fiches commitées qu'aucun écart n'écarte
    */
   'editeur.logique': (Choix | Ligne | Bouton)[];
   /**
@@ -373,15 +374,22 @@ export interface ZonesDeLEditeur {
    *
    * Le narratif ouvert, sans sélection : le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'narratif',
    * id: 'narratif' }`), son ouverture et sa clôture. D'une entrée d'un registre créable du narratif : le formulaire qui
-   * la renomme, de son identifiant ; d'un indice, pour chacun de ses stades, et d'un état énuméré, pour chacune de ses
-   * valeurs (`SOUS_ENTREES`), le formulaire `identifier/<stade|valeur>/<id>` qui change son identifiant, `{ type:
-   * 'identifier', args: [element, id] }`, propagé au projet, et `<stade|valeur>/<id>/supprimer`, `{ geste: 'supprimer',
-   * element }`, refusé avec sa raison (la dernière sous-entrée, une sous-entrée qu'une référence désigne), puis
-   * `<stade|valeur>/ajouter`, qui écrit au rang neuf la sous-entrée neuve, d'identifiant frais ; le formulaire tiré du
-   * schéma de chacun de ses champs, son identifiant excepté, les champs de ses sous-entrées par rang, sans
-   * l'identifiant ni le raccourcissement de leur liste (ses renvois, parmi les autres indices) ; la supprimer, refusé
-   * avec sa raison tant qu'une référence la désigne (`refusDeRetrait`, `retireDuProjet`). D'un écart : le formulaire qui
-   * change son entrée, parmi les entrées libres ; son motif ; le supprimer.
+   * la renomme, de son identifiant ; d'un état, sa forme, `etat/forme/<forme>` pour chacune de `FORMES_D_ETAT`, la
+   * courante pressée, `{ geste: 'forme', kind }`, qui pose la forme neuve (`formeNeuve`), refusé avec sa raison tant
+   * qu'une référence le désigne ou qu'il porte une identité (`refusDeForme`) ; d'un indice, pour chacun de ses stades,
+   * d'un état énuméré, pour chacune de ses valeurs, et d'un état héros, pour chacun des repères de son identité
+   * (`SOUS_ENTREES`), le formulaire `identifier/<stade|valeur|repere>/<id>` qui change son identifiant, `{ type:
+   * 'identifier', args: [element, id] }`, propagé au projet et, d'un repère, à chaque ligne de l'identité, et
+   * `<stade|valeur|repere>/<id>/supprimer`, `{ geste: 'supprimer', element }`, refusé avec sa raison (la dernière
+   * sous-entrée, une sous-entrée qu'une référence désigne, un repère dont une valeur est saisie), puis
+   * `<stade|valeur|repere>/ajouter`, qui écrit au rang neuf la sous-entrée neuve, d'identifiant frais ; le formulaire
+   * tiré du schéma de chacun de ses champs, son identifiant excepté, les champs de ses sous-entrées par rang, sans
+   * l'identifiant ni le raccourcissement de leur liste (ses renvois, parmi les autres indices ; l'identité neuve d'un
+   * état héros et chaque ligne neuve, d'une espèce et d'un sexe libres ; l'apparence des objets d'un PNJ, parmi les armes
+   * de son profil), chaque écriture réécrite par la règle de son registre (le stade couplé à son document, l'identité
+   * couverte) ; la supprimer, refusé avec sa raison tant qu'une référence la désigne (`refusDeRetrait`,
+   * `retireDuProjet`). D'un écart : le formulaire qui change son entrée, son champ `nommer/nom` au choix parmi la sienne
+   * et les entrées libres ; son motif ; le supprimer.
    *
    * D'une zone : la poignée qui la redimensionne ; d'un déclencheur, le formulaire qui le renomme ; d'une zone d'effet,
    * le formulaire qui la nomme et celui qui change son identifiant, sa nature (non déclarée, intérieur ou extérieur),
@@ -688,10 +696,12 @@ function ligneDeLaSelection(s: SessionDEdition): Ligne[] {
 }
 
 /** Le formulaire qui nomme la sélection de la session `s` (`{ geste: 'nommer', nom }`), son champ prérempli de `nom`,
- *  vide sans nom d'auteur. */
-const formulaireDuNom = (nom: string | undefined, optionnel: boolean): Formulaire => ({
+ *  vide sans nom d'auteur ; ou, les noms `noms` donnés, son choix parmi eux, `nom` pressé. */
+const formulaireDuNom = (nom: string | undefined, optionnel: boolean, noms?: readonly string[]): Formulaire => ({
   type: 'formulaire', id: 'nommer', libelle: t('ecran.editeur.entite.nommer'), verbe: 'nommer', focus: false, refus: null,
-  champs: [{ type: 'saisieTexte', id: 'nommer/nom', ton: 'neutre', nom: 'nom', optionnel, libelle: t('ecran.editeur.entite.nom'), valeur: nom ?? '' }],
+  champs: [noms
+    ? { type: 'saisieChoix', id: 'nommer/nom', ton: 'neutre', nom: 'nom', optionnel, libelle: t('ecran.editeur.entite.nom'), valeurs: noms.map((n) => ({ libelle: n, valeur: n, presse: n === nom, refus: null })) }
+    : { type: 'saisieTexte', id: 'nommer/nom', ton: 'neutre', nom: 'nom', optionnel, libelle: t('ecran.editeur.entite.nom'), valeur: nom ?? '' }],
 });
 
 /** Le formulaire de verbe `verbe`, à un champ texte `nom` prérempli de `valeur`. */
@@ -714,7 +724,7 @@ const formulaireDeLIdentifiant = (id: string): Formulaire =>
 /** Le formulaire qui change l'identifiant de chaque élément d'identifiant `ids` de la sous-collection `famille` du porteur
  *  sélectionné (`renommerElement`), l'élément désigné par son identifiant en vigueur, en saisie fixe, son champ prérempli
  *  de lui, libellé `libelle`. */
-const identifiantsDesElements = (famille: 'action' | 'noeud' | 'stade' | 'valeur', ids: readonly string[], libelle: (id: string) => string): Formulaire[] => ids.map((el) => {
+const identifiantsDesElements = (famille: 'action' | 'noeud' | 'stade' | 'valeur' | 'repere', ids: readonly string[], libelle: (id: string) => string): Formulaire[] => ids.map((el) => {
   const id = `identifier/${famille}/${el}`;
   return {
     type: 'formulaire', id, libelle: libelle(el), verbe: 'identifier', focus: false, refus: null,
@@ -1650,7 +1660,8 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  le document ouvert (`accesDe`), le compte de ses porteurs, chacun en liste sous son identifiant (`idDuPorteur`), pressé
  *  s'il est sélectionné, qui le sélectionne ; quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`),
  *  « Ajouter », refusé avec la raison que la table dit (`refusDeCreer`), ou, de la sorte qui se crée avec l'identifiant
- *  qu'offre la sélection (`avecs`), un bouton par identifiant offert. #3606 décision 7 */
+ *  qu'offre la sélection (`avecs`), la liste de ses identifiants offerts, d'id `logique/<sorte>/ajouter`, chacun un bouton
+ *  `logique/<sorte>/ajouter/<identifiant>`, absente sans eux. #3606 décision 7 */
 function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const choisi = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
   const projet = projetEdite(s);
@@ -1660,8 +1671,9 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
     const ids = porteursDuProjet(acces, projet, sceneId).map((d) => idDuPorteur(acces, d, sceneId));
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
     const { creer, refusDeCreer, avecs } = ECRITURES_DES_PORTEURS[sorte];
+    const offerts = avecs?.(projet, sceneId, s.sel) ?? [];
     const ajouts = !creer ? []
-      : avecs ? avecs(projet, sceneId, s.sel).map((avec) => bouton(`logique/${sorte}/ajouter/${avec}`, t(texte('.avec'), { avec }), { geste: 'ajouter', sorte, avec }))
+      : avecs ? (offerts.length ? [choix(`logique/${sorte}/ajouter`, t(texte('.avecs')), offerts.map((avec) => bouton(`logique/${sorte}/ajouter/${avec}`, t(texte('.avec'), { avec }), { geste: 'ajouter', sorte, avec })), 'liste')] : [])
         : [bouton(`logique/${sorte}/ajouter`, t(texte('.ajouter')), { geste: 'ajouter', sorte }, false, refusDeCreer?.(projet, sceneId, s.sel) ?? null)];
     return [
       ligne(`logique/${sorte}`, t(texte(''), { n: ids.length })),
@@ -1673,14 +1685,17 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
 }
 
 /** L'inspecteur du porteur de formulaire `porteur` de la session `s`, ses éléments d'id `<prefixe>/…` : le formulaire
- *  qui le nomme, de son identifiant, quand sa sorte se renomme par la table (`ECRITURES_DES_PORTEURS`, `renommer`) ; ses
+ *  qui le nomme, de son identifiant, quand sa sorte se renomme par la table (`ECRITURES_DES_PORTEURS`, `renommer`), au
+ *  choix parmi le sien et ceux qu'elle offre à la création (`avecs`) quand elle en offre ; ses
  *  éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer, refusé avec la raison
  *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 */
 function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
-  const refus = ECRITURES_DES_PORTEURS[porteur.sorte].retirer ? refusDeRetrait(s) : null;
+  const { renommer, retirer, avecs } = ECRITURES_DES_PORTEURS[porteur.sorte];
+  const refus = retirer ? refusDeRetrait(s) : null;
+  const noms = avecs && [porteur.id, ...avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel)];
   return [
-    ...(ECRITURES_DES_PORTEURS[porteur.sorte].renommer ? [formulaireDuNom(porteur.id, false)] : []),
+    ...(renommer ? [formulaireDuNom(porteur.id, false, noms)] : []),
     ...propres,
     ...formulaireDuPorteur(s, porteur, donnee),
     bouton(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
@@ -1751,15 +1766,16 @@ function planDuLieuEnInspecteur(s: SessionDEdition, lieu: DonneeDuPorteur['lieu'
 }
 
 /** Les éléments propres d'une entrée du registre `registre` du narratif à sous-entrées (`SOUS_ENTREES`), de donnée
- *  `donnee`, dans la session `s` : de chacune de ses sous-entrées, le formulaire qui change son identifiant
- *  (`identifiantsDesElements`, `renommerElement`) et le bouton qui la retire (`{ geste: 'supprimer', element }`), refusé
- *  avec sa raison (`refusDeRetrait`) ; puis « Ajouter », qui écrit au rang qui suit la dernière la sous-entrée neuve que
- *  son contexte y pose (`choixDuChamp`), sans elle s'il n'en pose pas. #3606 B8 */
+ *  `donnee`, dans la session `s` : pour chacune de ses familles dont la sous-collection est présente, de chacune de ses
+ *  sous-entrées, le formulaire qui change son identifiant (`identifiantsDesElements`, `renommerElement`) et le bouton
+ *  qui la retire (`{ geste: 'supprimer', element }`), refusé avec sa raison (`refusDeRetrait`) ; puis « Ajouter », qui
+ *  écrit au rang qui suit la dernière la sous-entrée neuve que son contexte y pose (`choixDuChamp`), sans elle s'il n'en
+ *  pose pas. #3606 B8 */
 function sousEntreesDuRegistre<R extends keyof typeof SOUS_ENTREES>(registre: R) {
-  const { chemin, famille } = SOUS_ENTREES[registre]!;
-  const texte = (suffixe: string) => `ecran.editeur.sousEntree.${famille}.${suffixe}` as MsgKey;
-  return (s: SessionDEdition, donnee: DonneeDuPorteur[R]): (Choix | Ligne | Bouton | Formulaire)[] => {
-    const elements = chemin.reduce<unknown>((o, cle) => (o as Record<Segment, unknown> | undefined)?.[cle], donnee) as readonly { id: string }[] | undefined ?? [];
+  return (s: SessionDEdition, donnee: DonneeDuPorteur[R]): (Choix | Ligne | Bouton | Formulaire)[] => SOUS_ENTREES[registre]!.flatMap(({ chemin, famille }) => {
+    const texte = (suffixe: string) => `ecran.editeur.sousEntree.${famille}.${suffixe}` as MsgKey;
+    const elements = chemin.reduce<unknown>((o, cle) => (o as Record<Segment, unknown> | undefined)?.[cle], donnee) as readonly { id: string }[] | undefined;
+    if (!elements) return [];
     const rangNeuf = [...chemin, elements.length];
     const [neuve] = choixDuChamp(registre, donnee, rangNeuf, cadreDeLaSession(s)) ?? [];
     return [
@@ -1769,13 +1785,25 @@ function sousEntreesDuRegistre<R extends keyof typeof SOUS_ENTREES>(registre: R)
       ]),
       ...(neuve ? [bouton(`${famille}/ajouter`, t(texte('ajouter')), ecrireLaValeur({ sorte: registre, id: donnee.id }, rangNeuf, neuve.valeur))] : []),
     ];
-  };
+  });
+}
+
+/** Les éléments propres d'un état du narratif `etat` de la session `s` : sa forme, chacune de `FORMES_D_ETAT`, la
+ *  courante pressée, chacune refusée avec la raison qui refuse de la changer (`refusDeForme`), qui joue `{ geste:
+ *  'forme', kind }` ; puis ses sous-entrées (`sousEntreesDuRegistre`). #3606 */
+function propresDeLEtat(s: SessionDEdition, etat: DonneeDuPorteur['etats']): (Choix | Ligne | Bouton | Formulaire)[] {
+  const refus = refusDeForme(projetEdite(s), etat.id) ?? null;
+  const formes = (Object.keys(FORMES_D_ETAT) as FormeDEtatKind[]).map((kind) => {
+    const courante = etat.forme.kind === kind;
+    return bouton(`etat/forme/${kind}`, FORMES_D_ETAT[kind].label, { geste: 'forme', kind }, courante, courante ? null : refus);
+  });
+  return [choix('etat/forme', t('ecran.editeur.etat.forme'), formes), ...sousEntreesDuRegistre('etats')(s, etat)];
 }
 
 /** Les éléments propres de l'inspecteur d'un porteur qui se liste à la zone Logique (`FORMULAIRES`, `logique`), par
  *  sorte : les nœuds d'un dialogue (`noeudsDuDialogue`), les membres d'une rencontre (`membresDeLaRencontre`), le sens
  *  d'une route (`sensDeLaRoute`), le plan d'un lieu (`planDuLieuEnInspecteur`), les sous-entrées d'une entrée du narratif
- *  qui en déclare (`sousEntreesDuRegistre`) ; sans entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme
+ *  qui en déclare (`sousEntreesDuRegistre`), la forme d'un état et ses sous-entrées (`propresDeLEtat`) ; sans entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme
  *  elle (`inspecteurDeZone`). */
 const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[] } = {
   dialogue: noeudsDuDialogue,
@@ -1783,6 +1811,7 @@ const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdit
   route: sensDeLaRoute,
   lieu: planDuLieuEnInspecteur,
   ...Object.fromEntries((Object.keys(SOUS_ENTREES) as (keyof typeof SOUS_ENTREES)[]).map((registre) => [registre, sousEntreesDuRegistre(registre)])),
+  etats: propresDeLEtat,
 };
 
 /** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique

@@ -169,7 +169,11 @@
 //   Puis (#3606 M4c) « Ajouter une rencontre » la crée, pressée, à l'inspecteur : ses membres comptés, son objectif de
 //   victoire changé en « Survivre N Rounds » ; « Supprimer » la retire. Une rencontre ajoutée de même, visée par
 //   l'embuscade de la première route de la carte, se renomme à la zone Logique, et « Supprimer » se refuse, la route
-//   dite ; « Annuler » jusqu'à la scène sans rencontre.
+//   dite ; « Annuler » jusqu'à la scène sans rencontre. Puis (#3606 M6) le menu Fichier ouvre le narratif, son ouverture
+//   à l'inspecteur ; « Ajouter un indice » refusé tant qu'aucune affaire n'est au narratif, dit ;
+//   une affaire ajoutée, choisie, son titre écrit ; un indice ajouté, un stade ajouté et identifié, le premier retiré,
+//   le dernier refusé, dit ; un état ajouté, sa forme passée à « Issue énumérée », sa valeur neuve à l'inspecteur ; un
+//   écart ajouté par la liste des entrées libres ; « Annuler » jusqu'au narratif d'avant, puis la scène rendue.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -2316,6 +2320,79 @@ async function parcoursEditeur() {
     ed = await editeur()
     noter(`« Annuler » ${annulations} fois : ${ed.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte}, ${ed.zones['editeur.titre'][0].texte} éditée`)
   }
+  /** Les identifiants que la zone Logique de l'éditeur publié `ed` liste pour la sorte `sorte`. */
+  const listeDe = (ed, sorte) => (ed.zones['editeur.logique'].find((el) => el.id === `logique/${sorte}/liste`)?.valeurs ?? []).map((b) => b.id.slice(`logique/${sorte}/`.length))
+  /** L'expression de la page vraie quand la zone Logique liste `n` porteurs de la sorte `sorte`. */
+  const listeLongue = (sorte, n) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'].find((el) => el.id === 'logique/${sorte}/liste')?.valeurs ?? []).length === ${n}`
+  /** Le narratif tel que l'auteur le voit sans sélection : les comptes de la zone Logique et le titre de l'ouverture. */
+  const narratifVu = (ed) => JSON.stringify([ed.zones['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.texte), inspecte(ed, 'valeur/ouverture/titre')?.champs.map((c) => c.valeur) ?? null])
+  /** Le narratif (#3606 M6) : ouvert au menu Fichier, son ouverture à l'inspecteur ; « Ajouter un indice » refusé
+   *  sans affaire, dit ; une affaire ajoutée, son titre écrit ; un indice, un stade ajouté, identifié, le premier retiré,
+   *  le dernier refusé, dit ; un état, sa forme changée ; un écart par la liste des entrées libres ; « Annuler » jusqu'au
+   *  narratif d'avant ; la scène rendue. */
+  const etapeDuNarratif = async () => {
+    const titre = (await editeur()).zones['editeur.titre'][0].texte
+    await cliquerAuPanneau({ element: 'bouton/document/narratif' })
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'] ?? []).some((el) => el.id === 'logique/affaires') && ${montre('valeur/ouverture/retirer')}`)
+    let ed = await editeur()
+    const avant = narratifVu(ed)
+    noter(`menu Fichier, « ${boutonDeLEditeur(ed, 'document/narratif').libelle} » : ${ed.zones['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.texte).join(', ')}`)
+    const affaires = listeDe(ed, 'affaires')
+    const refusDeLIndice = boutonDeLEditeur(ed, 'logique/indices/ajouter').refus
+    assert.equal(refusDeLIndice, affaires.length ? null : 'Créez d’abord une affaire.', `« Ajouter un indice » refusé sans affaire, et seulement sans elle (${affaires.length} affaire(s)) : ${refusDeLIndice}`)
+    await cliquerAuPanneau({ element: 'bouton/logique/affaires/ajouter' })
+    await waitFor(session, listeLongue('affaires', affaires.length + 1))
+    ed = await editeur()
+    const affaire = listeDe(ed, 'affaires').find((id) => !affaires.includes(id))
+    assert.equal(inspecte(ed, 'nommer')?.champs[0].valeur, affaire, `l’affaire ajoutée est choisie, à son nom : ${affaire}`)
+    await taper('saisieTexte/valeur/titre/valeur', 'Heritage')
+    await cliquerAuPanneau({ element: 'formulaire/valeur/titre' })
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/titre')?.champs ?? []).some((c) => c.valeur === 'Heritage')`)
+    ed = await editeur()
+    assert.equal(boutonDeLEditeur(ed, 'logique/indices/ajouter').refus, null, '« Ajouter un indice » offert, une affaire au narratif')
+    noter(`« Ajouter un indice » sans affaire : ${refusDeLIndice ?? `offert, ${affaires.length} affaire(s) au narratif`} ; « ${boutonDeLEditeur(ed, 'logique/affaires/ajouter').libelle} » : ${affaire}, son titre écrit : « Heritage »`)
+    await capturer('3606-m6-2-affaire')
+    const indices = listeDe(ed, 'indices')
+    await cliquerAuPanneau({ element: 'bouton/logique/indices/ajouter' })
+    await waitFor(session, `${listeLongue('indices', indices.length + 1)} && ${montre('stade/ajouter')}`)
+    await cliquerAuPanneau({ element: 'bouton/stade/ajouter' })
+    await waitFor(session, montre('identifier/stade/stade-2'))
+    await taper('saisieTexte/identifier/stade/stade-2/id', 'releve')
+    await cliquerAuPanneau({ element: 'formulaire/identifier/stade/stade-2' })
+    await waitFor(session, `${montre('identifier/stade/releve')} && !${montre('identifier/stade/stade-2')}`)
+    await cliquerAuPanneau({ element: 'bouton/stade/stade-1/supprimer' })
+    await waitFor(session, `!${montre('identifier/stade/stade-1')}`)
+    ed = await editeur()
+    const dernier = boutonDeLEditeur(ed, 'stade/releve/supprimer')?.refus
+    assert.equal(dernier, 'Un indice garde au moins un stade.', `le dernier stade ne se retire pas, dit : ${dernier}`)
+    noter(`« Ajouter un indice » : ${listeDe(ed, 'indices').find((id) => !indices.includes(id))} ; « ${boutonDeLEditeur(ed, 'stade/ajouter').libelle} » : stade-2, identifié « releve » ; « Supprimer le stade » stade-1 ; le dernier refusé : ${dernier}`)
+    await capturer('3606-m6-3-stades')
+    await cliquerAuPanneau({ element: 'bouton/logique/etats/ajouter' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'etat/forme')?.valeurs.find((b) => b.presse)?.id === 'etat/forme/heros'`)
+    await cliquerAuPanneau({ element: 'bouton/etat/forme/enum' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'etat/forme')?.valeurs.find((b) => b.presse)?.id === 'etat/forme/enum' && ${montre('identifier/valeur/valeur-1')}`)
+    ed = await editeur()
+    noter(`« ${boutonDeLEditeur(ed, 'logique/etats/ajouter').libelle} » : forme « ${boutonDeLEditeur(ed, 'etat/forme/heros').libelle} » ; « ${boutonDeLEditeur(ed, 'etat/forme/enum').libelle} » pressé : sa valeur neuve valeur-1 à l’inspecteur`)
+    await capturer('3606-m6-4-forme')
+    const ecarts = listeDe(ed, 'ecart')
+    const [entree] = ed.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter').valeurs
+    await choisirALaListe('logique/ecart/ajouter', entree.id, 'editeur.logique', listeLongue('ecart', ecarts.length + 1))
+    ed = await editeur()
+    const ecarte = listeDe(ed, 'ecart').find((id) => !ecarts.includes(id))
+    assert.ok(ecarte === entree.id.slice('logique/ecart/ajouter/'.length) && boutonDeLEditeur(ed, `logique/ecart/${ecarte}`)?.presse && !boutonDeLEditeur(ed, entree.id), `l’entrée choisie à la liste est écartée, choisie, et ne s’offre plus : ${ecarte}`)
+    noter(`« ${ed.zones['editeur.logique'].find((el) => el.id === 'logique/ecart/ajouter')?.libelle} », « ${entree.libelle} » choisie à la liste : ${ed.zones['editeur.logique'].find((el) => el.id === 'logique/ecart').texte}`)
+    await capturer('3606-m6-5-ecart')
+    let annulations = 0
+    for (ed = await editeur(); narratifVu(ed) !== avant; ed = await editeur()) {
+      assert.ok(annulations < 20, `« Annuler » rend le narratif d’avant en moins de 20 fois : ${narratifVu(ed)}`)
+      await cliquerAuPanneau({ element: 'bouton/annuler' })
+      annulations++
+    }
+    noter(`« Annuler » ${annulations} fois : ${ed.zones['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.texte).join(', ')}`)
+    await cliquerAuPanneau({ element: 'bouton/document/scene' })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0]?.texte === ${JSON.stringify(titre)}`)
+    noter(`menu Fichier, « ${boutonDeLEditeur(await editeur(), 'document/scene').libelle} » : ${titre}`)
+  }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
   assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
@@ -3090,6 +3167,7 @@ async function parcoursEditeur() {
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'] ?? []).some((el) => (el.valeurs ?? []).some((b) => b.id === 'logique/rencontre/${rencontre}'))`)
   noter(`« Supprimer » : ${(await editeur()).zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte}`)
   await etapeDeLEmbuscade()
+  await etapeDuNarratif()
   await cliquerAuPanneau({ element: 'bouton/tester' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await vue()
