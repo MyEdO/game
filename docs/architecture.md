@@ -100,7 +100,7 @@ qui le rend inutile.
 | `hote` | module commun aux hôtes du noyau, et leurs services d'hôte : entropie, stockage web | la porte du noyau, `scenes`, feuilles | oui |
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
 | `web` | services d'exécution du navigateur : minuteries, IndexedDB, fichiers | feuilles | non |
-| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `hote`, `data`) | non |
+| `audio` | service de l'hôte web | `hote`, `data`, feuilles | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
 | `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
@@ -874,10 +874,11 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
                             largeurs inégales / char inconnu → throw. Entités/props/départ : poser des
                             MARQUEURS custom dans l'ASCII (ex. `@BFLr`), nettoyer avant le parse (`replace`)
                             puis scanner leurs positions.
-src/net/                    compress.ts : la compression de l'hôte web (CompressionStream), port `Compression` du relay
 src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, session.ts, relay.ts (RelayClient
                             heartbeat/backoff, RoomHost = un Transport virtuel par siège, RoomGuest), salon.ts
-                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web.
+                            (politique de session), page.ts (ports de la page : adresse du relay, `fetch`,
+                            socket, stockage du jeton), compression.ts (CompressionStream, port `Compression`) ;
+                            `src/state/netFlow.ts` les compose avec la minuterie, la panne et l'abonnement web.
                             L'attribution des sièges (héros, emplacement, rôle MJ) n'y vit pas : trois verbes
                             `hôte` du noyau (`src/noyau/reseau.ts`, `affecter…`) sur les fonctions pures
                             de `src/noyau/sieges.ts`

@@ -1,5 +1,5 @@
-/** Les ports factices du relay (#3556) : une socket pilotée par le test, une compression réversible et une minuterie
- *  sur les minuteurs (factices sous `vi.useFakeTimers`) du test. */
+/** Les ports factices du relay (#3556) : une socket pilotée par le test, une compression réversible, une minuterie
+ *  sur les minuteurs (factices sous `vi.useFakeTimers`) du test et une panne. */
 import type { Compression, Minuterie, PortsDuRelais, SocketLike } from './relay';
 
 /** Une socket dont le test joue le serveur : `open`, `receive`, `dropFromServer`. */
@@ -51,6 +51,10 @@ export const minuterieDuTest: Minuterie = {
   },
 };
 
-export const portsDuTest = (socket: PortsDuRelais['socket'] = (url) => new FakeSocket(url)): PortsDuRelais => ({
-  socket, minuterie: minuterieDuTest, compression: compressionFactice,
+/** Sans `panne` donnée, une panne relève : le maillon rejette, et le test qui ne l'attend pas tombe. */
+export const portsDuTest = (
+  socket: PortsDuRelais['socket'] = (url) => new FakeSocket(url),
+  panne: PortsDuRelais['panne'] = (erreur) => { throw erreur; },
+): PortsDuRelais => ({
+  socket, minuterie: minuterieDuTest, compression: compressionFactice, panne,
 });

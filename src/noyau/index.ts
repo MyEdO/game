@@ -60,7 +60,6 @@ export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain } from './netOwnership';
 export { fermerLeSiege, siegeDe } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
-export { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 export { DESIGNATIONS } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';

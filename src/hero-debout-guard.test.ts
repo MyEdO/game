@@ -32,7 +32,7 @@ import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVit
  * une garde dessus serait un stock, pas un invariant.
  */
 
-const SCAN_DIRS = porteeDeGarde(['noyau', 'engine', 'scenes', 'data', 'hote', 'hoteTexte', 'hotes'], ['state', 'ui', 'gameIso', 'net', 'web']);
+const SCAN_DIRS = porteeDeGarde(['noyau', 'engine', 'scenes', 'data', 'hote', 'hoteTexte', 'hotes'], ['state', 'ui', 'gameIso', 'web']);
 const FOYER = 'src/noyau/monde/combatants.ts';
 
 /** Les NEUF graphies du même prédicat — une garde par graphie n'en voyait que deux. */

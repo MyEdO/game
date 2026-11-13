@@ -3693,6 +3693,8 @@ export const fr = {
   'coop.hoteSeul': 'L’hôte seul fait ce geste.',
   'coop.hote.lienPerdu': 'Connexion au service coop perdue — session terminée.',
   'coop.alreadyInSession': 'Déjà en session.',
+  'coop.ouvertureAbandonnee': 'Connexion annulée.',
+  'coop.nomRequis': 'Indiquez votre nom de joueur.',
   'coop.badCode': 'Code invalide — 6 caractères.',
   'coop.joinFailed': 'Connexion impossible — réessayez.',
   'coop.reason': 'Coop : {reason}',

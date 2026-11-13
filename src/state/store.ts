@@ -29,6 +29,7 @@ import { brancherLeJeu } from '../noyau/branchement';
 import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
 import { graineDEntropie } from '../hote/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { etatInitialDuJeu, type EtatDeJeu, type Ecran } from '../noyau/etat';
 import type { JeuDuNoyau } from '../noyau/machinerieDuNoyau';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -153,8 +154,8 @@ export interface ActionsDeLAdaptateur {
 
   setScreen: (s: Ecran) => void;
   setEditingHero: (id: string | null) => void;
-  /** Crée une room sur le relay → code 6 chars dans `net.roomCode`. false = service injoignable. */
-  netHostStart: (name: string) => Promise<boolean>;
+  /** Crée une room sur le relay → code 6 chars dans `net.roomCode`. Résout null s'il héberge, sinon le message d'erreur à afficher. */
+  netHostStart: (name: string) => Promise<string | null>;
   /** Rejoint une room par code. Résout null si connecté, sinon le message d'erreur à afficher. */
   netJoin: (code: string, name: string) => Promise<string | null>;
   netLeave: () => void;
@@ -285,7 +286,7 @@ export const useGame = create<GameState>((set, get) => ({
   openPossessionsScreen: (uid) => set({ possessionsScreen: { uid: uid ?? null } }),
   closePossessionsScreen: () => set({ possessionsScreen: null }),
 
-  netHostStart: (name) => netFlow.salon.heberger(get, name),
+  netHostStart: (name) => netFlow.salon.heberger(get, (action, args, siege) => appliquerLIntentionDUnSiege(get, siege, action, args), name),
   netJoin: (code, name) => netFlow.salon.rejoindre(get, (data) => netFlow.applyNetSnapshot(set, data), code, name),
   netLeave: () => netFlow.salon.quitter(get),
 
