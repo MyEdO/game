@@ -942,10 +942,19 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().pendingCascade!.purpose).toBe('travelDay');
   });
 
+  /** Entrées du jour clos de la traversée COMMANDÉE ci-dessous, relevées à `5db5d86b2` sur ce scénario exact (#3935). */
+  const JOUR_CLOS_RELEVE = [
+    { id: 'mer-equipage-progression-0-sorcier-de-test-0', actorId: 'sorcier-de-test', label: 'Capitaine ★', icon: 'voyage/ancre', d: { label: 'Commandement', base: 34, modifier: 0, target: 34, roll: 62, success: false, sl: -3, difficulty: 'intermediaire' }, tone: 'echec', group: 'Tests de Navigation pour la progression du bateau', stake: { key: { dataset: 'voyage', kind: 'equipage-progression' } } },
+    { id: 'mer-equipage-embuscade-0-sorcier-de-test-0', actorId: 'sorcier-de-test', label: 'Vigie ★', icon: 'voyage/ancre', d: { label: 'Perception', base: 37, modifier: 0, target: 37, roll: 73, success: false, sl: -4, difficulty: 'intermediaire' }, tone: 'echec', group: 'Tests de Perception', stake: { key: { dataset: 'voyage', kind: 'equipage-embuscade' } } },
+    { id: 'mer-equipage-orientation-0-sorcier-de-test-0', actorId: 'sorcier-de-test', label: 'Capitaine', icon: 'voyage/ancre', d: { label: 'Commandement', base: 34, modifier: 0, target: 34, roll: 46, success: false, sl: -1, difficulty: 'intermediaire' }, tone: 'echec', group: 'Tests d\'Orientation', stake: { key: { dataset: 'voyage', kind: 'equipage-orientation' } } },
+  ];
+
   /**
    * TRAVERSÉE SOUS ORDRES (#1595) : l'embuscade ancrée n'exclut pas le jour du pilote immédiat. Le combat
    * qu'elle ouvre en plein vol parque la journée ENTIÈRE derrière lui ; le combat clos, le même pilote
-   * reprend SANS fenêtre, et la clôture du jour se joue une fois, PV compris des dés résolus AVANT l'embuscade.
+   * reprend SANS fenêtre, et la clôture du jour se joue une fois. Le compte rendu du trajet porte les bandes
+   * dès leur commit : celles d'avant l'embuscade à l'arrêt, puis le jour clos les garde toutes, chacune avec son
+   * résumé DR au journal et aux lignes du jour.
    */
   it('traversée COMMANDÉE : routine sans fenêtre ; au franchissement, l’abordage parque le jour, qui reprend après la victoire et se clôt une fois, PV complet', () => {
     freshAmbush();
@@ -965,7 +974,12 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(parque?.piloteImmediat, 'le jour parqué a perdu son contexte de lancement').toEqual({ rowSurface: 'pv' });
     const joues = parque.participants.slice(0, parque.cursor);
     expect(joues.map((x) => x.kind)).toEqual(expect.arrayContaining(['equipage-progression', 'equipage-embuscade']));
-    const progression = joues.find((x) => x.kind === 'equipage-progression')!;
+    const resumesDR = (lignes: string[]) => lignes.filter((l) => / : DR [+-]?\d+ → (succès|échec)\.$/.test(l));
+    expect(get().travelPlan!.procesVerbal!.map((e) => e.id), 'à l’arrêt, le compte rendu du trajet ne porte pas les bandes déjà jouées, et elles seules').toEqual([
+      'mer-equipage-progression-0-sorcier-de-test-0', 'mer-equipage-embuscade-0-sorcier-de-test-0',
+    ]);
+    expect(resumesDR(get().journal), 'à l’arrêt, une bande jouée n’a pas son résumé DR au journal').toHaveLength(2);
+    expect(resumesDR(get().travelPlan!.sea!.lines), 'à l’arrêt, une bande jouée n’a pas son résumé DR aux lignes du jour').toEqual(resumesDR(get().journal));
 
     const battle = get().battle!;
     for (const c of battle.combatants) if (c.kind === 'ennemi') c.dead = true;
@@ -977,9 +991,17 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().suspendedCascades).toEqual([]);
     expect(get().travelPlan!.sea!.daysAtSea, 'la clôture du jour ne s’est pas jouée une fois').toBe(1);
     expect(get().travelPlan!.log, 'la clôture du jour ne s’est pas jouée une fois').toHaveLength(1);
-    const ids = get().travelPlan!.log!.slice(-1)[0]!.entries!.map((e) => e.id ?? '');
-    expect(ids.filter((i) => i.startsWith('mer-equipage-progression')), 'les dés résolus avant l’embuscade manquent au PV').toHaveLength(progression.participants!.length);
-    expect(ids.some((i) => i.startsWith('mer-equipage-orientation')), 'le reste du jour ne s’est pas joué').toBe(true);
+    const jourClos = get().travelPlan!.log!.slice(-1)[0]!;
+    expect(jourClos.entries, 'le jour clos ne garde pas les rangées d’avant le combat puis celles du reste, chacune une fois, telles qu’à la base').toEqual(JOUR_CLOS_RELEVE);
+    expect(get().travelPlan!.procesVerbal ?? [], 'le jour clos n’a pas emporté le compte rendu du trajet').toEqual([]);
+    const auJournal = resumesDR(get().journal);
+    expect(auJournal, 'un Test d’équipage n’a pas son résumé DR au journal').toHaveLength(new Set(jourClos.entries!.map((e) => e.group)).size);
+    expect(new Set(auJournal).size, `un résumé DR est écrit deux fois au journal :\n${auJournal.join('\n')}`).toBe(auJournal.length);
+    expect(resumesDR(jourClos.lines.map((l) => l.text)).sort(), 'un Test d’équipage n’a pas son résumé DR aux lignes du jour clos, une fois').toEqual([...auJournal].sort());
+    for (const e of jourClos.entries!) {
+      const de = `${e.d!.roll}/${e.d!.target}`;
+      expect(get().journal.filter((l) => l.includes(de)), `le dé d’une bande au compte rendu est redit au journal (${e.id}, ${de})`).toEqual([]);
+    }
   });
 
   it('route SANS embuscade authorée → le franchissement ne déclenche rien', () => {
@@ -2879,9 +2901,9 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
 
 /**
  * Journée sous ordres PARQUÉE sur un choix sans défaut (`cascade.runCascadeImmediate`, #1595) : la
- * décision prise, la clôture du jour verse au PV les bandes que le pilote a résolues sous `rowSurface`.
+ * décision prise, le jour clos garde les bandes que le pilote a résolues sous `rowSurface`.
  */
-describe('journée commandée parquée sur une décision : le PV du jour est versé à la clôture', () => {
+describe('journée commandée parquée sur une décision : le jour clos garde le compte rendu des bandes de la reprise', () => {
   beforeEach(freshState);
   beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'progression-choix-test': () => {} } }); });
 
@@ -2922,7 +2944,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     return joue;
   }
   /** Le dé de Salissures n'a qu'UNE surface (#1291) : aucune entrée de procès-verbal ne le recopie. */
-  const entreeSalissures = () => (get().travelPlan?.sea?.entries ?? []).find((e) => e.id?.startsWith('mer-salissures'));
+  const entreeSalissures = () => (get().travelPlan?.procesVerbal ?? []).find((e) => e.id?.startsWith('mer-salissures'));
   const lignesDeMer = () => get().travelPlan?.sea?.lines ?? [];
 
   it('le Test est une ÉTAPE de la journée, tenue par le MONDE, sur l’Endurance du NAVIRE (MDG 12 l.58)', () => {

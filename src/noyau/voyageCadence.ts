@@ -1,8 +1,9 @@
 /**
  * CADENCE de VOYAGE — couche PARTAGÉE terre (`travelFlow`) ⇄ mer (`seaVoyageFlow`) ⇄ fluvial (`riverVoyageFlow`) :
  * ordres permanents fixés au départ, où ils ont un effet (`cadenceAUnEffet`), la porte d'un jet ouvert hors du
- * pilote du jour (`KINDS_SOUS_ORDRES`) et la brique d'entrée du PROCÈS-VERBAL du jour. Elle ne possède NI la boucle
- * de jours NI la résolution des jets — seulement le régime (auto vs modale par jet).
+ * pilote du jour (`KINDS_SOUS_ORDRES`), la brique d'entrée du PROCÈS-VERBAL du jour et son seul écrivain
+ * (`noterAuProcesVerbal`, `TravelPlan.procesVerbal`). Elle ne possède NI la boucle de jours NI la résolution des
+ * jets — seulement le régime (auto vs modale par jet) et le compte rendu du jour en cours.
  *
  * Doctrine : « aucun jet silencieux ». La route COMMANDÉE ne supprime pas des TRACES, seulement des
  * INTERRUPTIONS — chaque jet auto-résolu laisse sa ligne (l'auto-pilote pilote LE MÊME flux de jet, jamais un
@@ -12,8 +13,13 @@
 import type { IconId } from '../data/icons';
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
-import type { StakeRef } from '../data';
+import { findCrewRoleById, refLabel, type StakeRef } from '../data';
+import { estJete } from '../engine/tests';
+import { crewTestSuccess } from '../engine/crewMorale';
+import { t } from '../i18n';
 import type { Jeu } from './etat';
+import type { Get, Set } from './flowTypes';
+import type { CascadeStep } from './pendings';
 import type { GenreDeCascade } from './tablesPosees';
 
 /** COMMANDÉE : le pilote du jour joue tout jet d'office (sa ligne au journal) ; seul ce qui ouvre arrête le jour.
@@ -88,9 +94,8 @@ export function resoluSousOrdres(s: EtatDeTraversee, kind: GenreDeCascade): bool
   return traverseeCommandee(s) && KINDS_SOUS_ORDRES.has(kind);
 }
 
-/** Brique d'ENTRÉE du PV du jour (une ligne du procès-verbal, rendue par `MultiRollList`). Source unique
- *  de la forme d'entrée pour les jours de voyage — mer comme fleuve accumulent les mêmes `NightEntry`. */
-export function voyageDayEntry(opts: {
+/** Brique d'ENTRÉE du PV du jour (une ligne du procès-verbal, rendue par `MultiRollList`). */
+function voyageDayEntry(opts: {
   id: string;
   actorId?: string;
   label: string;
@@ -105,4 +110,53 @@ export function voyageDayEntry(opts: {
   stake?: StakeRef;
 }): NightEntry {
   return { id: opts.id, actorId: opts.actorId, label: opts.label, icon: opts.icon, d: opts.d, text: opts.text, tone: opts.tone, group: opts.group, ...(opts.stake ? { stake: opts.stake } : {}) };
+}
+
+/** Les entrées d'une BANDE commise : une par contributeur résolu, rendue par `MultiRollList`. Une étape MONO n'en
+ *  a pas. */
+function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
+  if (!step.participants) return [];
+  const pool = get().party;
+  return step.participants.flatMap((part, i) => {
+    const actor = pool.find((c) => c.id === part.id);
+    const res = part.result;
+    if (!actor || !res) return [];
+    return [voyageDayEntry({
+      id: `mer-${step.kind}-${get().travelPlan?.sea?.daysAtSea ?? 0}-${part.id}-${i}`,
+      actorId: part.id, icon: 'voyage/ancre', group: step.label,
+      // L'ENJEU est celui de l'ÉTAPE (#1117 L1b) : recopié tel quel, rendu UNE fois par bande.
+      ...(step.stake ? { stake: step.stake } : {}),
+      label: `${(part.roleId ? findCrewRoleById(part.roleId)?.label : undefined) ?? part.label ?? actor.label}${part.essential ? ' ★' : ''}`,
+      // Z5 : la ligne NOMME la COMPÉTENCE lancée (couture id→label du catalogue) ; le RÔLE tenu est
+      // la provenance, porté par le libellé d'entrée. La Difficulté posée à la construction voyage
+      // avec la ligne (#1112) au lieu d'être jetée. Une ligne non tentable n'a pas de dé : son refus.
+      ...(estJete(res) ? { d: {
+        label: part.skill ? refLabel('skills', part.skill) : (part.label ?? actor.label),
+        base: part.base, modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl,
+        ...(part.difficulty ? { difficulty: part.difficulty } : {}),
+      } } : { text: part.refus }),
+      tone: res.success ? 'reussite' : 'echec',
+    })];
+  });
+}
+
+/**
+ * SEUL ÉCRIVAIN du compte rendu du jour en cours (`TravelPlan.procesVerbal`), appelé par `cascade.commitStep` pour
+ * chaque bande commise sous `rowSurface: 'pv'` : ses entrées au trajet et, quand la bande porte un résultat agrégé,
+ * son résumé DR au journal et aux lignes du jour de mer (`sea.lines`). « Aucun jet silencieux ».
+ */
+export function noterAuProcesVerbal(get: Get, set: Set, step: CascadeStep): void {
+  const plan = get().travelPlan;
+  if (!plan) return;
+  const entrees = dayEntriesFromStep(get, step);
+  const dr = step.participants ? step.result?.sl : undefined;
+  // MDG 14 l.13
+  const resume = dr === undefined ? [] : [t('sv.crewTestSummary', { label: String(step.label), dr: dr >= 0 ? `+${dr}` : dr, issue: crewTestSuccess(dr) ? t('sv.success') : t('sv.failure') })];
+  if (!entrees.length && !resume.length) return;
+  if (resume.length) get().ecrireAuJournal(resume);
+  set({ travelPlan: {
+    ...plan,
+    ...(entrees.length ? { procesVerbal: [...(plan.procesVerbal ?? []), ...entrees] } : {}),
+    ...(plan.sea && resume.length ? { sea: { ...plan.sea, lines: [...plan.sea.lines, ...resume] } } : {}),
+  } });
 }

@@ -46,6 +46,7 @@ import { fireOwnTestFailed } from './triggeredEffects';
 import { tenuParUnHumain } from './sieges';
 import { jouerLaPaireDuJet } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
+import { noterAuProcesVerbal } from './voyageCadence';
 
 /** Le trigger `onOwnTestFailed` d'un Test raté (MSRC 16 l.152), sur le RNG SEEDABLE (`battleRng`). */
 const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] => fireOwnTestFailed(get, actor, { sl, rng: battleRng() });
@@ -702,11 +703,11 @@ function libelleDeTraceMono(step: CascadeStep): string | undefined {
  *    `runCascadeImmediate` ; `advanceCascade` le RE-DÉRIVE de `surfaceOf(porteurDe)` pour le dé que le
  *    curseur a posé lui-même), il n'est pas déduit d'un champ d'étape (rien n'entre dans la sauvegarde).
  *
- * PARTITION : « Tout lancer » (`resolveRemainingCascade`) n'étampe rien et ne déclare rien — sa modale
- * reste ouverte sur le BILAN, où chaque rangée montre son dé. Et le journal n'est pas la SEULE surface
- * possible d'une rangée sans fenêtre : le pilote qui rend ses bandes sur un PROCÈS-VERBAL structuré
- * (traversée de mer, `rowSurface: 'pv'`) le DÉCLARE au même titre — chaque dé sur EXACTEMENT une
- * surface, jamais deux (#1291).
+ * PARTITION : « Tout lancer » (`resolveRemainingCascade`) n'étampe rien — sa modale reste ouverte sur le
+ * BILAN, où chaque rangée montre son dé. Et le journal n'est pas la SEULE surface possible d'une rangée
+ * sans fenêtre : le pilote qui rend ses bandes sur un PROCÈS-VERBAL structuré (traversée de mer,
+ * `rowSurface: 'pv'`) le DÉCLARE, et chaque verbe qui commet une de ses bandes, « Tout lancer » compris,
+ * l'y écrit (`noterAuProcesVerbal`) — chaque dé sur EXACTEMENT une surface durable, jamais deux (#1291).
  *
  * Là où il l'est, le journal est la SEULE surface de ces jets — le cas nominatif que la doctrine #295
  * réserve (cf. `cascade-consequence-guard.test.ts`). Règle de CADENCE : une cadence qui réduit les
@@ -1276,7 +1277,8 @@ interface PiloteDuCommit {
   liveMerge?: boolean;
   /** Le jet a été posé PAR le pilote : aucune fenêtre ne l'a montré, le goulot lui donne sa ligne. */
   unwitnessed?: boolean;
-  /** L'appelant DÉCLARE que les rangées de ses bandes se montrent ailleurs qu'au journal (#1291). */
+  /** L'appelant DÉCLARE que les rangées de ses bandes se montrent ailleurs qu'au journal (#1291) : le goulot
+   *  les écrit au compte rendu du trajet (`noterAuProcesVerbal`). */
   rowSurface?: RowSurface;
 }
 
@@ -1295,6 +1297,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // ensuite, comme dans la fenêtre qui ne s'est pas ouverte.
   const traces = unwitnessedTraceLines(get, step, unwitnessed, rowSurface);
   journaliser(get, set, traces, 'information', { actorId: step.actorId });
+  if (rowSurface) noterAuProcesVerbal(get, set, step);
   // FENÊTRE D'INSERTION (#1508) ouverte le temps que l'applier — et la continuation qui le suit —
   // tournent : une étape poussée pendant ce temps est la SUITE IMMÉDIATE de celle-ci, pas la fin de la
   // séquence. Rendue à sa valeur précédente ensuite (un applier peut en déclencher un autre).
@@ -1813,7 +1816,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
       set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: i, log } });
       return null;
     }
-    const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose });
+    const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose, rowSurface: p.piloteImmediat?.rowSurface });
     steps = r.steps;
     seq = r.seq;
     log = [...log, ...r.journal];
@@ -1870,11 +1873,12 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * CHOIX sans `defaultChoice` authoré : jamais tranché en silence (`options[0]`) — la cascade s'arrête
  * PENDANTE, surfacée via `pendingCascade` (patron `resolveRemainingCascade`, #351), marquée
  * `piloteImmediat` du contexte de lancement (`ReprisePilote`) : la décision validée, la suite reprend par CE
- * pilote (`avanceUnPas`) avec CE contexte, et le dénouement de la séquence honore sa `rowSurface`.
+ * pilote (`avanceUnPas`) avec CE contexte, `rowSurface` comprise.
  *
  * `ctx.rowSurface` : l'appelant DÉCLARE que les rangées de ses BANDES se montrent ailleurs qu'au
- * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291). Les
- * étapes MONO du même tableau gardent leur ligne : elles n'ont pas de rangée au PV.
+ * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291) et écrit
+ * chaque bande au compte rendu du trajet à son commit (`noterAuProcesVerbal`). Les étapes MONO du même
+ * tableau gardent leur ligne : elles n'ont pas de rangée au PV.
  */
 export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: ContexteDuPilote): CascadeStep[] | undefined {
   const r = piloteImmediat(get, set, steps, ctx, 0, steps.length, { log: ctx?.log ?? [] }); // un tableau à LUI : son compteur part de sa longueur
@@ -2004,7 +2008,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // no-op de suspension ici puisque CE tableau n'était PAS dans le slot actif) : le reste du tableau
     // ne se résout pas pendant que le combat tourne. Avec un contexte, la séquence ENTIÈRE est parquée
     // (`suspendedCascades`) au rang où le slot l'aurait mise (`rangDeParcage`), sous ce que l'applier a
-    // ouvert avant le combat — étapes déjà jouées comprises, que son dénouement (`rowSurface`) relit — et sa
+    // ouvert avant le combat — étapes déjà jouées comprises — et sa
     // reprise revient à CE pilote, dernière étape comprise : la clôture de l'appelant se joue alors au
     // dénouement de la séquence.
     if (!combatALEntree && get().battle) {

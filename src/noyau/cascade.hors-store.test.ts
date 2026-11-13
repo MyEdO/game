@@ -4,7 +4,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { combatStakeRef } from '../data';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { startCascade, type CascadeApplier, stepInteraction, stepReady, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
+import { startCascade, type CascadeApplier, stepInteraction, stepReady, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, resumeSuspendedCascade, setClotureDeCascade, compteurDeSequence } from './cascade';
+import { buildSeaPlan } from './seaVoyageFlow';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { spyApplier } from './cascade.testkit';
@@ -692,19 +693,65 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
 
   const choix = (): CascadeStep => ({ id: 'decision', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] });
 
-  it('`rowSurface` déclarée au lancement : la bande résolue APRÈS la décision ne redit pas ses dés au journal, et la clôture la rend', () => {
+  /** Un trajet de mer sous ordres, seul lieu où `rowSurface: 'pv'` se déclare, et un porteur à bord. */
+  const aBord = () => {
     g().ensemencerLeTirage(5);
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
-    s({ party: [h] });
-    const bande = buildBand(g, { id: 'bande', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Bande'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
-    expect(runCascadeImmediate(g, s, [choix(), bande], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
+    s({ party: [h], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
+    s({ travelPlan: buildSeaPlan(g, 'r1', 'A', 'B', { km: 550, seaHeading: 'est' }, { cadence: 'commande' })! });
+    return h;
+  };
+  const bande = (h: Combatant, label: string) => buildBand(g, { id: `bande-${label}`, kind: cleDeFixture('repriseNeutre'), label: fixtureText(label), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
+  /** Les bandes au compte rendu du trajet, nommées par leur rubrique. */
+  const auProcesVerbal = () => (g().travelPlan!.procesVerbal ?? []).map((e) => String(e.group));
+  const desDeBrawnAuJournal = () => g().journal.filter((l) => l.includes('Brawn'));
+  const combat = (): CascadeStep => ({ id: 'combat', kind: cleDeFixture('repriseCombat'), label: fixtureText('Combat') });
+
+  it('`rowSurface` déclarée au lancement, parquée au slot sur un choix sans défaut : « Suivant » écrit la bande au compte rendu du trajet à son commit, sans redire ses dés au journal', () => {
+    const h = aBord();
+    expect(runCascadeImmediate(g, s, [choix(), bande(h, 'Bande')], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat).toEqual({ rowSurface: 'pv' });
+    expect(auProcesVerbal(), 'une bande pas encore jouée est au compte rendu').toEqual([]);
 
     g().jetRegler('cascade', 'choix', 'a', 'decision');
     const done = advanceCascade(g, s)!;
     expect(done.participants[1].participants?.[0].result, 'la bande n’a pas été résolue à la reprise').toBeTruthy();
-    expect(done.piloteImmediat, 'la clôture ne sait pas que ses rangées vont au PV').toEqual({ rowSurface: 'pv' });
-    expect(g().journal.filter((l) => l.includes('Brawn')), 'la reprise a tracé au journal les dés d’une bande déclarée au PV').toEqual([]);
+    expect(auProcesVerbal(), 'la bande commise par « Suivant » n’est pas au compte rendu du trajet').toEqual(['Bande']);
+    expect(g().travelPlan!.procesVerbal![0].actorId).toBe(h.id);
+    expect(desDeBrawnAuJournal(), 'la reprise a tracé au journal les dés d’une bande déclarée au PV').toEqual([]);
+  });
+
+  it('`rowSurface` déclarée au lancement, parquée au slot : « Tout lancer » écrit la bande au compte rendu du trajet à son commit', () => {
+    const h = aBord();
+    expect(runCascadeImmediate(g, s, [choix(), bande(h, 'Bande')], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
+
+    g().jetRegler('cascade', 'choix', 'a', 'decision');
+    expect(resolveRemainingCascade(g, s)).toBeNull();
+    expect(auProcesVerbal(), 'la bande commise par « Tout lancer » n’est nulle part de durable').toEqual(['Bande']);
+    expect(desDeBrawnAuJournal()).toEqual([]);
+  });
+
+  it('`rowSurface` déclarée au lancement, parquée derrière un combat : les bandes d’avant y sont à l’arrêt, celles de la reprise s’y ajoutent', () => {
+    const h = aBord();
+    setClotureDeCascade(() => {});
+    expect(runCascadeImmediate(g, s, [bande(h, 'Avant'), combat(), bande(h, 'Après')], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
+    expect(g().suspendedCascades.slice(-1)[0]!.piloteImmediat).toEqual({ rowSurface: 'pv' });
+    expect(auProcesVerbal(), 'à l’arrêt, le compte rendu ne porte pas les bandes déjà jouées, et elles seules').toEqual(['Avant']);
+
+    s({ battle: null });
+    expect(resumeSuspendedCascade(g, s)).toBe(true);
+    expect(auProcesVerbal(), 'la reprise n’a pas écrit sa bande, ou a récrit celle d’avant').toEqual(['Avant', 'Après']);
+    expect(desDeBrawnAuJournal()).toEqual([]);
+  });
+
+  it('SANS `rowSurface`, même reprise derrière un combat : le journal porte le dé de la bande, le compte rendu du trajet n’en reçoit rien', () => {
+    const h = aBord();
+    setClotureDeCascade(() => {});
+    expect(runCascadeImmediate(g, s, [combat(), bande(h, 'Après')], { title: 'Jour', purpose: 'test' })).toBeUndefined();
+    s({ battle: null });
+    expect(resumeSuspendedCascade(g, s)).toBe(true);
+    expect(desDeBrawnAuJournal(), 'la bande sans surface déclarée n’a pas tracé son dé').toHaveLength(1);
+    expect(auProcesVerbal()).toEqual([]);
   });
 
   it('lancé SANS contexte : un combat ouvert en plein vol après la décision arrête la boucle sans rien empiler', () => {

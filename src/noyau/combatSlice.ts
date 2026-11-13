@@ -484,7 +484,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   else if (done?.purpose === 'travelDay') {
     handled = true;
     if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
-    else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set, done.piloteImmediat?.rowSurface === 'pv' ? done.participants : []);
+    else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set);
     else travelFlow.continueTravelDayAfterCascade(get, set, done);
   }
   // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du
