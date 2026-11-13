@@ -133,7 +133,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     },
   },
   test: {
-    state: { pendingTest: { actorId: 'H', actorName: 'Héros', label: 'T', skillValue: T, difficulty: 'intermediaire', requireSL: 0, ...rate, onSuccess: [], onFailure: [] } },
+    state: { pendingTest: { actorId: 'H', label: 'T', skillValue: T, difficulty: 'intermediaire', requireSL: 0, ...rate, onSuccess: [], onFailure: [] } },
     read: flatRead('pendingTest'),
   },
   activite: {
@@ -141,13 +141,13 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: flatRead('pendingActivity'),
   },
   rechargement: {
-    state: { pendingReload: { actorId: 'H', actorName: 'H', weaponUid: 'w', reload: 1, progressBefore: 0, skillValue: T, difficulty: 'intermediaire', ...rate } },
+    state: { pendingReload: { actorId: 'H', weaponUid: 'w', reload: 1, progressBefore: 0, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingReload'),
   },
   mainEnsanglantee: { state: { pendingHandGate: { attackerId: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } }, read: flatRead('pendingHandGate') },
   fuiteDeVapeur: { state: { pendingSteamSave: { actorId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingSteamSave') },
   evaluation: {
-    state: { pendingAppraise: { actorId: 'H', actorName: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'rare', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
+    state: { pendingAppraise: { actorId: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'rare', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingAppraise'),
   },
   soins: {
@@ -155,7 +155,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: flatRead('pendingHeal'),
   },
   chirurgie: {
-    state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
+    state: { pendingSurgery: { healerId: 'H', targetId: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingSurgery'),
   },
   // Exposition à une Influence corruptrice (LDB 19 l.29) : un Test, donc la Résilience (LDB 17 l.68) et son
@@ -171,7 +171,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   },
   frenesie: { state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },
   approche: { state: { pendingApproach: { combatantId: 'H', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'E', result: rate } }, read: resultRead('pendingApproach') },
-  protection: { state: { pendingWard: { attackerId: 'H', targetId: 'E', targetName: 'E', result: rate } }, read: resultRead('pendingWard') },
+  protection: { state: { pendingWard: { attackerId: 'H', targetId: 'E', result: rate } }, read: resultRead('pendingWard') },
   dissipation: { state: { pendingDispel: { casterId: 'H', value: T, spellId: 's', result: rate } }, read: resultRead('pendingDispel') },
   chansonDeMarin: { state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },
   battement: { state: { pendingBattement: { attackerId: 'H', targetId: 'E', result: rateTR } }, read: resultRead('pendingBattement') },

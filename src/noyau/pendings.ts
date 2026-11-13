@@ -115,7 +115,6 @@ export type DialogueTransition = EtatDialogue | 'close';
 /** Test de compétence interactif en attente d'acquittement par le joueur. */
 export interface PendingTest {
   actorId: string;
-  actorName: string;
   /** Intitulé de la SITUATION (« Esquiver les piques de la dalle ») → titre de la modale. */
   label: string;
   /** Compétence/Caractéristique RÉELLE testée (« Athlétisme », « Dextérité ») → libellé du cadre de
@@ -229,7 +228,6 @@ export interface PendingTest {
  *  l'Armure) via `jetValider('fuiteDeVapeur')`, puis la boucle maritime reprend. */
 export interface PendingSteamSave {
   actorId: string;
-  actorName: string;
   skillValue: number;
   target: number;
   /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
@@ -247,7 +245,6 @@ export interface PendingSteamSave {
  *  La modale affiche « Lancer », le DR, puis Chance avant d'acquitter (cumul vers `reload`). */
 export interface PendingReload {
   actorId: string;
-  actorName: string;
   weaponUid: string; // arme de rechargement (loadout) — résolue en NOM à l'affichage
   reload: number; // Indice DR cible
   progressBefore: number; // DR déjà cumulés (Test étendu)
@@ -272,7 +269,6 @@ export interface PendingReload {
  *  de Force contre la source ; En flammes = Test d'Athlétisme simple. Modale Lancer → DR → Chance. */
 export interface PendingStateRecovery {
   actorId: string;
-  actorName: string;
   /** ÉTAT en cours de récupération — un id de `etats.json` : c'est la DONNÉE de l'État (`recover`)
    *  qui dit s'il se récupère par une Action, jamais une union gravée ici. */
   state: string;
@@ -353,7 +349,6 @@ export interface PendingBargain {
  *  une seule tentative par artefact. Même modale (« Lancer », résultat, Chance, acquittement). */
 export interface PendingAppraise {
   actorId: string;
-  actorName: string;
   /** Objet d'un héros (uid d'inventaire)… */
   itemUid?: string;
   /** …ou ligne de butin ENCORE en fenêtre (loot/victoire) — révélation AVANT attribution. */
@@ -474,7 +469,6 @@ export interface PendingAttack {
  *  l'objet glisse (op `disarm`) et l'Action est consommée. Chemin IA = jet inline forcé côté `doAttack`. */
 export interface PendingHandGate {
   attackerId: string;
-  actorName: string;
   /** Main gatée (loadout actif) — pour le `disarm` sur Échec (convention DROITIER `main`/`secondaire`). */
   hand: Main;
   /** La ligne du jet, figée à l'ouverture (`rollLine`) : ce que la fenêtre annonce et ce que le résolveur jette. */
@@ -723,8 +717,6 @@ export interface PendingWard {
   attackerId: string;
   /** Cible bénie (porte le drapeau `attackWardFM`). */
   targetId: string;
-  /** Son nom, FIGÉ au geste qui ouvre le Test. */
-  targetName: string;
   /** L'intention du clic qui a ouvert ce gate (même raison que `PendingApproach`). */
   intentionId?: IdDIntention;
   result: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
@@ -2234,7 +2226,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'psychologieDeRencontre' pose le `psychState`
    *  RANGÉE PAR RANGÉE ; Détermination (LDB 17 l.59) jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeRencontre?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
+  psychologieDeRencontre?: { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy };
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
@@ -2242,7 +2234,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`psychologieDeRencontre` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeCombat?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy; round: number };
+  psychologieDeCombat?: { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy; round: number };
   /** Étape « choix » : options présentées au joueur (l'option retenue pilote la conséquence). Leur
    *  `label` est du TEXTE JOUEUR marqué (#1318 V8a₁), comme celui de l'étape qui les porte. `refus` =
    *  la CAUSE d'indisponibilité de CETTE option (coût d'Avantage hors de portée…), rendue au survol/
@@ -2414,9 +2406,8 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
  *  mode de pendingHeal : c'est une opération « armée » sur l'infirmerie (noyau/medicFlow). */
 export interface PendingHeal {
   healerId: string;
-  healerName: string;
+  healerName: PlayerText;
   targetId: string;
-  targetName: string;
   /** L'acte (réglage `soins.mode`). Hors combat, `chirurgie`/`reeducation` : le brouillon de l'opération que
    *  `jetLancer('soins')` arme (`acteDeSoin.ts`). */
   mode: HealMode;
@@ -2451,9 +2442,7 @@ export interface PendingHeal {
  *  `medic.surgery` à l'ouverture de la passe (affichage DrBar dans la modale). */
 export interface PendingSurgery extends PendingBase {
   healerId: string; // chirurgien (héros → influence ; PNJ → no-op)
-  healerName: string;
   targetId: string; // patient opéré
-  targetName: string;
   /** La ligne de la passe, figée à son ouverture sur l'opération armée (`rollLine`, Soutien LDB 12 compris) : ce que
    *  la fenêtre annonce et ce que le résolveur jette. */
   ligne: RollLineParts;

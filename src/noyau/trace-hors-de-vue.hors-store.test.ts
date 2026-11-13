@@ -1,6 +1,6 @@
 /**
  * LA LIGNE DE TRACE NE NOMME PAS UN COMBATTANT HORS DE VUE (#4017) : `TraceRow.who` et `TraceSide.who` s'écrivent par
- * `nomDe`, comme `OpposedFreeze.attackerName` ; l'issue d'une Approche nomme sa source par `nomEnVue`. `siege-enceinte` pose au départ des assaillants que la muraille cache au groupe, d'autres qu'il voit.
+ * `nomDe`, comme `OpposedFreeze.attackerName` ; l'issue d'une Approche nomme sa source par `nomEnVue`, celle d'un jet (`describeReload`…) son acteur, celle d'une Peur surmontée sa source. `siege-enceinte` pose au départ des assaillants que la muraille cache au groupe, d'autres qu'il voit.
  */
 import { describe, expect, it } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
@@ -9,6 +9,8 @@ import { combattantEnVue } from './visionDuGroupe';
 import { resolveActGates } from './combat/turnHooks';
 import { resolveFlowTest } from './combat/triggeredTest';
 import { jetsEnVue } from './jetsEnVue';
+import { appliquerLaRecharge, jetDeRecharge, openRoundEndCascade } from './combatFlow';
+import { draineEtLit } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { EMPTY_FLOW, type Flow } from '../engine/flowCore';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
@@ -112,5 +114,55 @@ describe('PendingApproach — l’issue d’une Approche nomme sa source par `no
   it('en vue : son nom', () => {
     const { ligne, nom } = ligneDeLApproche('vu');
     expect(ligne.includes(nom), ligne).toBe(true);
+  });
+});
+
+describe('actorName — l’issue d’un jet nomme son acteur par `nomEnVue`', () => {
+  /** La ligne de journal du Rechargement inachevé, par `qui`, d'une arme d'assaillant (`appliquerLaRecharge`, le tour de l'IA). */
+  function ligneDeRecharge(qui: 'cache' | 'vu'): { ligne: string; nom: string } {
+    const s = siege();
+    const c = s[qui];
+    const arme = [s.cache, s.vu].flatMap((x) => x.weapons)[0]; // l'assaillant en vue peut n'en porter aucune
+    const pr = { ...jetDeRecharge(c, arme, (s.banc.getState() as unknown as Jeu).battle!.combatants), reload: 3, roll: 40, sl: 1, success: true };
+    appliquerLaRecharge(s.banc.getState, s.banc.setState, pr, arme);
+    const log = (s.banc.getState() as unknown as Jeu).battle!.log;
+    return { ligne: log[log.length - 1].text, nom: c.label };
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { ligne, nom } = ligneDeRecharge('cache');
+    expect(ligne.includes(INCONNU), ligne).toBe(true);
+    expect(ligne.includes(nom), ligne).toBe(false);
+  });
+
+  it('en vue : son nom', () => {
+    const { ligne, nom } = ligneDeRecharge('vu');
+    expect(ligne.includes(nom), ligne).toBe(true);
+  });
+});
+
+describe('sourceName de la psychologie — la Peur surmontée nomme sa source par `nomDe`', () => {
+  /** La ligne de journal de la Peur de `source` qu'un héros surmonte au Test étendu de fin de Round (LDB 21 l.25). */
+  function ligneDeLaPeur(source: 'cache' | 'vu'): { lignes: string[]; nom: string } {
+    const s = siege();
+    const etat = s.banc.getState() as unknown as Jeu;
+    const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
+    heros.characteristics['force-mentale'] = 200; // le Test de Calme réussit, la Peur d'Indice 1 tombe
+    heros.psychState = [{ type: 'peur', sourceId: s[source].id, indice: 1, calmeDR: 0 }];
+    s.banc.setState({ battle: { ...etat.battle!, round: etat.battle!.round + 1 }, pendingCascade: null });
+    openRoundEndCascade(s.banc.getState, s.banc.setState);
+    const lues = draineEtLit(s.banc.getState);
+    return { lignes: lues.filter((l) => l.includes(heros.label)), nom: s[source].label };
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { lignes, nom } = ligneDeLaPeur('cache');
+    expect(lignes.some((l) => l.includes(INCONNU)), lignes.join('\n')).toBe(true);
+    expect(lignes.some((l) => l.includes(nom)), lignes.join('\n')).toBe(false);
+  });
+
+  it('en vue : son nom', () => {
+    const { lignes, nom } = ligneDeLaPeur('vu');
+    expect(lignes.some((l) => l.includes(nom)), lignes.join('\n')).toBe(true);
   });
 });

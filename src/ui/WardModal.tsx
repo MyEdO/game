@@ -8,6 +8,8 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeWard } from '../noyau/flowOutcomes';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
@@ -20,6 +22,7 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function WardModal() {
   const pw = useGame((s) => s.pendingWard);
   const battle = useGame((s) => s.battle);
+  const nomCible = useGame((s) => (s.pendingWard ? nomEnVue(s, s.pendingWard.targetId) : null));
   const roll = useGesteDeJet('jetLancer', 'protection');
   const reroll = useGesteDeJet('jetRelancer', 'protection');
   const darkPact = useGesteDeJet('jetPactiser', 'protection');
@@ -27,6 +30,7 @@ export function WardModal() {
   const confirm = useGesteDeJet('jetValider', 'protection');
   const cancel = useGesteDeJet('jetAnnuler', 'protection');
   if (!pw || !battle) return null;
+  const cible = garanti(nomCible, pw.targetId, 'cible bénie');
   const attacker = battle.combatants.find((x) => x.id === pw.attackerId);
   if (!attacker) return null;
   const r = pw.result;
@@ -59,12 +63,12 @@ export function WardModal() {
       title={<><Icon id="action/se-defendre" size="sm" /> Bénédiction de Protection</>}
       subtitle={
         <>
-          <strong>{attacker.label}</strong> ose frapper {pw.targetName} (Test de FM +20)
+          <strong>{attacker.label}</strong> ose frapper {cible} (Test de FM +20)
         </>
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('information', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('information', describeWard(pw, cible), attacker.id, pw.targetId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

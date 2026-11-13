@@ -295,7 +295,7 @@ describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession
 
   it.each(FLOW_VERBS.test.verbs.map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('Test (mono) : %s — le siège du testeur joue, un tiers est refusé', (_nom, v) => {
     setup();
-    const pendingTest = { actorId: 'h2', actorName: 'h2', label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: null, success: false, sl: 0, cancellable: true };
+    const pendingTest = { actorId: 'h2', label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: null, success: false, sl: 0, cancellable: true };
     banc.setState({ pendingTest } as never);
     expect(applyIntent(2, NOM_DU_VERBE_DE_JET[v], args('test', v))).toBe('refusee');
     expect(banc.getState().pendingTest).toBe(pendingTest);

@@ -66,7 +66,7 @@ describe('Guérison (HealModal) — la Difficulté vit sur la LIGNE', () => {
     useGame.setState({
       battle: combatDeModale([healer, patient]), party: [healer, patient],
       pendingHeal: {
-        healerId: healer.id, healerName: healer.label, targetId: patient.id, targetName: patient.label,
+        healerId: healer.id, healerName: healer.label, targetId: patient.id,
         mode: 'blessures', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
@@ -90,7 +90,7 @@ describe('fenêtre de Guérison — le patient montre ses ÉTATS, et une seule f
       battle: combatDeModale(healer ? [healer, patient] : [patient]), party: healer ? [healer, patient] : [patient],
       pendingHeal: {
         healerId: healer?.id ?? 'pnj-soigneur', healerName: healer?.label ?? 'Médecin',
-        targetId: patient.id, targetName: patient.label,
+        targetId: patient.id,
         mode: 'hemorragie', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
@@ -120,7 +120,7 @@ describe('Guérison par un PNJ tarifé — pas d’A→B sans fiche', () => {
     useGame.setState({
       battle: combatDeModale([patient]), party: [patient],
       pendingHeal: {
-        healerId: 'pnj-soigneur', healerName: 'Médecin', targetId: patient.id, targetName: patient.label,
+        healerId: 'pnj-soigneur', healerName: 'Médecin', targetId: patient.id,
         mode: 'blessures', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
@@ -141,7 +141,7 @@ describe('Chirurgie (MedicModal → useSurgeryJetProps) — la Difficulté vit s
         surgery: { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, drCible: 6, cumDR: 2 },
       },
       pendingSurgery: {
-        healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
+        healerId: surgeon.id, targetId: patient.id,
         ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
         drCible: 6, cumDR: 2,
       },
@@ -200,7 +200,7 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
     useGame.setState({
       battle: null, party: [healer, patient], medic: { patientId: patient.id },
       pendingHeal: {
-        healerId: healer.id, healerName: healer.label, targetId: patient.id, targetName: patient.label,
+        healerId: healer.id, healerName: healer.label, targetId: patient.id,
         mode: 'blessures', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
       },
     } as never);
@@ -220,7 +220,7 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
         surgery: { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, drCible: 6, cumDR: 2 },
       },
       pendingSurgery: {
-        healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
+        healerId: surgeon.id, targetId: patient.id,
         ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
         drCible: 6, cumDR: 2,
       },

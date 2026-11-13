@@ -1291,7 +1291,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!rt) return; // État non récupérable par Action (pas de `recover` en donnée)
       set({
         pendingStateRecovery: {
-          actorId: active.id, actorName: active.label, state: etat,
+          actorId: active.id, state: etat,
           skillLabel: rt.skillLabel, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
           opposition: rt.opposition, requireSl: rt.requireSl,
           entangleOnFail: rt.entangleOnFail, struggleDamage: rt.struggleDamage, stacks: n,
@@ -1678,7 +1678,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { skillValue, difficulty, ligne } = jetDuSoigneur(healer, ouverture.test, mode);
       set({
         pendingHeal: {
-          healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
+          healerId: healer.id, healerName: nomDe(healer), targetId: target.id,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
           // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (réglage `soins.bandages`).
           test: ouverture.test, bandagesDe: ouverture.bandages ? healer.id : null,

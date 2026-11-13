@@ -65,7 +65,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   empoignade: { patch: { pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(35, 50), result: 'reussite' } }, flux: ['empoignade'], oppose: true },
   frenesie: { patch: { pendingFrenzy: { combatantId: H.id, result: jet(12, 30) } }, flux: ['frenesie'] },
   approche: { patch: { pendingApproach: { combatantId: H.id, test: TEST, sourceId: E.id, intent: { kind: 'entity', id: E.id }, result: jet(55, 30) } }, flux: ['approche'] },
-  protection: { patch: { pendingWard: { attackerId: H.id, targetId: E.id, targetName: E.label, result: jet(10, 50) } }, flux: ['protection'] },
+  protection: { patch: { pendingWard: { attackerId: H.id, targetId: E.id, result: jet(10, 50) } }, flux: ['protection'] },
   course: { patch: { pendingRun: { combatantId: H.id, test: TEST, result: { success: true, roll: 22, dr: 2, bonusCases: 1, target: 44 } } }, flux: ['course'] },
   chute: { patch: { pendingFall: { test: TEST, to: { x: 9, y: 10 }, metres: 3, initiateurId: H.id, participants: [{ id: H.id, attempt: true, result: { success: false, roll: 80, dr: -3, effectiveMetres: 3, target: 44 } }] } }, flux: ['chute'] },
   manoeuvreDuNavire: { patch: { pendingShipManeuver: { shipId: 'nef', turnSteps: 0, moraleScore: 0, participants: [{ id: H.id, roleId: 'timonier', essential: true, navigation: { id: 'navigation' }, result: jet(40, 45) }] } }, flux: ['manoeuvreDuNavire'] },
@@ -76,24 +76,24 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   infirmerie: {
     patch: {
       medic: {} as NonNullable<Jeu['medic']>,
-      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, drCible: 3, cumDR: 0 },
+      pendingSurgery: { healerId: H.id, targetId: H.id, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, drCible: 3, cumDR: 0 },
     },
     flux: ['chirurgie'],
   },
-  soins: { patch: { pendingHeal: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['soins'] },
-  rechargement: { patch: { pendingReload: { actorId: H.id, actorName: H.label, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['rechargement'] },
-  mainEnsanglantee: { patch: { pendingHandGate: { attackerId: H.id, actorName: H.label, hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'melee/au-contact' } }, flux: ['mainEnsanglantee'] },
+  soins: { patch: { pendingHeal: { healerId: H.id, healerName: fixtureText(H.label), targetId: H.id, mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['soins'] },
+  rechargement: { patch: { pendingReload: { actorId: H.id, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['rechargement'] },
+  mainEnsanglantee: { patch: { pendingHandGate: { attackerId: H.id, hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'melee/au-contact' } }, flux: ['mainEnsanglantee'] },
   recuperation: {
     patch: {
       pendingStateRecovery: {
-        actorId: H.id, actorName: H.label, state: 'empetre', skillLabel: 'Force', skillValue: 40, skillBase: 40, difficulty: 'intermediaire',
+        actorId: H.id, state: 'empetre', skillLabel: 'Force', skillValue: 40, skillBase: 40, difficulty: 'intermediaire',
         opposition: { value: 35, base: 35, label: E.label, difficulty: 'intermediaire' }, stacks: 1, roll: tr(20, 40), opponentRoll: tr(50, 35), netSL: 3, success: true,
       },
     },
     flux: ['recuperation'],
     oppose: true,
   },
-  fuiteDeVapeur: { patch: { pendingSteamSave: { actorId: H.id, actorName: H.label, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 41, success: false, sl: 0 } }, flux: ['fuiteDeVapeur'] },
+  fuiteDeVapeur: { patch: { pendingSteamSave: { actorId: H.id, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 41, success: false, sl: 0 } }, flux: ['fuiteDeVapeur'] },
   activite: {
     patch: {
       pendingActivity: {
@@ -122,7 +122,7 @@ const HORS_REGISTRE_A_JET: Record<string, Fixture> = {
     flux: ['marchandage'],
     oppose: true,
   },
-  evaluation: { patch: { pendingAppraise: { actorId: H.id, actorName: H.label, itemName: 'Dague', truePriceBrass: 20, availability: null, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 35, success: true, sl: 0 } }, flux: ['evaluation'] },
+  evaluation: { patch: { pendingAppraise: { actorId: H.id, itemName: 'Dague', truePriceBrass: 20, availability: null, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 35, success: true, sl: 0 } }, flux: ['evaluation'] },
 };
 
 /** Chaque étape-JET hôte de cascade (`HostJet`) et les flux que sa fenêtre héberge. Table TOTALE. */
@@ -147,7 +147,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
     flux: ['incantation', 'contreSort', 'opposition'],
     oppose: true,
   },
-  test: { patch: { pendingCascade: cascade(etapeHote('test')), pendingTest: { actorId: H.id, actorName: H.label, label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 25, success: true, sl: 1 } }, flux: ['test'] },
+  test: { patch: { pendingCascade: cascade(etapeHote('test')), pendingTest: { actorId: H.id, label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 25, success: true, sl: 1 } }, flux: ['test'] },
   testEtendu: {
     patch: {
       pendingCascade: cascade(etapeHote('testEtendu')),

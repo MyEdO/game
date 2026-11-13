@@ -3719,7 +3719,7 @@ export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, titl
 export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: Main, pa: PendingAttack, title: string, icon: IconId): void {
   const ligne = rollLine({ actor: attacker, test: { characteristic: 'dexterite' }, difficulty: 'accessible' });
   set({ pendingHandGate: {
-    attackerId: attacker.id, actorName: attacker.label, hand, ligne, ...cibleMesuree(ligne),
+    attackerId: attacker.id, hand, ligne, ...cibleMesuree(ligne),
     roll: null, sl: 0, success: false, pa, title, icon,
   } });
 }
@@ -8111,7 +8111,7 @@ export function jetDeRecharge(porteur: Combatant, arme: Weapon, combatants: Comb
   const skillValue = combatValue(porteur, 'distance', w) + sout.bonus;
   const ligne = rollLine({ actor: porteur, difficulty: 'intermediaire', valeur: skillValue, soutien, combat: { kind: 'distance', weapon: w } });
   return {
-    actorId: porteur.id, actorName: porteur.label, weaponUid: w.uid ?? '',
+    actorId: porteur.id, weaponUid: w.uid ?? '',
     reload: reloadDRTarget(w), progressBefore: reloadProgressOf(porteur, arme),
     skillValue, difficulty: 'intermediaire', roll: null, ligne, ...cibleMesuree(ligne), sl: 0, success: false, soutien,
   };
@@ -8142,10 +8142,10 @@ export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arm
 
 /** Un Test de Psychologie de combat DÛ (cumul `prevDR` = 0 sauf Peur étendue), allégé par Sans Peur
  *  (`sansPeurFace`) face à une source neuve. */
-type PsychDue = { kind: PsychType; sourceId: string; sourceName: string; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
+type PsychDue = { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; prevDR: number; cible?: CiblePsy; sansPeur: boolean };
 
 /** Une source de Peur ou de Terreur en vue, neuve pour le porteur (`sourceDejaAffrontee` faux). */
-type SourceNeuve = { source: SourceEnVue; id: string; label: string; kind: 'peur' | 'terreur'; indice: number };
+type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: 'peur' | 'terreur'; indice: number };
 
 /** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
 function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
@@ -8175,11 +8175,13 @@ function dueDeSource(c: Combatant, n: SourceNeuve): PsychDue {
   return { kind: n.kind, sourceId: n.id, sourceName: n.label, indice: n.indice, prevDR: 0, sansPeur: sansPeurFace(c, n.kind, n.source) }; // LDB 10 l.1051
 }
 
-/** Le porteur du libellé de la source `id` d'une Peur portée : parmi les sources de la passe, sinon au roster
- *  (combattant hors de vue). */
-function porteurDeLaSource(l: { battle: BattleState; sources: readonly SourceEnVue[] }, id: string): { label: string } | undefined {
+/** Le nom de la source `id` d'une Peur portée : parmi les sources de la passe, sinon au roster (combattant hors de
+ *  vue, `nomDe`). */
+function nomDeLaSource(l: { battle: BattleState; sources: readonly SourceEnVue[] }, id: string): PlayerText {
   const s = l.sources.find((v) => idDeSource(v) === id);
-  return s ? { label: libelleDeSource(s) } : inBattleId(l.battle, id);
+  if (s) return libelleDeSource(s);
+  const c = inBattleId(l.battle, id);
+  return c ? nomDe(c) : libelleOuAbsence(undefined, 'combattant', id);
 }
 
 /** Re-tests des afflictions ciblées actives de `c` dus au `moment` du Round `round`, tant qu'un membre de
@@ -8189,8 +8191,9 @@ function retestsCibles(c: Combatant, sources: readonly SourceEnVue[], round: num
     const cible = p.cible;
     if (!p.active || !cible || !estCibleType(p.type) || p.lastTestRound === round) return [];
     if ((findPsychologyById(p.type)?.retestAt ?? 'roundStart') !== moment) return [];
-    if (!sources.some((v) => vise(cible, v, 'percu', c))) return [];
-    return [{ kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible, sansPeur: false }];
+    const membre = sources.find((v) => vise(cible, v, 'percu', c));
+    if (!membre) return [];
+    return [{ kind: p.type, sourceId: p.sourceId ?? '', sourceName: libelleDeSource(membre), indice: 0, prevDR: 0, cible, sansPeur: false }];
   });
 }
 
@@ -8203,7 +8206,7 @@ export function collectRoundStartPsych(get: Get, c: Combatant, round: number): P
   return [
     ...l.neuves.filter((n) => n.kind === 'terreur' || sansPeurVs(c, n.source)).map((n) => dueDeSource(c, n)),
     ...retestsCibles(c, l.sources, round, 'roundStart'),
-    ...targetedTriggers(c, l.sources).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: '', indice: 0, prevDR: 0, cible: tt.cible, sansPeur: false })),
+    ...targetedTriggers(c, l.sources).map((tt): PsychDue => ({ kind: tt.type, sourceId: tt.sourceId, sourceName: nomDeLaSource(l, tt.sourceId), indice: 0, prevDR: 0, cible: tt.cible, sansPeur: false })),
   ];
 }
 
@@ -8216,7 +8219,7 @@ export function collectRoundEndPsych(get: Get, c: Combatant, round: number): Psy
   return [
     ...l.neuves.filter((n) => n.kind === 'peur').map((n) => dueDeSource(c, n)),
     ...(c.psychState ?? []).filter((p) => sousPeur(p) && p.lastTestRound !== round).map((p): PsychDue => ({
-      kind: 'peur', sourceId: p.sourceId!, sourceName: libelleOuAbsence(porteurDeLaSource(l, p.sourceId!), 'combattant', p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
+      kind: 'peur', sourceId: p.sourceId!, sourceName: nomDeLaSource(l, p.sourceId!), indice: indiceDePeur(p), prevDR: p.calmeDR ?? 0, sansPeur: false,
     })),
     ...retestsCibles(c, l.sources, round, 'roundEnd'),
   ];
@@ -8442,8 +8445,8 @@ function resolveCombatPsychRow(get: Get, set: SetFn, hero: Combatant, cp: Combat
     if (issue === 'tient') line = tr('cf.peurPersiste', { name: hero.label, dr: pas?.calmeDR ?? 0, indice: cp.indice });
     else if (issue === 'ignoree') {
       const talent = sansPeurLabel();
-      line = cp.sourceName ? tr('turn.fearVanquished', { name: hero.label, foe: cp.sourceName, talent }) : tr('cf.peurIgnoree', { name: hero.label, talent });
-    } else line = cp.sourceName ? tr('out.fearOvercome', { name: hero.label, foe: cp.sourceName }) : tr('turn.fearOvercome', { name: hero.label });
+      line = tr('turn.fearVanquished', { name: hero.label, foe: cp.sourceName, talent });
+    } else line = tr('out.fearOvercome', { name: hero.label, foe: cp.sourceName });
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant.
   return freeCons([line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero, hero.label)]);
