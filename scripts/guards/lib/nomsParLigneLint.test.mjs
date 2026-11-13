@@ -8,7 +8,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lintFixtures, selectionnerMessages } from './lint.testkit.mjs'
-import { SEUIL_NOMS_PAR_LIGNE, unNomParLigne } from './nomsParLigneLint.mjs'
+import { unNomParLigne } from './declarationsDImport.mjs'
+import { SEUIL_NOMS_PAR_LIGNE } from './nomsParLigneLint.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
 const REGLE = 'murs/noms-par-ligne'

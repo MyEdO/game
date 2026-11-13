@@ -10,7 +10,21 @@ import { walkNeighbors, type Pt } from './path';
 import { inMapBounds } from './zones';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
-import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tileAt, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import {
+  casesDeFace,
+  heightAt,
+  isWalkable,
+  piedDeLArete,
+  porteEnJeu,
+  sceneMetresPerTile,
+  structureIsDown,
+  tileAt,
+  tuilesEffondreesSignature,
+  wallEnds,
+  wallIsOpen,
+  type Scene,
+  type WallSeg,
+} from './scene';
 import { estAbsent } from './terrain';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { memoByRefDeps } from './sceneMemo';

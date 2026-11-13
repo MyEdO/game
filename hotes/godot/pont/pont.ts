@@ -18,30 +18,182 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, chargerLaSave, estUnPointDeReprise, nommerLesRetraits, pointDeRepriseAGarder, refusDeSauvegarde, ruleOverrides, snapshotSave, partieEnCours, refusDeLancer, brouillonDeLaPartie, cataloguesDeComposition, enTeteDuPorteur, ficheDuPorteur, editer, herosDuRosterOfferts, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, PREFERENCES, type PrefValue, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, type Combatant, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Partie, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurentEnVue, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde, cleDeLaVision, porteurEnVue, visionDuMonde, type VisionDuMonde } from '../../../src/noyau/index';
-import { ErreurDeGeste, entreesDuJeu, nouvelEntete, nouvellesEntrees, ouvrirAuGroupe, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieAuGroupe } from '../../../src/hote/partie';
+import {
+  CLIC_DU_CHAMP,
+  chargerLaSave,
+  estUnPointDeReprise,
+  nommerLesRetraits,
+  pointDeRepriseAGarder,
+  refusDeSauvegarde,
+  ruleOverrides,
+  snapshotSave,
+  partieEnCours,
+  refusDeLancer,
+  brouillonDeLaPartie,
+  cataloguesDeComposition,
+  enTeteDuPorteur,
+  ficheDuPorteur,
+  editer,
+  herosDuRosterOfferts,
+  ouvrirLEdition,
+  projetDuDepot,
+  essaiDeLaScene,
+  texteAEnregistrer,
+  pagesDeCreation,
+  vueDeLaScene,
+  FIRE_ARCS,
+  ficheDEntite,
+  libelleDuBord,
+  lireApparenceDAuteur,
+  lireComposition,
+  lireSurchargesDEmblemes,
+  siegeEngines,
+  vehiculeDuCombattant,
+  type FireArc,
+  lumiereDeLaScene,
+  porteeDuCombattant,
+  type Jeu,
+  effetsDeLAppel,
+  vitrineDesEffets,
+  type Effet,
+  type VitrineDesEffets,
+  PREFERENCES,
+  type PrefValue,
+  meteoDuRegard,
+  aretesDeLaCouche,
+  aretesDeLaScene,
+  type AreteDessinee,
+  type Combatant,
+  naviresDeLaScene,
+  stationsDuNavire,
+  type EmprisesDesCases,
+  type NavireDeLaScene,
+  type StationDeNavire,
+  casesDuGroupe,
+  masqueDuRegard,
+  plateauDeLaScene,
+  regardDuJeu,
+  REGARDS,
+  type Regard,
+  porteeDeComposition,
+  presetDeComposition,
+  couronnesDuMonde,
+  retraitDuMonde,
+  toitsDuMonde,
+  volumeDuMonde,
+  echantillonDessine,
+  famillesDEchantillons,
+  type EchantillonDessine,
+  type FamilleDEchantillons,
+  type Composition,
+  type GesteDEdition,
+  type Scene,
+  type SessionDEdition,
+  type LectureAuSchema,
+  type LigneDuJournal,
+  type LumiereDeLaScene,
+  type ProjectDoc,
+  type Partie,
+  type Programme,
+  type ResultatDeLAppel,
+  type VehiculeDuCombattant,
+  type EmblemeResolu,
+  planDeLaCouche,
+  type OeilDuPlan,
+  musiqueDeLaPartie,
+  type MusiqueDeLaPartie,
+  zonesQuiDurentEnVue,
+  type ZoneQuiDure,
+  marquesDesEtats,
+  type MarqueDEtat,
+  type MeteoDuRegard,
+  type MorceauDuMonde,
+  type NappeDuMonde,
+  type PlateauDeLaScene,
+  type RetraitDuMonde,
+  type VolumeDuMonde,
+  cleDeLaVision,
+  porteurEnVue,
+  visionDuMonde,
+  type VisionDuMonde,
+} from '../../../src/noyau/index';
+import {
+  ErreurDeGeste,
+  entreesDuJeu,
+  nouvelEntete,
+  nouvellesEntrees,
+  ouvrirAuGroupe,
+  ouvrirLaPartie,
+  ouvrirLeLancement,
+  valider,
+  type CategorieDErreur,
+  type PartieAuGroupe,
+} from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, horsCombat, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { ameliorationsMontables, ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import {
+  ameliorationsMontables,
+  ameliorationsMontees,
+  emblemeMonte,
+  modelesDeLAtelier,
+  noeudsCaches,
+  postesEnVigueur,
+  postesMontes,
+  type AmeliorationMontee,
+  type ModelesDeLAtelier,
+  type PosteMonte,
+} from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import type { TableDeClips } from '../asset/clips';
 import { type CreationOuverte, type GesteDeLaCreation, type GesteDuRoster, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, estLIssueDUnChapitre, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import {
+  boutonDeLEdition,
+  calqueAffiche,
+  cheminDeLaPlanche,
+  estLIssueDUnChargement,
+  estLIssueDUnChapitre,
+  gesteDuFormulaire,
+  estLIssueDUnEnregistrement,
+  estUnGesteDuPointeur,
+  memoireDesCalques,
+  refusDeLaValeurDit,
+  surcoucheDeLEdition,
+  zonesDeLEditeur,
+} from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
-import { AUTO_SLOT, MESSAGE_DU_REFUS, SAVE_SLOTS, ecrireLaSauvegarde, lireLaSauvegarde, nomDEmplacement, zonesDesSauvegardes, type AnySlot, type SaveSlot } from '../../../src/hote/sauvegardes';
+import {
+  AUTO_SLOT,
+  MESSAGE_DU_REFUS,
+  SAVE_SLOTS,
+  ecrireLaSauvegarde,
+  lireLaSauvegarde,
+  nomDEmplacement,
+  zonesDesSauvegardes,
+  type AnySlot,
+  type SaveSlot,
+} from '../../../src/hote/sauvegardes';
 import { graineDEntropie, idDEntropie } from '../../../src/hote/entropie';
 import { boutonDuRoster } from '../../../src/hote/groupe';
 import { zonesDeLAccueil } from '../../../src/hote/accueil';
 import { chargerLesPreferences } from '../../../src/hote/preferences';
 import { jouerUnReglage, zonesDesReglages } from '../../../src/hote/reglages';
 import { reposerLesReglesMaison } from '../../../src/hote/reglesMaison';
-import { SANS_ROSTER, engagerLeHeros, fichierDuHeros, importerAuRoster, mettreAJourLeRoster, retirerDuRoster, rosterAMontrer, type RosterMontre } from '../../../src/hote/roster';
+import {
+  SANS_ROSTER,
+  engagerLeHeros,
+  fichierDuHeros,
+  importerAuRoster,
+  mettreAJourLeRoster,
+  retirerDuRoster,
+  rosterAMontrer,
+  type RosterMontre,
+} from '../../../src/hote/roster';
 import { garanti } from '../../../src/lib/garanti';
 import type { Stockage } from '../../../src/lib/stockage';
 import { t } from '../../../src/i18n';

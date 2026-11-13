@@ -1,6 +1,7 @@
 // `murs/noms-par-ligne` (#3821) : un import ou un export nommé tenu sur une ligne de plus de `SEUIL_NOMS_PAR_LIGNE`
 // caractères passe à un nom par ligne. Le correctif récrit la déclaration seule (`unNomParLigne`) ; un commentaire
 // sur la ligne de la déclaration, ou une directive de la ligne précédente (`DIRECTIVE`), se signale sans correctif.
+import { unNomParLigne } from './declarationsDImport.mjs'
 
 /** La longueur de ligne au-delà de laquelle une déclaration d'une ligne est refusée. */
 export const SEUIL_NOMS_PAR_LIGNE = 160
@@ -10,11 +11,6 @@ export const COMMANDE_NOMS_PAR_LIGNE = 'npm run lint:noms-par-ligne -- <fichier>
 
 /** Un commentaire qui vise la ligne suivante. */
 const DIRECTIVE = /@ts-|(?:eslint|oxlint)-disable-next-line/
-
-/** La déclaration à un nom par ligne : `tete` finit par `{`, `queue` commence par `}`, `noms` sont les spécificateurs
- *  dans leur ordre, `indentation` celle de la ligne de la déclaration. PUR. */
-export const unNomParLigne = ({ tete, noms, queue, indentation }) =>
-  [tete, ...noms.map((nom) => `${indentation}  ${nom},`), `${indentation}${queue}`].join('\n')
 
 export default {
   meta: { type: 'layout', fixable: 'code' },

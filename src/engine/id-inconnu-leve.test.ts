@@ -7,7 +7,18 @@
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { OPTIONAL_RULES, rule, setRule, surchargerUneSaisie, resetRule, loadRuleOverrides, refusDesSurcharges, ruleOverrides } from './policy';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, hasCondition, stacks, derivedStacks, etatNonCumulable, soinDeDetermination, etatsPortesInconnus } from './conditions';
+import {
+  addCondition,
+  addTimedCondition,
+  addClockCondition,
+  removeCondition,
+  hasCondition,
+  stacks,
+  derivedStacks,
+  etatNonCumulable,
+  soinDeDetermination,
+  etatsPortesInconnus,
+} from './conditions';
 import { conditionIds } from '../data';
 import { t } from '../i18n';
 import type { Combatant } from './types';
