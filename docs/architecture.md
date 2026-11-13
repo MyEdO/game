@@ -55,6 +55,18 @@ ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un
 de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, utilisée par le pilote. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
 mesure>`.
 
+**Fusion des imports** (`.gitattributes`, `merge=imports` sur `.ts`, `.tsx`, `.mts`, `.mjs`, pilote
+`scripts/git-hooks/merge-imports.mjs` déclaré par `npm run postinstall`, #4178) : la fusion 3-voies
+ordinaire d'abord, rendue telle quelle quand elle est propre. En conflit, chaque suite de lignes faite
+seulement de déclarations `import` / `export` de premier niveau entières (`declarationsDImport`,
+`scripts/guards/lib/declarationsDImport.mjs`, sur l'arbre syntaxique de `dialecte.mjs`) est fusionnée par
+ensemble : chaque liaison, sous le nom qu'elle lie, prend la valeur du côté qui l'a changée depuis
+l'ancêtre. Une liaison changée des deux côtés, un commentaire dans la région, une version qui ne se parse
+pas laissent le conflit ordinaire, comme tout conflit hors des imports. La sortie de `merge-file --diff3`
+se lit par `segmentsDeFusion` (`scripts/guards/lib/blocsDeFusion.mjs`), partagé avec
+`scripts/ops/synchroniser.mjs`. GitHub n'exécute aucun pilote : le gain est à la fusion locale et dans le
+train.
+
 ## Frontière orchestrateur · machinerie · data-driven
 
 Un Trigger doit fonctionner pour TOUT kind d'entité (maladie, talent, trait, sort, état, mutation)
