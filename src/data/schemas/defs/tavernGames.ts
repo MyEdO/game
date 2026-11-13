@@ -5,6 +5,7 @@ import { document } from '../grammaire/document';
 import { charKeySchema, deDeTirageSchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
 import { executeesDe, fixerLeTest, flowTestSchema, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
+import { idDe } from '../grammaire/ref';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
 
 export const file = 'tavernGames.json';
@@ -137,8 +138,8 @@ const doc = document(
       effacementsParEcheance: z.number().optional(),
       ops: executeesDe().optional(),
       markLoser: z.boolean().optional(),
-      /** Id d'État (`etats.json`) dont l'apparition arrête la partie (l.88 « rouler sous la table »). */
-      stopCondition: z.string().optional(),
+      /** NADJ 16 l.88 */
+      stopCondition: idDe('etat').optional(),
       tours: z.number().optional(),
     }), {
       second: { label: 'Second Test' },

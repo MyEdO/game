@@ -13,7 +13,7 @@ const borne = (cote: 'min' | 'max'): RNG => ({ int: (min, max) => (cote === 'min
 describe('prétirés officiels — fiches imprimées figées (#3884)', () => {
   it('la forme est celle de la fiche : EXACTEMENT ces champs, aucun choix de création', () => {
     expect(Object.keys(meta).sort()).toEqual([
-      'age', 'carrieres', 'charAdvances', 'fate', 'initiales', 'monnaie', 'motivation', 'resilience', 'richesse',
+      'age', 'carrieres', 'charAdvances', 'fate', 'initiales', 'motivation', 'resilience', 'richesse',
       'sex', 'skills', 'species', 'spells', 'talents', 'trappings', 'xp',
     ]);
   });
@@ -53,8 +53,8 @@ describe('prétirés officiels — fiches imprimées figées (#3884)', () => {
     for (const d of pregens) for (const t of d.trappings) if ('text' in t) expect(t.text, d.id).not.toMatch(/\d+d\d+/);
   });
 
-  it('`richesseDuPretire` tire le dé imprimé dans sa monnaie, bornes comprises', () => {
-    const d = { richesse: { n: 3, sides: 10 }, monnaie: 'silver' } as PregenDef;
+  it('`richesseDuPretire` tire la somme imprimée dans sa monnaie, bornes comprises', () => {
+    const d = { richesse: { monnaie: 'silver', count: { roll: { n: 3, sides: 10 } } } } as PregenDef;
     expect(richesseDuPretire(d, borne('min'))).toEqual({ gold: 0, silver: 3, brass: 0 });
     expect(richesseDuPretire(d, borne('max'))).toEqual({ gold: 0, silver: 30, brass: 0 });
   });

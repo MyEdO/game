@@ -11,7 +11,7 @@ import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
-import { trousDeLEnjeu, type StakeRef } from '../../index';
+import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
@@ -632,13 +632,10 @@ const DECLARATIONS_D_OPS = {
     nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationHours: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationHours: { label: 'durée en heures', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
     nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationDays: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   ], { error: () => MESSAGE_DUREE_DE_DIVINITE }),
-  /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). `testType` : id de
-   *  `crew-test-types.json`, document `config` dont les ids vivent sous `types[]` — hors de l'INDEX
-   *  DES IDS (`IDS_PAR_ESPACE`, `scripts/gen-espaces.mts`) ; clé étrangère tenue par
-   *  `scripts/guards/lib/gameOpRefFk.mjs` pour les sous-listes à ids des documents `config`. */
+  /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). */
   skillDRBonus: z.union([
     nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), skill: refOuSpec('skill'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, skill: { label: "Compétence" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: z.string(), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: ref('crewTestType'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { skill?: unknown; testType?: unknown; bonus?: unknown };
@@ -980,7 +977,7 @@ export const hasConditionSchema = z.discriminatedUnion('what', [
 const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" } });
 const compareSubjectSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, field: actorFieldSchema }), { who: { label: "acteur"  }, field: { label: "champ"  } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, condition: idDe('etat') }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
   charRefSchema,
 ]);
 /** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
@@ -995,7 +992,7 @@ const compareValueSchema = z.union([
     field: actorFieldSchema,
     factor: z.number().optional(),
   }), { who: { label: "acteur"  }, field: { label: "champ"  }, factor: { label: "facteur" } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string(), factor: z.number().optional() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} }, factor: { label: "facteur" } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, condition: idDe('etat'), factor: z.number().optional() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} }, factor: { label: "facteur" } }),
   nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
@@ -1059,7 +1056,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('État du porteur (comparaison)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.compare')),
       variante('Marge (DR)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.slThreshold')),
       variante('Localisation touchée', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.location')),
-      variante('Type d’attaque', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.attackKind')),
+      variante('Type d’attaque', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: attackKindSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.attackKind')),
       variante('Cause d’effarouchement', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('startleCause'), is: startleCauseSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.startleCause')),
       variante('Blessures infligées', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.woundsDealt')),
       variante('Écart d’Avantage (engagés)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageGap'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.engagedAdvantageGap')),
@@ -1105,6 +1102,8 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
 }).superRefine(({ key }, ctx) => {
   const trous = trousDeLEnjeu(key);
   const cle = `${key.dataset}/${key.kind}${key.entryId ? `/${key.entryId}` : ''}`;
+  if (key.entryCategory !== undefined && !categorieDEntreeAPool(key.entryCategory))
+    ctx.addIssue({ code: 'custom', path: ['key', 'entryCategory'], message: `la catégorie d’entrée « ${key.entryCategory} » de l’enjeu « ${cle} » n’a aucun pool` });
   if (!trous) ctx.addIssue({ code: 'custom', path: ['key'], message: `aucune entrée d’enjeu « ${cle} »` });
   else if (trous.length) ctx.addIssue({ code: 'custom', path: ['key'], message: `l’entrée d’enjeu « ${cle} » a des trous que seul le moteur remplit (${trous.join(', ')}) : un document ne peut pas la viser` });
 }), { key: { label: "clé" } });
@@ -1717,7 +1716,7 @@ function construire(regimes: Regimes) {
     trigger: effectTriggerSchema,
     on: effectTargetingSchema,
     flow: flow,
-    condition: z.string().optional(),
+    condition: idDe('etat').optional(),
     attackType: genreDArmeSchema.optional(),
     coupCritique: z.boolean().optional(),
     optional: z.boolean().optional(),
