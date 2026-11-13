@@ -116,8 +116,9 @@ export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number
 /** Un trait du plan, d'un point à l'autre (leurs ids), à son ton. */
 export interface TraitDuPlan { id: string; de: string; vers: string; ton: Ton }
 
-/** Un plan : des points nommés posés dans un cadre, et les traits qui les relient. */
-export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[] }
+/** Un plan : des points nommés posés dans un cadre, et les traits qui les relient ; `unites`, ce que vaut le côté du
+ *  cadre au pointeur qui joue sur lui, absent quand aucun n'y joue. */
+export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[]; unites?: number }
 
 /** Le portrait d'un combattant : son corps, celui que l'hôte monte au plateau (`combattant`, son id), vu en buste. */
 export interface Portrait { type: 'portrait'; id: string; combattant: string }

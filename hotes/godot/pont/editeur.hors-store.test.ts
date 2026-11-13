@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest';
 import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
 import type { MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
-import type { AreteDessinee, RetraitDuMonde, Scene } from '../../../src/noyau/index';
+import { UNITES_DU_PLAN_DE_CARTE, type AreteDessinee, type RetraitDuMonde, type Scene } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
@@ -546,7 +546,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(logique(carte).filter((id) => !/^logique\/(lieu|route)/.test(id)), 'la logique de la scène ne s’y liste pas').toEqual([]);
     const lieux = (z['editeur.logique'].find((el) => el.id === 'logique/lieu/liste') as Choix).valeurs.map((b) => b.libelle);
     const plan = planDe(carte);
-    expect(plan.id).toBe('carte/plan');
+    expect([plan.id, plan.unites], 'le plan publie les unités de son pointeur').toEqual(['carte/plan', UNITES_DU_PLAN_DE_CARTE]);
     expect(plan.points.map((p) => p.id), 'chaque lieu de la liste est un point du plan').toEqual(lieux);
     expect(plan.traits.every((tr) => lieux.includes(tr.de) && lieux.includes(tr.vers))).toBe(true);
     const lieu = presser(boutonDe(carte, 'outil/lieu'));
@@ -594,7 +594,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     const choisi = presser(boutonDe(carte, `logique/lieu/${lieu}`));
     expect([boutonDe(choisi, 'lieu/plan').presse, choisi.vue.zones['editeur.inspecteur'].some((el) => el.id === 'lieu/poi/retirer')]).toEqual([false, false]);
     const ouvert = presser(boutonDe(choisi, 'lieu/plan'));
-    expect([planDe(ouvert).id, boutonDe(ouvert, 'lieu/plan').presse, boutonDe(ouvert, 'lieu/poi/retirer').refus !== null]).toEqual(['lieu/plan', true, true]);
+    expect([planDe(ouvert).id, planDe(ouvert).unites, boutonDe(ouvert, 'lieu/plan').presse, boutonDe(ouvert, 'lieu/poi/retirer').refus !== null]).toEqual(['lieu/plan', UNITES_DU_PLAN_DE_CARTE, true, true]);
     expect((ouvert.vue.zones['editeur.outils'][0] as Choix).valeurs.map((b) => [b.id, b.presse])).toEqual([['outil/select', true], ['outil/epingler', false]]);
     const avant = planDe(ouvert).points.length;
     presser(boutonDe(ouvert, 'outil/epingler'));
@@ -609,7 +609,9 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(planDe(glisse).points.find((p) => p.id === neuf.id)).toEqual({ ...neuf, x: 0.55, y: 0.6 });
     const retire = presser(boutonDe(glisse, 'lieu/poi/retirer'));
     expect(planDe(retire).points.map((p) => p.id)).toEqual(planDe(ouvert).points.map((p) => p.id));
-    const ferme = presser(boutonDe(retire, 'lieu/plan'));
+    const annule = presser(boutonDe(retire, 'annuler'));
+    expect([planDe(annule).id, planDe(annule).points.some((p) => p.id === neuf.id), boutonDe(annule, 'lieu/plan').presse], '« Annuler » au plan du lieu le garde ouvert, son lieu à l’inspecteur').toEqual(['lieu/plan', true, true]);
+    const ferme = presser(boutonDe(annule, 'lieu/plan'));
     expect([planDe(ferme).id, boutonDe(ferme, 'lieu/plan').presse]).toEqual(['carte/plan', false]);
   });
 

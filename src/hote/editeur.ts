@@ -351,7 +351,9 @@ export interface ZonesDeLEditeur {
    * id }`), puis celui des réglages du projet (`{ sorte: 'projet', id: 'projet' }`), ses axes actifs parmi ceux du
    * catalogue, absents valant le socle, puis `carte/retirer`, « Retirer du projet », `{ geste: 'supprimer' }`, qui retire
    * la carte du projet sur un cran et rouvre la scène. D'un lieu : `lieu/plan`, « Plan du lieu », pressé quand son plan
-   * est ouvert, qui l'ouvre ou le ferme (`{ geste: 'planDuLieu', lieu }`, `lieu` nul pour le fermer) ; son plan ouvert,
+   * est ouvert, qui l'ouvre ou le ferme (`{ geste: 'planDuLieu', lieu }`, `lieu` nul pour le fermer) ; le plan ouvert
+   * est celui du lieu sélectionné, que « Annuler » et « Rétablir » gardent tant qu'il est au cran rendu, et sélectionner
+   * autre chose le ferme ; son plan ouvert,
    * `lieu/poi/retirer`, « Retirer le point d'intérêt » désigné au plan, refusé sans lui (`{ geste: 'retirerPoi' }`) ;
    * son formulaire tiré du schéma, sa position et la position de ses points d'intérêt exceptées, qui se glissent au
    * plan ; le supprimer, ses routes avec lui. D'une route : son sens, `route/sens/deux` ou `route/sens/<lieu>`, le courant pressé,
@@ -470,8 +472,9 @@ export interface ZonesDeLEditeur {
    * se tire à l'outil Chemin, le point `brouillon/route`, sans nom, au bout du pointeur et le trait `brouillon/route`
    * qui l'y mène depuis son lieu de départ, en `reussite`. Les gestes du pointeur sur ce plan
    * (`{ geste: appui | glisse | relache, point }`) portent `point.f`, le point du cadre multiplié par
-   * `UNITES_DU_PLAN_DE_CARTE`, et `point.case`, sa partie entière (`PointDeCarte`) ; vide sur un autre document.
-   * Le plan d'un lieu ouvert (`{ geste: 'planDuLieu', lieu }`) le remplace et reçoit le pointeur, aux mêmes unités :
+   * les `unites` du `Plan` (`UNITES_DU_PLAN_DE_CARTE`), et `point.case`, sa partie entière (`PointDeCarte`) ; vide sur
+   * un autre document.
+   * Le plan d'un lieu ouvert (`{ geste: 'planDuLieu', lieu }`) le remplace et reçoit le pointeur, aux mêmes `unites` :
    * `lieu/plan`, un `Plan` sans trait dont chaque point est un point d'intérêt du lieu à sa position (`PlacePoi.pos` ÷
    * `UNITES_DU_PLAN_DE_CARTE`), le désigné en `alerte`
    */
@@ -2098,15 +2101,16 @@ function planDeLEdition(s: SessionDEdition): PlanDeLaCarte {
 }
 
 /** Le plan du lieu ouvert `plan` (`planDuLieuOuvert`) en élément `lieu/plan` : chaque point d'intérêt du lieu à sa
- *  position dans le cadre (`PlacePoi.pos` ÷ `UNITES_DU_PLAN_DE_CARTE`), le désigné en `alerte`. */
+ *  position dans le cadre (`PlacePoi.pos` ÷ `UNITES_DU_PLAN_DE_CARTE`), le désigné en `alerte`, aux unités du pointeur. */
 const planDuLieu = ({ lieu, poi }: NonNullable<ReturnType<typeof planDuLieuOuvert>>): Plan => ({
-  type: 'plan', id: 'lieu/plan', traits: [],
+  type: 'plan', id: 'lieu/plan', traits: [], unites: UNITES_DU_PLAN_DE_CARTE,
   points: (lieu.poi ?? []).map((p) => ({ type: 'point', id: p.id, nom: p.label, x: p.pos.x / UNITES_DU_PLAN_DE_CARTE, y: p.pos.y / UNITES_DU_PLAN_DE_CARTE, ton: p.id === poi ? 'alerte' : 'neutre', elements: [] })),
 });
 
 /** Les zones propres à la carte du monde ouverte de la session `s` : son nom, puis, le plan d'un lieu ouvert
  *  (`planDuLieuOuvert`), ses outils (`OUTILS_DU_PLAN_DU_LIEU`) et ce plan (`planDuLieu`), sinon ceux de la carte
- *  (`OUTILS_DE_LA_CARTE`) et son plan (`planDeLEdition`, `planDeLaCarte`), l'outil actif pressé. */
+ *  (`OUTILS_DE_LA_CARTE`) et son plan (`planDeLEdition`, `planDeLaCarte`), l'outil actif pressé ; le plan, aux unités du
+ *  pointeur (`UNITES_DU_PLAN_DE_CARTE`). */
 function zonesDeLaCarte(s: SessionDEdition): Partial<ZonesDeLEditeur> {
   const carte = projetEdite(s).worldMap!;
   const plan = planDuLieuOuvert(s);
@@ -2114,7 +2118,7 @@ function zonesDeLaCarte(s: SessionDEdition): Partial<ZonesDeLEditeur> {
   return {
     'editeur.titre': [ligne('carte', carte.label || carte.id)],
     'editeur.outils': [choix('outils', t('ecran.editeur.outils'), outils)],
-    'editeur.carte': [plan ? planDuLieu(plan) : planDeLaCarte('carte/plan', planDeLEdition(s), () => [])],
+    'editeur.carte': [plan ? planDuLieu(plan) : { ...planDeLaCarte('carte/plan', planDeLEdition(s), () => []), unites: UNITES_DU_PLAN_DE_CARTE }],
   };
 }
 

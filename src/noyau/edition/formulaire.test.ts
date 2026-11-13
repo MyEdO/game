@@ -743,6 +743,13 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
     expect(cles(formulaireDe('carte', CARTE, cadre))).toEqual(['label', 'background', 'params']);
   });
 
+  it('les choix d’un porteur restreignent ceux d’une référence locale : le départ d’un billet d’une route à sens unique, son seul lieu de départ, parmi les lieux de la carte', () => {
+    const sensUnique = { ...CARTE.routes[0], from: { id: 'y' }, modes: ['pied', 'diligence'], billets: { diligence: { prix: {}, depuis: { id: 'y' } } } };
+    expect(choixDuChamp('route', sensUnique, ['billets', 'diligence', 'depuis'], cadre)?.map((c) => [c.valeur, c.libelle])).toEqual([[{ id: 'y' }, 'Y']]);
+    const horsCarte = { ...sensUnique, from: { id: 'w' } };
+    expect(choixDuChamp('route', horsCarte, ['billets', 'diligence', 'depuis'], cadre), 'un départ que la carte n’a pas ne s’offre pas').toEqual([]);
+  });
+
   it('un avertissement de la carte désigne le lieu ou la route qui porte son élément ; sans élément, la carte ; un point d’intérêt, aucun porteur', () => {
     expect([porteurDeLaPortee('worldMap', 'x', projet, 'salle'), porteurDeLaPortee('worldMap', 'r', projet, 'salle'), porteurDeLaPortee('worldMap', undefined, projet, 'salle'), porteurDeLaPortee('worldMap', 'temple', projet, 'salle')])
       .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }, undefined]);

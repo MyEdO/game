@@ -1342,7 +1342,7 @@ export function creerPont(stockage: Stockage | null) {
      * `src/scenes/campaign.ts`), le texte de son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de
      * l'index des chapitres du `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
      * `src/noyau/edition/session.ts`), un geste du pointeur sur le plan du document ouvert (la case et le point de la
-     * scène ; sur la carte du monde, le point du cadre du plan `editeur.carte` multiplié par `UNITES_DU_PLAN_DE_CARTE`, sa
+     * scène ; sur la carte du monde, le point du cadre du plan `editeur.carte` multiplié par ses `unites`, sa
      * case la partie entière), l'issue d'un enregistrement, d'un chargement de planche ou
      * de celui du chapitre attendu (refusée en `validation` hors d'une attente, ou d'un autre chapitre), ou celui que
      * porte un bouton des zones de l'éditeur, un qui l'offre sans refus d'abord ; ou `{ type: 'nommer' | 'identifier' |

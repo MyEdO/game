@@ -373,9 +373,10 @@ export interface SessionDEdition {
   chapitreEnAttente: { book: string; ch: string } | null;
   /** Les calques que l'hôte gardait étaient d'un autre format, retirés à l'ouverture. */
   ecartes: boolean;
-  /** Le plan du lieu `lieu` de la carte du monde, ouvert : le pointeur y va (`planDuLieuOuvert`), et `poi` y est le
-   *  point d'intérêt désigné, `null` sans lui ; `null` : le pointeur va au plan du document ouvert. */
-  planDuLieu: { lieu: string; poi: string | null } | null;
+  /** Le plan du lieu sélectionné de la carte du monde, ouvert : le pointeur y va (`planDuLieuOuvert`), et `poi` y est le
+   *  point d'intérêt désigné, `null` sans lui ; `null` : le pointeur va au plan du document ouvert. Son lieu est la
+   *  sélection, `editer` le ferme quand elle n'en désigne plus aucun (`avecSonPlanDuLieu`). */
+  planDuLieu: { poi: string | null } | null;
 }
 
 /** Un geste de l'éditeur : choisir l'outil, la taille du pinceau, le rectangle du pinceau de terrain, la couche
@@ -729,26 +730,30 @@ const POINTEURS_DES_DOCUMENTS: { readonly [K in SorteDeDocument]?: PointeurDuDoc
   carte: POINTEUR_DE_LA_CARTE,
 };
 
-/** Le plan du lieu ouvert de la session `s` (`SessionDEdition.planDuLieu`) : son lieu, au projet, et son point d'intérêt
- *  désigné, s'il est à ce lieu ; `undefined` s'il n'est pas ouvert ou que son lieu a quitté la carte. */
+/** Le plan du lieu ouvert de la session `s` (`SessionDEdition.planDuLieu`) : son lieu, la sélection, au projet, et son
+ *  point d'intérêt désigné, s'il est à ce lieu ; `undefined` s'il n'est pas ouvert ou que la sélection ne désigne aucun
+ *  lieu de la carte. */
 export function planDuLieuOuvert(s: SessionDEdition): { lieu: MapPlace; poi: string | null } | undefined {
-  const plan = s.planDuLieu;
-  const lieu = plan && projetEdite(s).worldMap?.places.find((p) => p.id === plan.lieu);
-  return lieu ? { lieu, poi: lieu.poi?.some((x) => x.id === plan.poi) ? plan.poi : null } : undefined;
+  const { planDuLieu: plan, sel } = s;
+  const lieu = plan && sel && 'id' in sel && sel.type === FORMULAIRES.lieu.sel ? projetEdite(s).worldMap?.places.find((p) => p.id === sel.id) : undefined;
+  return lieu ? { lieu, poi: lieu.poi?.some((x) => x.id === plan!.poi) ? plan!.poi : null } : undefined;
 }
+
+/** La session `s`, son plan du lieu fermé si la sélection n'en désigne plus le lieu (`planDuLieuOuvert`). */
+const avecSonPlanDuLieu = (s: SessionDEdition): SessionDEdition => (s.planDuLieu && !planDuLieuOuvert(s) ? { ...s, planDuLieu: null } : s);
 
 /** L'effet d'un pas du pointeur sur le plan du lieu ouvert porté à la session : la carte écrite comme sur son plan
  *  (`porterSurLaCarte`), le point d'intérêt désigné. */
-function porterSurLePlanDuLieu(s: SessionDEdition, lieu: string, effet: EffetSurLePlanDuLieu): SessionDEdition {
+function porterSurLePlanDuLieu(s: SessionDEdition, effet: EffetSurLePlanDuLieu): SessionDEdition {
   const portee = porterSurLaCarte(s, effet);
-  return effet.poi === undefined ? portee : { ...portee, planDuLieu: { lieu, poi: effet.poi } };
+  return effet.poi === undefined ? portee : { ...portee, planDuLieu: { poi: effet.poi } };
 }
 
 /** Le pointeur sur le plan du lieu ouvert (`appuyerSurLePlanDuLieu`, `glisserSurLePlanDuLieu`), les points neufs menant
  *  à la première scène du projet ; le relâché finit le geste. */
 const POINTEUR_DU_PLAN_DU_LIEU: PointeurDuDocument = {
-  appui: (s, point) => porterSurLePlanDuLieu(s, s.planDuLieu!.lieu, appuyerSurLePlanDuLieu(carteEditee(s), s.planDuLieu!.lieu, projetEdite(s).scenes, s.outil.mode, point)),
-  glisse: (s, point) => porterSurLePlanDuLieu(s, s.planDuLieu!.lieu, glisserSurLePlanDuLieu(carteEditee(s), s.planDuLieu!.lieu, s.geste, point)),
+  appui: (s, point) => porterSurLePlanDuLieu(s, appuyerSurLePlanDuLieu(carteEditee(s), planDuLieuOuvert(s)!.lieu.id, projetEdite(s).scenes, s.outil.mode, point)),
+  glisse: (s, point) => porterSurLePlanDuLieu(s, glisserSurLePlanDuLieu(carteEditee(s), planDuLieuOuvert(s)!.lieu.id, s.geste, point)),
   relache: (s) => ({ ...s, geste: null }),
 };
 
@@ -858,7 +863,8 @@ const enPatchDeSegment = (patch: PatchDArete): Partial<WallSeg> =>
  *  d'abord la scène du cran visé quand chacune existe des deux côtés : seule une navigation les sépare, et rétablir ou
  *  annuler encore montrera la scène où l'écriture a eu lieu. Une autre scène montrée remet la session à zéro
  *  (`remiseAZero`), comme un document ouvert absent du cran visé, qui rend la scène ouverte ; sinon la couche éditée
- *  reste, sauf disparue de sa vue (`coucheVue`), où le rez la remplace. */
+ *  reste, sauf disparue de sa vue (`coucheVue`), où le rez la remplace, et la sélection tombe, sauf celle du lieu dont le
+ *  plan est ouvert (`planDuLieuOuvert`) quand ce lieu est au cran visé. */
 function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdition {
   const h = s.historique;
   const crans = sens === 'annuler' ? h.passe : h.futur;
@@ -869,7 +875,8 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
   const revenue = avecSonDocument({ ...s, historique });
   if (revenue.document !== s.document || historique.present.sceneId !== sceneId) return { ...remiseAZero(s), historique, document: revenue.document };
   const z = coucheVue(sceneDuCran(historique.present), s.z) ? s.z : 0;
-  return { ...s, historique, z, sel: null, geste: null, brouillon: null };
+  const plan = planDuLieuOuvert(s) && planDuLieuOuvert({ ...s, historique });
+  return { ...s, historique, z, sel: plan ? s.sel : null, geste: null, brouillon: null };
 }
 
 /** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
@@ -1031,16 +1038,16 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'document':
       return ouvrirLeDocument(s, g.document);
     case 'planDuLieu': {
-      if ((s.planDuLieu?.lieu ?? null) === g.lieu) return s;
+      if ((planDuLieuOuvert(s)?.lieu.id ?? null) === g.lieu) return s;
       if (g.lieu === null) return { ...s, planDuLieu: null, geste: null, outil: { mode: 'selection' } };
       const ouvert = accesDe('lieu').document === s.document && porteurDuProjet(accesDe('lieu'), projetEdite(s), idDeLaSceneEditee(s), g.lieu);
-      return ouvert ? { ...s, planDuLieu: { lieu: g.lieu, poi: null }, sel: selDuPorteur('lieu', g.lieu), geste: null, brouillon: null, outil: { mode: 'selection' } } : s;
+      return ouvert ? { ...s, planDuLieu: { poi: null }, sel: selDuPorteur('lieu', g.lieu), geste: null, brouillon: null, outil: { mode: 'selection' } } : s;
     }
     case 'retirerPoi': {
       const plan = planDuLieuOuvert(s);
       if (!plan?.poi) return s;
       const carte = carteEditee(s);
-      return { ...ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), retirerPoi(carte, plan.lieu.id, plan.poi)), s.sel), planDuLieu: { lieu: plan.lieu.id, poi: null } };
+      return { ...ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), retirerPoi(carte, plan.lieu.id, plan.poi)), s.sel), planDuLieu: { poi: null } };
     }
     case 'sens': {
       const carte = projetEdite(s).worldMap;
@@ -1182,9 +1189,10 @@ function avecLeChapitreDemande(s: SessionDEdition): SessionDEdition {
   return manquante ? { ...s, chapitreEnAttente: { book: manquante.book, ch: manquante.ch } } : s;
 }
 
-/** La session après le geste `g` (`editerLaCouche`), le chapitre qu'elle attend demandé (`avecLeChapitreDemande`) ; le
+/** La session après le geste `g` (`editerLaCouche`), son plan du lieu fermé sans son lieu sélectionné (`avecSonPlanDuLieu`),
+ *  le chapitre qu'elle attend demandé (`avecLeChapitreDemande`) ; le
  *  calage est celui de la couche éditée, changer de couche l'abandonne. */
 export function editer(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
-  const suite = avecLeChapitreDemande(editerLaCouche(s, g));
+  const suite = avecLeChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
   return suite.z === s.z ? suite : { ...suite, calage: HORS_DU_CALAGE };
 }

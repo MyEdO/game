@@ -778,11 +778,19 @@ function choixDuLieu(lieu: MapPlace, chemin: readonly Segment[], cadre: CadreDuP
   return [{ valeur: neuf(), libelle: t(libelle), refus: null }, ...(cle === 'port' ? portsDuCatalogue() : [])];
 }
 
+/** Les lieux d'où part un billet de la route `route` (`routeBilletSchema.depuis`) : son lieu de départ si elle est à sens
+ *  unique (`from`), sinon chacune de ses extrémités, chacun posé entier (`{ id }`) ou par son identifiant (`id`, `cle`). */
+const departsDuBillet = (route: MapRoute, cle: Segment | undefined, { projet }: CadreDuPorteur): readonly ChoixDuContexte[] =>
+  (route.from ? [route.from] : [route.a, route.b]).map(({ id }) => ({ valeur: cle === undefined ? { id } : id, libelle: projet.worldMap?.places.find((p) => p.id === id)?.label ?? id, refus: null }));
+
 /** Les choix que le contexte de la route `route` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière
- *  péripétie, la péripétie neuve (`peripetieNeuve`) ; à son embuscade, de son point d'entrée, ceux de sa scène
- *  (`entreesDeLaScene`), de sa rencontre, chaque rencontre de sa scène. #3606 */
+ *  péripétie, la péripétie neuve (`peripetieNeuve`) ; au départ d'un de ses billets, ses départs (`departsDuBillet`) ;
+ *  à son embuscade, de son point d'entrée, ceux de sa scène (`entreesDeLaScene`), de sa rencontre, chaque rencontre de
+ *  sa scène. #3606 */
 function choixDeLaRoute(route: MapRoute, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const [ambush, cle, ...reste] = chemin;
+  const [depuis, feuille, ...plus] = reste;
+  if (ambush === 'billets' && depuis === 'depuis' && (feuille === undefined || feuille === 'id') && !plus.length) return departsDuBillet(route, feuille, cadre);
   if (ambush === 'perils' && cle === (route.perils?.length ?? 0) && !reste.length) {
     const neuve = peripetieNeuve();
     return [{ valeur: neuve, libelle: neuve.label, refus: null }];
@@ -988,15 +996,17 @@ function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly
  *  leur ordre, dans le cadre `cadre` : sous une adresse de prose, ceux de son `Source/` (`choixSousUneAdresse`) ; d'une
  *  référence narrative, chaque entrée du registre que son narratif désigne (`entreesNarratives`) ; d'une référence
  *  locale, chaque élément que sa portée admet, ouverte par le porteur, sa scène ou son projet
- *  (`choixDeLaReferenceLocale`, `ouvreursDuCadre`) ; sinon ceux de son porteur (`FORMULAIRES`) ;
- *  `undefined` : ceux du nœud. */
+ *  (`choixDeLaReferenceLocale`, `ouvreursDuCadre`), restreints à ceux de son porteur s'il en pose (`FORMULAIRES`) ;
+ *  sinon ceux de son porteur ; `undefined` : ceux du nœud. */
 export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const cle = chemin[chemin.length - 1];
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
   const deLAdresse = choixSousUneAdresse(formulaire.schema, donnee, chemin, cadre.source);
   if (deLAdresse) return deLAdresse;
   if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
-  return choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), ouvreursDuCadre([formulaire.schema, donnee], cadre)) ?? formulaire.choix?.(donnee, chemin, cadre);
+  const locaux = choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), ouvreursDuCadre([formulaire.schema, donnee], cadre));
+  const duPorteur = formulaire.choix?.(donnee, chemin, cadre);
+  return locaux && duPorteur ? duPorteur.filter((c) => locaux.some((l) => jsonCanonique(l.valeur) === jsonCanonique(c.valeur))) : locaux ?? duPorteur;
 }
 
 /** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` : le champ de tête de

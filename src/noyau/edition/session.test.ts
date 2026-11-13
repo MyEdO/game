@@ -1228,6 +1228,15 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     expect([carte(libre).routes[0].billets, carte(libre).routes[0].modes]).toEqual([undefined, ['pied']]);
   });
 
+  it('le départ d’un billet ne s’offre qu’aux extrémités de sa route à double sens, chacune à son nom : un autre lieu de la carte est refusé', () => {
+    const TROIS: WorldMap = { ...RELIEE, places: [...RELIEE.places, { id: 'z', label: 'Z', pos: { x: 80, y: 80 }, scene: { id: 'val' } }] };
+    const s = jouer(ouvert(TROIS), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    const choix = (chemin: Segment[]) => choixDuChamp('route', carte(s).routes[0], chemin, cadreDeLaSession(s))?.map((c) => [c.valeur, c.libelle]);
+    expect([choix(['billets', 'diligence', 'depuis']), choix(['billets', 'diligence', 'depuis', 'id'])]).toEqual([[[{ id: 'x' }, 'X'], [{ id: 'y' }, 'Y']], [['x', 'X'], ['y', 'Y']]]);
+    expect(refusDeLaValeur(s, valeur('route', 'r', ['billets', 'diligence', 'depuis'], { id: 'z' }))).toBe('horsSorte');
+    expect(carte(jouer(s, valeur('route', 'r', ['billets', 'diligence', 'depuis'], { id: 'y' }))).routes[0].billets?.diligence?.depuis).toEqual({ id: 'y' });
+  });
+
   it('l’embuscade d’une route prend sa scène, puis sa rencontre parmi celles de cette scène ; la rencontre ne se retire plus tant que l’embuscade la lance', () => {
     const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
     const scene = jouer(s, valeur('route', 'r', ['ambush'], { scene: { id: '' }, encounter: '' }), valeur('route', 'r', ['ambush', 'scene'], { id: 'bourg' }));
@@ -1337,7 +1346,7 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
 
   it('ouvrir le plan d’un lieu le sélectionne, sans cran ; le refermer rend le plan de la carte ; un lieu inconnu, ou la scène ouverte, c’est sans objet', () => {
     const s = surLePlan();
-    expect([s.sel, s.planDuLieu, planDuLieuOuvert(s)?.lieu.id, s.historique.passe.length]).toEqual([{ type: 'place', id: 'x' }, { lieu: 'x', poi: null }, 'x', 0]);
+    expect([s.sel, s.planDuLieu, planDuLieuOuvert(s)?.lieu.id, s.historique.passe.length]).toEqual([{ type: 'place', id: 'x' }, { poi: null }, 'x', 0]);
     expect(jouer(s, { geste: 'planDuLieu', lieu: null }).planDuLieu).toBeNull();
     const surLaCarte = jouer(ouvert(CARTE), { geste: 'document', document: 'carte' });
     expect(jouer(surLaCarte, { geste: 'planDuLieu', lieu: 'absent' })).toBe(surLaCarte);
@@ -1349,17 +1358,17 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
   it('le plan ouvert reçoit le pointeur, pas la carte : l’appui y désigne le point d’intérêt touché, son glissé le pose au point, borné, sur un seul cran', () => {
     const s = surLePlan();
     const clic = jouer(s, { geste: 'appui', point: pt(20.5, 30.5) }, { geste: 'relache', point: pt(20.5, 30.5) });
-    expect([clic.planDuLieu, clic.sel, clic.historique]).toEqual([{ lieu: 'x', poi: 'forge' }, { type: 'place', id: 'x' }, s.historique]);
+    expect([clic.planDuLieu, clic.sel, clic.historique]).toEqual([{ poi: 'forge' }, { type: 'place', id: 'x' }, s.historique]);
     const glisse = jouer(s, { geste: 'appui', point: pt(20.5, 30.5) }, { geste: 'glisse', point: pt(44.6, 51) }, { geste: 'glisse', point: pt(130, -4) }, { geste: 'relache', point: pt(130, -4) });
     expect([poiDe(glisse)?.[0].pos, glisse.historique.passe.length, glisse.geste, carte(glisse).places[1].pos]).toEqual([{ x: 100, y: 0 }, 1, null, { x: 20, y: 30 }]);
     expect(carte(jouer(glisse, { geste: 'annuler' }))).toEqual(CARTE);
-    expect(jouer(clic, { geste: 'appui', point: pt(70, 70) }).planDuLieu, 'le fond ne désigne aucun point').toEqual({ lieu: 'x', poi: null });
+    expect(jouer(clic, { geste: 'appui', point: pt(70, 70) }).planDuLieu, 'le fond ne désigne aucun point').toEqual({ poi: null });
   });
 
   it('à l’outil Épingler, l’appui sur le fond pose un point d’intérêt neuf au point, menant à la première scène dont il prend le nom, désigné sur un cran ; ses champs s’écrivent au formulaire du lieu', () => {
     const s = jouer(surLePlan(), { geste: 'outil', outil: { mode: 'epingler' } });
     const pose = jouer(s, { geste: 'appui', point: pt(70.4, 80.6) });
-    expect([poiDe(pose)?.[1], pose.planDuLieu, pose.historique.passe.length]).toEqual([{ id: 'poi-0', label: BOURG.label, pos: { x: 70, y: 81 }, sceneId: { id: 'bourg' } }, { lieu: 'x', poi: 'poi-0' }, s.historique.passe.length + 1]);
+    expect([poiDe(pose)?.[1], pose.planDuLieu, pose.historique.passe.length]).toEqual([{ id: 'poi-0', label: BOURG.label, pos: { x: 70, y: 81 }, sceneId: { id: 'bourg' } }, { poi: 'poi-0' }, s.historique.passe.length + 1]);
     const nomme = jouer(pose, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['poi', 1, 'label'], valeur: 'Auberge' });
     expect(poiDe(nomme)?.[1].label).toBe('Auberge');
     expect(refusDeLaValeur(pose, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['poi', 1, 'pos'], valeur: { x: 1, y: 1 } }), 'sa position ne s’écrit qu’au plan').toBe('nonOffert');
@@ -1371,8 +1380,31 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
     expect(jouer(s, { geste: 'retirerPoi' })).toBe(s);
     const designe = jouer(s, { geste: 'appui', point: pt(20, 30) }, { geste: 'relache', point: pt(20, 30) });
     const retire = jouer(designe, { geste: 'retirerPoi' });
-    expect([carte(retire).places[0], retire.planDuLieu, retire.historique.passe.length]).toEqual([{ id: 'x', label: 'X', pos: { x: 60, y: 60 }, scene: { id: 'bourg' } }, { lieu: 'x', poi: null }, 1]);
+    expect([carte(retire).places[0], retire.planDuLieu, retire.historique.passe.length]).toEqual([{ id: 'x', label: 'X', pos: { x: 60, y: 60 }, scene: { id: 'bourg' } }, { poi: null }, 1]);
     expect(carte(jouer(retire, { geste: 'annuler' }))).toEqual(CARTE);
+  });
+
+  it('le plan ouvert est celui du lieu sélectionné : annuler ou rétablir sur son plan gardent ce lieu sélectionné, son point désigné s’il y est encore ; sélectionner un autre porteur le ferme', () => {
+    const s = jouer(surLePlan(), { geste: 'outil', outil: { mode: 'epingler' } }, { geste: 'appui', point: pt(70, 80) }, { geste: 'relache', point: pt(70, 80) });
+    const annule = jouer(s, { geste: 'annuler' });
+    expect([annule.sel, planDuLieuOuvert(annule)?.lieu.id, planDuLieuOuvert(annule)?.poi, poiDe(annule)]).toEqual([{ type: 'place', id: 'x' }, 'x', null, CARTE.places[0].poi]);
+    const retabli = jouer(annule, { geste: 'retablir' });
+    expect([retabli.sel, planDuLieuOuvert(retabli)?.lieu.id, poiDe(retabli)?.length]).toEqual([{ type: 'place', id: 'x' }, 'x', 2]);
+    const ailleurs = jouer(s, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'y' } }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    expect([planDuLieuOuvert(ailleurs)?.lieu.id, ailleurs.sel], 'le plan suit le lieu sélectionné').toEqual(['x', { type: 'place', id: 'x' }]);
+    const route = jouer(ouvert({ ...CARTE, routes: [{ id: 'r', from: 'x', to: 'y', mode: 'route' }] } as unknown as WorldMap), { geste: 'document', document: 'carte' }, { geste: 'planDuLieu', lieu: 'x' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    expect([route.sel, route.planDuLieu, planDuLieuOuvert(route)], 'une route sélectionnée ferme le plan').toEqual([{ type: 'route', id: 'r' }, null, undefined]);
+    expect(planDuLieuOuvert(jouer(route, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } })), 'resélectionner le lieu ne le rouvre pas').toBeUndefined();
+  });
+
+  it('annuler la pose du lieu dont le plan est ouvert ferme ce plan, la sélection tombée : jamais un plan sans son lieu à l’inspecteur', () => {
+    const pose = jouer(ouvert(CARTE), { geste: 'document', document: 'carte' }, { geste: 'outil', outil: { mode: 'lieu' } }, { geste: 'appui', point: pt(80, 80) }, { geste: 'relache', point: pt(80, 80) });
+    const neuf = carte(pose).places[2]?.id;
+    expect(neuf, 'un lieu neuf est posé').toBeDefined();
+    const plan = jouer(pose, { geste: 'planDuLieu', lieu: neuf! });
+    expect(planDuLieuOuvert(plan)?.lieu.id).toBe(neuf);
+    const annule = jouer(plan, { geste: 'annuler' });
+    expect([annule.sel, annule.planDuLieu, planDuLieuOuvert(annule), carte(annule).places.length]).toEqual([null, null, undefined, 2]);
   });
 });
 
