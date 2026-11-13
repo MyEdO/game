@@ -404,7 +404,7 @@ function aliasAdoptants(root, program, files) {
       if (!ts.isTypeAliasDeclaration(n) || !ts.isTypeReferenceNode(n.type) || !['EntreeDe', 'DatasetDe'].includes(n.type.typeName.getText())) continue
       const arg = n.type.typeArguments?.[0]
       const module = arg && ts.isTypeQueryNode(arg) ? defs.get(arg.exprName.getText()) : undefined
-      const file = module && /^export const file = '([^']+)';$/m.exec(readFileSync(module, 'utf8'))?.[1]
+      const file = module && /^export const file = '([^']+)';$/m.exec(program.getSourceFile(module)?.text ?? '')?.[1]
       if (file) adoptants.set(file, { decl: n, type: n.name.text, home: norm(relative(root, sf.fileName)) })
     }
   }
