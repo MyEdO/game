@@ -766,7 +766,7 @@ describe('péril d’auteur, dernière étape du jour tenu au slot, dont l’eff
 // #4075 — la révélation émise sous la journée tenue au SLOT (cadence manuelle) ouvre sa fenêtre, comme quand
 // le pilote joue l'étape lui-même (`combatEffects.ts › pushReveal`).
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-describe('péril d’auteur à maladie, seule étape du jour tenu au slot : la carte de maladie se montre (#4075)', () => {
+describe('péril d’auteur qui émet une révélation, seule étape du jour tenu au slot : sa carte se montre (#4075)', () => {
   const MALADIE = 'blessure-purulente';
   const titreDeMaladie = t('eff.titreDeMaladie', { disease: MALADIE });
   const maladie = { type: 'inflictDisease', disease: MALADIE };
@@ -816,5 +816,13 @@ describe('péril d’auteur à maladie, seule étape du jour tenu au slot : la c
   it('[exposureNight, inflictDisease] : la carte rejoint le Test, qui n’a pas de pilote, puis le jour se dénoue une fois', () => {
     const carteDansLeTest = () => expect(get().pendingCascade?.participants.map((x) => x.label), `la carte est une étape du Test (${etat()})`).toContain(titreDeMaladie);
     expect(jouerLeJour([exposition, maladie], carteDansLeTest), 'le Test seul, la carte en son sein').toEqual(['test']);
+  });
+
+  it('[setTime] qui franchit minuit : la carte d’entretien quotidien tient le slot, une fois, le jour attend en pile ; fermée, le jour se dénoue une fois', () => {
+    const carteAuSlot = () => {
+      expect([get().pendingCascade?.purpose, get().pendingCascade?.cursor], `la carte d’entretien est au curseur du slot (${etat()})`).toEqual(['upkeep', 0]);
+      expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor, c.participants.length]), `le jour attend en pile, fini (${etat()})`).toEqual([['travelDay', 1, 1]]);
+    };
+    expect(jouerLeJour([{ type: 'setTime', hour: 6 }], carteAuSlot), 'la carte, seule, une fois').toEqual(['upkeep']);
   });
 });

@@ -92,6 +92,18 @@ const seaMap: WorldMap = {
   routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
 
+/** Le port d'appareillage, sa rencontre `enc-kraken`, et la mer dont le péril d'auteur l'ouvre (`startCombat`). */
+function sceneDuKraken(): Scene {
+  const s = emptyScene('scene-test', 10, 10); s.id = 'port-a'; s.label = 'Mer';
+  const enc = buildEncounter({ id: 'enc-kraken', enemies: [{ statblock: { type: 'statblock', label: 'Kraken', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
+  s.entities.push(...enc.entities); s.encounters = [enc.encounter];
+  return s;
+}
+const combatPeril: WorldMap = {
+  ...seaMap,
+  routes: [{ ...seaMap.routes[0], perils: [{ label: 'Kraken', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-kraken' }] }] }],
+};
+
 function freshState() {
   seedBattleRng(1); // jour 1 navigable → le Test de Progression se joue
   set({
@@ -1017,14 +1029,7 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
   });
 
   it('un péril d’auteur `startCombat` INTERROMPT la traversée (comme l’embuscade)', () => {
-    const krakenScene = emptyScene('scene-test', 10, 10); krakenScene.id = 'port-a'; krakenScene.label = 'Mer';
-    const enc = buildEncounter({ id: 'enc-kraken', enemies: [{ statblock: { type: 'statblock', label: 'Kraken', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
-    krakenScene.entities.push(...enc.entities); krakenScene.encounters = [enc.encounter];
-    const combatPeril: WorldMap = {
-      ...seaMap,
-      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Kraken', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-kraken' }] }] }],
-    };
-    set({ scene: krakenScene as never, worldMap: combatPeril } as never);
+    set({ scene: sceneDuKraken(), worldMap: combatPeril } as never);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', combatPeril.routes[0])!;
     set({ travelPlan: plan } as never);
     runSeaDay(get, set);
@@ -3280,6 +3285,32 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     jusquAuSlotLibre();
     uneJourneeComptee('jourParJour');
     expect(get().travelPlan!.interrupted, 'le voyage reste interrompu').toBe(true);
+  });
+
+  for (const geste of ['Suivant', 'Tout résoudre'] as const) it(`péril d’auteur [startCombat] en tête du jour tenu au slot, par « ${geste} » : le jour attend sous le combat ; après la victoire, il reprend chez son pilote et se dénoue une fois (#4075)`, () => {
+    set({ scene: sceneDuKraken(), worldMap: combatPeril } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', combatPeril.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 5 } } } as never);
+    runSeaDay(get, set);
+    expect([get().pendingCascade?.purpose, get().pendingCascade?.cursor, etapeAuSlot()], 'prémisse : le péril tient le slot, en tête du jour').toEqual(['travelDay', 0, 'perilDeScene']);
+    if (geste === 'Suivant') unPas(); else { get().jetLancer('cascade'); banc.reprendreTout(); }
+    expect(get().battle, 'le combat d’auteur est ouvert').toBeTruthy();
+    expect(get().pendingCascade, 'le slot est libre pour le combat').toBeNull();
+    expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor, c.participants.length]), 'le jour attend en pile, fini').toEqual([['travelDay', 1, 1]]);
+    expect(get().travelPlan!.sea!.daysAtSea, 'aucune journée comptée sous le combat').toBe(0);
+    expect(get().pendingRest, 'aucune halte sous le combat').toBeNull();
+    const battle = get().battle!;
+    for (const c of battle.combatants) if (c.kind === 'ennemi') c.dead = true;
+    set({ battle: { ...battle } });
+    checkBattleOver(get, set);
+    get().fenetreFermer('victoire');
+    banc.reprendreTout();
+    expect(get().battle, 'la victoire ferme le combat').toBeNull();
+    expect(get().suspendedCascades, 'le jour a quitté la pile').toEqual([]);
+    expect(get().pendingCascade?.purpose, 'au slot, l’entretien du soir que le dénouement du jour ouvre').toBe('seaScorbut');
+    expect(get().travelPlan!.sea!.daysAtSea, 'aucune journée comptée sous l’entretien').toBe(0);
+    expect(jusquAuSlotLibre().vues, 'l’entretien du soir, seul').toEqual(['seaScorbut']);
+    uneJourneeComptee(geste);
   });
 
   describe('péril d’auteur à maladie en jour par jour, le jour tenu au slot : la carte de maladie se montre (#4075)', () => {
