@@ -2,7 +2,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runFlow } from '../../noyau/combatEffects';
-import { entreesDeRegles, setRule, resetRule } from '../../engine/policy';
+import { idsDuJeu, poserLesRegles, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { hasTalent } from '../../engine/magic';
 import type { SkillInstance } from '../../engine/types';
@@ -23,9 +23,9 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
 
   beforeEach(() => {
     banc.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.construire(idsDeTest).party });
-    for (const [id, v] of entreesDeRegles(scenario.rules ?? {})) setRule(id, v);
+    poserLesRegles(scenario.rules ?? {});
   });
-  afterEach(() => { for (const [id] of entreesDeRegles(scenario.rules ?? {})) resetRule(id); });
+  afterEach(() => { for (const id of idsDuJeu(scenario.rules ?? {})) resetRule(id); });
 
   it('medicalAid : le dialogue du médecin ouvre l’infirmerie payante (entityId → PNJ, tarif à l’acte)', () => {
     const choice = scene.dialogues.find((d) => d.id === 'dlg-medecin')!.nodes[0].choices[0];

@@ -6,6 +6,7 @@ import { addCondition, removeCondition } from './conditions';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { creatures, domains, etats, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, psychologies, SPEC_SOURCES, talents, traits, type GroupData, type SpecsSource } from '../data';
 import { resetData, setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { schema as groupsSchema } from '../data/schemas/defs/groups';
 import groupsJson from '../data/groups.json';
@@ -175,8 +176,8 @@ describe('Groupes du Tableau des Obsessions portés par le moteur (EDOC 12 l.180
 });
 
 describe('`exceptGroups` retranche ses porteurs de tout Groupe-cible, joker ou composite (#3045)', () => {
-  const groupe = (id: string, o: Partial<GroupData> = {}): GroupData => ({ id, type: 'groups', label: id, ...o });
-  const avec = (...gs: GroupData[]) => setDataset('groups', [...groups, ...gs] as never);
+  const groupe = (id: string, o: Partial<GroupData> = {}): EntreeVivante<GroupData> => ({ id, type: 'groups', label: id, ...o });
+  const avec = (...gs: EntreeVivante<GroupData>[]) => setDataset('groups', [...groups, ...gs]);
   const inclus = groupe('inclus-de-banc');
   const exclu = groupe('exclu-de-banc');
   /** Un Trait Dressé, porteur d'Animaux domestiques (Q7 A). */
