@@ -101,6 +101,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/mountTravel.ts', 'Voyage monté'],
   ['src/engine/movement.ts', 'Mouvement, terrain'],
   ['src/engine/names.ts', 'Génération de noms'],
+  ['src/engine/nom.ts', "Nom d'un combattant dans un texte du moteur (nommeur)"],
   ['src/engine/navalTraits.ts', 'Traits navals'],
   ['src/engine/ops.ts', "GameOp : vocabulaire d'effet unifié"],
   ['src/engine/oups.ts', 'Maladresses, Colère des Dieux'],

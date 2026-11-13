@@ -6341,6 +6341,29 @@
     }
   },
   {
+    "id": "longue-vue",
+    "type": "trappings",
+    "label": "Longue-vue",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.384) : Encombrement posé sur le repère Télescope, Enc 0 (LDB 67 l.61).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 56,
+      "note": "LDB 08 l.384"
+    }
+  },
+  {
     "id": "carte",
     "type": "trappings",
     "label": "Carte",

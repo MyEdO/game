@@ -53,7 +53,7 @@ export const WORKFLOWS = Object.freeze({
   },
   'facteur.yml': {
     etat: 'autosignale',
-    raison: `le step sous !cancelled() exécute ${SIGNALEUR} avec job.status ; un relais refusé fait sortir facteur.mjs en code non nul`,
+    raison: `le step sous !cancelled() && (failure() || relais posé) exécute ${SIGNALEUR} avec job.status ; un relais refusé fait sortir facteur.mjs en code non nul, un run sans relais ne rend aucun verdict`,
   },
   'fermetures.yml': {
     etat: 'autosignale',
