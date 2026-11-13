@@ -9,8 +9,7 @@
  */
 import { ActionAuthoree, DEFAULT_TERRAIN, dialoguesDeLaScene, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneDesToits, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, canonEdge, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
-import { memoByRefDeps } from './monde/sceneMemo';
-import { versionDesDatasets } from '../data/versionDataset';
+import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -2197,13 +2196,13 @@ export function deriveArchitectureMasses(scene: SceneDesToits): ArchitectureBody
  *  ajouter un étage fait suivre la toiture sans qu'aucune mutation n'ait à le savoir. Les masses
  *  AUTHORÉES (sans `derived`) traversent telles quelles — elles sont l'intention de l'auteur.
  *
- *  Mémoïsée par scène et version des datasets (`memoByRefDeps`, la dérivation lit les terrains : `estAbsent`) (mesuré :
+ *  Mémoïsée par scène et version des datasets (`memoByRef`, la dérivation lit les terrains : `estAbsent`) (mesuré :
  *  19 ms de dérivation pour 12 corps sur 64×64×3, soit 34 % du coût de `buildRoofs`, et trois builders la lisent). */
-const derivedArchitecture = memoByRefDeps<SceneDesToits, ArchitectureBody[]>();
+const derivedArchitecture = memoByRef(deriveArchitectureMasses);
 
 export function effectiveArchitecture(scene: SceneDesToits): readonly ArchitectureBody[] {
   if (!scene.architecture?.length) return scene.architecture ?? [];
-  return derivedArchitecture(scene, [versionDesDatasets()], () => deriveArchitectureMasses(scene));
+  return derivedArchitecture(scene);
 }
 
 /** MATÉRIALISE la dérivation DANS la scène : forme sous laquelle `buildScene` compile les masses et

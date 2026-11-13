@@ -6,7 +6,6 @@
  */
 import { canonEdge, champsDuPlan, heightAt, isDescriptiveZone, isWalkable, porteAuteur, type Scene, type SceneEffectZone } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
-import { versionDesDatasets } from '../data/versionDataset';
 import { defautDeSuspension, type DefautDeSuspension } from './fallMove';
 import { sceneZoneTiles } from './monde/zones';
 import { isRoomZone, roomTiles } from './monde/rooms';
@@ -787,15 +786,15 @@ function defectAt(d: Defect | ZoneDefect): PlanDefectAt {
 }
 
 /** Mémo du POINT D'ENTRÉE (`memoByRefDeps`) : clé = les couches de la scène, que garde toute écriture qui ne peint pas ;
- *  dépendances = la version des datasets (`versionDesDatasets` : terrains, et décors lus par la marche) et les champs que
- *  lisent les audits (`champsDuPlan`). Une écriture non spatiale (libellé, description, météo) ne refait donc aucun
- *  audit, et chaque scène d'un projet garde le sien. Le tableau rendu est PARTAGÉ entre appels : ses consommateurs le
- *  lisent, ils ne le mutent pas. */
+ *  dépendances = les champs que lisent les audits (`champsDuPlan`) ; le mémo est daté par la version des datasets
+ *  (`memoByRef` : terrains, et décors lus par la marche). Une écriture non spatiale (libellé, description, météo) ne
+ *  refait donc aucun audit, et chaque scène d'un projet garde le sien. Le tableau rendu est PARTAGÉ entre appels : ses
+ *  consommateurs le lisent, ils ne le mutent pas. */
 const planDefectsMemo = memoByRefDeps<Scene['layers'], PlanDefect[]>();
 
 /** POINT D'ENTRÉE UNIQUE — toutes les familles, tous les étages. PUR. */
 export function scenePlanDefects(scene: Scene): PlanDefect[] {
-  return planDefectsMemo(scene.layers, [versionDesDatasets(), ...champsDuPlan(scene)], () => buildPlanDefects(scene));
+  return planDefectsMemo(scene.layers, champsDuPlan(scene), () => buildPlanDefects(scene));
 }
 
 function buildPlanDefects(scene: Scene): PlanDefect[] {

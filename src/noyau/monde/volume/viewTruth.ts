@@ -1,7 +1,7 @@
 /**
  * VÉRITÉ DE VUE ⟂ GÉOMÉTRIE (#808) — la couture prévue par `./types` (cf. `ElStates`) : un builder
  * dérive la GÉOMÉTRIE de la scène UNE fois (mémoïsée par l'identité de la scène et la version des datasets,
- * `memoByRefDeps`) et n'y applique, au pas, que la VÉRITÉ DE VUE de chaque élément.
+ * `memoByRef`) et n'y applique, au pas, que la VÉRITÉ DE VUE de chaque élément.
  *
  * Chaque entrée porte sa RÈGLE — les `visKeys` du ticket : les cases `"x,y,z"` dont dépend SA
  * visibilité, jamais l'ensemble `visible` entier. La résolution ne réalloue que les éléments dont la
@@ -13,8 +13,7 @@
  * (`versionDesDatasets`) et une clé de vue DÉRIVÉE de ses paramètres — une scène mutée (porte, décor, structure)
  * arrive par une nouvelle référence et re-dérive d'elle-même.
  */
-import { memoByRefDeps } from '../sceneMemo';
-import { versionDesDatasets } from '../../../data/versionDataset';
+import { memoByRef } from '../sceneMemo';
 
 /** RÈGLE de vue d'un élément — d'où sa vérité (`states.visible`, `roofOccupied`…) est tirée.
  *  `enVue`/`horsVue` portent les `visKeys` : les seules cases qui la déterminent. */
@@ -67,9 +66,9 @@ export function viewedBuilder<S extends object, E, V, C = never>(opts: {
   withTruth: (off: E) => E;
   context?: (scene: S, view: V | undefined) => C;
 }): (scene: S, visible?: ReadonlySet<string>, view?: V) => E[] {
-  const bucketOf = memoByRefDeps<S, Map<string, { geom: Viewed<E, C>[]; last?: E[] }>>();
+  const bucketOf = memoByRef((_scene: S) => new Map<string, { geom: Viewed<E, C>[]; last?: E[] }>());
   return (scene, visible, view) => {
-    const bucket = bucketOf(scene, [versionDesDatasets()], () => new Map());
+    const bucket = bucketOf(scene);
     const k = opts.key(view);
     let slot = bucket.get(k);
     if (!slot) {

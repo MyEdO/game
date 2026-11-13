@@ -31,7 +31,7 @@ import { centreDeLaCarte, coplanarRanks, faceGeometry, faceQuadsOriented, facesG
 import { buildRoofs, nappeKey } from './toits';
 import { spaceCellKey } from './architectureVisibility';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../../planDeNavire';
-import { memoByDeps, memoByRefDeps } from '../sceneMemo';
+import { memoByDeps, memoByRef, memoByRefDeps } from '../sceneMemo';
 import { mapLights } from '../vision';
 import type { Face } from './types';
 import type { MaterialRef } from '../../../data/materials.types';
@@ -423,7 +423,7 @@ const couchesDuVolume = (scene: Readonly<SceneDuVolume>): SceneDuVolume['layers'
   const signature = tuilesEffondreesSignature(scene);
   if (!signature) return scene.layers;
   const { w } = scene.dimensions;
-  return couchesRetenues(scene.layers, [signature, versionDesDatasets()], () => scene.layers.map((couche) => {
+  return couchesRetenues(scene.layers, [signature], () => scene.layers.map((couche) => {
     const effondrees = couche.z > 0 ? couche.tiles.flatMap((_, i) => (tileCollapsed(scene, i % w, Math.floor(i / w), couche.z) ? [i] : [])) : [];
     if (!effondrees.length) return couche;
     const tiles = [...couche.tiles];
@@ -549,18 +549,13 @@ const projectionDuVolume = (scene: Scene): SceneDuVolume => tableTotale(CHAMPS_D
  *  chaîne triée de leurs clés (`tuilesEffondreesSignature`). */
 const volumeRetenu = memoByDeps<{ volume: VolumeDuMonde; etat: EtatDuVolume }>();
 
-/** Les volumes du monde, par scène et version des datasets (`versionDesDatasets`). */
-const volumesParScene = memoByRefDeps<Scene, VolumeDuMonde>();
-
 /** Le volume du monde de `scene`, de toutes ses couches, en morceaux (`volumeDepuis`), repris du dernier calculé.
- *  Mémoïsé par scène et version des datasets (`volumesParScene`). PUR. */
-export function volumeDuMonde(scene: Scene): VolumeDuMonde {
+ *  Mémoïsé par scène et version des datasets (`memoByRef`). PUR. */
+export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   const version = versionDesDatasets();
-  return volumesParScene(scene, [version], () => {
-    const deps = [version, ...CHAMPS_DU_VOLUME.map((c) => (c === 'flags' ? tuilesEffondreesSignature(scene) : scene[c]))];
-    return volumeRetenu(deps, (precedent) => volumeDepuis(projectionDuVolume(scene), precedent?.deps[0] === version ? precedent.value.etat : null)).volume;
-  });
-}
+  const deps = [version, ...CHAMPS_DU_VOLUME.map((c) => (c === 'flags' ? tuilesEffondreesSignature(scene) : scene[c]))];
+  return volumeRetenu(deps, (precedent) => volumeDepuis(projectionDuVolume(scene), precedent?.deps[0] === version ? precedent.value.etat : null)).volume;
+});
 
 /** Les octets du masque de ce que le regard retire du volume de `scene` (`volumeDuMonde`, `RetraitDuMonde`) : les cases
  *  des couches au-dessus de `activeZ` (sans lui, la plus haute), hors du sol d'une case qui coiffe un bloc plein
@@ -590,13 +585,10 @@ export function retraitDuMonde(scene: Scene, activeZ?: number, couvercle?: Reado
  *  scène qu'elles lisent (`CHAMPS_DES_TOITS`). */
 const toitsRetenus = memoByDeps<NappeDuMonde[]>();
 
-/** Les nappes de toit, par scène et version des datasets (`versionDesDatasets`). */
-const toitsParScene = memoByRefDeps<Scene, NappeDuMonde[]>();
-
 /** Les nappes de toit de `scene`, une par masse de bâtiment (`nappeKey`), chacune de ses pans et de ses pignons, et son
- *  empreinte. Mémoïsées par scène et version des datasets (`toitsParScene`), puis retenues sur leurs entrées
+ *  empreinte. Mémoïsées par scène et version des datasets (`memoByRef`), puis retenues sur leurs entrées
  *  (`toitsRetenus`). PUR. */
-export const toitsDuMonde = (scene: Scene): NappeDuMonde[] => toitsParScene(scene, [versionDesDatasets()], () => {
+export const toitsDuMonde = memoByRef((scene: Scene): NappeDuMonde[] => {
   const vue: SceneDesToits = scene;
   return toitsRetenus([versionDesDatasets(), ...CHAMPS_DES_TOITS.map((c) => vue[c])], () => {
   const parNappe = new Map<string, FaceListee[]>();
@@ -631,15 +623,12 @@ export function toutesLesNappes(scene: Scene): string[] {
  *  qu'elles lisent (`CHAMPS_DES_COURONNES`). */
 const couronnesRetenues = memoByDeps<NappeDuMonde[]>();
 
-/** Les couronnes, par scène et version des datasets (`versionDesDatasets`). */
-const couronnesParScene = memoByRefDeps<Scene, NappeDuMonde[]>();
-
 /** Les couronnes crénelées des murs fortifiés de `scene` hors des ponts de ses navires (`aretesHorsDesNavires`), de
  *  toutes ses couches (`crownFaces`, apparence à `parapet`), une par arête, nommée par sa clé (`edgeKey`), posée au
  *  sommet de la face pleine du mur dressé à son pied (`piedDeLArete`, `wallHeightM`, sinon un étage) : l'hôte cache
  *  celles qui tombent avec leur mur (`couronnesAbattues`), chacune avec son empreinte. Mémoïsées par scène et version des
- *  datasets (`couronnesParScene`), puis retenues sur leurs entrées (`couronnesRetenues`). PUR. */
-export const couronnesDuMonde = (scene: Scene): NappeDuMonde[] => couronnesParScene(scene, [versionDesDatasets()], () => {
+ *  datasets (`memoByRef`), puis retenues sur leurs entrées (`couronnesRetenues`). PUR. */
+export const couronnesDuMonde = memoByRef((scene: Scene): NappeDuMonde[] => {
   const vue: SceneDesCouronnes = scene;
   return couronnesRetenues([versionDesDatasets(), ...CHAMPS_DES_COURONNES.map((c) => vue[c])], () => {
   const facades = facadeEdges(vue);

@@ -30,7 +30,6 @@
  */
 import { heightAt, sceneMetresPerTile, type ArchitectureBody, type CellSide, type BuildingMass, type Scene, type SceneDesToits, type WallSeg, type WallSide } from '../scene';
 import { memoByRef, memoByRefDeps } from '../sceneMemo';
-import { versionDesDatasets } from '../../../data/versionDataset';
 import { aretesA } from '../wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../sceneEdit';
 import { roofMaterial } from './matieres';
@@ -922,8 +921,6 @@ export function massCovers(mass: Pick<BuildingMass, 'z'>, cells: ReadonlySet<str
  *  (`cutawayForSection`, `seenSections`) : aucun second verdict n'est reposé. */
 export interface ShelterColumn { topZ: number; ceilingM: number; sectionId: string }
 
-const shelterOfScene = memoByRefDeps<Scene, ReadonlyMap<string, ShelterColumn>>();
-
 /** Le couvert bâti de `scene` (`shelterField`), calculé. */
 function couvertDe(scene: Scene): ReadonlyMap<string, ShelterColumn> {
   const out = new Map<string, ShelterColumn>();
@@ -943,12 +940,10 @@ function couvertDe(scene: Scene): ReadonlyMap<string, ShelterColumn> {
 /** COUVERT BÂTI de la scène, par colonne — l'agrégat de `massCovers` sur toutes les nappes
  *  (`resolveNappes`, la source unique des hauteurs de toit). Il ne dépend NI de la
  *  vue NI du dégagement : une nappe levée par le cutaway reste un toit, et il n'y pleut pas dessous.
- *  Mémoïsé par scène et version des datasets (`memoByRefDeps`) : tout plan modifié — l'éditeur qui retire une masse
+ *  Mémoïsé par scène et version des datasets (`memoByRef`) : tout plan modifié — l'éditeur qui retire une masse
  *  (`noyau/sceneEdit.ts`) — recalcule son couvert. Aucun mécanisme de PARTIE n'abat de masse :
  *  `structureDown` (`noyau/monde/scene.ts`) porte sur les arêtes de mur. */
-export function shelterField(scene: Scene): ReadonlyMap<string, ShelterColumn> {
-  return shelterOfScene(scene, [versionDesDatasets()], () => couvertDe(scene));
-}
+export const shelterField: (scene: Scene) => ReadonlyMap<string, ShelterColumn> = memoByRef(couvertDe);
 
 /** La case `x,y` est-elle SOUS COUVERT à la cote `hM` ? Sous l'égout de la nappe qui la coiffe. */
 export function isSheltered(field: ReadonlyMap<string, ShelterColumn>, x: number, y: number, hM: number): boolean {
@@ -1003,7 +998,7 @@ export function clearedSpace(
   allies: readonly { x: number; y: number; z?: number }[],
   sight?: ReadonlySet<string>,
 ): ClearedSpace {
-  return espaceRetenu(scene, [versionDesDatasets(), sight, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => espaceDegage(scene, allies, sight));
+  return espaceRetenu(scene, [sight, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => espaceDegage(scene, allies, sight));
 }
 
 function espaceDegage(
@@ -1215,19 +1210,15 @@ function nappesOfBody(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers'
 /** Clé d'indexation d'une nappe — `bodyId` compris : deux corps peuvent nommer leurs masses pareil. */
 export const nappeKey = (bodyId: string, massId: string): string => `${bodyId}|${massId}`;
 
-const nappesOfScene = memoByRefDeps<SceneDesToits, Map<string, MassNappe>>();
-
 /** Nappes de la scène, par `nappeKey` — SOURCE UNIQUE de la hauteur de toit : `buildRoofs` (pans et
  *  pignons), `walls.ts` (joints de nappes) et `props.ts` (ornements de faîte) lisent LE MÊME champ,
- *  jamais deux formules qui pourraient diverger. Mémoïsée par scène et version des datasets (`memoByRefDeps`). */
-export function resolveNappes(scene: SceneDesToits): ReadonlyMap<string, MassNappe> {
-  return nappesOfScene(scene, [versionDesDatasets()], () => {
-    const out = new Map<string, MassNappe>();
-    for (const body of effectiveArchitecture(scene))
-      for (const nappe of nappesOfBody(scene, body)) out.set(nappeKey(body.id, nappe.mass.id), nappe);
-    return out;
-  });
-}
+ *  jamais deux formules qui pourraient diverger. Mémoïsée par scène et version des datasets (`memoByRef`). */
+export const resolveNappes = memoByRef((scene: SceneDesToits): ReadonlyMap<string, MassNappe> => {
+  const out = new Map<string, MassNappe>();
+  for (const body of effectiveArchitecture(scene))
+    for (const nappe of nappesOfBody(scene, body)) out.set(nappeKey(body.id, nappe.mass.id), nappe);
+  return out;
+});
 
 /** Éléments `roof` de la scène, DÉRIVÉS des masses de bâtiment. Les corps se lisent par
  *  `effectiveArchitecture` (`noyau/sceneEdit.ts`) : les masses `derived` se RECALCULENT du plan à
