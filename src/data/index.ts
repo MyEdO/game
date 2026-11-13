@@ -2690,6 +2690,8 @@ export const weatherPhysicalTestChars = (): CharKey[] => weatherData.physicalTes
 /** Jets d'Âge/Taille (LDB 05 l.705-728), un `DiceSpec` par colonne `RaceKey` (#313) — + textes
  *  d'aide (conventions de noms, espérance de vie, tailles moyennes, Ambitions). */
 export const details = datasetDe<typeof detailsDef>(detailsJson);
+/** Texte d'aide LDB 05 (« Détails ») : global + surcharges par espèce (clé `RaceKey`, #1467 L1b V-P4). */
+export type DetailText = DatasetDe<typeof detailsDef>['texts']['nom'];
 /** Semences d'une scène NEUVE (#1716) — lues par `emptyScene` (`noyau/monde/scene.ts`), éditables au Codex. */
 export const semencesDeScene = datasetDe<typeof semencesDeSceneDef>(semencesDeSceneJson);
 /** Défauts du COMPILATEUR de scène (#1716) — lus par `mapSpec.ts`/`buildBoardingScene`, éditables au Codex. */

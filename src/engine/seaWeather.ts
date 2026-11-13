@@ -33,7 +33,6 @@ import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, rollDice, type RNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
-import type { Difficulty } from './types';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 import { rule } from './policy';
@@ -57,12 +56,12 @@ export interface SeaWeather {
   vent: SeaWindForceId;
 }
 
-interface WeatherRow { min: number; max: number; precipitations: string; temperature: string; visibilite: string; vent: string }
-interface PrecipitationDef { id: string; label: string; desc?: string; skillMods?: { skills: RefDesignee[]; mod: number }[]; otherMod?: number }
-interface TemperatureDef { id: string; label: string; testEveryHours?: number; difficulty?: Difficulty; exposure?: 'chaleur' | 'froid'; litresParJour?: number }
-interface VisibilityDef { id: string; label: string; drPenalty?: number; beyondM?: number }
+type WeatherRow = SeaWeatherData['table']['entries'][number];
+type PrecipitationDef = SeaWeatherData['precipitations'][number];
+type TemperatureDef = SeaWeatherData['temperatures'][number];
+type VisibilityDef = SeaWeatherData['visibilites'][number];
 /** Cellule du tableau EFFET DU VENT : % voiles / % autres, ou Encalminé / Affaler / Virement de bord. */
-export interface WindEffectCell { pctSail?: number; pctOther?: number; encalmine?: boolean; affaler?: boolean; virement?: boolean }
+export type WindEffectCell = SeaWeatherData['effetDuVent'][SeaWindForceId][WindAspect];
 
 const DATA: SeaWeatherData = seaWeather;
 
