@@ -21,7 +21,8 @@
 import { RNG, roll, rollDice, fluxDerive } from './dice';
 import { findTableEntry } from './tables';
 import { garanti } from '../lib/garanti';
-import { contexteDeNaissanceDObjet, buildInventory, recomputeLoadout, emptyArmour } from './items';
+import { contexteDeNaissanceDObjet, recomputeLoadout, emptyArmour } from './items';
+import { doterLePorteur } from './bourse';
 import { groupsFor } from './groups';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails, type ItemInstance } from './types';
 import {
@@ -41,7 +42,20 @@ import {
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
-import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
+import {
+  refKey,
+  skillSlots,
+  talentSlots,
+  designateSlot,
+  freeSlotFor,
+  statutOuRefus,
+  designationsFor,
+  talentMaxReached,
+  wildcardSpecs,
+  prisParLesAutres,
+  acquerirTalent,
+  type PorteurDeTalents,
+} from './careerSlots';
 import { dotationsDuHeros, resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
@@ -77,7 +91,7 @@ export const MAX_ADV_PER_SKILL = 10;
 export const CAREER_SKILLS_ADVANCED = 8;
 
 /** Étapes aléatoires de la création, chacune son flux (`fluxDeCreation`). */
-export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details' | 'possessions';
+export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'carriere:variante' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details' | 'possessions';
 
 /** Le flux figé d'une étape de création, dérivé de la graine racine `seed` (`fluxDerive`). */
 export function fluxDeCreation(seed: number, etape: EtapeDeFlux, ...suite: readonly (string | number)[]): RNG {
@@ -300,16 +314,16 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   apparence?: Omit<NonNullable<Combatant['appearance']>, 'species'>;
   /** Id du héros ; absent = un id neuf de `idNeuf`. */
   id?: string;
-  /** Forge l'id du héros sans `id` et les uids de ses objets (`buildInventory`). #2907 */
+  /** Forge l'id du héros sans `id` et les uids de ses objets (`doterLePorteur`). #2907 */
   idNeuf: FabriqueDId;
 }
 
 /** Base de la colonne Humain du Tableau des Attributs. LDB 05 l.351-369 */
 export const BASE_HUMAINE = 20;
 
-/** Base d'espèce d'une Caractéristique : sa colonne du Tableau des Attributs, la colonne Humain à défaut. LDB 05 l.351-369 */
+/** Base d'espèce d'une Caractéristique : sa colonne du Tableau des Attributs. LDB 05 l.351-369 */
 export function baseDEspece(sp: Pick<SpeciesData, 'baseChar'>, k: CharKey): number {
-  return sp.baseChar[k] ?? BASE_HUMAINE;
+  return sp.baseChar[k];
 }
 
 export function rollCharacteristics(sp: SpeciesData, rng: RNG): Characteristics {
@@ -413,9 +427,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   });
 
   // 5) Possessions de Classe et de Niveau 1 (LDB 05 l.552, l.572), emplacements résolus par
-  //    `opts.trappingChoices` avant `buildInventory`.
+  //    `opts.trappingChoices` avant `doterLePorteur`.
   const rawTrappings = resolveTrappingChoices(dotationsDuHeros(opts.careerId), opts.trappingChoices ?? {});
-  const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
+  const { items, mentions } = doterLePorteur(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
   const id = opts.id ?? opts.idNeuf('hero');
 
   // Destin / Résilience
@@ -465,6 +479,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     talents,
     skills,
     items,
+    mentions,
     careerSlotChoices: heroSoFar.careerSlotChoices,
     fate: fateBase.fate + split.fate,
     resilience: fateBase.resilience + split.resilience,
@@ -493,6 +508,7 @@ export interface HerosResolu {
   talents: TalentInstance[];
   skills: SkillInstance[];
   items: ItemInstance[];
+  mentions?: Combatant['mentions'];
   careerSlotChoices?: Combatant['careerSlotChoices'];
   fate: number;
   resilience: number;
@@ -530,6 +546,7 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
     weapons: [],
     armour: emptyArmour(),
     items: r.items,
+    ...(r.mentions ? { mentions: r.mentions } : {}),
     skills: r.skills,
     talents: r.talents,
     traits: speciesTraits.length ? speciesTraits : undefined, // Trait racial d'espèce (#572) — Ogre : encombrance/consommation ×2 + Taille

@@ -28,7 +28,7 @@ func _recetter() -> void:
 	monde.volume.poser_les_aretes([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary:
 		return {cle = a.cle, milieu = a.milieu, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 2.0, piece = "mur", famille = null, bloc = a.bloc}))
 	var couronne := {cle = "dessus", empreinte = "dessus", positions = [], normales = [], couleurs = [], cases = [], surfaces = []}
-	monde.volume.poser({monde = {metresParCase = 1.0, hauteurs = [], morceaux = []}, toits = [], couronnes = [couronne]}, {volume = [], toits = [], couronnes = [couronne]})
+	monde.volume.poser({monde = {metresParCase = 1.0, hauteurs = [{z = 0, rangees = [[0.0]]}], morceaux = []}, toits = [], couronnes = [couronne]}, {volume = [], toits = [], couronnes = [couronne]})
 	monde.cacher_le_bati([], [], JSON.parse_string(JSON.stringify([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, abattueSous = a.abattueSous}))))
 	_verifier(monde, "de face")
 	var pivot: Node3D = monde.get_node("Pivot")
@@ -55,8 +55,8 @@ func _verifier(monde: Monde, moment: String) -> void:
 		_fautes.append("%s : le mur sud %s, la caméra %s" % [moment, "debout" if aretes.sud else "abattu", "au nord" if au_nord else "au sud"])
 	if aretes.dessus:
 		_fautes.append("%s : le mur au-dessus d'une tête est debout" % moment)
-	var couronne: GeometryInstance3D = monde.get_node("VolumeDeScene/Volume/Couronnes").get_child(0)
-	if couronne.is_visible_in_tree() and couronne.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
+	var couronne: Node3D = monde.get_node("VolumeDeScene/Volume/Couronnes").get_child(0)
+	if couronne.get_node("Vu").is_visible_in_tree():
 		_fautes.append("%s : la couronne du mur au-dessus d'une tête est debout" % moment)
 
 

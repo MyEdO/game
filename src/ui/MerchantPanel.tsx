@@ -10,7 +10,28 @@ import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/ite
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { libelleDeLaRepartition, sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, demandeDuTroc, exemplaireCede, BROUILLON_DE_TROC_VIDE, type ContexteDAchat, type ModeDeMarche } from '../noyau/merchantFlow';
+import {
+  libelleDeLaRepartition,
+  sellGain,
+  devisDeVente,
+  sellBuyerAvailability,
+  sellRefusal,
+  catalogEntryOf,
+  appraiseRefus,
+  prixDeLigne,
+  remiseDAchatPct,
+  devisDuPanier,
+  refusDAjout,
+  coutDeReparation,
+  refusDeReparation,
+  optionsDeTroc,
+  devisDeTroc,
+  demandeDuTroc,
+  exemplaireCede,
+  BROUILLON_DE_TROC_VIDE,
+  type ContexteDAchat,
+  type ModeDeMarche,
+} from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
@@ -32,6 +53,7 @@ import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
+import { VOCABULAIRES } from '../data/schemas/grammaire/vocabulaires';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -42,7 +64,7 @@ type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']
  *  — jamais des trappings. */
 const FAMILIES: { key: string; label: string }[] = merchantFamilies.map((f) => ({ key: f.id, label: f.label }));
 const FAMILY_COLS: Record<string, { label: string; get: (id: string) => string; emph?: boolean }[]> = Object.fromEntries(
-  merchantFamilies.map((f) => [f.id, f.columns.map((c, i) => ({ ...MERCHANT_COL_RENDERERS[c], emph: i === 0 ? true : undefined }))]),
+  merchantFamilies.map((f) => [f.id, f.columns.map((c, i) => ({ label: VOCABULAIRES.colonnesDuMarchand[c], get: MERCHANT_COL_RENDERERS[c].get, emph: i === 0 ? true : undefined }))]),
 );
 
 const TREND_CLASS: Record<string, string> = { up: 'cmp-up', down: 'cmp-down', same: '' };

@@ -75,7 +75,8 @@ function buildEntityBlockIndex(entities: SceneEntity[], mpt: number): Set<string
  *  ajout/retrait en production (`.filter`/`.map`/spread — jamais `.push`/`.splice` hors fixtures de
  *  test) : la clé la plus fine est le tableau lui-même. L'ÉCHELLE entre en DÉPENDANCE (`memoByRefDeps`)
  *  parce que l'empreinte dérivée en dépend (#1509) : la même liste d'entités à une autre échelle ne
- *  couvre pas les mêmes cases. */
+ *  couvre pas les mêmes cases. Le mémo est daté par la version des datasets (`memoByRef`) : solidité et empreinte se
+ *  lisent au catalogue des décors (`propIsSolid`, `propFootTiles`). */
 const entityBlockIndex = memoByRefDeps<SceneEntity[], Set<string>>();
 
 /** La case (x,y) est-elle couverte par l'empreinte d'un décor qui bloque ? Pour la walkability.

@@ -27,7 +27,18 @@ import { projectedRangeAxes } from './lampMarker';
 import { gridLines } from '../../geometry/grid';
 import { type Tool, type Layers, type Sel, selRect, selZ, sameSel } from '../../noyau/sceneEditLecture';
 import type { Pt } from '../../noyau/sceneEdit';
-import { appuyer, areteVisee, glisser, planDuPointeur, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from '../../noyau/edition/pointeur';
+import {
+  appuyer,
+  areteVisee,
+  glisser,
+  planDuPointeur,
+  relacher,
+  saisirLaPoignee,
+  type ContexteDuPointeur,
+  type EffetDuPointeur,
+  type GesteEnCours,
+  type PointDeCarte,
+} from '../../noyau/edition/pointeur';
 import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';

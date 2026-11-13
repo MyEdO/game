@@ -125,7 +125,7 @@
         }
       },
       {
-        "text": "Gamelles"
+        "id": "gamelles"
       },
       {
         "id": "pilon-et-mortier"
@@ -140,7 +140,7 @@
         "id": "vetements"
       },
       {
-        "text": "assortiment d’herbes"
+        "id": "assortiment-d-herbes"
       }
     ],
     "spells": [],
@@ -151,10 +151,14 @@
     "age": 29,
     "sex": "M",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "werner-murrmann",
@@ -270,7 +274,8 @@
         "id": "besace"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "de tisane"
       },
       {
         "id": "chapeau"
@@ -285,10 +290,11 @@
         "id": "heaume"
       },
       {
-        "text": "Manteau à capuche"
+        "id": "cape",
+        "spec": "à capuche"
       },
       {
-        "text": "Poche"
+        "id": "bourse"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -297,10 +303,7 @@
         "id": "vetements"
       },
       {
-        "text": "le déjeuner"
-      },
-      {
-        "text": "tisane"
+        "id": "dejeuner"
       }
     ],
     "spells": [],
@@ -311,10 +314,14 @@
     "age": 20,
     "sex": "M",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "wanda-weltschmertz",
@@ -428,7 +435,7 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "roll": {
             "n": 1,
@@ -455,10 +462,14 @@
     "age": 24,
     "sex": "F",
     "richesse": {
-      "n": 6,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 6,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "johann-dassbut",
@@ -560,7 +571,8 @@
         "id": "besace"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "d'alcool"
       },
       {
         "id": "dague"
@@ -579,9 +591,6 @@
       },
       {
         "id": "vetements"
-      },
-      {
-        "text": "alcool"
       }
     ],
     "spells": [],
@@ -592,10 +601,14 @@
     "age": 35,
     "sex": "M",
     "richesse": {
-      "n": 1,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 1,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "malmir-giluviel",
@@ -750,10 +763,14 @@
     "age": 20,
     "sex": "M",
     "richesse": {
-      "n": 6,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 6,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "kirsten-krank",
@@ -884,7 +901,7 @@
         "id": "pied-de-biche"
       },
       {
-        "text": "Pochette"
+        "id": "bourse"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -904,10 +921,14 @@
     "age": 18,
     "sex": "F",
     "richesse": {
-      "n": 2,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "sigrid-sommerfeld",
@@ -1064,10 +1085,14 @@
     "age": 26,
     "sex": "F",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "erina-eberhauer",
@@ -1210,7 +1235,8 @@
         "id": "parchemin",
         "count": {
           "fixed": 9
-        }
+        },
+        "spec": "vierge"
       }
     ],
     "spells": [
@@ -1233,10 +1259,14 @@
     "age": 24,
     "sex": "F",
     "richesse": {
-      "n": 5,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 5,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "golthog",
@@ -1367,10 +1397,14 @@
     "age": 39,
     "sex": "M",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "erich-massenbach",
@@ -1480,13 +1514,19 @@
         "id": "dague"
       },
       {
-        "id": "vetements"
+        "id": "vetements",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
       },
       {
-        "text": "Trousse de toilette"
+        "id": "trousse-de-toilette"
       },
       {
-        "text": "Rames de papier"
+        "id": "parchemin",
+        "spec": "rames de papier"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -1498,7 +1538,11 @@
         "id": "outils-professionnels-artiste"
       },
       {
-        "text": "Lettres adressées à son père (jamais envoyées)"
+        "id": "parchemin",
+        "spec": "lettre adressée à son père (jamais envoyée)",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "arc-court"
@@ -1521,10 +1565,14 @@
     "age": 21,
     "sex": "M",
     "richesse": {
-      "n": 3,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 3,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "jorunn-gromsdottir",
@@ -1653,7 +1701,8 @@
         }
       },
       {
-        "text": "Livre (à moitié rédigé)"
+        "id": "livre",
+        "spec": "à moitié rédigé"
       },
       {
         "id": "potion-de-guerison"
@@ -1668,7 +1717,7 @@
         "id": "outils-professionnels-apothicaire"
       },
       {
-        "text": "Canne à pêche"
+        "id": "canne-a-peche"
       },
       {
         "id": "arme-simple"
@@ -1688,10 +1737,14 @@
     "age": 97,
     "sex": "F",
     "richesse": {
-      "n": 1,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 1,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "lynathryn-chantenuit",
@@ -1822,7 +1875,10 @@
         }
       },
       {
-        "text": "Pièges à animal"
+        "id": "piege-a-animaux",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "arc-elfique"
@@ -1848,10 +1904,14 @@
     "age": 295,
     "sex": "M",
     "richesse": {
-      "n": 8,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 8,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "theodosius-schreiber",
@@ -1987,13 +2047,17 @@
         }
       },
       {
-        "text": "Livres de référence"
+        "id": "livre",
+        "spec": "de référence",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "sac-a-dos"
       },
       {
-        "text": "Alcool"
+        "id": "alcool"
       },
       {
         "id": "rapiere"
@@ -2007,10 +2071,14 @@
     "age": 29,
     "sex": "M",
     "richesse": {
-      "n": 2,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "vasya-ghorshkov",
@@ -2148,10 +2216,14 @@
     "age": 25,
     "sex": "M",
     "richesse": {
-      "n": 2,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "kistiane-brockdorf",
@@ -2263,7 +2335,7 @@
     ],
     "trappings": [
       {
-        "text": "Licence magique"
+        "id": "licence-magique"
       },
       {
         "id": "tente"
@@ -2304,9 +2376,13 @@
     "age": 29,
     "sex": "F",
     "richesse": {
-      "n": 3,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 3,
+          "sides": 10
+        }
+      }
+    }
   }
 ]

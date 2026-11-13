@@ -23,14 +23,21 @@ import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
 import { creerChoixDeFenetre } from './choixDeFenetre';
 import type { AxeDuChoix, ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
-import { creerVerbesDeLaBarre, type BattleActionMode } from './actionRegistry';
+import { creerVerbesDeLaBarre } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
 import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { choixDInterlude, cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
-import { choixDeLaBataille, creerActionsDeBatailleDeMasse, massBattleResumeCombat, sortiesDeBatailleDeMasse, validationsDeBatailleDeMasse } from './massBattleFlow';
+import {
+  choixDeLaBataille,
+  creerActionsDeBatailleDeMasse,
+  massBattleResumeCombat,
+  sortiesDeBatailleDeMasse,
+  validationsDeBatailleDeMasse,
+} from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
@@ -38,7 +45,15 @@ import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { choixDeConversation } from './conversation';
-import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand, type ModeDEvaluation, type ModeDeMarche } from './merchantFlow';
+import {
+  choixDuMarchand,
+  cloturesDuMarchand,
+  creerActionsDuMarchand,
+  sortiesDuMarchand,
+  validationsDuMarchand,
+  type ModeDEvaluation,
+  type ModeDeMarche,
+} from './merchantFlow';
 import { creerActionsDeTaverne, sortiesDeLaTaverne, type TavernOpponent } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
 import { choixDuButin, creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
@@ -49,6 +64,7 @@ import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene, reglagesDesTestsD
 import { cloturesDuLotDEtal } from './etalLotFlow';
 import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
+import { creerActionsDuReseau } from './reseau';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerFabriqueDIds } from './idsDuMonde';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
@@ -63,7 +79,18 @@ import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 import type { BattleState, NetState, ShootingStanceKey } from './etat';
 import type { AttackPlan, MovementResolution } from './combatFlow';
-import type { CounterDeclaration, EnchainementDuCoup, IssueDEmpoignade, IssueOpposee, PendingAppraise, PendingAuContact, PendingDisengage, PendingGrapple, ReactionDeBouclier, RevealEntry } from './pendings';
+import type {
+  CounterDeclaration,
+  EnchainementDuCoup,
+  IssueDEmpoignade,
+  IssueOpposee,
+  PendingAppraise,
+  PendingAuContact,
+  PendingDisengage,
+  PendingGrapple,
+  ReactionDeBouclier,
+  RevealEntry,
+} from './pendings';
 import type { ZoneEnPose } from './targetingHolder';
 import type { VerdictApprentissage } from '../engine/grimoire';
 import type { OrientationOutcome } from '../engine/seaNavigation';
@@ -457,6 +484,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDeLEquipage(get, set),
     ...creerActionsDesTestsDeScene(get, set),
     ...creerActionsDuJournal(get, set),
+    ...creerActionsDuReseau(get, set),
     ...creerActionsDAvanceeDHorloge(get, set),
     ...creerFabriqueDIds(get, set),
     ...creerActionsDHorloge(get, set),

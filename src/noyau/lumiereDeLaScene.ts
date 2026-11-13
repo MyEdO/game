@@ -7,6 +7,7 @@
  * règle ne les chiffre. Repère des builders : X = est, Y = haut, Z = sud, en cases.
  */
 import { ambiance, DEFAULT_LIGHT_TONE_ID, findLightToneById, type LightToneDef, type VisuelDeLumiere } from '../data';
+import type { EntreeVivante } from '../data/datasets';
 import { sonDEffet, type SonDEffet } from '../data/sons/registre';
 import { parseHex } from '../lib/couleurHex';
 import type { Regard } from './monde/aretes';
@@ -16,7 +17,9 @@ import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './monde/v
 import { shelterField, shelterSectionAt } from './monde/volume/toits';
 import { ambientScalar, FLAME_LIFT_M } from './monde/vision';
 import { sceneSun } from './monde/soleil';
-import { sceneLightSources, type VisionInput } from './visionState';
+import { sceneLightSources } from './visionState';
+import type { Jeu } from './etat';
+import { caseEnVue, porteurEnVue, type EntreesDeLaConnaissance } from './visionDuGroupe';
 
 /** Énergie du soleil haut, et l'élévation (degrés) sous laquelle il s'allume en fondu depuis l'horizon. */
 const ENERGIE_DU_SOLEIL = 1.3;
@@ -35,7 +38,7 @@ const AMBIANTE_INTERIEURE = '#e8c9a0';
 /** Énergie d'une source de ton d'intensité 1. */
 const ENERGIE_DES_SOURCES = 2.5;
 /** Le ton de repli visible d'un id hors de `lightTones.json` : la couleur d'alarme, sans vacillement. */
-const TON_HORS_CATALOGUE: LightToneDef = { id: MISSING_ID, type: 'lightTones', label: MISSING_LABEL, color: MISSING_TONE, intensity: 1 };
+const TON_HORS_CATALOGUE: EntreeVivante<LightToneDef> = { id: MISSING_ID, type: 'lightTones', label: MISSING_LABEL, color: MISSING_TONE, intensity: 1 };
 
 export interface SourceDeLumiere {
   /** Sa clé, la même d'une vue à l'autre : ce qui la porte (`LightSource.srcId`), posé (`posee/<id>`) ou qui se
@@ -57,7 +60,7 @@ export interface SourceDeLumiere {
 }
 
 /** La source du ton `ton` (`lightTones.json`) au foyer `foyer`, sous sa clé, qui éclaire `rayonCases` cases. */
-export function sourceDuTon(ton: LightToneDef, foyer: Pick<SourceDeLumiere, 'cle' | 'x' | 'y' | 'z' | 'hM'>, rayonCases: number): SourceDeLumiere {
+export function sourceDuTon(ton: EntreeVivante<LightToneDef>, foyer: Pick<SourceDeLumiere, 'cle' | 'x' | 'y' | 'z' | 'hM'>, rayonCases: number): SourceDeLumiere {
   return {
     ...foyer,
     rayonCases,
@@ -103,11 +106,13 @@ function melange(a: string, b: string, t: number): string {
  * sa hauteur en mètres, son rayon en cases, sa couleur, son énergie, son vacillement ou `null`, ce qu'elle montre, `visuel` (`feu`, `flammeche`, `lueur`)
  * ou `null`, et le son qu'elle joue en boucle, `son` ou `null`, tous deux de son ton, `lightTones.json`, #3783) vient
  * des lumières posées et portées de la scène (`sceneLightSources`, `sourceDuTon`).
+ * Ce que le groupe ne voit pas ne se montre pas (#3950) : une source portée par un porteur hors de vue (`porteurEnVue`)
+ * n'est pas servie ; une source posée sur une case que le groupe ne voit pas garde sa lampe, sans `visuel` ni `son`.
  * @contrat Lumière
  */
 
-/** La lumière de la scène de `etat` à son heure, sous le regard `regard`. */
-export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }, regard: Regard): LumiereDeLaScene {
+/** La lumière de la scène de `etat` à son heure, sous le regard `regard`, telle que le groupe la voit. */
+export function lumiereDeLaScene(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaissance & { scene: Scene }, regard: Regard): LumiereDeLaScene {
   const { scene, gameTime } = etat;
   const interieur = isIndoor(scene);
   const palier = ambientScalar(scene, gameTime, etat.lightLevel);
@@ -140,16 +145,18 @@ export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }, regard: R
       finCases: profondeur.farTiles * resserrement,
       depuisLOeil,
     },
-    sources: sceneLightSources(etat).map((s) => {
+    sources: sceneLightSources(etat).flatMap((s): SourceDeLumiere[] => {
+      if (s.carried && s.srcId && !porteurEnVue(etat, s.srcId)) return [];
       const ton = catalogEntry(findLightToneById, s.tone ?? DEFAULT_LIGHT_TONE_ID, 'lightTones', TON_HORS_CATALOGUE);
       const z = s.z ?? 0;
-      return sourceDuTon(ton, {
+      const source = sourceDuTon(ton, {
         cle: `${s.carried ? 'portee' : 'posee'}/${s.srcId ?? ''}`,
         x: s.pos.x + (s.foyer?.x ?? 0),
         y: s.pos.y + (s.foyer?.y ?? 0),
         z,
         hM: heightAt(scene, s.pos.x, s.pos.y, z) + (s.foyer?.h ?? FLAME_LIFT_M),
       }, s.radiusTiles);
+      return [s.carried || caseEnVue(etat, { x: s.pos.x, y: s.pos.y, z }) ? source : { ...source, visuel: null, son: null }];
     }),
   };
 }

@@ -4,7 +4,16 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fireTriggers, effectSourcesOf } from './triggeredEffects';
 import { createHero } from '../engine/character';
 import { addCondition, hasCondition, isOutOfAction, COND } from '../engine/conditions';
-import { cibleEnVue, clearPsychOf, isAfflictionActive, psychBranchOps, refreshAllDefendedPsych, targetedTrigger, type PsychAffliction, sourceCombattant } from '../engine/psychology';
+import {
+  cibleEnVue,
+  clearPsychOf,
+  isAfflictionActive,
+  psychBranchOps,
+  refreshAllDefendedPsych,
+  targetedTrigger,
+  type PsychAffliction,
+  sourceCombattant,
+} from '../engine/psychology';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { spawnEnemy } from './monde/spawn';
 import { emptyScene, type Scene } from './monde/scene';

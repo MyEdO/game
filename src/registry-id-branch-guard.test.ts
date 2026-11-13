@@ -2,7 +2,14 @@ import { afterAll, describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY } from '../scripts/guards/lib/registryIdBranch.mjs';
+import {
+  scanRegistryIdBranch,
+  scanRawIdEqualities,
+  isRegistryIdBranchExcluded,
+  SCAN_DIRS,
+  SCAN_EXTS,
+  OP_VOCABULARY,
+} from '../scripts/guards/lib/registryIdBranch.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
@@ -283,6 +290,9 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       //     reçu n'est pas une table de valeurs par entrée de registre.
       'const SK: Partial<Record<OsId, Bone>> = { tronc: b1, croupe: b2 };',
       'export function zOf(id: OsId) { return SK[id]!.z; }',
+      // (9) table TOTALE en type MAPPÉ : chaque clé fermée tient l'ENTRÉE qui porte cet id.
+      'const PAR_ID: { readonly [M in ModeId]: Mode & { readonly id: M } } = { attaque: ATTAQUE, soins: SOINS };',
+      'export function modeLabel(modeId: ModeId) { return PAR_ID[modeId].label; }',
     ].join('\n');
     expect(rules(sain, 'fixture.tsx')).toEqual([]);
   });

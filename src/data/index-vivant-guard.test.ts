@@ -84,7 +84,17 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bindingsVivants, clesDuSeam, indexFiges, nomsVivantsDuFichier, fichiersSources, fichiersDuSeam, accesseursVivants, sansCommentaires, RACINE } from '../../scripts/guards/lib/bindingsVivants.mjs';
+import {
+  bindingsVivants,
+  clesDuSeam,
+  indexFiges,
+  nomsVivantsDuFichier,
+  fichiersSources,
+  fichiersDuSeam,
+  accesseursVivants,
+  sansCommentaires,
+  RACINE,
+} from '../../scripts/guards/lib/bindingsVivants.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { DATASET_KEYS } from './overrides';
 
@@ -257,13 +267,13 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     // Le module PROPRIÉTAIRE d'un dataset ne nomme jamais le seam : il importe SON document et l'aliase.
     // Le document porte une clé de dataset, l'alias hérite — sans quoi trois staleness (`vehicles`,
     // `traumas`, `books`) restaient invisibles alors que le seam splice ces tableaux-là.
-    const reel = readFileSync(join(RACINE, 'src/engine/travel.ts'), 'utf8');
-    const noms = nomsVivantsDuFichier('src/engine/travel.ts', reel, parBinding);
-    expect(noms.get('vehiclesJson')).toBe('vehicles.json');
-    expect(noms.get('VEHICLES_LIST'), 'l’alias nu hérite du dataset').toBe('vehicles.json');
+    const reel = readFileSync(join(RACINE, 'src/engine/miscast.ts'), 'utf8');
+    const noms = nomsVivantsDuFichier('src/engine/miscast.ts', reel, parBinding);
+    expect(noms.get('miscastJson')).toBe('miscast.json');
+    expect(noms.get('data'), 'l’alias nu hérite du dataset').toBe('miscast.json');
     // Le fichier RÉEL est propre ; la même vue réinjectée dans une COPIE est vue.
-    expect(indexFiges('src/engine/travel.ts', reel, parBinding)).toEqual([]);
-    const injecte = `${reel}\nconst PAYANTS = VEHICLES_LIST.filter((v) => v.travel);\n`;
+    expect(indexFiges('src/engine/miscast.ts', reel, parBinding)).toEqual([]);
+    const injecte = `${reel}\nconst MINEURES = data.filter((t) => t.id === 'miscast-mineure');\n`;
     expect(indexFiges('src/engine/copie.ts', injecte, parBinding)).toHaveLength(1);
     const alias = `import vehiclesJson from '../data/vehicles.json';\nconst LISTE = vehiclesJson as VehicleData[];\nconst PAR_ID = new Map(LISTE.map((v) => [v.id, v]));\n`;
     expect(indexFiges('src/engine/copie.ts', alias, parBinding)).toHaveLength(1);

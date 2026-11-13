@@ -9,23 +9,52 @@ import type { Equipe } from '../../../engine/relations';
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
-import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
+import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
-import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
+import {
+  metaPourFichier,
+  chargeDiscriminee,
+  brouillonNeuf,
+  noeudDuChamp,
+  noeudObjet,
+  noeudDeLEntree,
+  RangeeSansNoeud,
+  rapportDeFautes,
+} from '../../../data/schemas/validate';
 import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import type {
+  ActivityContext,
+  OutcomeBand,
+  BattleOutcome,
+  BattleOutcomeTarget,
+  BattleOutcomeScale,
+  BattleCond,
+  ActivityResolver,
+  ResolverOwner,
+} from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
+import { BORNES_DE_LA_SUBSTITUTION } from '../../../data/schemas/defs/careers';
 import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  RefField,
+  SaisieSuggeree,
+  reposerLId,
+  cfgDeLaFeuille,
+  cfgDeLaListe,
+  cfgDuNoeudASpec,
+  cfgDuNoeudType,
+  refFieldCfg,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
@@ -39,7 +68,7 @@ import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField
 import { type DiceSpec, formatDice, parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
-import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
+import { raceKeySchema, type RaceKey } from '../../../data/schemas/grammaire/valeurs';
 import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../ReglagesApparence';
 import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
@@ -52,12 +81,32 @@ import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
-import type { ManeuverDef, ManeuverMeasure } from '../../../data';
+import type { DetailText, ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
 import type { ArmeDerivee } from '../../../data';
-import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
+import {
+  SymptomsField,
+  SymptomTickField,
+  DiseaseDailyTestField,
+  type DiseaseDailyTest,
+  ShipCrewHitField,
+  type ShipCrewHitValue,
+  TalentTestField,
+  CombatField,
+  AdvancementRefField,
+  TrappingRefField,
+  CharKeysField,
+  DomainEffectsField,
+  TraitListField,
+  OptionalsListField,
+  HarvestField,
+  SpecsField,
+  RuleValueField,
+  RuleActionField,
+  type RuleShape,
+} from './StructFields';
 import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
@@ -231,6 +280,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'creatures') add('skills', 'talents');
   if (categoryKey === 'pregens') add('trappings', 'talents'); // MÊMES refs que la créature : `TalentRef[]` et dotations (id catalogue ou texte)
   if (categoryKey === 'careerLevels') add('characteristics');
+  if (categoryKey === 'careers') add(...BORNES_DE_LA_SUBSTITUTION); // présentés avec `aLaPlaceDe` seulement (refine de `defs/careers.ts`)
   if (categoryKey === 'domains') add('castBonus', 'missile', 'casterOps');
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
   if (categoryKey === 'domains') add('windModifiers');
@@ -500,6 +550,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // IDENTITÉ de l'entrée éditée : racine des `chemin` de ses champs.
   const porteurEntree = identiteDEntree(categoryKey, id, isNew);
   const chemin = (champ: string): string => `${porteurEntree}/${champ}`;
+  const champInfere = (f: FieldDesc) => {
+    const cfg = refFieldCfg(categoryKey, f.key);
+    return cfg
+      ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
+      : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
+  };
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
@@ -746,12 +802,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
             <GameOpEditor noeud={noeudDe(fieldKey)} ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
           </div>
         ))}
-        {fields.map((f) => {
-          const cfg = refFieldCfg(categoryKey, f.key);
-          return cfg
-            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
-            : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
-        })}
+        {fields.map(champInfere)}
+        {categoryKey === 'careers' && entry.aLaPlaceDe !== undefined && allFields.filter((f) => (BORNES_DE_LA_SUBSTITUTION as readonly string[]).includes(f.key)).map(champInfere)}
       </div>
       </SuiviDesSaisies>
     </div>
@@ -1619,12 +1671,9 @@ function EffectTableRowsField({ domaine, value, onChange }: { domaine: PlageDoma
   );
 }
 
-/** Texte d'aide LDB 05 (« Détails ») : global + par espèce (HTML léger). Clé de `bySpecies` = id
- *  d'espèce `RaceKey` (#1467 L1b V-P4) ; le sceau du dataset refuse toute autre clé. */
-interface DetailText { all: string; bySpecies: Record<string, string>; }
 /** Bloc `details.texts` : 5 entrées d'aide (nom/âge/taille/Ambitions courte & longue). Clés OUVERTES
  *  (un nouveau texte ajouté à la donnée apparaît tout seul). */
-type DetailsTexts = Record<string, DetailText>;
+export type DetailsTexts = Record<string, DetailText>;
 
 const RACE_KEYS = raceKeySchema.options;
 
@@ -1639,14 +1688,16 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   const texts = value ?? {};
   const EMPTY_TEXT: DetailText = { all: '', bySpecies: {} };
   const setText = (key: string, patch: Partial<DetailText>) => onChange({ ...texts, [key]: { ...EMPTY_TEXT, ...texts[key], ...patch } });
-  const setSpecies = (key: string, sp: string, v: string) => setText(key, { bySpecies: { ...texts[key]?.bySpecies, [sp]: v } });
-  const renameSpecies = (key: string, oldSp: string, newSp: string) => {
+  const setSpecies = (key: string, sp: RaceKey, v: string) => setText(key, { bySpecies: { ...texts[key]?.bySpecies, [sp]: v } });
+  const renameSpecies = (key: string, oldSp: RaceKey, newSp: string) => {
     const by = { ...texts[key]?.bySpecies };
-    const v = by[oldSp]; delete by[oldSp]; if (newSp) by[newSp] = v ?? '';
+    const v = by[oldSp]; delete by[oldSp];
+    const cible = RACE_KEYS.find((k) => k === newSp);
+    if (cible) by[cible] = v ?? '';
     setText(key, { bySpecies: by });
   };
-  const clesLibres = (key: string, sauf?: string) => RACE_KEYS.filter((k) => k === sauf || !(k in (texts[key]?.bySpecies ?? {})));
-  const removeSpecies = (key: string, sp: string) => {
+  const clesLibres = (key: string, sauf?: RaceKey) => RACE_KEYS.filter((k) => k === sauf || !(k in (texts[key]?.bySpecies ?? {})));
+  const removeSpecies = (key: string, sp: RaceKey) => {
     const by = { ...texts[key]?.bySpecies }; delete by[sp];
     setText(key, { bySpecies: by });
   };
@@ -1661,7 +1712,7 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
             <ProseField label="global" value={t.all} onChange={(all) => setText(key, { all })} />
             <span className="ed-hint">par espèce</span>
             <Grid min="md" stackBelow={700}>
-              {Object.keys(t.bySpecies ?? {}).map((sp) => (
+              {RACE_KEYS.filter((sp) => sp in (t.bySpecies ?? {})).map((sp) => (
                 <div className="ed-field" key={sp}>
                   <div className="fieldrow">
                     <select aria-label={`Espèce de la surcharge — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={sp} onChange={(e) => renameSpecies(key, sp, e.target.value)}>
@@ -1670,7 +1721,7 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
                     <div className="de-spacer" />
                     <button className="btn small danger" title="Retirer l'espèce" onClick={() => removeSpecies(key, sp)}>✕</button>
                   </div>
-                  <ProseField nu label={`Surcharge de l'espèce ${sp} — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={t.bySpecies[sp]} onChange={(txt) => setSpecies(key, sp, txt)} />
+                  <ProseField nu label={`Surcharge de l'espèce ${sp} — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={t.bySpecies[sp] ?? ''} onChange={(txt) => setSpecies(key, sp, txt)} />
                 </div>
               ))}
             </Grid>
@@ -1685,18 +1736,14 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   );
 }
 
-/** Rendu d'un champ, avec suggestions (`SaisieSuggeree`) des libellés du dataset pour les listes de références. `sujet` = sa
+/** Rendu d'un champ ; une liste de références passe par le mode liste de `RefField` (`cfgDeLaListe`). `sujet` = sa
  *  POSITION dans un conteneur (« de la rangée 2 de windModifiers »), qui complète ses noms accessibles :
  *  deux champs de même libellé, dans deux rangées, ne se confondent pas. */
 function Field({ chemin, sujet, field, value, onChange }: { chemin: string; sujet?: string; field: FieldDesc; value: unknown; onChange: (v: unknown) => void }) {
-  // `key` = IDENTITÉ du champ (jointures de valeurs, `REF_LIST_DATASET`) ; `label` = AFFICHAGE (#1466).
-  const { key, kind, label } = field;
-  const refDs = REF_LIST_DATASET[key];
+  const { kind, label } = field;
   const nom = sujet ? `${label} ${sujet}` : label;
   const nomPositionne = sujet ? nom : undefined;
   const cfgListe = kind === 'stringList' ? cfgDeLaListe(field.noeud) : undefined;
-  const libelles = useValeursDistinctes(kind === 'stringList' && !cfgListe ? refDs : undefined, 'label');
-  const { partagees, datalist } = useSuggestionsPartagees(libelles);
 
   const cfgType = cfgDuNoeudType(field.noeud);
   if (cfgType) return <RefField cfg={cfgType} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
@@ -1708,15 +1755,14 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     const set = (next: string[]) => onChange(next);
     return (
       <div className="ed-field">
-        <span>{label}{refDs && libelleDeDataset(refDs) && <em className="ed-hint"> (suggestions : {libelleDeDataset(refDs)})</em>}</span>
+        <span>{label}</span>
         {list.map((item, i) => (
           <div key={i} className="fieldrow">
-            <SaisieSuggeree ariaLabel={`${nom} — valeur ${i + 1}`} value={item} suggestions={partagees}
+            <SaisieSuggeree ariaLabel={`${nom} — valeur ${i + 1}`} value={item}
               onChange={(v) => set(list.map((x, j) => (j === i ? v : x)))} />
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        {datalist}
         <button className="btn small" aria-label={`Ajouter à ${nom}`} onClick={() => set([...list, ''])}>+ Ajouter</button>
       </div>
     );

@@ -20,12 +20,14 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   (`src/noyau/visionDuGroupe.ts`). Un coup, une incantation ou une zone dont l'auteur est hors de vue arrive avec `de`,
   `depart` et `trajet` à `null` : seule son arrivée ou sa nappe joue. Tout visuel et tout son neufs acceptent donc un
   effet sans auteur (`Effets._partir`, recette `projet/recettes/vision-du-combat.gd`).
-- Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle.
+- Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle ; posée hors de vue, elle arrive sans l'un ni l'autre (`lumiereDeLaScene`).
 - Un flottant : son texte est un message de `src/i18n/messages/fr.ts` (clés `fx.*`), sa teinte `TEINTE_DU_FLOTTANT` ;
   un son de la partie (pas, heurt, victoire, dés) : son id dans `SONS_DE_LA_PARTIE` (`effetsDeLAppel.ts`).
 - Une zone qui dure (`battle.zones`) : la nappe de son rendu, son son en boucle `zoneBoucle` ; une zone de scène
-  ne se voit qu'avec son `rendu`. Un État : sa marque (`etats.json` : `marqueCouleur`, `marqueVisuel` de lumière, `marqueSon` en boucle).
-  Une météo : son `son` en boucle (`ambiance.json › iso.weather`).
+  ne se voit qu'avec son `rendu`. Ses cases changent sous la même `cle` (`caseDeZoneEnVue`) : réconcilier par case ; une zone qui coupe la vue se
+  montre entière dès que le groupe en voit le bord. Un État : sa marque (`etats.json` : `marqueCouleur`, `marqueVisuel` de lumière, `marqueSon` en boucle).
+  Une météo : ses valeurs (nombre, vitesse, sens, taille, teinte, opacité, couches de brume) et son `son` en boucle
+  (`ambiance.json › iso.weather`), que le noyau rend par regard (`meteoDuRegard`, `src/noyau/monde/meteo.ts`).
 - Une musique : une définition `music: true` du registre (`src/data/sons/defs/`) ; le noyau la choisit
   (`musiqueDeLaPartie`), la scène peut l'imposer (`music.combat`, `music.ambient`).
 - Un JSON édité à la main se réécrit par `serializeDataset` (`src/data/serialize.ts`) : le test de round-trip
@@ -52,14 +54,18 @@ Le vocabulaire est fermé des deux côtés, à étendre ensemble :
   du fichier est l'id de la donnée), réglée dans l'éditeur par `npm run godot:ouvrir`. Un éclat : ses gerbes
   `CPUParticles3D` en enfants directs, son `OmniLight3D` `Eclair`, son `AnimationPlayer` dont l'animation `eclat`
   (jouée à la pose) pose l'émission à 0, éteint l'éclair et retire la scène au bout de sa vie. Une flamme : ses gerbes
-  enregistrées continues. Un projectile : `Corps`, sa maille, et s'il luit sa traînée et sa lampe. Les gerbes prennent
-  leur quad dans `effets/particule_lumineuse.tres` ou `particule_mate.tres`.
+  enregistrées continues. Une météo : sa structure dans `effets/meteo/averse.tscn` (repère, boîte, alignement, goutte et
+  sa matière, locales à la scène) et `effets/meteo/nappe.tscn`, que `Meteo`
+  (`hotes/godot/projet/scripts/meteo.gd`) instancie en n'y écrivant que la donnée (#4081). Un projectile : `Corps`, sa
+  maille, et s'il luit sa traînée et sa lampe. Les gerbes prennent leur quad dans `effets/particule_lumineuse.tres` ou
+  `particule_mate.tres`.
 
 ## 4. Le voir et le prouver
 - L'atelier le montre sans liste propre : la vitrine (`vitrineDesEffets`) parcourt les catalogues, l'onglet Effets
   offre un bouton par effet (règle `.claude/rules/hote-godot.md`).
 - `src/noyau/vitrineDesEffets.test.ts` pour la donnée ; une recette Godot (`hotes/godot/projet/recettes/effets.gd`,
-  `foyers.gd`, `atelier-du-vehicule.gd`) pour le rendu. `npm run godot:sonde` les joue toutes, et vérifie que chaque
+  `foyers.gd`, `meteo.gd`, `atelier-du-vehicule.gd`) pour le rendu. La vitrine porte chaque météo du catalogue
+  (`meteos`), que la section « Météo » de l'onglet Effets pose. `npm run godot:sonde` les joue toutes, et vérifie que chaque
   visuel, projectile et fichier de la vitrine est connu de Godot : sa scène existe (`Effets.chemin_de_l_effet`).
 - Ce qui change l'image se prouve sous les deux rendus, Forward+ hors d'une page et compatibilité dans la page
   (#3951) : une recette `const RECETTE_RENDUE := true`, lue aux pixels, que `npm run godot:rendus` joue sous chacun.

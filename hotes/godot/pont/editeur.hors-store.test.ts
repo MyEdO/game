@@ -22,7 +22,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findCreatureById, traits } from '../../../src/data';
+import { fabricationAtouts, findCreatureById, traits } from '../../../src/data';
+import { dotationsDuPnj, emplacementsDeDotation } from '../../../src/engine/trappingChoices';
+import { adresseDeCreation } from '../../../src/engine/adresseDeCreation';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
@@ -71,6 +73,7 @@ function valeursDeLInspecteur(e: Edition, id: string): Bouton[] {
 
 /** La première campagne du jeu : chaque scène a au moins deux cases de côté. */
 const CAMPAGNE = allBuiltinCampaigns[0].id;
+const COMMITES = await modelesCommites();
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
 describe('l’éditeur de carte par le pont', () => {
@@ -187,7 +190,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', cases: [{ x: 1, y: 1, z: 0 }, { x: 1, y: 0, z: 0 }], milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -656,6 +659,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const doktor = presser(boutonDe(medecin, 'carriere/medecin/niveau/3'));
     expect(boutonDe(doktor, 'carriere/medecin/niveau/3').presse).toBe(true);
     expect(ligneDe(doktor, 'profil/statut')).toMatch(/Argent 5/);
+    expect(ligneDe(doktor, 'profil/mentions/personne'), 'ses mentions, une ligne par nature').toBe('Personnes : Apprenti');
     const chirurgien = presser(boutonDe(doktor, 'carriere/medecin/talents/2/chirurgie'));
     expect(boutonDe(chirurgien, 'carriere/medecin/talents/2/chirurgie').presse).toBe(true);
     expect(ligneDe(chirurgien, 'profil/talents')).toMatch(/Chirurgie/);
@@ -666,6 +670,23 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const tirees = (e: Edition) => valeursDeLInspecteur(e, 'valeur/combat/randomChars').find((b) => (b.jeu as { args: unknown[] }).args[2] === true)!;
     expect(tirees(presser(tirees(presser(boutonDe(hallebardier, 'valeur/combat/ajouter'))))).presse, 'ses Caractéristiques tirées au formulaire de son rôle au combat').toBe(true);
     expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
+  });
+
+  it('un personnage de carrière : l’Atout au choix d’une arme au choix paraît comme un choix de plus, à son adresse', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    const duelliste = presser(boutonDe(presser(boutonDe(pnj, 'carriere/ajouter/duelliste')), 'carriere/duelliste/niveau/4'));
+    const atout = emplacementsDeDotation(dotationsDuPnj('duelliste', 4)).find((e) => e.sorte === 'atout' && e.chemin.length === 2)!;
+    const joker = `carriere/dotation/${adresseDeCreation.dotation(atout.chemin.slice(0, 1))}`;
+    const id = `carriere/dotation/${atout.adresse}`;
+    expect(valeursDeLInspecteur(duelliste, joker).length, 'le choix de l’arme').toBeGreaterThan(1);
+    expect(valeursDeLInspecteur(duelliste, id).map((b) => b.id)).toEqual([`${id}/tiree`, ...fabricationAtouts().map((q) => `${id}/${q}`)]);
+    const solide = presser(boutonDe(duelliste, `${id}/solide`));
+    expect([boutonDe(solide, `${id}/solide`).presse, boutonDe(solide, `${id}/tiree`).presse]).toEqual([true, false]);
   });
 
   it('un personnage du Bestiaire : son profil porté, son rôle au combat au formulaire tiré du schéma, ses options au contexte de sa fiche, ses onglets sans id commun (#3606 M1a)', () => {
@@ -1268,7 +1289,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
 describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
   it('l’outil navire pose la caraque à son cap ; la réponse sert son corps, le monde le sol de ses ponts sans le peindre, et ses ponts sont des couches', () => {
     const { appel } = table();
-    servirLesModeles(appel, modelesCommites());
+    servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
     expect(ouverte.navires).toEqual({});
@@ -1286,12 +1307,12 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
     const pont = presser(boutonDe(posee, 'couche/2'));
     expect([pont.vue.couche, boutonDe(pont, 'couche/retirer').refus]).toEqual([2, 'Seuls les ponts d’un navire posent cette couche']);
-    expect(pont.aretes!.filter((a) => a.case.x >= 3 && a.case.x <= 20 && a.case.y >= 6 && a.case.y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
+    expect(pont.aretes!.filter(({ cases: [{ x, y }] }) => x >= 3 && x <= 20 && y >= 6 && y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
   });
 
   it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
     const { appel } = table();
-    servirLesModeles(appel, modelesCommites());
+    servirLesModeles(appel, COMMITES);
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));

@@ -18,10 +18,11 @@
 ## `null`, le champ ne se clique pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant
 ## d'une case lu dans `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
-## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
-## et la partie se joue sans corps. Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque
-## cadrage du monde, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
-## recette lit ; hors recette, rien. La bulle de l'aperçu
+## (`MontageDeComposition.indexer_les_modeles`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne
+## (un listage illisible aussi à la console), et la partie ne s'ouvre pas : aucun corps ne se monte sans eux. Chaque
+## vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque cadrage du monde, il publie ce que
+## l'écran porte, une fois l'interface mise en page (`PublicationDeLEcran`), que la recette lit ; hors recette, rien. La
+## bulle de l'aperçu
 ## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
 ## l'interface lui laisse.
 extends Node
@@ -87,22 +88,28 @@ var _zones: Array[Zone] = []
 ## Ce que les suites ont ajouté à l'écran depuis le début de la partie (`zones`), par source : une zone posée en
 ## cours de partie (`Disposition`) le reçoit en entier.
 var _ajouts := {}
-## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
-var _publication_prevue := false
+## La publication de l'écran, attendue jusqu'à ce que l'interface soit mise en page (`_publier_l_ecran`).
+var _publication: PublicationDeLEcran
+## Les attentes au pont en vol : le fichier du roster. Une reprise dont l'attente n'y est plus rend la main.
+var _en_vol := {}
 
 
 func _ready() -> void:
 	_musique.name = "Musique"
 	add_child(_musique)
+	_publication = PublicationDeLEcran.new(_pont, self, self, _ecran_publie)
 	_plateau.case_cliquee.connect(_cliquer)
 	_plateau.case_inspectee.connect(_inspecter)
 	_plateau.habille.connect(_publier_l_ecran)
+	_pont.suivre_les_listes(_ecran, _publier_l_ecran)
 	_monde.cadrage_change.connect(_recadrer)
+	_monde.volume.fondu_fini.connect(_publier_l_ecran)
 	_scene.resized.connect(func() -> void: _monde.cadre = _scene.get_global_rect())
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	_pont.exposer("wfrpCadrer", _cadrer)
-	await _indexer_les_modeles()
+	if not await _indexer_les_modeles():
+		return
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
 	_reglages.change.connect(_publier_l_ecran)
@@ -129,6 +136,12 @@ func _ready() -> void:
 	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
 
 
+## Sorti de l'arbre (l'accueil revenu, `_revenir_a_l_accueil`), il n'y revient pas (#4195) : ses attentes en vol sont
+## abandonnées (`_en_vol`).
+func _exit_tree() -> void:
+	_en_vol.clear()
+
+
 ## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
 ## (`{ scenario }`), le panneau caché ensuite ; son défilement republie l'écran.
 func _choisir_un_scenario() -> String:
@@ -144,12 +157,14 @@ func _choisir_un_scenario() -> String:
 	return str(jeu.scenario)
 
 
-## Le listage du serveur et l'index du pont, retenu pour les corps du plateau (`MontageDeComposition.indexer_les_modeles`) ;
-## ses erreurs, les refus de l'index et celui du pont vont à l'avis de panne.
-func _indexer_les_modeles() -> void:
-	var recueil: Array[String] = await MontageDeComposition.indexer_les_modeles(self)
+## Le listage du serveur et l'index du pont, retenu pour les corps du plateau (`MontageDeComposition.indexer_les_modeles`),
+## `true` s'il l'est ; ses erreurs, les refus de l'index et celui du pont vont à l'avis de panne.
+func _indexer_les_modeles() -> bool:
+	var recueil: Array[String] = []
+	var retenus := await MontageDeComposition.indexer_les_modeles(self, recueil)
 	if not recueil.is_empty():
 		_panne.text = "\n".join(PackedStringArray(recueil))
+	return retenus
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
@@ -190,7 +205,11 @@ func _jouer_le_roster(jeu: Dictionary) -> void:
 	if reponse.has("fichier"):
 		_pont.enregistrer_un_fichier(PontDuNoyau.HEROS, reponse.fichier.nom, reponse.fichier.texte)
 	if reponse.has("choix"):
+		var jeton := RefCounted.new()
+		_en_vol[jeton] = true
 		var choisi := await _pont.choisir_un_fichier(PontDuNoyau.HEROS)
+		if not _en_vol.erase(jeton):
+			return
 		_suivre(_pont.appeler("roster", {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
 
 
@@ -359,25 +378,21 @@ func _republier(_valeur: Variant) -> void:
 	_publier_l_ecran()
 
 
-## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois la vue mise en page, une
-## fois par image ; rien si le combat a quitté l'arbre avant cette image (la partie quittée, une sauvegarde chargée).
+## L'écran publié à la recette (`_ecran_publie`), une fois l'interface mise en page (`PublicationDeLEcran`) ; rien si
+## le combat a quitté l'arbre entre-temps (la partie quittée, une sauvegarde chargée).
 func _publier_l_ecran() -> void:
-	if _publication_prevue:
-		return
-	_publication_prevue = true
-	await get_tree().process_frame
-	_publication_prevue = false
-	if is_inside_tree():
-		_pont.publier_l_ecran(_ecran_publie)
+	_publication.demander()
 
 
-## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
-## l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et
-## les navires posés (`Plateau.navires`).
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), les curseurs du panneau des réglages
+## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, si la caméra glisse (`Monde.glisse`), si la
+## vision se fond encore (`VolumeDeScene.part_du_fondu`), la part de l'écran où le monde se voit (`Monde.cadre`), ce
+## que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), cases = _plateau.points(),
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
+		cases = _plateau.points(), glisse = _monde.glisse(), fondu = _monde.volume.part_du_fondu() != 1.0,
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 
@@ -386,9 +401,9 @@ func _ecran_publie() -> Dictionary:
 ## un cadrage en JSON, sous le regard de la partie (`Plateau.cadrer`) ; la caméra posée et deux images dessinées, `rendre`
 ## reçoit la réponse en JSON : `{ ok: true, camera }` (`Plateau.camera`), ou
 ## `{ ok: false, erreur: { categorie: "validation", message } }`.
-func _cadrer(args: Array) -> void:
-	var cadrage: Variant = JSON.parse_string(str(args[0]))
-	var refus := _plateau.cadrer(cadrage) if cadrage is Dictionary else "cadrage illisible : %s" % args[0]
+func _cadrer(entree: String, rendre: Callable) -> void:
+	var cadrage: Variant = JSON.parse_string(entree)
+	var refus := _plateau.cadrer(cadrage) if cadrage is Dictionary else "cadrage illisible : %s" % entree
 	var reponse := {ok = refus == ""}
 	if refus == "":
 		await RenderingServer.frame_post_draw
@@ -396,7 +411,7 @@ func _cadrer(args: Array) -> void:
 		reponse.camera = _plateau.camera()
 	else:
 		reponse.erreur = {categorie = "validation", message = refus}
-	(args[1] as JavaScriptObject).call("call", null, JSON.stringify(reponse))
+	rendre.call(JSON.stringify(reponse))
 
 
 ## La touche du regard (`changer_de_regard`) passe au regard suivant (`regarder`, `plateau.regardSuivant`).

@@ -82,7 +82,7 @@ describe('#1318 E4/C4-δ2 — parité « le moteur ne nomme plus d’id, l’ent
       const regle = ruleDef(ruleId);
       if (!regle) return [];
       if (regle.kind === 'flag') return ['true', 'false'];
-      if (regle.kind === 'mode') return (regle.options ?? []).map(String);
+      if (regle.kind === 'mode') return regle.options.map(String);
       return []; // `param` : aucun ensemble fermé de valeurs — une carac par valeur numérique n'aurait pas de sens
     };
     const fautives = skills.flatMap((s) =>

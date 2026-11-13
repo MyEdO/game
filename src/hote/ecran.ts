@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
+  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, enTeteDuPorteur, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
   type CombatEvent, type Equipe, type EntreeDeLaFiche, type IdDeCouche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -20,7 +20,25 @@ import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
 import type { RosterMontre } from './roster';
-import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Paysage, type Plan, type Puce, type Saisie, type Ton } from './elements';
+import {
+  elementsDesGestes,
+  ligne,
+  resume,
+  type Bouton,
+  type Choix,
+  type Element,
+  type Entite,
+  type FicheOuverte,
+  type Formulaire,
+  type Jet,
+  type Ligne,
+  type PanneauDeLHote,
+  type Paysage,
+  type Plan,
+  type Puce,
+  type Saisie,
+  type Ton,
+} from './elements';
 
 /**
  * @contrat Vue
@@ -140,7 +158,8 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * chaque Test, sa Caractéristique et ses Augmentations au détail ; Talents et son niveau, Sorts, Prières, chacun sa
    * description au détail ; Possessions, chaque possession en bouton qui la nomme, son nombre quand il y en a
    * plusieurs, les équipées d'abord (une arme : tenue dans le set actif) ; il la choisit, `{ fiche }` portant son
-   * `objet`, la choisie pressée la laisse.
+   * `objet`, la choisie pressée la laisse ; puis une puce par nature de ses mentions (`mention/<nature>`), la nature
+   * au libellé, ses mentions et leur nombre en valeur.
    */
   'fiche.sections': Entite[];
   /** le livre et la page du profil dont le combattant est l'instance. */
@@ -881,7 +900,7 @@ function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { 
 function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
   const { parHeros } = surLesCartes(etat);
   return etat.party.map((h): Entite => {
-    const f = garanti(ficheDuPorteur(etat, h.id), h.id, 'héros du groupe');
+    const f = garanti(enTeteDuPorteur(etat, h.id), h.id, 'héros du groupe');
     const presse = ouverte?.porteur === h.id;
     return {
       type: 'entite', id: `heros/${h.id}`, ton: (gestes.get(h.id) ?? []).some((g) => g.focus) ? 'alerte' : 'neutre', nom: f.nom,
@@ -952,7 +971,7 @@ const entrees = (id: string, liste: readonly EntreeDeLaFiche[]): Puce[] => liste
  *  porte ; ses Traits et ses Mutations ; ses Compétences, la valeur de leur Test, leur Caractéristique et leurs
  *  Augmentations au détail, par nom ; ses Talents et leur niveau ; ses sorts ; ses prières ; chacune de ses
  *  possessions en bouton qui la nomme, les équipées d'abord : il la choisit (`ouverte.objet`) ; la choisie, pressée,
- *  se laisse. Le premier paragraphe d'une description au détail. */
+ *  se laisse ; puis ses mentions, une puce par nature. Le premier paragraphe d'une description au détail. */
 function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<keyof typeof SECTIONS_DU_STATBLOC, (Puce | Bouton | Entite)[]> {
   const carac = new Map(f.caracteristiques.map((c) => [c.cle, c]));
   return {
@@ -976,13 +995,16 @@ function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<key
     talents: f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc))),
     sorts: entrees('sort', f.sorts),
     prieres: entrees('priere', f.prieres),
-    possessions: [...f.possessions]
-      .sort((a, b) => Number(b.equipee) - Number(a.equipee))
-      .map((p) => {
-        const choisie = ouverte.objet === p.uid;
-        const libelle = p.nombre > 1 ? t('ecran.fiche.possession', { libelle: p.libelle, nombre: p.nombre }) : p.libelle;
-        return boutonDeFiche(`possession/${p.uid}`, libelle, { porteur: f.id, ...(choisie ? {} : { objet: p.uid }) }, choisie);
-      }),
+    possessions: [
+      ...[...f.possessions]
+        .sort((a, b) => Number(b.equipee) - Number(a.equipee))
+        .map((p) => {
+          const choisie = ouverte.objet === p.uid;
+          const libelle = p.nombre > 1 ? t('ecran.fiche.possession', { libelle: p.libelle, nombre: p.nombre }) : p.libelle;
+          return boutonDeFiche(`possession/${p.uid}`, libelle, { porteur: f.id, ...(choisie ? {} : { objet: p.uid }) }, choisie);
+        }),
+      ...f.mentions.map((m) => puce(`mention/${m.nature}`, m.titre, m.mentions.map((x) => (x.nombre > 1 ? t('ecran.fiche.possession', { libelle: x.libelle, nombre: x.nombre }) : x.libelle)).join(', '))),
+    ],
   };
 }
 

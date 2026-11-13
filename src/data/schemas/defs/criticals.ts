@@ -3,9 +3,18 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
-import { cibleEtendueSchema, difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
+import {
+  cibleEtendueSchema,
+  difficultySchema,
+  enumNomme,
+  hitLocationSchema,
+  maisonSchema,
+  plageOuverteSchema,
+  sourceRefSchema,
+  formulaSchema,
+} from '../grammaire/valeurs';
 import { executeesDe, flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
-import { refs } from '../grammaire/ref';
+import { idDe, refs } from '../grammaire/ref';
 
 
 export const critTableSchema = enumNomme({ tete: 'Tête', bras: 'Bras', corps: 'Corps', jambe: 'Jambe' });
@@ -21,8 +30,8 @@ const noeudCritique = noeudTest(flowSchema, { difficulteRequise: true });
 
 export const critEscalationSchema = nommerChamps(z.strictObject({
 
-  perRound: nommerChamps(z.strictObject({ versTraumaId: z.string(), unites: z.number().optional() }), { versTraumaId: { label: 'séquelle résultante' }, unites: { label: 'unités' } }).optional(),
-  apresDelai: nommerChamps(z.strictObject({ jours: formulaSchema, versTraumaId: z.string() }), { jours: { label: 'jours' }, versTraumaId: { label: 'séquelle résultante' } }).optional(),
+  perRound: nommerChamps(z.strictObject({ versTraumaId: idDe('trauma'), unites: z.number().optional() }), { versTraumaId: { label: 'séquelle résultante' }, unites: { label: 'unités' } }).optional(),
+  apresDelai: nommerChamps(z.strictObject({ jours: formulaSchema, versTraumaId: idDe('trauma') }), { jours: { label: 'jours' }, versTraumaId: { label: 'séquelle résultante' } }).optional(),
 
   medicalAidGate: nommerChamps(z
     .strictObject({
@@ -42,7 +51,7 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
   // LDB 18 l.71 ; AA 07 l.96.
   onRepeat: nommerChamps(z
     .strictObject({
-      traumas: z.array(z.string()).optional(),
+      traumas: refs('trauma').optional(),
       ops: executeesDe().optional(),
     }), { traumas: { label: 'séquelles' }, ops: { label: 'opérations' } })
     .optional(),
@@ -51,7 +60,7 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
     .strictObject({
       label: z.string(),
       location: hitLocationSchema.optional(),
-      whileCondition: z.string(),
+      whileCondition: idDe('etat'),
       test: noeudCritique,
     }), {
     label: { label: 'libellé' },
@@ -61,7 +70,7 @@ export const critEscalationSchema = nommerChamps(z.strictObject({
   })
     .optional(),
   // LDB 18 l.304.
-  onHealGrant: nommerChamps(z.strictObject({ scar: z.string(), whenClear: z.array(z.string()) }), { scar: { label: 'cicatrice' }, whenClear: { label: 'États à retirer' } }).optional(),
+  onHealGrant: nommerChamps(z.strictObject({ scar: idDe('trauma'), whenClear: refs('etat') }), { scar: { label: 'cicatrice' }, whenClear: { label: 'États à retirer' } }).optional(),
 }), {
   perRound: { label: 'par Round' },
   apresDelai: { label: 'après un délai' },
@@ -98,7 +107,7 @@ export const rangee = nommerChamps(z.strictObject({
   test: noeudCritique.optional(),
   lethal: z.boolean().optional(),
   amputation: amputationSchema.optional(),
-  traumas: z.array(z.string()).optional(),
+  traumas: refs('trauma').optional(),
   escalation: critEscalationSchema.optional(),
   // Note MAISON (#195) : trace éditable d'une valeur mécanique absente littéralement du texte RAW (règle stricte 7).
   maison: maisonSchema.optional(),

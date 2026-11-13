@@ -10,7 +10,22 @@
  * defenseModifiers — et ne s'applique qu'aux jets d'arme qui IMPLIQUENT la main blessée (jamais un charMod
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
-import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Difficulty, UpkeepDeferTest, Weapon, effectRef, locationLabel, type BodyShape, type ModFamille, type Main } from './types';
+import {
+  Combatant,
+  CharKey,
+  CHAR_LABELS,
+  HitLocation,
+  ItemInstance,
+  Trauma,
+  Difficulty,
+  UpkeepDeferTest,
+  Weapon,
+  effectRef,
+  locationLabel,
+  type BodyShape,
+  type ModFamille,
+  type Main,
+} from './types';
 import { RNG } from './dice';
 import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';
@@ -117,8 +132,9 @@ export interface TraumaFiche {
   maison?: string;
 }
 
-const FICHES = traumasJson as TraumaFiche[];
-const ficheById = indexParId('traumas', FICHES);
+/** Les fiches de `traumas.json`, lues ici seul : le seam (`data/overrides.ts`) les importe. */
+export const TRAUMA_FICHES = traumasJson as TraumaFiche[];
+const ficheById = indexParId('traumas', TRAUMA_FICHES);
 
 /** Fiche de Traumatisme par id STABLE (`traumas.json`). Lève si l'id est inconnu (réf cassée = bug data). */
 export function traumaFicheById(id: string): TraumaFiche {
@@ -422,7 +438,7 @@ export function amputationCombatPenalty(c: Combatant, weapon: Weapon): number {
 }
 
 /** Fiches à règle de cumul déclarée (`TraumaCumul`) — l'ordre du registre fixe l'ordre de consolidation. */
-const cumulFiches = memoParVersion('traumas', () => FICHES.filter((f) => f.cumul));
+const cumulFiches = memoParVersion('traumas', () => TRAUMA_FICHES.filter((f) => f.cumul));
 const IS_CUMUL = (t: Trauma): boolean => cumulFiches().some((f) => f.id === t.traumaId);
 
 /** Séquelle cumulative agrégée : `total` unités à `loc`, ops recalculées ; le libellé porte la

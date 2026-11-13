@@ -30,7 +30,7 @@ export const ZONES_SANS_REEXPORTATION = Object.freeze(['state', 'noyau', 'scenes
 export const PAQUETS_DE_L_HOTE_WEB = Object.freeze(['react', 'react-dom', 'zustand', 'three']);
 
 const FEUILLES = Object.freeze(['lib', 'geometry', 'i18n']);
-const AMONT_DE_LA_PRESENTATION = Object.freeze(['state', 'noyau', 'web', 'scenes', 'data', 'engine', 'net', 'audio', ...FEUILLES]);
+const AMONT_DE_LA_PRESENTATION = Object.freeze(['state', 'noyau', 'web', 'scenes', 'data', 'engine', 'audio', ...FEUILLES]);
 
 /** Les droits d'un hôte du noyau (#2898, #2928) : la porte du noyau, les scénarios et les feuilles. */
 const DROITS_D_HOTE = Object.freeze({ importe: Object.freeze(['noyau', 'scenes', ...FEUILLES]), portes: Object.freeze({ noyau: SURFACE_DU_NOYAU }), survit: true });
@@ -55,12 +55,14 @@ export const COUCHES = Object.freeze({
     dossier: 'hotes',
     ...DROITS_DES_HOTES,
     outillage: {
-      'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/lister.mjs'],
+      'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/fileBornee.mjs', 'scripts/guards/lib/lister.mjs'],
+      'hotes/godot/avis.mjs': ['scripts/guards/lib/lister.mjs'],
       'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],
       'hotes/godot/asset/importer.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/asset/release.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
-      'hotes/godot/etalons.mjs': ['scripts/recette/lib.mjs', 'scripts/qc/lib/pngDecode.mjs'],
-      'hotes/godot/recette.mjs': ['scripts/recette/lib.mjs', 'scripts/guards/lib/projetsLivres.mjs', 'scripts/qc/lib/pngDecode.mjs'],
+      'hotes/godot/etalons.mjs': ['scripts/guards/lib/fileBornee.mjs', 'scripts/recette/lib.mjs', 'scripts/qc/lib/pngDecode.mjs'],
+      'hotes/godot/pilotage/': ['scripts/recette/lib.mjs'],
+      'hotes/godot/recette.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/qc/lib/pngDecode.mjs'],
       'hotes/godot/servir.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/source/projetLivre.mjs', 'scripts/source/resoudre.mjs', 'scripts/source/prose-source-plugin.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs'],
     },
     paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
@@ -70,10 +72,9 @@ export const COUCHES = Object.freeze({
     survit: true,
     outillage: { 'src/scenes/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
   },
-  net: { importe: [...FEUILLES], types: ['hote'] },
   web: { importe: [...FEUILLES] },
   audio: { importe: ['hote', 'data', ...FEUILLES] },
-  state: { importe: ['noyau', 'hote', 'web', 'engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },
+  state: { importe: ['noyau', 'hote', 'web', 'engine', 'data', 'scenes', 'audio', ...FEUILLES], types: ['ui'] },
   ui: { importe: ['gameIso', 'hote', ...AMONT_DE_LA_PRESENTATION] },
   gameIso: { importe: ['ui', ...AMONT_DE_LA_PRESENTATION] },
   racine: { dossier: 'src', importe: '*' },

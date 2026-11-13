@@ -35,13 +35,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-08-23",
   },
   {
-    fichier: "src/engine/provisions.ts",
-    motif: "rétro-compat",
-    ancre: "de cale (le port avitaille les deux). Absent = seuls les héros comptent (rétro-compat). */",
-    lot: "L4",
-    date: "2026-08-23",
-  },
-  {
     fichier: "src/engine/trauma.ts",
     motif: "legacy",
     ancre: "Omis (tests/legacy) ⇒ pas de décompte (séquelle permanente jusqu'à traitement explicite). */",
@@ -220,13 +213,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/engine/combat.ts",
     motif: "désormais",
     ancre: "*Groupées* — chaque Spécialisation (désormais un `spec` = id de Groupe, cf. `SkillData.specsSource`)",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/engine/combatFeatures/types.ts",
-    motif: "désormais",
-    ancre: "(Le +DR de Talent — Menaçant → Intimidation — est désormais la règle UNIVERSELLE `talentTestSLBonus`",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

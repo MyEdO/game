@@ -7,7 +7,10 @@ import { volumeDuMonde } from './volume/volume';
 import { casesMontrees } from './volume/volume.testkit';
 import { depuisBase64 } from '../../lib/base64';
 import { METRES_PER_LEVEL } from './relief';
-import { structureAppearances } from '../../data';
+import { structureAppearances, terrains } from '../../data';
+import { datasetArray, setDataset } from '../../data/overrides';
+import { garanti } from '../../lib/garanti';
+import { terrainAbsent } from './terrain';
 
 /** Une scène dont `walls` sont les murs, et dont un corps de bâtiment porte une façade d'auberge sur l'arête nord de (1, 1). */
 function scene(walls: WallSeg[]): Scene {
@@ -67,7 +70,7 @@ describe('areteDessinee — la famille du kit et la hauteur', () => {
 describe('aretesDeLaCouche', () => {
   it('les arêtes de la couche, chacune posée au milieu de son côté et dans son sens', () => {
     const s = scene([{ x: 1, y: 2, side: 'N' }, { x: 1, y: 2, side: 'E', z: 1 }]);
-    expect(aretesDeLaCouche(s, 0).map(({ case: c, milieu, sens }) => ({ c, milieu, sens }))).toEqual([{ c: { x: 1, y: 2 }, milieu: { x: 1, y: 1.5 }, sens: { x: 1, y: 0 } }]);
+    expect(aretesDeLaCouche(s, 0).map(({ milieu, sens }) => ({ milieu, sens }))).toEqual([{ milieu: { x: 1, y: 1.5 }, sens: { x: 1, y: 0 } }]);
     expect(aretesDeLaCouche(s, 1).map(({ milieu, sens }) => ({ milieu, sens }))).toEqual([{ milieu: { x: 1.5, y: 2 }, sens: { x: 0, y: 1 } }]);
   });
 });
@@ -77,7 +80,19 @@ describe('aretesDeLaScene — les arêtes de toutes les couches (#3476)', () => 
     const s = scene([{ x: 0, y: 0, side: 'N' }, { x: 1, y: 1, side: 'E', z: 1 }]);
     s.layers.push({ z: 1, tiles: new Array(16).fill('plancher'), height: new Array(16).fill(METRES_PER_LEVEL) });
     const aretes = aretesDeLaScene(s);
-    expect(aretes.map((a) => [a.case, a.pied])).toEqual([[{ x: 0, y: 0 }, 0], [{ x: 1, y: 1 }, METRES_PER_LEVEL]]);
+    expect(aretes.map((a) => [a.cle, a.pied])).toEqual([['0,0,N,0', 0], ['1,1,E,1', METRES_PER_LEVEL]]);
+  });
+});
+
+describe('areteDessinee — les cases qu’elle sépare (#3950)', () => {
+  const cases = (s: Scene, seg: WallSeg) => areteDessinee(s, seg).cases;
+  it('la case du segment puis sa voisine à travers son côté, à la couche du segment', () => {
+    expect(cases(scene([]), { x: 1, y: 2, side: 'N' })).toEqual([{ x: 1, y: 2, z: 0 }, { x: 1, y: 1, z: 0 }]);
+    expect(cases(scene([]), { x: 1, y: 2, side: 'E', z: 1 })).toEqual([{ x: 1, y: 2, z: 1 }, { x: 2, y: 2, z: 1 }]);
+  });
+  it('au bord de la carte, la seule case dans la carte', () => {
+    expect(cases(scene([]), { x: 2, y: 0, side: 'N' })).toEqual([{ x: 2, y: 0, z: 0 }]);
+    expect(cases(scene([]), { x: 3, y: 1, side: 'E' })).toEqual([{ x: 3, y: 1, z: 0 }]);
   });
 });
 
@@ -233,5 +248,33 @@ describe('plateauDeLaScene — ce que chaque regard retire (#3476)', () => {
     expect(regardDuJeu('immersion', true)).toBe('tactique');
     expect(regardDuJeu('immersion', false)).toBe('immersion');
     expect(regardDuJeu('plateau', true)).toBe('plateau');
+  });
+});
+
+describe('les arêtes dessinées suivent le catalogue des terrains édité (#4040)', () => {
+  it('une case de face devenue absente ne porte plus le pied de l’arête : la clé des arêtes change, puis revient', () => {
+    const base = emptyScene('pied', 4, 4);
+    const sol = base.layers[0].tiles[0];
+    const autre = garanti(terrains.find((t) => t.id !== sol && !t.absence && !t.bordDuMonde), 'terrain', 'autre que la semence').id;
+    const bas = 2 * 4 + 1;
+    const s: Scene = {
+      ...base,
+      layers: [{ ...base.layers[0], tiles: base.layers[0].tiles.map((t, i) => (i === bas ? autre : t)), height: base.layers[0].tiles.map((_, i) => (i === bas ? 0 : 2)) }],
+      walls: [{ x: 1, y: 2, side: 'N' }],
+    };
+    const lu = () => plateauDeLaScene(s, [{ x: 3, y: 3, z: 0 }], 'tactique');
+    expect(s.layers[0].tiles.filter((t) => t === autre), `seule la case (1, 2) porte « ${autre} »`).toHaveLength(1);
+    const avant = lu();
+    expect(areteDessinee(s, { x: 1, y: 2, side: 'N' }).pied, `la case (1, 2) de « ${autre} », au sol 0, porte le pied`).toBe(0);
+    const catalogue = [...datasetArray('terrains')];
+    const vide = terrainAbsent();
+    try {
+      setDataset('terrains', catalogue.map((t) => (t.id === autre ? { ...t, absence: true } : t.id === vide ? { ...t, absence: undefined } : t)));
+      expect(lu().cleDesAretes, `« ${autre} » absent : la clé des arêtes change`).not.toBe(avant.cleDesAretes);
+      expect(aretesDeLaScene(s).map((a) => a.pied), `« ${autre} » absent : le pied passe à la case (1, 1), au sol 2`).toEqual([2]);
+    } finally {
+      setDataset('terrains', catalogue);
+    }
+    expect(lu().cleDesAretes, 'catalogue restauré : la clé des arêtes d’avant').toBe(avant.cleDesAretes);
   });
 });

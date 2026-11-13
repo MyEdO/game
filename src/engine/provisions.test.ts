@@ -3,7 +3,21 @@ import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from './items';
 import { Characteristics, Combatant, ItemInstance, type UpkeepDeferTest } from './types';
 import { makeRNG, RNG } from './dice';
-import { dailyFoodUpkeep, applyFaimTest, isStarving, hungerCharPenalties, rationCount, isRation, dailyWaterUpkeep, applySoifTest, isThirsty, isDeprived, thirstCharPenalties, provisioningManifest } from './provisions';
+import {
+  dailyFoodUpkeep,
+  applyFaimTest,
+  isStarving,
+  hungerCharPenalties,
+  rationCount,
+  isRation,
+  dailyWaterUpkeep,
+  applySoifTest,
+  isThirsty,
+  isDeprived,
+  thirstCharPenalties,
+  provisioningManifest,
+  type VivresDeCale,
+} from './provisions';
 import { effectiveChar } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { RULE_REF } from './ruleRefs';
@@ -33,6 +47,10 @@ function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; tr
 const fixed = (roll: number): RNG => deSelonLaPlage((_min, max) => (max === 100 ? roll : max));
 
 describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () => {
+  it('la ration du catalogue porte le libellé du livre (LDB 66 l.20)', () => {
+    expect(ration('r').label).toBe('Vivres, 1 jour');
+  });
+
   it('consomme 1 ration/jour ; nourri = pas de faim', () => {
     const c = hero({ rations: 2 });
     const r = dailyFoodUpkeep(c, 30, 3, makeRNG(1));
@@ -298,8 +316,8 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
 
     it('#245 — l’équipage PNJ compte dans la population (eau ET vivres)', () => {
       const party = [hero({ rations: 6 }), hero({ rations: 6 })]; // 2 héros, 12 rations portées
-      // 10 marins PNJ embarqués, 30 jours de vivres de cale.
-      const m = provisioningManifest(party, 1000, 3, { count: 10, provisions: 30 });
+      // 10 marins PNJ embarqués, 30 jours-homme de vivres de cale sur deux vivres.
+      const m = provisioningManifest(party, 1000, 3, { count: 10, provisions: { 'nourriture-courses-journee': 12, 'ration-biscuits-de-mer': 18 } as VivresDeCale });
       expect(m.souls).toBe(12); // 2 héros + 10 PNJ
       expect(m.eauRequiseLitres).toBe(12 * 3 * 3); // souls × jours × 3 L (médiane) = 108
       expect(m.rationsRequises).toBe(2 * 3 + 10 * 3); // héros (6) + équipage (30) = 36
@@ -309,7 +327,7 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
 
     it('#245 — vivres de cale insuffisants pour l’équipage → manifeste en déficit', () => {
       const party = [hero({ rations: 10 })];
-      const m = provisioningManifest(party, 1000, 5, { count: 8, provisions: 5 }); // équipage requiert 40, cale 5
+      const m = provisioningManifest(party, 1000, 5, { count: 8, provisions: { 'ration-nourriture-preservee': 5 } as VivresDeCale }); // équipage requiert 40, cale 5
       expect(m.souls).toBe(9);
       expect(m.rationsRequises).toBe(5 + 40);
       expect(m.rationsDispo).toBe(10 + 5); // 15 < 45

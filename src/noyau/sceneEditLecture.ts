@@ -5,9 +5,32 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { dialoguesDeLaScene, sceneMetresPerTile, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import {
+  dialoguesDeLaScene,
+  sceneMetresPerTile,
+  type EntityKind,
+  type FaceDArete,
+  type Scene,
+  type SceneEffectZone,
+  type SceneEntity,
+  type Trigger,
+  type WallSeg,
+  type WallSide,
+  type ZoneArea,
+  type CellSide,
+  canonEdge,
+  porteAuteur,
+} from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import {
+  faceDAreteSchema,
+  optionalDeSceneSchema,
+  sceneEffectZoneSchema,
+  sceneEntitySchema,
+  sceneSchema,
+  triggerSchema,
+  type Terrain,
+} from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
@@ -23,7 +46,21 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, estUnNavireAPonts, findCreatureById, findTrappingById, profilsStandard, refEstVolumique, siegeEngines, spells, trappingsInstanciables, structureAppearances, structures, traits, type CreatureData } from '../data';
+import {
+  creatures,
+  estUnNavireAPonts,
+  findCreatureById,
+  findTrappingById,
+  profilsStandard,
+  refEstVolumique,
+  siegeEngines,
+  spells,
+  trappingsInstanciables,
+  structureAppearances,
+  structures,
+  traits,
+  type CreatureData,
+} from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
@@ -194,17 +231,10 @@ export function entityAt(scene: Scene, p: Pt, z = 0, point: Pt = p): SceneEntity
   return candidates.sort((a, b) => ecart(a) - ecart(b) || porte(a, b))[0];
 }
 
-/** Arête (case, side N/E/S/O) → forme CANONIQUE (case, N|E). */
-export function canonEdge(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
-  if (side === 'S') return { x, y: y + 1, side: 'N' };
-  if (side === 'O') return { x: x - 1, y, side: 'E' };
-  return { x, y, side };
-}
-
 /** État d'une arête : 'none' | 'wall' (pleine) | 'door' (franchissable), sur l'étage `z`. */
 export function edgeWallState(scene: Scene, x: number, y: number, side: CellSide, z = 0): 'none' | 'wall' | 'door' {
   const e = canonEdge(x, y, side);
-  const w = (scene.walls ?? []).find((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === z);
+  const w = aretesA(scene, e.x, e.y, e.side, z)[0];
   return !w ? 'none' : porteAuteur(w) ? 'door' : 'wall';
 }
 

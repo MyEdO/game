@@ -27,6 +27,8 @@ import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
 import { hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
+import { nomDe } from './nom';
+import { t } from '../i18n';
 import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import { valeurSansTirage } from './formule';
 import type { SpellRange, SpellTarget } from './spellRange';
@@ -34,7 +36,14 @@ import type { SpellDuration } from './spellDuration';
 import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf, overcastBudget } from './overcast';
 import { arcaneDomainIdOf, castingKindOf, featuresOf, chaosDomainOf } from './combatFeatures/dispatch';
 import { isPrayerFamily } from './combatFeatures/types';
-import { domainMissileMods, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
+import {
+  domainMissileMods,
+  domainSeaFocalisationDR,
+  domainSeaFocalisationDoubled,
+  domainSeaIncantationDR,
+  domainSeaWidensCritFumble,
+  domainWindDR,
+} from './domainAttributes';
 import type { WindContext } from './domainAttributes';
 import { environmentTestDR, environmentWidensCrit, environmentNIMods } from './magicEnvironment';
 import type { MagicEnvironment } from './magicEnvironment';
@@ -928,9 +937,9 @@ export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult
     casterNetSL: net,
     // Le jet du contre-lanceur n'a AUCUNE rangée : sa ligne se DÉRIVE (`traceLineOf`), au patron unique.
     log: traceLineOf({
-      label: `Contre-sort de ${counter.label}`,
+      label: t('contreSort.trace', { name: nomDe(counter) }),
       roll: counterT.roll, target: counterT.target, sl: counterT.sl, success: dispelled,
-      issue: dispelled ? 'le Sort est DISSIPÉ' : `insuffisant — l'incantation se résout à DR ${net}`,
+      issue: dispelled ? t('contreSort.dissipe') : t('contreSort.insuffisant', { dr: net }),
     }),
   };
 }
@@ -1112,8 +1121,8 @@ export function evaluateMissile(
   const woundsLost = Math.max(1, damage - (tb + ap));
   const defeated = target.wounds.current - woundsLost <= 0;
   const mitLabel =
-    [spellDmg?.ignoreBE ? null : 'BE', spellDmg?.ignorePA ? null : 'PA'].filter(Boolean).join('+') || 'rien';
-  const touche: ToucheDuJournal = { attaquant: caster.label, cible: target.label, forme: target.bodyShape, mitigation: mitLabel, sort: spell.label };
+    [spellDmg?.ignoreBE ? null : 'BE', spellDmg?.ignorePA ? null : 'PA'].filter(Boolean).join('+') || t('touche.mitigationNulle');
+  const touche: ToucheDuJournal = { attaquant: nomDe(caster), cible: nomDe(target), forme: target.bodyShape, mitigation: mitLabel, sort: spell.label };
   return {
     ...cr,
     hit: true,

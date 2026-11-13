@@ -6,6 +6,7 @@
  * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée la même valeur que l'éditeur web.
  */
 import type { Formula, GameOp } from '../engine/ops';
+import { VIVRES_DE_CALE } from '../engine/seaNavigation';
 import type { JsonFormula } from '../engine/miscast';
 import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
@@ -19,7 +20,19 @@ import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
 import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
-import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type UnionDuNoeud, type VarianteDuNoeud } from './codex/editFields';
+import {
+  admetUneListe,
+  bornesDuNoeud,
+  champsDeclares,
+  choixDuNoeud,
+  kindDuNoeud,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  videDuNoeud,
+  type UnionDuNoeud,
+  type VarianteDuNoeud,
+} from './codex/editFields';
 
 
 /** Règles optionnelles NUMÉRIQUES (`kind: 'param'`) — seules éligibles au terme `{rule}` d'une Formula
@@ -233,7 +246,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'navireMod': return { op: 'navireMod', m: -1, jusqua: 'carenage' };
     case 'meteoImposee': return { op: 'meteoImposee', jours: { dice: { n: 1, sides: 10 } }, meteo: { vent: 'calme-plat' } };
     case 'cargaison': return { op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } };
-    case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } };
+    case 'provisions': return { op: 'provisions', jours: { dice: { n: 1, sides: 10 } }, vivre: { id: VIVRES_DE_CALE.vivres[0] } };
     case 'equipage': return { op: 'equipage', delta: 1 };
     case 'perilDeMer': return { op: 'perilDeMer', collision: { id: '' } };
     case 'navireHostile': return { op: 'navireHostile', navire: { id: '' }, equipage: { id: '', nombre: 1 } };

@@ -11,7 +11,10 @@ import { TRONC, depotDe, fetchOrigin, lireEnLot, reussi, shaDe } from '../guards
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const NOM = 'main'
-export const PARAMETRES_DU_DEPOT = Object.freeze({ allow_auto_merge: true })
+/** Réglages du dépôt. `merge_commit_title` et `merge_commit_message` font le message d'un commit de file,
+ *  `Merge pull request #<N> from <branche>` puis le titre de la PR : la clé de `concurrency` de `ci.yml`
+ *  (#3412). */
+export const PARAMETRES_DU_DEPOT = Object.freeze({ allow_auto_merge: true, merge_commit_title: 'MERGE_MESSAGE', merge_commit_message: 'PR_TITLE' })
 
 /** Chemin de `ci.yml`, relatif à la racine du dépôt. */
 const CI = '.github/workflows/ci.yml'
@@ -31,14 +34,14 @@ export const DELAI_DE_REPONSE_MINUTES = 2 * TIMEOUT_JOB_MINUTES
  * Paramètres de la règle `merge_queue` — les sept que le schéma `repository-rule-merge-queue` exige.
  * `MERGE` : les commits de la branche entrent avec LEURS shas (#2178, design v2). `ALLGREEN` : chaque
  * commit de file passe les checks requis. `min_entries_to_merge: 1` : aucune attente de groupe.
- * `max_entries_to_build: 2` : une course de `ci.yml` démarre 10 jobs (`contextesRequis`), dont ceux d'une
+ * `max_entries_to_build: 2` : une course de `ci.yml` démarre 11 jobs (`contextesRequis`), dont ceux d'une
  * autre course sautent leurs steps en quelques secondes (#3412, en tête de `ci.yml`) : une course de file
- * en JOUE 9, une course de branche 1 (`JOB_DE_BRANCHE`). Le plan `free` de l'organisation `MyEdO`
+ * en JOUE 10, une course de branche 1 (`JOB_DE_BRANCHE`). Le plan `free` de l'organisation `MyEdO`
  * (`gh api orgs/MyEdO --jq .plan.name`) en sert 20 à la fois (limits.md, tableau « Total concurrent
- * jobs »). Deux entrées de file tiennent 2 × 9 = 18 runners ; il en reste 2 pour TOUTE course de branche,
- * dont chaque job sauté rend son runner en secondes : N courses de branche simultanées tiennent N
- * runners, et attendent dès que 18 + N > 20, soit dès N = 3. L'attente se mesure `createdAt` →
- * `startedAt` (#2178, design du lot 1b §5).
+ * jobs »). Deux entrées de file démarrées ensemble tiennent 2 × 10 = 20 runners, jusqu'à la fin de leur
+ * job le plus court (`migrations`, 1 min 45 à la course 43424641848) : une course de branche lancée dans
+ * cet intervalle attend qu'il rende son runner. L'attente se mesure `createdAt` → `startedAt` (#2178, design
+ * du lot 1b §5).
  */
 export const PARAMETRES_DE_FILE = Object.freeze({
   check_response_timeout_minutes: DELAI_DE_REPONSE_MINUTES,
@@ -220,7 +223,7 @@ export function executer({
     const id = idExistant(runner)
     writeFileSync(fichier, JSON.stringify(PARAMETRES_DU_DEPOT))
     runner(['api', '-X', 'PATCH', `repos/${DEPOT}`, '--input', fichier])
-    sortie('[ruleset] dépôt : allow_auto_merge=true\n')
+    sortie(`[ruleset] dépôt : ${Object.entries(PARAMETRES_DU_DEPOT).map(([nom, valeur]) => `${nom}=${valeur}`).join(', ')}\n`)
     writeFileSync(fichier, JSON.stringify(corps))
     const cible = id === null ? `repos/${DEPOT}/rulesets` : `repos/${DEPOT}/rulesets/${id}`
     runner(['api', '-X', id === null ? 'POST' : 'PUT', cible, '--input', fichier])

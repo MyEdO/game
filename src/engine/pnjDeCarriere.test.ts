@@ -3,12 +3,22 @@
  * parcours sur les carrières réelles du Livre de base.
  */
 import { describe, it, expect } from 'vitest';
-import { argentDuPnj, carriereActuelle, designationsDeCarriere, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
+import {
+  argentDuPnj,
+  carriereActuelle,
+  designationsDeCarriere,
+  parcoursRetouche,
+  porterAuParcours,
+  refusDuParcours,
+  talentsDuParcours,
+  type ParcoursDeCarriere,
+} from './pnjDeCarriere';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
-import { levelsForCareer } from '../data';
+import { fabricationAtouts, findTrappingById, groupeDeLArme, levelsForCareer } from '../data';
+import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
 import { availableChars, skillSlots, talentSlots } from './careerSlots';
 import { isCareerLevelComplete } from './advancement';
 import { augmenterLaCompetence } from './character';
@@ -150,6 +160,24 @@ describe('dotations de la carrière actuelle et de ses Niveaux inférieurs, sans
   });
 });
 
+describe('armes au choix du PNJ : joker d’un Groupe d’armes, joker à Atout (fixture)', () => {
+  const dot = adresseDeCreation.dotation;
+  const avecFixture = <T>(fn: () => T): T => avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, fn);
+  it('sans choix, le joker de Groupe tire une arme de son Groupe, le joker à Atout son arme et un Atout de Fabrication', () => {
+    avecFixture(() => {
+      const items = porte({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([0])]: 'fouet', [dot([2])]: 0, [dot([2, 0])]: 0, [dot([4])]: 0, [dot([6])]: 'rapiere' } }).items!;
+      expect(items.filter((i) => groupeDeLArme(findTrappingById(i.trappingId!)!)?.id === 'deux-mains')).toHaveLength(1);
+      expect(items.find((i) => i.trappingId === 'rapiere')!.qualities.filter((q) => fabricationAtouts().includes(q.id))).toHaveLength(1);
+    });
+  });
+  it('refuse une arme hors du Groupe du joker, admet une arme du Groupe et un Atout de Fabrication', () => {
+    avecFixture(() => {
+      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'rapiere' } })).toMatch(/valeur/);
+      expect(refusDuParcours({ carrieres: { artiste: 1 }, dotationsDeCarriere: { [dot([5])]: 'grande-hache', [dot([6])]: 'rapiere', [dot([6, 0])]: 'solide' } })).toBeUndefined();
+    });
+  });
+});
+
 describe('refusDuParcours et parcoursRetouche', () => {
   it('refuse un Niveau absent, un Talent qu’aucun Niveau atteint n’offre, une Compétence sans emplacement, une dotation hors emplacement', () => {
     expect(refusDuParcours({ carrieres: { medecin: 3 } })).toBeUndefined();
@@ -181,5 +209,20 @@ describe('argentDuPnj — l’argent du PNJ qui n’en porte pas, dans sa Bourse
     setBourseBrass(c, 7, () => 'langstrasse-bourse');
     argentDuPnj(c);
     expect([toBrass(bourseOf(c)), c.items!.filter((i) => i.trappingId === 'bourse').length]).toEqual([7, 1]);
+  });
+});
+
+describe('porterAuParcours — l’argent et les mentions imprimés aux Niveaux atteints (EDO 11 l.19, l.44)', () => {
+  it('le Marchand de Niveau 2 porte les 3d10 pistoles du Niveau 1 et les 20 couronnes du Niveau 2, sans revenu de Statut', () => {
+    for (const id of ['a', 'b', 'c']) {
+      const c = porte({ carrieres: { marchand: 2 } }, id);
+      const avant = toBrass(bourseOf(c));
+      argentDuPnj(c);
+      const pistoles = (avant - 20 * 240) / 12;
+      expect([Number.isInteger(pistoles) && pistoles >= 3 && pistoles <= 30, toBrass(bourseOf(c))], String(pistoles)).toEqual([true, avant]);
+    }
+  });
+  it('le Tueur de Niveau 1 porte sa mention « Honte »', () => {
+    expect(porte({ carrieres: { tueur: 1 } }).mentions).toEqual([{ nature: 'intangible', label: 'Honte', nombre: 1 }]);
   });
 });

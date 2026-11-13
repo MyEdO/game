@@ -3,6 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { refs } from '../grammaire/ref';
 
 export const file = 'qualities.json';
 export const famille = 'entite';
@@ -35,7 +36,7 @@ const qualityCapabilities = nommerChamps(z.strictObject({
   unbreakable: z.boolean().optional(),
   magic: z.boolean().optional(),
   withheldOnRestraint: z.boolean().optional(),
-  beats: z.array(z.string()).optional(),
+  beats: refs('quality').optional(),
 }), {
   fastStrike: { label: 'Frappe rapide' },
   slowStrike: { label: 'Frappe lente' },
@@ -70,8 +71,7 @@ const doc = document(
   {
     /** LDB 60 l.9/l.40 ; LDB 62 l.217/l.309 ; LDB 63 l.68/l.80 */
     polarite: z.enum(['atout', 'defaut']),
-    /** `subType` observé : 'arme' | 'armure' | 'objet' (59/59) ; `QualityData.subType` autorise aussi
-     *  `null` (TS `string | null`), non vu dans les 59 entrées actuelles mais le type source fait foi. */
+    /** Id de `qualitySubtypes.json` ; `null` = aucun sous-type. */
     subType: z.enum(['arme', 'armure', 'objet']).nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
     passive: passifsDe().optional(),

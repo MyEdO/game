@@ -1,7 +1,7 @@
 /**
  * #1050 — chemin COMPLET des gestes remis en surface : allowlist (`GUEST_INTENTS`) → possession
  * (`intentAllowedFor`) → action jouée AU NOM du siège (`withActingSeat`) → EFFET dans l'état. Le
- * défaut gardé n'est PAS un refus : hors allowlist, `netFlow` n'enrobe pas l'action, l'invité la
+ * défaut gardé n'est PAS un refus : hors allowlist, `transmettreLesIntentions` n'enrobe pas l'action, l'invité la
  * joue sur SON état local, et le snapshot suivant de l'hôte l'efface — sans message ni journal.
  *
  * Quatre familles, une par cause :
@@ -67,7 +67,7 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   return { h2, h3, e1 };
 }
 
-/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle le salon (`hote/coop/salon.ts`). */
 const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(banc.getState, seat, action, args);
 
 /** Sort ENNEMI opposé, figé, dont `h2` (siège 1) est la cible : la fenêtre d'incantation est PARTAGÉE

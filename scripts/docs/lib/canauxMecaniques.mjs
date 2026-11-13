@@ -41,6 +41,32 @@ function membres(decl, sf) {
   return out
 }
 
+/** Le schéma `S` qu'un alias de type infère (`type X = z.infer<typeof S>` ou `z.output<typeof S>`), ou `null`. */
+export function schemaInfere(alias, sf) {
+  return /^z\.(?:infer|output)<typeof (\w+)>$/.exec(plat(alias.type.getText(sf)))?.[1] ?? null
+}
+
+/** Les champs de l'objet zod (`z.strictObject({…})` ou `z.object({…})`, le premier atteint) que déclare la constante
+ *  `nom` de `sf`, ou `null` quand `sf` ne la déclare pas ainsi. */
+export function champsDuSchemaObjet(sf, nom) {
+  let champs = null
+  const objet = (n) => {
+    if (champs) return
+    if (ts.isCallExpression(n) && /^z\.(strictObject|object)$/.test(n.expression.getText(sf)) && n.arguments[0] && ts.isObjectLiteralExpression(n.arguments[0])) {
+      champs = n.arguments[0].properties.flatMap((p) => (p.name ? [p.name.getText(sf)] : []))
+      return
+    }
+    n.forEachChild(objet)
+  }
+  const visite = (n) => {
+    if (champs) return
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === nom && n.initializer) objet(n.initializer)
+    else n.forEachChild(visite)
+  }
+  sf.forEachChild(visite)
+  return champs
+}
+
 /**
  * @param {string[]} fichiers chemins de sources TypeScript à sonder
  * @returns {{entites: Array, typesDrapeaux: Array}} entités portant ≥1 canal (triées par nom), et
@@ -50,10 +76,14 @@ export function mesurerCanaux(fichiers) {
   const entites = []
   /** nom de type de drapeaux → déclaration trouvée (toutes les interfaces du périmètre). */
   const interfaces = new Map()
+  /** nom de type de drapeaux INFÉRÉ d'un schéma (`z.infer<typeof S>`) → son site et `S`. */
+  const alias = new Map()
+  const corpus = [...analyserCorpus(fichiers.map((f) => ({ rel: f, text: readFileSync(f, 'utf8') })))]
 
-  for (const { fichier: { rel: f }, sourceFile: sf } of analyserCorpus(fichiers.map((f) => ({ rel: f, text: readFileSync(f, 'utf8') })))) {
+  for (const { fichier: { rel: f }, sourceFile: sf } of corpus) {
     const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
     const visite = (n) => {
+      if (ts.isTypeAliasDeclaration(n) && schemaInfere(n, sf)) alias.set(n.name.text, { fichier: f, ligne: ligne(n), schema: schemaInfere(n, sf) })
       if (ts.isInterfaceDeclaration(n)) {
         const ms = membres(n, sf)
         interfaces.set(n.name.text, { fichier: f, ligne: ligne(n), champs: ms.map((m) => m.nom) })
@@ -80,7 +110,12 @@ export function mesurerCanaux(fichiers) {
     if (!t) continue
     for (const m of t.matchAll(/[A-Z][A-Za-z0-9_]*/g)) if (/Capabilities$|^CombatFeature$/.test(m[0])) noms.add(m[0])
   }
-  const typesDrapeaux = [...noms].sort(parUnitesDeCode).map((nom) => ({ nom, ...(interfaces.get(nom) ?? { fichier: null, ligne: null, champs: [] }) }))
+  const infere = (nom) => {
+    const a = alias.get(nom)
+    const champs = a && corpus.map(({ sourceFile }) => champsDuSchemaObjet(sourceFile, a.schema)).find(Boolean)
+    return champs ? { fichier: a.fichier, ligne: a.ligne, champs } : undefined
+  }
+  const typesDrapeaux = [...noms].sort(parUnitesDeCode).map((nom) => ({ nom, ...(interfaces.get(nom) ?? infere(nom) ?? { fichier: null, ligne: null, champs: [] }) }))
 
   return { entites, typesDrapeaux }
 }

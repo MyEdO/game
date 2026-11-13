@@ -10,7 +10,17 @@
 import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import { slBonus } from '../../engine/formule';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, causePersistante, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from './humanize';
+import {
+  humanizeOp,
+  humanizeFormula,
+  humanizePerSL,
+  causePersistante,
+  replieCausesPersistantes,
+  plural,
+  dureePropre,
+  plancher,
+  traitOctroyeLisible,
+} from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';

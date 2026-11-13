@@ -130,9 +130,9 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
    * autres chevauchent celui-ci par exactement deux noms (`pluie`, `neige`) :
    *  - la météo de SCÈNE `'clair'|'pluie'|'brouillard'|'neige'|'tempete'` (`noyau/monde/scene.ts:345`,
    *    `defs-scenes/scene.ts:510`, ses lecteurs `engine/exposure.ts:42`, `defs/ambiance.ts`,
-   *    `data/ambiance.types.ts` (`WeatherFxId`), `gameIso/stage/weather-portes.test.tsx`) — AUTRE axe, migration
+   *    `data/index.ts` (`WeatherFxId`), `gameIso/stage/weather-portes.test.tsx`) — AUTRE axe, migration
    *    possédée par #1585 ; une garde de CE canon qui la rougirait accuserait un innocent ;
-   *  - les particules de RENDU `'pluie'|'averse'|'neige'` (`WeatherFxDef.particles`, `data/ambiance.types.ts`).
+   *  - les particules de RENDU `'pluie'|'averse'|'neige'` (`WeatherFxDef.particles`, `data/index.ts`).
    * Restent, sur le vrai axe : le FOYER (le `z.enum` lui-même, `defs/weather.ts`, déclaré `foyer` comme
    * `communs.ts` l'est pour l'arête) et les deux narrowings RAW de `stageExposureDifficulty` (EDOC 8 l.90, modéré
    * pluie/neige vs extrême diluvienne/blizzard) — un `case` sur une valeur DÉJÀ typée `Weather` n'est
@@ -242,6 +242,10 @@ const s = alias.extract(['limitee', 'rare']);`, 1],
       ["const T: Record<string | 'x', string> = { a: '1' };", false],
       ['const T: Record<`${string}#x`, string> = { a: \'1\' };', false],
       ['const T: Record<`${Bone}#${View}`, string> = { a: \'1\' };', true],
+      ["const T: { readonly [M in View]: Mode & { id: M } } = { a: A };", true],
+      ["const T = { a: A } satisfies { [M in View]?: Mode };", true],
+      ["const T: { [M in string]: Mode } = { a: A };", false],
+      ["const T: { [M in View as `x${M}`]: Mode } = { a: A };", false],
     ];
     for (const [code, attendu] of CAS) expect(totale(code), code).toBe(attendu);
   });

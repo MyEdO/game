@@ -6,8 +6,8 @@
 import { afterEach, describe, it, expect } from 'vitest';
 import { drainer, erreurDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
-import { OPTIONAL_RULES, PREFERENCES, poserLesReglesMaisonPersistees, ruleOverrides } from '../../../src/noyau/index';
-import type { Bouton, Choix, Element, Entite, Formulaire, Ligne } from '../../../src/hote/elements';
+import { OPTIONAL_RULES, PREFERENCES, poserLesReglesMaisonPersistees, ruleOverrides, type OptionalRule } from '../../../src/noyau/index';
+import type { Bouton, Choix, Curseur, Element, Entite, Ligne } from '../../../src/hote/elements';
 import type { ZonesDeLAccueil } from '../../../src/hote/accueil';
 import type { ZonesDesReglages } from '../../../src/hote/reglages';
 import type { Pont } from './pont';
@@ -27,19 +27,19 @@ const preference = (z: ZonesDesReglages, id: string): Element => z['reglages.pre
 const regles = (z: ZonesDesReglages): Element[] => z['reglages.regles'].flatMap((g) => g.elements);
 const regle = (z: ZonesDesReglages, id: string): Element => regles(z).find((e) => e.id === `regle/${id}`)!;
 const pressee = (c: Element): unknown => ((c as Choix).valeurs.find((v) => v.presse)!.jeu as { args: unknown[] }).args[1];
-const saisie = (f: Element): { valeur: number; min: number; max: number; pas: number } => (f as Formulaire).champs[1] as never;
-const PLAFOND = OPTIONAL_RULES.find((r) => r.id === 'combat-plafond-avantage')!;
+const curseur = (e: Element): Curseur => e as Curseur;
+const PLAFOND = OPTIONAL_RULES.find((r): r is Extract<OptionalRule, { kind: 'param' }> => r.id === 'combat-plafond-avantage' && r.kind === 'param')!;
 
 describe('les réglages par le pont', () => {
   it('sans partie : chaque préférence et chaque règle optionnelle porte le contrôle de sa forme', () => {
     const { appel } = table();
     const z = zones(appel);
-    const formes = { flag: 'choix', mode: 'liste', param: 'formulaire' };
+    const formes = { flag: 'choix', mode: 'liste', param: 'curseur' };
     expect(PREFERENCES.map((p) => [p.id, preference(z, p.id).type])).toEqual(PREFERENCES.map((p) => [p.id, formes[p.kind]]));
     expect(OPTIONAL_RULES.map((r) => [r.id, regle(z, r.id).type])).toEqual(OPTIONAL_RULES.map((r) => [r.id, formes[r.kind]]));
     expect(z['reglages.regles'].map((g) => g.nom), 'un sous-système par entité, dans l’ordre du registre').toEqual([...new Set(OPTIONAL_RULES.map((r) => r.group))]);
-    expect(saisie(regle(z, PLAFOND.id))).toMatchObject({ valeur: PLAFOND.default, min: PLAFOND.min, max: PLAFOND.max, pas: 1 });
-    expect(saisie(preference(z, 'volume-musique'))).toMatchObject({ min: 0, max: 1, pas: 0.05 });
+    expect(curseur(regle(z, PLAFOND.id))).toMatchObject({ libelle: PLAFOND.label, valeur: PLAFOND.default, min: PLAFOND.min, max: PLAFOND.max, pas: 1, verbe: 'regle', arguments: [PLAFOND.id], refus: null });
+    expect(curseur(preference(z, 'volume-musique'))).toMatchObject({ min: 0, max: 1, pas: 0.05, verbe: 'preference', arguments: ['volume-musique'] });
     expect((regles(z).find((e) => e.id === `regle/${PLAFOND.id}/ref`) as Ligne).texte).toBe(PLAFOND.ref);
     expect(regles(z).filter((e) => e.id.startsWith('retablir/')), 'aucune règle surchargée').toEqual([]);
     expect(z['reglages.gestes'].map((b) => b.jeu), 'le panneau se ferme').toEqual([{ reglages: false }]);
@@ -49,12 +49,13 @@ describe('les réglages par le pont', () => {
     const { appel, stockage } = table();
     const oui = (preference(zones(appel), 'des-fixes') as Choix).valeurs.find((v) => v.libelle === t('valeur.oui'))!;
     expect(pressee(preference(zones(appel, oui.jeu), 'des-fixes'))).toBe(true);
-    const volume = preference(zones(appel), 'volume-musique') as Formulaire;
-    const z = zones(appel, { type: volume.verbe, args: [volume.champs[0].type === 'fixe' && volume.champs[0].valeur, 0.35] });
-    expect(saisie(preference(z, 'volume-musique')).valeur).toBe(0.35);
-    expect(appel('preferences')).toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true } });
+    const volume = curseur(preference(zones(appel), 'volume-musique'));
+    const z = zones(appel, { type: volume.verbe, args: [...volume.arguments, 0.35] });
+    expect(curseur(preference(z, 'volume-musique')).valeur).toBe(0.35);
+    expect(pressee(preference(zones(appel, { type: 'preference', args: ['son-coupe', true] }), 'son-coupe'))).toBe(true);
+    expect(appel('preferences')).toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true, 'son-coupe': true } });
     for (const p of PREFERENCES) p.set(p.default);
-    expect(table(stockage).appel('preferences'), 'posées à la création du pont').toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true } });
+    expect(table(stockage).appel('preferences'), 'posées à la création du pont').toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true, 'son-coupe': true } });
   });
 
   it('une valeur hors de la forme de son entrée, un id inconnu, un autre geste : refusés, rien n’est écrit', () => {
@@ -69,12 +70,12 @@ describe('les réglages par le pont', () => {
   it('une règle maison se surcharge, se dit surchargée, puis revient à son défaut ; le stockage la suit', () => {
     const { appel, stockage } = table();
     const z = zones(appel, { type: 'regle', args: [PLAFOND.id, 12] });
-    expect(saisie(regle(z, PLAFOND.id)).valeur).toBe(12);
+    expect(curseur(regle(z, PLAFOND.id)).valeur).toBe(12);
     const defaut = regles(z).find((e): e is Bouton => e.id === `retablir/${PLAFOND.id}`)!;
     expect(defaut.libelle).toBe(t('ecran.reglages.defaut'));
     expect(JSON.parse(stockage.getItem('wfrp4.house-rules')!)).toEqual({ [PLAFOND.id]: 12 });
     const remise = zones(appel, defaut.jeu);
-    expect(saisie(regle(remise, PLAFOND.id)).valeur).toBe(PLAFOND.default);
+    expect(curseur(regle(remise, PLAFOND.id)).valeur).toBe(PLAFOND.default);
     expect(regles(remise).filter((e) => e.id.startsWith('retablir/'))).toEqual([]);
     expect(JSON.parse(stockage.getItem('wfrp4.house-rules')!)).toEqual({});
   });
@@ -97,7 +98,7 @@ describe('les réglages par le pont', () => {
     ouvert = pont;
     drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     const verrou = t('houseRules.lockedInBattle');
-    expect((regle(zones(appel), PLAFOND.id) as Formulaire).refus).toBe(verrou);
+    expect(curseur(regle(zones(appel), PLAFOND.id)).refus).toBe(verrou);
     expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 12] }))).toEqual({ categorie: 'regle', message: `reglages : ${verrou}` });
     expect(pressee(preference(zones(appel, { type: 'preference', args: ['des-fixes', true] }), 'des-fixes'))).toBe(true);
   });

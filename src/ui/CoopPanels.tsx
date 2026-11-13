@@ -118,7 +118,7 @@ export function CoopAssignRow({ portrait, libelle, valeur, options, onChange }: 
 export function CoopAssignList() {
   const net = useGame((s) => s.net);
   const party = useGame((s) => s.party);
-  const assign = useGame((s) => s.netAssign);
+  const assign = useGame((s) => s.affecterLeHerosAuSiege);
   const options = siegesDeLaTable(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }));
   return (
     <Grid cols={2} gap="md" align="stretch">
@@ -146,14 +146,14 @@ export function CoopAssignList() {
  *  (en solo, le siège unique bascule via `GmSoloToggle`). */
 export function GmSeatSelect() {
   const net = useGame((s) => s.net);
-  const setGmSeat = useGame((s) => s.setGmSeat);
+  const affecterLeSiegeMJ = useGame((s) => s.affecterLeSiegeMJ);
   if (net.mode !== 'hote') return null;
   return (
     <CoopAssignRow
       libelle="Maître du Jeu"
       valeur={net.gmSeat ?? ''}
       options={[{ valeur: '', libelle: 'IA (aucun MJ)' }, ...siegesDeLaTable(net).map(({ seat, nom }) => ({ valeur: seat, libelle: nom }))]}
-      onChange={(v) => setGmSeat(v === '' ? null : Number(v))}
+      onChange={(v) => affecterLeSiegeMJ(v === '' ? null : Number(v))}
     />
   );
 }
@@ -161,10 +161,10 @@ export function GmSeatSelect() {
 /** SOLO (mode local) : contrôler aussi les ennemis + les jets du monde (rôle MJ pour le siège unique). */
 export function GmSoloToggle() {
   const net = useGame((s) => s.net);
-  const setGmSeat = useGame((s) => s.setGmSeat);
+  const affecterLeSiegeMJ = useGame((s) => s.affecterLeSiegeMJ);
   if (net.mode !== 'local') return null;
   return (
-    <MenuToggle checked={net.gmSeat != null} onChange={(v) => setGmSeat(v ? 0 : null)}>
+    <MenuToggle checked={net.gmSeat != null} onChange={(v) => affecterLeSiegeMJ(v ? 0 : null)}>
       Siège du contrôleur — piloter aussi les ennemis / le monde
     </MenuToggle>
   );

@@ -11,7 +11,16 @@ import { peauDeLaTenue } from './corps.ts';
 import { COUCHES, type Couche } from '../element.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
-import { appliquerGabarit, bindsAuGabarit, enfantsDuGabarit, jambesDuGabarit, poserEnfantsDuGabarit, poserFormes, poserLeGabarit, reposerGabarit } from './gabarit.ts';
+import {
+  appliquerGabarit,
+  bindsAuGabarit,
+  enfantsDuGabarit,
+  jambesDuGabarit,
+  poserEnfantsDuGabarit,
+  poserFormes,
+  poserLeGabarit,
+  reposerGabarit,
+} from './gabarit.ts';
 import { nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit } from '../gabarit.ts';
 import { FACTEURS_NEUTRES } from '../facteursDuGabarit.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ } from '../silhouettes.ts';

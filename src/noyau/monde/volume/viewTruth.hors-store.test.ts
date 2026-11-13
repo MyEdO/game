@@ -5,14 +5,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { viewedBuilder, type Viewed } from './viewTruth';
-import { emptyScene } from '../scene';
+import { emptyScene, type Scene } from '../scene';
 
 type El = { id: string; vrai: boolean };
 const entree = (id: string, rule: Viewed<El, boolean>['rule']): Viewed<El, boolean> => ({ off: { id, vrai: false }, rule });
 
 function builder(ctx: { valeur: boolean }) {
   let derivations = 0;
-  const b = viewedBuilder<El, undefined, boolean>({
+  const b = viewedBuilder<Scene, El, undefined, boolean>({
     derive: () => {
       derivations++;
       return [

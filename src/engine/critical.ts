@@ -6,15 +6,15 @@
  * Le SOCLE résout la séquence, la même pour les deux jeux : lookup `findTableEntry` → jet de la
  * rangée → `onRepeat` → `traumas` → `amputation` → `stampCriticalEscalation` → `fireCritTriggers`.
  * Les FEUILLES n'adressent que ce qui diffère, déclaré une fois dans `REGIMES` : le modificateur de
- * SÉVÉRITÉ du d100 (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
+ * SÉVÉRITÉ du jet du tableau (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
  */
-import { d100, d10, RNG } from './dice';
+import { d100, d10, rollDice, RNG } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { bonus, effectiveChar } from './characteristics';
 import { hitLocationByShape, locationLabel } from './combat';
 import { BodyShape, Combatant, HitLocation } from './types';
 import {
-  CRITIQUE_DOCS, critTableKeyFor, critiqueDoc, critiqueTable,
+  CRITIQUE_DOCS, critTableKeyFor, critiqueDie, critiqueDoc, critiqueTable,
   type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
 import { memoParVersion } from '../data/versionDataset';
@@ -137,9 +137,9 @@ export interface CriticalResolved {
   traumas: SequelleNeuve[];
   /** Texte canon (LONG TERME), DISPLAY-ONLY — jamais parsé pour de la mécanique. */
   desc: string;
-  /** Jet d100 effectif (après modificateur de sévérité). */
+  /** Jet effectif au dé du tableau (après modificateur de sévérité). */
   roll: number;
-  /** d100 lancé, avant modificateur de sévérité : « le lancer du tableau des Critiques », LDB 10 l.773 ;
+  /** Dé du tableau lancé (`critiqueDie`), avant modificateur de sévérité : « le lancer du tableau des Critiques », LDB 10 l.773 ;
    *  #1595 c.6227274650 Q3. */
   naturel: number;
   log: string;
@@ -220,7 +220,7 @@ export function aaCriticalOffset(overkill: number): number {
 
 /** Ce qu'un JEU adresse — le reste de la résolution est au socle. */
 interface RegimeCritique {
-  /** Modificateur appliqué au d100 NATUREL avant le lookup (le plancher 01 est au socle). */
+  /** Modificateur appliqué au jet NATUREL du tableau avant le lookup (le plancher 01 est au socle). */
   severite(target: Combatant, overkill: number): number;
   /** En-tête de la ligne de journal. */
   journal: string;
@@ -431,7 +431,7 @@ export interface OptionsCritique {
   /** Bénédiction de Sauvagerie (LDB 41 l.170) : deux lancers, le porteur béni CHOISIT lequel. */
   twice?: boolean;
   /**
-   * d100 de sévérité INJECTÉ (dé de l'étape à table, dé posé, test) : c'est le dé NATUREL — le
+   * Dé de sévérité INJECTÉ (dé de l'étape à table, dé posé, test) : c'est le dé NATUREL — le
    * modificateur de sévérité du jeu reste appliqué ICI, comme sur un dé tiré. Il PRIME sur `twice`
    * (aucun dé n'est tiré) : les DEUX lancers de la Bénédiction de Sauvagerie (LDB 41 l.170 : « Quand
    * votre cible inflige par la suite des Blessures Critiques, effectuez deux lancers et choisissez le
@@ -445,9 +445,11 @@ export interface OptionsCritique {
   forcedRoll?: number;
 }
 
-/** d100 nu du tableau des Critiques. LDB 18 l.53 ; LDB 41 l.170 ; #1595 c.6229550544. */
-export function lancerDuTableau(rng: RNG, twice: boolean): number {
-  return twice ? Math.max(d100(rng), d100(rng)) : d100(rng);
+/** Lancer du tableau des Critiques de la `location` dans le `jeu`, au dé de sa table (`critiqueDie`), meilleur
+ *  de deux sous `twice`. LDB 18 l.53 ; LDB 10 l.773 ; LDB 41 l.170 ; AA 07 l.32 ; #1667. */
+export function lancerDuTableau(jeu: JeuDeCritique, location: HitLocation, rng: RNG, twice: boolean): number {
+  const de = critiqueDie(jeu, critTableKeyFor(location));
+  return twice ? Math.max(rollDice(de, rng), rollDice(de, rng)) : rollDice(de, rng);
 }
 
 /**
@@ -466,7 +468,7 @@ export function resolveCritique(
   const { overkill = 0, twice = false, forcedRoll } = options;
   const regime = regimeDe(jeu);
   const be = bonus(effectiveChar(target, 'endurance'));
-  const raw = forcedRoll ?? lancerDuTableau(rng, twice);
+  const raw = forcedRoll ?? lancerDuTableau(jeu, location, rng, twice);
   const roll = Math.max(1, raw + regime.severite(target, overkill));
   const entry = structuredClone(findTableEntry(rangeesLues(critiqueTable(jeu, location)), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];

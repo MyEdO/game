@@ -46,7 +46,7 @@ import { menaceIds } from '../../../engine/menace';
 import { dotationsDuHeros, resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
-import type { TrappingRef } from '../../index';
+import type { CareerLevelData } from '../../index';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -82,13 +82,51 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', type: 'vehicle', qualityChoice: true }).success).toBe(false);
   });
 
-  it('accepte {choice} — dotation « X ou Y » migrée (chantier #654 Lot 3)', () => {
-    const ref = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
-    expect(trappingRefSchema.safeParse(ref).success).toBe(true);
+  it('accepte une somme, un objet à sa valeur, une mention de nature connue ; refuse une nature inconnue (#4053)', () => {
+    expect(trappingRefSchema.safeParse({ monnaie: 'silver', count: { roll: { n: 3, sides: 10 } } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'bijoux', valeur: { monnaie: 'gold', count: { fixed: 50 } } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ label: 'Pamphlétaires', nature: 'personne', count: { fixed: 3 } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ label: 'Apprenti', nature: 'objet' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ monnaie: 'florin', count: { fixed: 1 } }).success).toBe(false);
   });
 
-  it('{choice} migré (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
-    const ref: TrappingRef = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
+  it('accepte le « 1 parmi » `{ pick: 1, of }`, imbriqué compris', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] }).success).toBe(true);
+  });
+
+  it('accepte un lot d’objets ou de possessions comme option d’un « 1 parmi »', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'arme-simple' }, { lot: [{ id: 'arc' }, { id: 'fleche', count: { fixed: 10 } }] }] }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ lot: [{ id: 'cheval-de-monte', type: 'creature' }, { id: 'selle-et-harnais' }] }, { id: 'diligence', type: 'vehicle' }] }).success).toBe(true);
+  });
+
+  it('refuse un lot hors d’un « 1 parmi », un lot d’un seul membre, un membre de lot à Atout au choix', () => {
+    expect(trappingRefSchema.safeParse({ lot: [{ id: 'arc' }, { id: 'fleche' }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }] }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc', qualityChoice: true }, { id: 'fleche' }] }] }).success).toBe(false);
+  });
+
+  it('accepte un joker d’arme restreint à un Groupe d’armes, et un joker à Atout au choix ; refuse un Groupe d’armure', () => {
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'deux-mains' } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', qualityChoice: true }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'plate' } }).success).toBe(false);
+  });
+
+  it('refuse un « 2 parmi » : `brancheChoisie` ne retient qu’une branche', () => {
+    expect(trappingRefSchema.safeParse({ pick: 2, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(false);
+  });
+
+  it('refuse une branche `{ id, choix }` ou `{ id, spec, choix }` : `of` n’admet que les formes de dotation', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague', choix: true }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague', spec: 'x', choix: ['a'] }] }).success).toBe(false);
+  });
+
+  it('refuse la graphie `{ choice }`', () => {
+    expect(trappingRefSchema.safeParse({ choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(false);
+  });
+
+  it('`{ pick: 1, of }` (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
+    const ref: CareerLevelData['trappings'][number] = { pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
     const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
       resolveTrappingChoices(dotationsDuHeros(CARRIERE_FIXTURE), { [adresseDeCreation.dotation([0])]: 1 }));
     expect(resolues).toEqual([{ id: 'pistolet' }]);
@@ -100,10 +138,17 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
   const classe = classesDuDisque[0];
   const classeDotee = (trappings: unknown[]) => [{ ...classe, trappings }];
 
-  it('une Classe nommée qui porte un `{text}`, à la racine ou dans un `{choice}`, est refusée', () => {
-    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { choice: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
+  it('une Classe nommée qui porte un `{text}`, à la racine ou dans un `{pick, of}`, est refusée', () => {
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
     expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { text: 'Déjeuner' }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
-    expect(validateDataset('classes.json', classeDotee([{ choice: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+  });
+
+  it('une Classe nommée qui porte un joker d’arme, simple, à Groupe ou à Atout, ou un lot dans un « 1 parmi », est refusée', () => {
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme' }])), 'joker simple').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', groupe: { id: 'deux-mains' } }])), 'joker à Groupe').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', qualityChoice: true }])), 'joker à Atout').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ lot: [{ id: 'arc' }, { id: 'fleche' }] }, { id: 'dague' }] }])), 'lot').toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 });
 
@@ -111,7 +156,7 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
  * `plageSchema` (`grammaire/valeurs.ts`, vague `plage` #1463 P1) — les deux bornes d'une rangée de
  * table de tirage se déclarent UNE fois et se composent par la SHAPE. Le spread est un ANGLE MORT du
  * scanner de redéclarations (`scripts/docs/lib/structures-scan.mts` lit les littéraux par AST et ne
- * résout pas un spread, cf. `grammaire/reference.ts:145-146`) : l'extinction d'une ligne de stock ne
+ * résout pas un spread, cf. `talentRefSchema`, `grammaire/reference.ts`) : l'extinction d'une ligne de stock ne
  * prouve donc RIEN sur le parse. Ce gate est POSITIF — il mesure que la garde des bornes tient
  * encore, au schéma partagé ET à chaque site adoptant, par la porte de validation réelle
  * (`validateDataset`).
@@ -366,6 +411,18 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     const err = validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
     expect(err, 'un réglage à borne basse SEULE est accepté').not.toBeNull();
     expect(pathsRefuses('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)])).toContain(`${i}.max`);
+  });
+
+  it('reglesOptionnelles.json : un `param` sans ses bornes et un `mode` sans ses `options` sont REFUSÉS (#4081)', () => {
+    const regles = reglesOptionnelles as ReadonlyArray<Record<string, unknown>>;
+    const refus = (kind: string, champs: readonly string[]): string | null => {
+      const i = regles.findIndex((r) => r.kind === kind);
+      expect(i, `aucune règle \`${kind}\` : la sonde ne mesure rien`).toBeGreaterThanOrEqual(0);
+      const ampute = Object.fromEntries(Object.entries(regles[i]).filter(([k]) => !champs.includes(k)));
+      return validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
+    };
+    expect(refus('param', ['min', 'max', 'step'])).toContain('un nombre (kind « param ») déclare ses bornes');
+    expect(refus('mode', ['options'])).toContain('un choix (kind « mode ») propose au moins deux valeurs');
   });
 });
 

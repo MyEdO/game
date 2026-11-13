@@ -5,8 +5,8 @@
 ## (`GET source/<book>/<ch>.md`) et revient au pont. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
-## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`) : son manifeste, et la géométrie de ses
-## seuls morceaux dont l'empreinte a bougé (`morceaux`, source `edition`), masqué au-dessus de la couche éditée
+## servir le corps de chaque navire ; non retenus, il n'ouvre rien. Le monde rendu va au monde (`Monde.poser`) : son
+## manifeste, et la géométrie de ses seuls morceaux dont l'empreinte a bougé (`morceaux`, source `edition`), masqué au-dessus de la couche éditée
 ## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
 ## (`MontageDesNavires`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
@@ -27,8 +27,8 @@ extends Node
 ## @contrat Éditeur
 ## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
 ## menu) ouvre la campagne du paramètre `campagne` (la Diligence sans lui), avec le `projet` que sert
-## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés
-## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
+## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés et retenus
+## (`MontageDeComposition.indexer_les_modeles`, rien d'ouvert sans eux), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
 ## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
 ## (`VolumeDeScene.poser_les_aretes`) et ses navires, chacun sous le modèle de son corps comme au plateau
 ## (`MontageDesNavires`), la surcouche en plaques sur le sol de ses cases (`Monde.peindre`) : chaque zone nommée
@@ -76,11 +76,10 @@ var _tenu: Variant = null
 var _campagne := ""
 ## Par chemin de planche, sa texture lue.
 var _planches := {}
-## Si une publication de l'écran attend que l'interface soit mise en page (`_publier_l_ecran`).
-var _a_publier := false
-## Si un conteneur de l'interface a placé ses enfants (`Container.sort_children`), ou si une publication a été demandée,
-## depuis la dernière image.
-var _remis_en_page := false
+## La publication de l'écran, attendue jusqu'à ce que l'interface soit mise en page (`_publier_l_ecran`).
+var _publication: PublicationDeLEcran
+## Les attentes au pont en vol : la planche, le chapitre, le dépôt. Une reprise dont l'attente n'y est plus rend la main.
+var _en_vol := {}
 
 
 func _ready() -> void:
@@ -88,22 +87,23 @@ func _ready() -> void:
 	for zone in _zones:
 		zone.geste.connect(_jouer)
 	_defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
+	_pont.suivre_les_listes(_interface, _publier_l_ecran)
 	for pages in _interface.find_children("*", "TabContainer", true, false):
 		(pages as TabContainer).tab_clicked.connect(func(_onglet: int) -> void: _publier_l_ecran())
-	for conteneur in _interface.find_children("*", "Container", true, false):
-		(conteneur as Container).sort_children.connect(_suivre_la_mise_en_page)
+	_publication = PublicationDeLEcran.new(_pont, self, _interface, _ecran_publie)
 	get_tree().node_added.connect(func(noeud: Node) -> void:
-		if noeud is Container and _interface.is_ancestor_of(noeud):
-			(noeud as Container).sort_children.connect(_suivre_la_mise_en_page)
 		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
 			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran())
 		elif noeud is TextEdit and _interface.is_ancestor_of(noeud):
 			(noeud as TextEdit).text_changed.connect(_publier_l_ecran))
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
-	var recueil: Array[String] = await MontageDeComposition.indexer_les_modeles(self)
+	var recueil: Array[String] = []
+	var retenus := await MontageDeComposition.indexer_les_modeles(self, recueil)
 	if not recueil.is_empty():
 		_panne.text = "\n".join(PackedStringArray(recueil))
+	if not retenus:
+		return
 	var campagne := _pont.parametre("campagne")
 	_campagne = campagne if campagne != "" else CAMPAGNE
 	var ouvrir := {ouvrir = _campagne}
@@ -199,6 +199,11 @@ func _suivre(reponse: Dictionary) -> void:
 		get_tree().change_scene_to_file.call_deferred("res://scenes/Combat.tscn")
 
 
+## Sorti de l'arbre (l'essai, `_suivre`), il n'y revient pas (#4195) : ses attentes en vol sont abandonnées (`_en_vol`).
+func _exit_tree() -> void:
+	_en_vol.clear()
+
+
 ## Le fichier des calques gardés de la campagne ouverte.
 func _fichier_des_calques() -> String:
 	return "%s/%s.json" % [CALQUES, _campagne]
@@ -231,7 +236,11 @@ func _garder(memoire: Dictionary) -> void:
 ## La planche `image` choisie sur le disque de l'auteur, écrite en `user://<image>.png`, puis sa taille rendue au pont ;
 ## rien s'il renonce ou si l'image ne se lit pas.
 func _charger_la_planche(image: String) -> void:
+	var jeton := RefCounted.new()
+	_en_vol[jeton] = true
 	var choisie := await _pont.choisir_un_fichier(PontDuNoyau.IMAGES)
+	if not _en_vol.erase(jeton):
+		return
 	var lue := Image.new()
 	var issue := ERR_FILE_UNRECOGNIZED
 	match choisie.get("type", ""):
@@ -253,7 +262,11 @@ func _charger_la_planche(image: String) -> void:
 ## s'il ne se charge pas.
 func _charger_le_chapitre(chapitre: Dictionary) -> void:
 	var recueil: Array[String] = []
+	var jeton := RefCounted.new()
+	_en_vol[jeton] = true
 	var lu := await _pont.requeter("source/%s/%s.md" % [chapitre.book, chapitre.ch], recueil)
+	if not _en_vol.erase(jeton):
+		return
 	_jouer({edition = {geste = "chapitre", book = chapitre.book, ch = chapitre.ch, texte = lu.get_string_from_utf8() if recueil.is_empty() else null}})
 
 
@@ -261,7 +274,11 @@ func _charger_le_chapitre(chapitre: Dictionary) -> void:
 ## écriture qui échoue dit pourquoi.
 func _deposer(depot: Dictionary) -> void:
 	var recueil: Array[String] = []
+	var jeton := RefCounted.new()
+	_en_vol[jeton] = true
 	await _pont.requeter("depot/%s" % depot.id, recueil, HTTPClient.METHOD_PUT, depot.texte)
+	if not _en_vol.erase(jeton):
+		return
 	_jouer({edition = {geste = "enregistrement", reussi = recueil.is_empty()}})
 	if not recueil.is_empty():
 		_refus.text = "\n".join(recueil)
@@ -290,29 +307,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-## Un conteneur de l'interface a replacé ses enfants : la publication attendue attend l'image suivante.
-func _suivre_la_mise_en_page() -> void:
-	_remis_en_page = true
-
-
-## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), ses champs de
-## texte (`PontDuNoyau.saisies_a_l_ecran`), le défilement de son panneau (`PontDuNoyau.defilement_publie`), le point de
-## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
-## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue. Republié quand un défilement
-## du panneau bouge, qu'un onglet se choisit ou qu'un champ de texte change, une fois l'interface mise en page : à la
-## première image entière où aucun de ses conteneurs n'a replacé ses enfants ni aucune demande n'est venue, la première
-## attente pouvant reprendre dans l'image de la demande, avant ses appels différés (`SceneTree.process_frame`) ; une seule publication pour les demandes qui
-## l'attendent ; rien si l'éditeur a quitté l'écran entre-temps (l'essai ouvre le combat).
+## L'écran publié à la recette (`_ecran_publie`), une fois l'interface mise en page (`PublicationDeLEcran`) : à chaque
+## vue, et quand un défilement du panneau bouge, qu'un onglet se choisit ou qu'un champ de texte change ; rien si
+## l'éditeur a quitté l'écran entre-temps (l'essai ouvre le combat).
 func _publier_l_ecran() -> void:
-	_remis_en_page = true
-	if _a_publier:
-		return
-	_a_publier = true
-	await get_tree().process_frame
-	while _remis_en_page and is_inside_tree():
-		_remis_en_page = false
-		await get_tree().process_frame
-	if not is_inside_tree():
-		return
-	_a_publier = false
-	_pont.publier_l_ecran(func() -> Dictionary: return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})
+	_publication.demander()
+
+
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), ses champs de texte
+## (`PontDuNoyau.saisies_a_l_ecran`), le défilement de son panneau (`PontDuNoyau.defilement_publie`), le point de
+## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
+## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue.
+func _ecran_publie() -> Dictionary:
+	return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}}

@@ -1,41 +1,16 @@
 /** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTP 01 l.3 */
-import type { CharKey, Characteristics, Combatant } from '../engine/types';
-import { enPieces, type Money } from '../engine/money';
-import { rollDice, type DiceSpec, type RNG } from '../engine/dice';
+import type { Combatant } from '../engine/types';
+import type { Money } from '../engine/money';
+import type { DiceSpec, RNG } from '../engine/dice';
+import { sommeTiree } from '../engine/possessionGrants';
 import { buildInventory } from '../engine/items';
 import type { ItemInstance } from '../engine/types';
 import { heroDeFiche, type FicheDeHeros } from '../engine/heroDeFiche';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
-import type { DescRef, Sexe, SourceRef } from './schemas/grammaire/valeurs';
-import type { CountSpec, TalentRef, TrappingRef } from './index';
+import type { CountSpec, PregenDef } from './index';
+import type { EntreeVivante } from './datasets';
 import { pregens } from './index';
-
-/** Une entrée de `pregens.json` : la fiche imprimée d'un prétiré officiel. */
-export interface PregenDef {
-  id: string;
-  type: 'pregens';
-  label: string;
-  descRef: DescRef;
-  source: SourceRef;
-  species: { id: string };
-  carrieres: Record<string, number>;
-  initiales: Characteristics;
-  charAdvances: Partial<Record<CharKey, number>>;
-  /** Augmentations par Compétence : un nombre, ou un nombre par spécialisation. */
-  skills: Record<string, number | Record<string, number>>;
-  talents: TalentRef[];
-  trappings: Extract<TrappingRef, { id: string; type?: never } | { text: string }>[];
-  spells: string[];
-  fate: number;
-  resilience: number;
-  xp: number;
-  motivation: string;
-  age: number;
-  sex: Sexe;
-  richesse: DiceSpec;
-  monnaie: keyof Money;
-}
 
 /** La dotation à quantité tirée aux dés (`count.roll`) : elle se tire à l'engagement, jamais sur la fiche. */
 const estTiree = (t: PregenDef['trappings'][number]): t is Extract<PregenDef['trappings'][number], { id: string }> & { count: { roll: DiceSpec } } => !!t.count && 'roll' in t.count;
@@ -47,7 +22,7 @@ const quantite = (count: CountSpec | undefined): number => (count && 'fixed' in 
 export const idDuPretire = (id: string): IdDeHerosDuRoster => `pretire-${id}` as IdDeHerosDuRoster;
 
 /** La fiche de héros du prétiré `d` : ses possessions à compte fixe ou texte, sans dé (`possessionsTireesDuPretire` porte les autres). */
-export function ficheDuPretire(d: PregenDef): FicheDeHeros {
+export function ficheDuPretire(d: EntreeVivante<PregenDef>): FicheDeHeros {
   return {
     speciesId: d.species.id,
     parcours: { carrieres: d.carrieres },
@@ -57,7 +32,7 @@ export function ficheDuPretire(d: PregenDef): FicheDeHeros {
     charAdvances: d.charAdvances,
     skills: Object.entries(d.skills).flatMap(([id, a]) => (typeof a === 'number' ? [{ id, advances: a }] : Object.entries(a).map(([spec, advances]) => ({ id, spec, advances })))),
     talents: d.talents.map(({ id, spec, times }) => ({ id, ...(spec ? { spec } : {}), times: times ?? 1 })),
-    trappings: d.trappings.filter((t) => !estTiree(t)).map((t) => ('text' in t ? { text: t.text, qte: quantite(t.count) } : { id: t.id, ...(t.spec ? { spec: t.spec } : {}), qte: quantite(t.count) })),
+    trappings: d.trappings.filter((t) => !estTiree(t)).map((t) => ('text' in t ? { text: t.text, qte: quantite(t.count) } : { id: t.id, ...(t.spec ? { spec: t.spec } : {}), ...(t.qualities ? { qualities: t.qualities } : {}), qte: quantite(t.count) })),
     spells: d.spells,
     fate: d.fate,
     resilience: d.resilience,
@@ -68,7 +43,7 @@ export function ficheDuPretire(d: PregenDef): FicheDeHeros {
   };
 }
 
-const heroDuPretire = (d: PregenDef, idNeuf: FabriqueDId): Combatant => heroDeFiche(ficheDuPretire(d), idNeuf);
+const heroDuPretire = (d: EntreeVivante<PregenDef>, idNeuf: FabriqueDId): Combatant => heroDeFiche(ficheDuPretire(d), idNeuf);
 
 /** Le héros du prétiré `id` ; lève si `pregens.json` ne le porte pas. */
 export function pretire(idNeuf: FabriqueDId, id: string): Combatant {
@@ -83,13 +58,13 @@ export function pretires(idNeuf: FabriqueDId): Combatant[] {
 }
 
 /** Les possessions du prétiré `d` imprimées à quantité aux dés, tirées sur `rng` (`buildInventory`). */
-export function possessionsTireesDuPretire(d: PregenDef, rng: RNG, idNeuf: FabriqueDId): ItemInstance[] {
+export function possessionsTireesDuPretire(d: EntreeVivante<PregenDef>, rng: RNG, idNeuf: FabriqueDId): ItemInstance[] {
   return buildInventory(d.trappings.filter(estTiree), rng, idNeuf);
 }
 
 /** La Richesse de départ imprimée du prétiré `d`, tirée sur `rng`. */
-export function richesseDuPretire(d: PregenDef, rng: RNG): Money {
-  return enPieces(d.monnaie, rollDice(d.richesse, rng));
+export function richesseDuPretire(d: EntreeVivante<PregenDef>, rng: RNG): Money {
+  return sommeTiree(d.richesse, rng);
 }
 
 export const GROUPE_VITRINE = ['wanda-weltschmertz', 'harbull-piedvelu', 'malmir-giluviel', 'werner-murrmann'] as const;

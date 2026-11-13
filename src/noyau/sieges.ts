@@ -2,6 +2,7 @@
  * Tenue d'un porteur de dé par un siège, lue sur `s.net` (#1426).
  */
 import type { Jeu, NetState } from './etat';
+import type { Intention } from './partie';
 import type { Combatant } from '../engine/types';
 import { PARTY_MAX, inBattleId, porteurParId } from './monde/combatants';
 import { WORLD_STEP_OWNER } from './pendings';
@@ -144,6 +145,52 @@ export function attribuerLEmplacement(net: NetState, party: GroupeAssis['party']
   const slots = [...net.slots];
   slots[slot] = seat;
   return { ...net, slots };
+}
+
+/** Un siège de la table, ou l'IA (`siege: null`, rôle MJ seul), tel qu'une offre le propose : son nom, s'il tient
+ *  déjà la chose offerte, et l'intention qui la lui attribue. */
+export interface ChoixDeSiege {
+  siege: number | null;
+  nom: string;
+  tenu: boolean;
+  intention: Intention;
+}
+
+/** Ce qui s'attribue à un siège : un héros du groupe, un emplacement vide, le rôle MJ ; un choix par siège de la table
+ *  (`siegesDeLaTable`), et l'IA pour le rôle MJ. */
+export interface SiegeOffert {
+  id: `heros/${string}` | `emplacement/${number}` | 'mj';
+  nom: string;
+  choix: ChoixDeSiege[];
+}
+
+/** Chaque attribution de siège que l'hôte d'une session peut jouer (#3009) : chaque héros du groupe, chaque emplacement
+ *  vide (`emplacementsDuGroupe`), puis le rôle MJ ; aucune hors du mode `hote`. */
+export function siegesOfferts(s: Pick<Jeu, 'net' | 'party'>): SiegeOffert[] {
+  if (s.net.mode !== 'hote') return [];
+  const table = siegesDeLaTable(s.net);
+  const parSiege = (tient: (seat: number) => boolean, intention: (seat: number) => Intention): ChoixDeSiege[] =>
+    table.map(({ seat, nom }) => ({ siege: seat, nom, tenu: tient(seat), intention: intention(seat) }));
+  return [
+    ...s.party.map((h): SiegeOffert => ({
+      id: `heros/${h.id}`,
+      nom: h.label,
+      choix: parSiege((seat) => siegeDuHeros(s.net, h.id) === seat, (seat) => ({ type: 'affecterLeHerosAuSiege', args: [h.id, seat] })),
+    })),
+    ...emplacementsDuGroupe(s).flatMap((e): SiegeOffert[] => (e.heroId !== null ? [] : [{
+      id: `emplacement/${e.rang}`,
+      nom: t('party.slot.adventurer', { n: e.rang + 1 }),
+      choix: parSiege((seat) => e.siege === seat, (seat) => ({ type: 'affecterLEmplacementAuSiege', args: [e.rang, seat] })),
+    }])),
+    {
+      id: 'mj',
+      nom: t('ecran.salon.mj'),
+      choix: [
+        { siege: null, nom: t('ecran.salon.ia'), tenu: s.net.gmSeat === undefined, intention: { type: 'affecterLeSiegeMJ', args: [null] } },
+        ...parSiege((seat) => s.net.gmSeat === seat, (seat) => ({ type: 'affecterLeSiegeMJ', args: [seat] })),
+      ],
+    },
+  ];
 }
 
 /**

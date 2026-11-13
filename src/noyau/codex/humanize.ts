@@ -17,7 +17,14 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
-import { armourBypassCategorieSchema, loseTurnWhatSchema, ressourceDeDestinSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  armourBypassCategorieSchema,
+  loseTurnWhatSchema,
+  ressourceDeDestinSchema,
+  senseSchema,
+  tablesDeCiblesSchema,
+  zoneShapeSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, estPoseDEtat, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
@@ -628,10 +635,10 @@ export function humanizeOp(o: GameOp): string {
     case 'provisions': return o.gateesPct !== undefined
       ? t('codex.op.provisions.gatees', { pct: o.gateesPct })
       : o.rations !== undefined
-        ? t('codex.op.provisions.rations', { n: humanizeFormula(o.rations) })
+        ? t('codex.op.provisions.rations', { n: humanizeFormula(o.rations), vivre: refLabel('trappings', o.vivre) })
         : o.eauTonneaux !== undefined
           ? t('codex.op.provisions.eau', { n: humanizeFormula(o.eauTonneaux) })
-          : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });
+          : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours), vivre: refLabel('trappings', o.vivre) });
     case 'perilDeMer': return o.collision !== undefined
       ? t('codex.op.perilDeMer.collision', { peril: findSeaHazard(o.collision.id)?.label ?? o.collision.id })
       : t('codex.op.perilDeMer.tourbillon', { tourbillon: findWhirlpool(o.tourbillon.id)?.label ?? o.tourbillon.id });

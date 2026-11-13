@@ -4,7 +4,8 @@
  * ET par `validateScene` (donc par l'éditeur de scène) — une seule implémentation, un seul verdict,
  * un seul texte de message.
  */
-import { heightAt, isDescriptiveZone, isWalkable, porteAuteur, type Scene, type SceneEffectZone } from './monde/scene';
+import { canonEdge, champsDuPlan, heightAt, isDescriptiveZone, isWalkable, porteAuteur, type Scene, type SceneEffectZone } from './monde/scene';
+import { aretesA } from './monde/wallIndex';
 import { defautDeSuspension, type DefautDeSuspension } from './fallMove';
 import { sceneZoneTiles } from './monde/zones';
 import { isRoomZone, roomTiles } from './monde/rooms';
@@ -26,7 +27,7 @@ export const groundTerrains = (): Set<string> => new Set(tousLesTerrains().filte
 /** Terrain d'une case pour l'AUDIT DE PLAN : hors bornes et étage absent y valent la tuile ABSENTE
  *  (`terrainAbsent`) — un plan n'a rien à auditer là où rien n'est bâti. Lecture distincte de
  *  `tileAt`, qui rend le terrain du BORD DU MONDE hors grille (#1789). */
-export function terrainAt(scene: Scene, x: number, y: number, z: number): string {
+export function terrainAt(scene: Pick<Scene, 'dimensions' | 'layers'>, x: number, y: number, z: number): string {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return terrainAbsent();
   const layer = scene.layers.find((l) => l.z === z);
   if (!layer) return terrainAbsent();
@@ -38,18 +39,10 @@ export function scenesZ(scene: Scene): number[] {
   return [...new Set(scene.layers.map((l) => l.z))].sort((a, b) => a - b);
 }
 
-/** Convertit une arête `CellSide` (N/E/S/O d'une case) vers sa forme CANONIQUE de stockage `WallSeg`
- *  (`N`/`E` seulement — S de (x,y) = N de (x,y+1) ; O de (x,y) = E de (x-1,y), cf. `scene.ts` l.680). */
-function canonical(x: number, y: number, side: CellSide): { x: number; y: number; side: 'N' | 'E' } {
-  if (side === 'S') return { x, y: y + 1, side: 'N' };
-  if (side === 'O') return { x: x - 1, y, side: 'E' };
-  return { x, y, side };
-}
-
-/** Un mur (plein, porte ou structure) existe-t-il sur cette arête, à cet étage ? */
-function edgeExists(scene: Scene, x: number, y: number, side: CellSide, z: number): boolean {
-  const c = canonical(x, y, side);
-  return (scene.walls ?? []).some((w) => (w.z ?? 0) === z && w.side === c.side && w.x === c.x && w.y === c.y);
+/** Un mur (plein, porte ou structure) existe-t-il sur cette arête, à cet étage ? Lu à l'index d'arêtes (`aretesA`). */
+function edgeExists(scene: Pick<Scene, 'walls'>, x: number, y: number, side: CellSide, z: number): boolean {
+  const c = canonEdge(x, y, side);
+  return aretesA(scene, c.x, c.y, c.side, z).length > 0;
 }
 
 /** Zones DESCRIPTIVES (nom de pièce, `isDescriptiveZone`) de la scène — sujet des familles de zone. */
@@ -236,7 +229,7 @@ const SIDES4: readonly CellSide[] = ['N', 'E', 'S', 'O'];
  *
  *  Distinct de `exteriorVoidCells`, qui inonde le VIDE d'un étage (les cases sans dalle) et ignore les
  *  murs : là c'est le SURPLOMB d'une dalle qui est en cause, ici l'ENCLOSURE d'une pièce. */
-export function outdoorCells(scene: Scene, z: number): Set<string> {
+export function outdoorCells(scene: Pick<Scene, 'dimensions' | 'walls'>, z: number): Set<string> {
   const { w, h } = scene.dimensions;
   const outdoor = new Set<string>();
   const stack: [number, number][] = [];
@@ -285,7 +278,7 @@ export function outdoorLookup(scene: Scene): (x: number, y: number, z: number) =
 
 /** Cache par SCÈNE (`memoByRef`, patron canonique unique) des cellules INTÉRIEURES déjà dérivées,
  *  indexées par étage — une scène immuable ne recalcule jamais deux fois le même étage. */
-const interiorCellsByScene = memoByRef((_scene: Scene) => new Map<number, ReadonlySet<string>>());
+const interiorCellsByScene = memoByRef((_scene: Pick<Scene, 'dimensions' | 'effectZones' | 'walls'>) => new Map<number, ReadonlySet<string>>());
 
 /** Cellules INTÉRIEURES d'un étage — LA source unique de « où est le bâtiment » (#881), consommée par
  *  la toiture (`realFloorAt`, `sceneEdit.ts`) et par l'enveloppe de rendu (`envelopeEdgesOf`).
@@ -302,7 +295,7 @@ const interiorCellsByScene = memoByRef((_scene: Scene) => new Map<number, Readon
  *  Zéro perte aux deux niveaux : sans le filtre `exterior`, les deux cours, le passage couvert et le
  *  potager (472 cases au rez) recevraient une toiture. Le sens de l'authoring s'INVERSE : l'auteur ne
  *  déclare plus le bâtiment (déjà tracé en murs), il déclare seulement ce qui est à ciel ouvert. */
-export function interiorCells(scene: Scene, z: number): ReadonlySet<string> {
+export function interiorCells(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'walls'>, z: number): ReadonlySet<string> {
   const byZ = interiorCellsByScene(scene);
   const cached = byZ.get(z);
   if (cached) return cached;
@@ -336,7 +329,7 @@ const SHIFT: Record<CellSide, [number, number][]> = {
  *  jamais un « bâti dans le vide ». La case de `aboveZ` doit être vide : MÊME invariant que le plan de
  *  volée de l'éditeur (`stairFlight.ts`, refus « trémie bouchée »). Le seuil de cran vient de
  *  `gradeBetween` — foyer unique, aucune copie ici. */
-export function stairFlightCells(scene: Scene, belowZ: number, aboveZ: number): Set<string> {
+export function stairFlightCells(scene: Pick<Scene, 'dimensions' | 'layers'>, belowZ: number, aboveZ: number): Set<string> {
   const baseBelow = belowZ * METRES_PER_LEVEL;
   const floorAbove = aboveZ * METRES_PER_LEVEL;
   const { w, h } = scene.dimensions;
@@ -792,17 +785,16 @@ function defectAt(d: Defect | ZoneDefect): PlanDefectAt {
     : { kind: 'cell', x: d.x, y: d.y, z: d.z };
 }
 
-/** Mémo du POINT D'ENTRÉE : clé = identité de la Scène (toute mutation d'état rend une NOUVELLE réf,
- *  cf. `memoByRef`), dépendance = le TÉMOIN du dataset des terrains. Les audits lisent `groundTerrains()`
- *  À L'APPEL pour qu'une entrée retouchée à l'atelier change le verdict sans rechargement : le témoin est
- *  une COPIE du tableau (le binding de `data/index` est muté EN PLACE par `setDataset`, son identité ne
- *  bouge jamais), comparée entrée par entrée — le même témoin que `indexDesTerrains` (`noyau/monde/terrain`).
- *  Le tableau rendu est PARTAGÉ entre appels : ses consommateurs le lisent, ils ne le mutent pas. */
-const planDefectsMemo = memoByRefDeps<Scene, PlanDefect[]>();
+/** Mémo du POINT D'ENTRÉE (`memoByRefDeps`) : clé = les couches de la scène, que garde toute écriture qui ne peint pas ;
+ *  dépendances = les champs que lisent les audits (`champsDuPlan`) ; le mémo est daté par la version des datasets
+ *  (`memoByRef` : terrains, et décors lus par la marche). Une écriture non spatiale (libellé, description, météo) ne
+ *  refait donc aucun audit, et chaque scène d'un projet garde le sien. Le tableau rendu est PARTAGÉ entre appels : ses
+ *  consommateurs le lisent, ils ne le mutent pas. */
+const planDefectsMemo = memoByRefDeps<Scene['layers'], PlanDefect[]>();
 
 /** POINT D'ENTRÉE UNIQUE — toutes les familles, tous les étages. PUR. */
 export function scenePlanDefects(scene: Scene): PlanDefect[] {
-  return planDefectsMemo(scene, [...tousLesTerrains()], () => buildPlanDefects(scene));
+  return planDefectsMemo(scene.layers, champsDuPlan(scene), () => buildPlanDefects(scene));
 }
 
 function buildPlanDefects(scene: Scene): PlanDefect[] {

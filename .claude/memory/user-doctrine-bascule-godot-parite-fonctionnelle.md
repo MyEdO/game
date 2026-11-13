@@ -14,6 +14,6 @@ metadata:
 **Why :** Godot remplace l'affichage, pas le jeu ; investir dans une interface qui sera jetée ne rapporte rien.
 
 **How to apply :**
-- Partent : le rendu et l'interface web (`src/ui`, `src/gameIso`). Restent : `src/state`, `src/net` et chaque fonctionnalité (coop, sauvegardes, roster, préférences) ; un comportement à garder va à #3009.
+- Partent : le rendu et l'interface web (`src/ui`, `src/gameIso`). Restent : `src/state` et chaque fonctionnalité (coop, sauvegardes, roster, préférences) ; un comportement à garder va à #3009.
 - La dette se ferme dans le schéma et le moteur. Côté `src/ui` et CSS, seulement le minimum pour ne pas casser ni écrire de donnée invalide : aucune ergonomie web neuve, aucune exigence de juge en ce sens.
 - Le schéma typé et ses catalogues s'exposent à Godot (#3072).

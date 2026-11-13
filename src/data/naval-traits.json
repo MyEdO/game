@@ -60,7 +60,9 @@
     "passive": [
       {
         "op": "skillDRBonus",
-        "testType": "affaler",
+        "testType": {
+          "id": "affaler"
+        },
         "bonus": 2
       }
     ],
@@ -231,7 +233,8 @@
             "maison": "« un mois » (MDG 12 l.230) : les mois impériaux durent 32 ou 33 jours (EDO 12 l.64-88) ; 32 = 4 semaines de 8 jours (MDG 15 l.268)."
           }
         ]
-      }
+      },
+      "chantierSpecialise": true
     },
     "source": {
       "book": "mer-des-griffes",
@@ -286,7 +289,8 @@
             "maison": "« un mois » (MDG 12 l.230) : les mois impériaux durent 32 ou 33 jours (EDO 12 l.64-88) ; 32 = 4 semaines de 8 jours (MDG 15 l.268)."
           }
         ]
-      }
+      },
+      "chantierSpecialise": true
     },
     "source": {
       "book": "mer-des-griffes",
@@ -747,7 +751,9 @@
     "passive": [
       {
         "op": "skillDRBonus",
-        "testType": "progression-poursuite",
+        "testType": {
+          "id": "progression-poursuite"
+        },
         "bonus": 1
       }
     ],

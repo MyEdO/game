@@ -15,7 +15,25 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { blocsDeJobs, stepsCi } from './gatesDeCi.mjs'
-import { DOSSIER, DOSSIER_ACTIONS, ETATS, PORTE, SIGNALEUR, WORKFLOWS, branchesDePush, corpsRun, declencheursDe, lireActions, lireWorkflows, mesurerEtat, portePipe, shellAPipefail, shellParDefaut, stepsDu, verdict } from './workflowsDuDepot.mjs'
+import {
+  DOSSIER,
+  DOSSIER_ACTIONS,
+  ETATS,
+  PORTE,
+  SIGNALEUR,
+  WORKFLOWS,
+  branchesDePush,
+  corpsRun,
+  declencheursDe,
+  lireActions,
+  lireWorkflows,
+  mesurerEtat,
+  portePipe,
+  shellAPipefail,
+  shellParDefaut,
+  stepsDu,
+  verdict,
+} from './workflowsDuDepot.mjs'
 
 /** Un workflow d'une seule ligne de `run`, sous la condition `si`. PUR — aucun disque. */
 const workflowAvec = (si, ligneRun) =>

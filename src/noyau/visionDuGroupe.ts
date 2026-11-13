@@ -16,7 +16,8 @@ import type { EtatDeJeu, Jeu } from './etat';
 import { combatGeomOfList } from './mount';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { footprintN, footprintTiles } from './monde/footprint';
-import type { Scene, SceneEntity } from './monde/scene';
+import { discTiles } from './monde/zones';
+import { wallOnSight, type Scene, type SceneEntity } from './monde/scene';
 import { memoByRefDeps } from './monde/sceneMemo';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
 import { visibilityOf } from './visibility';
@@ -45,18 +46,22 @@ export function connaissanceDuGroupe(etat: EntreesDeLaConnaissance): Connaissanc
   });
 }
 
+/** La case `c` (`x`, `y`, sa couche `z`, 0 sans elle) est-elle vue du groupe sur `etat`. */
+export function caseEnVue(etat: EntreesDeLaConnaissance, c: { x: number; y: number; z?: number }): boolean {
+  return connaissanceDuGroupe(etat)(spaceCellKey(c.x, c.y, c.z ?? 0)) === 'visible';
+}
+
 /** Le corps de `c` parmi les combattants de `etat`, ancré en `ancre`, est-il sur une case vue : les faces de l'arête
  *  d'une structure de siège (`structureFaceCells`), qui ne se déplace pas et ne lit donc aucun ancrage ; sinon
  *  l'empreinte de sa géométrie de combat (`combatGeomOfList`) posée en `ancre`, à défaut à sa position. */
 export function corpsEnVue(etat: EntreesDeLaConnaissance, c: Combatant, ancre?: { x: number; y: number; z?: number }): boolean {
-  const connue = connaissanceDuGroupe(etat);
   if (isStructure(c)) {
     const z = c.structureEdge?.z ?? 0;
-    return structureFaceCells(c).some((f) => connue(spaceCellKey(f.x, f.y, z)) === 'visible');
+    return structureFaceCells(c).some((f) => caseEnVue(etat, { x: f.x, y: f.y, z }));
   }
   const corps = combatGeomOfList(etat.battle?.combatants ?? [], c);
   const pos = ancre ?? corps.pos;
-  return !!pos && footprintTiles(pos, footprintN(corps)).some((p) => connue(spaceCellKey(p.x, p.y, pos.z ?? 0)) === 'visible');
+  return !!pos && footprintTiles(pos, footprintN(corps)).some((p) => caseEnVue(etat, { x: p.x, y: p.y, z: pos.z }));
 }
 
 /** `c` est-il en vue du groupe : du camp du groupe, d'un couple monté dont l'un des corps l'est, ou son corps
@@ -72,6 +77,17 @@ export function combattantEnVue(etat: EntreesDeLaConnaissance, c: Combatant): bo
 export function porteurEnVue(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaissance, id: string): boolean {
   const c = inBattleId(etat.battle, id);
   return !c || combattantEnVue(etat, c);
+}
+
+/** Le lecteur des cases de zone que le groupe voit sur `etat` : une case vue (`caseEnVue`), ou d'une zone qui coupe la
+ *  vue (`blocksLoS`, en `x,y` comme `rayBlocked`) montrée entière dès que le groupe en voit le bord : l'une de ses cases,
+ *  ou l'une des huit voisines de même couche (`discTiles`) de l'une d'elles qu'aucune arête opaque n'en sépare
+ *  (`wallOnSight`). */
+export function caseDeZoneEnVue(etat: Pick<Jeu, 'battle'> & EntreesDeLaConnaissance): (c: { x: number; y: number; z?: number }) => boolean {
+  const { scene } = etat;
+  const bordVu = (t: { x: number; y: number; z?: number }) => !!scene && discTiles(t, 1, t.z).some((v) => caseEnVue(etat, v) && !wallOnSight(scene, v, t, t.z ?? 0));
+  const montrees = new Set((etat.battle?.zones ?? []).filter((z) => z.blocksLoS && z.tiles.some(bordVu)).flatMap((z) => z.tiles.map((t) => `${t.x},${t.y}`)));
+  return (c) => caseEnVue(etat, c) || montrees.has(`${c.x},${c.y}`);
 }
 
 /** Une entité posée en embuscade (`combat.hiddenUntilCombat`). */

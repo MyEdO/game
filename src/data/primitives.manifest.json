@@ -265,7 +265,7 @@
     "type": "primitives.manifest",
     "label": "DeDeTable/deDeLaTableTiree/deDeTirageDe/facesDuDe/bandeAuDe",
     "fichier": "src/engine/tables.ts",
-    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées) ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas",
+    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées) ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas ; une étape de cascade à table le lit sur `TableStepDef.die` (`src/noyau/cascade.ts`, `tableSpec`), son seul porteur : une `CascadeTableDecl` n'en porte aucun",
     "perimetre": "tout tirage, toute faces et toute bande d'une table qui porte son dé en donnée (moteur, flux, Codex, atelier)",
     "verrou": "tsc (src/engine/tables.test.ts, `@ts-expect-error`) ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
@@ -277,6 +277,15 @@
     "concept": "rangées VIVANTES d'un document à rangées (`options.rangee`), lues dans le module JSON de son fichier (racine que le seam mute en place) et, dans un fichier à plusieurs documents, par id de document — typées par le schéma de rangée que le def exporte",
     "perimetre": "tout lecteur d'une table de donnée (moteur, seam, Codex)",
     "verrou": "tsc : la rangée a le type dérivé du schéma du def (`z.output`), l'id de document est exigé pour la famille `entite` ; fail-fast à l'exécution sur un document absent"
+  },
+  {
+    "id": "datasetDe",
+    "type": "primitives.manifest",
+    "label": "datasetDe/DatasetDe/EntreeDe",
+    "fichier": "src/data/datasets.ts",
+    "concept": "dataset VIVANT d'un document entier, lu dans le module JSON de son fichier (racine que le seam mute en place) — typé par la sortie du schéma que le def exporte (`DatasetDuDocument`, `grammaire/document.ts`) ; `EntreeDe` en est l'entrée",
+    "perimetre": "tout lecteur d'un dataset (registre `src/data/index.ts`, moteur, noyau) qui ne relit pas une table à rangées (`rangeesDe`)",
+    "verrou": "tsc : un champ renommé au schéma du def rougit ses lecteurs"
   },
   {
     "id": "clockLabel",
@@ -989,10 +998,10 @@
   {
     "id": "cascadeSuspension",
     "type": "primitives.manifest",
-    "label": "suspendActiveCascade/resumeSuspendedCascade",
+    "label": "suspendActiveCascade/resumeSuspendedCascade/reprendreLaPile/sortirDeLHote",
     "fichier": "src/noyau/cascade.ts",
-    "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
-    "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
+    "concept": "suspendre la cascade active quand un combat, une transition ou une autre séquence s’ouvre en plein vol (le pilote immédiat à contexte parque son tableau au rang où le slot l’aurait mis), puis reprendre la tête de pile hors combat, slot libre",
+    "perimetre": "ouverture de combat, transition de scène, ouverture d’une séquence d’un autre purpose, applier d’une étape sous le pilote immédiat à contexte (`jouerLaJournee`, `openSequence`), clôture de cascade, sortie d’hôte d’un Test de scène, clôture hors combat (`clotureHorsCombat`), teardown de victoire ou de défaite",
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
   },
   {
@@ -1641,7 +1650,7 @@
     "type": "primitives.manifest",
     "label": "memoByRef/memoByRefDeps/memoByDeps",
     "fichier": "src/noyau/monde/sceneMemo.ts",
-    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé",
+    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé ; `memoByRef` et `memoByRefDeps` oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), un `memoByDeps` nu qui lit un catalogue reçoit cette version en dépendance",
     "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web), et tout calcul qui reprend sa variante précédente",
     "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
   },
@@ -1783,11 +1792,29 @@
   {
     "id": "threeWay",
     "type": "primitives.manifest",
-    "label": "threeWay",
+    "label": "threeWay/threeWayDiff3",
     "fichier": "scripts/git-hooks/three-way.mjs",
-    "concept": "fusion à trois voies d'un texte par `git merge-file`",
-    "perimetre": "pilote de fusion des stocks de sites",
-    "verrou": "merge-stocks.test.mjs"
+    "concept": "fusion à trois voies d'un texte par `git merge-file`, au style ordinaire ou `diff3`",
+    "perimetre": "pilotes de fusion (stocks de sites, imports)",
+    "verrou": "merge-stocks.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "segmentsDeFusion",
+    "type": "primitives.manifest",
+    "label": "segmentsDeFusion/tailleDeMarqueur",
+    "fichier": "scripts/guards/lib/blocsDeFusion.mjs",
+    "concept": "sortie de `git merge-file --diff3` lue en segments (lignes fusionnées, blocs en conflit avec leur base) ; taille de marqueur qu'aucune ligne des textes n'imite",
+    "perimetre": "tout outil qui lit les blocs en conflit d'une fusion",
+    "verrou": "synchroniser.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "declarationsDImport",
+    "type": "primitives.manifest",
+    "label": "declarationsDImport/unNomParLigne",
+    "fichier": "scripts/guards/lib/declarationsDImport.mjs",
+    "concept": "déclarations `import` et `export … from` de premier niveau d'un module, lues par l'arbre syntaxique : clé, liaisons, réimpression à un nom par ligne",
+    "perimetre": "tout outil qui lit ou réécrit les imports d'un module",
+    "verrou": "merge-imports.test.mjs"
   },
   {
     "id": "litteralJs",
@@ -2051,6 +2078,15 @@
     "verrou": "src/noyau/built-brand-lint.test.ts, src/player-text-ratchet.test.ts"
   },
   {
+    "id": "nomDe",
+    "type": "primitives.manifest",
+    "label": "nomDe/poserLeNommeur",
+    "fichier": "src/engine/nom.ts",
+    "concept": "le nom d’un combattant dans un texte que le moteur compose (#4017) : minteur de `PlayerText`, la réponse du nommeur posé pour son id, sinon son `label` ; `poserLeNommeur` pose le crochet et rend le précédent, `brancherLeJeu` y pose `nomEnVue` (`src/noyau/visionDuGroupe.ts`) : un combattant hors de la vue du groupe se nomme du nom neutre",
+    "perimetre": "texte joueur du moteur qui nomme un combattant : ligne de touche (`ToucheDuJournal`, `phraseDeTouche`), issue d’une attaque (`AttackResult.log`), ligne du Contre-sort ; un lecteur qui reçoit l’état nomme par `nomEnVue`",
+    "verrou": "src/engine/nom.test.ts, src/noyau/nom-hors-de-vue.hors-store.test.ts"
+  },
+  {
     "id": "dataLabel",
     "type": "primitives.manifest",
     "label": "dataLabel",
@@ -2137,7 +2173,7 @@
     "label": "enFileBornee",
     "fichier": "scripts/guards/lib/fileBornee.mjs",
     "concept": "file bornée de tâches asynchrones : au plus N de front, résultats dans l’ordre ; au premier rejet ou à l’abandon du signal de l’appelant, plus aucun lancement, arrêt remis aux tâches en vol par leur signal, rejet après leur clôture, de la première cause que la file reçoit (l’abandon de l’appelant, sa raison, ou le rejet d’une tâche, à la reprise de son await) ; la file n’arrête rien elle-même : chaque tâche remet son signal à ce qu’elle lance",
-    "perimetre": "tout appelant qui mène des tâches de front (rendus de plateforme-win32.test.mjs, sonde hote-powershell.mjs)",
+    "perimetre": "tout appelant qui mène des tâches de front (rendus de manual-docs-ratchet.test.mjs, sonde hote-powershell.mjs, banc des étalons hotes/godot/etalons.mjs)",
     "verrou": "scripts/guards/lib/fileBornee.test.mjs"
   },
   {
@@ -2308,7 +2344,7 @@
     "label": "enBase64/depuisBase64",
     "fichier": "src/lib/base64.ts",
     "concept": "base64 des octets (RFC 4648, section 4) dans les deux sens, par blocs sous la borne d’arguments de String.fromCharCode ; seul site de btoa et atob",
-    "perimetre": "toute couche : masque du retrait du monde (src/noyau/monde/volume/volume.ts), maillages de la pile du pont Godot (hotes/godot/pont/pile.ts), base64url des payloads coop (src/net/compress.ts)",
+    "perimetre": "toute couche : masque du retrait du monde (src/noyau/monde/volume/volume.ts), maillages de la pile du pont Godot (hotes/godot/pont/pile.ts), base64url des payloads coop (src/hote/coop/compression.ts)",
     "verrou": "murs/base64 et murs/base64-hote d’oxlint.config.mjs (banc scripts/guards/lib/lint-parite.test.mjs) ; src/lib/base64.test.ts"
   },
   {

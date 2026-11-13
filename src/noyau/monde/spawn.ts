@@ -2,11 +2,43 @@
  * Construction de Combattants depuis le bestiaire (réf.) ou un statblock
  * personnalisé d'une scène. Sert au combat tactique.
  */
-import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../../engine/types';
+import {
+  Combatant,
+  Characteristics,
+  type Weapon,
+  CHAR_KEYS,
+  BodyShape,
+  SkillInstance,
+  TalentInstance,
+  type AuthoredShipPoste,
+  type NavalTraitRef,
+} from '../../engine/types';
 import { skillCharacteristicById } from '../../engine/character';
-import { isOptionalNote, resoudreTrait, traitsDuPorteur, type PorteurDeTraits, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import {
+  isOptionalNote,
+  resoudreTrait,
+  traitsDuPorteur,
+  type PorteurDeTraits,
+  type TraitInstance,
+  type TraitList,
+  type TraitsDesignes,
+  type OptionalEntry,
+  type OptionalSwap,
+} from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
+import {
+  findCreatureById,
+  byId,
+  findTalentById,
+  tailleDuProfil,
+  findVehicleById,
+  findTrappingById,
+  specPoolOf,
+  CreatureData,
+  type SkillData,
+  type SkillRef,
+  type TalentRef,
+} from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
@@ -19,7 +51,16 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
+import {
+  apparencesObjetsDe,
+  contexteDeNaissanceDObjet,
+  deciderApparencesDesArmes,
+  equipConflicts,
+  hydratePoste,
+  loadWeapon,
+  objetsDeLInventaire,
+  recomputeLoadout,
+} from '../../engine/items';
 import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
 import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
@@ -37,17 +78,22 @@ import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 import { estPoseParSesPonts } from '../planDeNavire';
 
-/**
- * Pose la position d'un combattant en RAFRAÎCHISSANT sa hauteur métrique (`pos.h`) depuis le relief de
- * la scène — SOURCE UNIQUE de la cohérence position↔hauteur. À appeler au SPAWN et à CHAQUE déplacement
- * (combat, poussée/traction, course, téléport, chute, avance navale) : sans ce rafraîchissement, la
- * distance de combat verticale et le −10 « en contrebas » resteraient faux après le mouvement.
- * `z` omis quand nul et `h` omis quand la surface est à 0 m → byte-identique au plan sur une scène plate.
- */
-export function placeCombatant(c: { id: string; pos?: { x: number; y: number; z?: number; h?: number }; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+/** La position d'un corps posé en `p` : `h` = sol de sa case d'ancrage (`heightAt`). `z` omis quand nul, `h` à 0 m
+ *  et sans scène. PUR. */
+export function positionPosee(scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): NonNullable<Combatant['pos']> {
   const z = p.z ?? 0;
   const h = scene ? heightAt(scene, p.x, p.y, z) : 0;
-  c.pos = { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
+  return { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
+}
+
+/**
+ * Pose la position d'un combattant (`positionPosee`) et re-dérive ses drapeaux positionnels — SOURCE UNIQUE de la
+ * cohérence position↔scène. À appeler au SPAWN et à CHAQUE déplacement (combat, poussée/traction, course, téléport,
+ * chute, avance navale).
+ */
+export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+  const z = p.z ?? 0;
+  c.pos = positionPosee(scene, p);
   // Drapeau POSITIONNEL « hors de son terrain » (op passive `offTerrainMod` — Créature marine MDG 16 l.17 /
   // Aquatique MSRC 15 l.139) : re-dérivé à CHAQUE placement (chokepoint UNIQUE du positionnement). Un porteur
   // dont la case n'est pas de son terrain d'élection (`eau`) subit mSet/testDR ; sans passif, no-op.

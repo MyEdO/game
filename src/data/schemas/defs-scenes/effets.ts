@@ -17,14 +17,30 @@ import { z } from 'zod';
 import { validerApparenceDonnee } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
-import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema } from '../grammaire/mecanique';
+import {
+  cell2Schema,
+  chaosAlignSchema,
+  enumNomme,
+  exposureLevelSchema,
+  hitLocationSchema,
+  moneyPartialSchema,
+  natureDInfluenceSchema,
+} from '../grammaire/valeurs';
+import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema, refuserLeVivreDuNavire } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
 import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import {
+  customStatblockSchema,
+  DIALOGUES_DE_LA_SCENE,
+  MARCHANDS_DE_LA_SCENE,
+  PERSONNAGES_DE_LA_SCENE,
+  ptSchema,
+  SCENES_DU_PROJET,
+  wallSideSchema,
+} from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
@@ -54,7 +70,7 @@ export const favorLevelSchema = enumNomme({
   importante: 'Faveur Importante',
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
-export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
+export const crewHireSchema = nommerChamps(z.strictObject({ roleId: idDe('crewRole', undefined, { nue: true }), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
 /** `PursuitFoeRef` (`noyau/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
  *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
  *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
@@ -145,7 +161,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   trappingId: objetDonneSchema.optional(),
   custom: z.string().optional(),
   heroId: z.string().optional(),
-  qualities: z.array(z.string()).optional(),
+  qualities: z.array(idDe('quality', undefined, { nue: true })).optional(),
   identified: z.boolean().optional(),
   teinte: ref('material', undefined, 'objet').optional(),
   apparence: ref('apparence').optional(),
@@ -302,7 +318,7 @@ export const inflictPsychologySchema = nommerChamps(z.strictObject({
 /** LDB 20 */
 export const inflictDiseaseSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictDisease'),
-  disease: z.string(),
+  disease: idDe('maladie', undefined, { nue: true }),
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
@@ -508,9 +524,10 @@ export const setVesselSchema = nommerChamps(z.strictObject({
   hullMax: z.number().optional(),
   saboteurDR: z.number().optional(),
   waterLitres: z.number().optional(),
-  provisions: z.number().optional(),
+  vivre: ref('trapping').optional(),
+  provisions: z.number().int().min(0).optional(),
   crew: z.array(crewHireSchema).optional(),
-}), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
+}).superRefine(refuserLeVivreDuNavire), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, provisions: { label: "rations (jours-homme)" }, crew: { label: "équipage" } });
 
 /** AJUSTE le navire de campagne EXISTANT (#233) — patch des SEULS champs fournis, contrairement à
  *  `setVessel` (remplacement total : effacerait Humeur de Manann/dégâts/Moral accumulés). À poser
@@ -524,9 +541,10 @@ export const adjustVesselSchema = nommerChamps(z.strictObject({
   hullMax: z.number().optional(),
   saboteurDR: z.number().optional(),
   waterLitres: z.number().optional(),
-  provisions: z.number().optional(),
+  vivre: ref('trapping').optional(),
+  provisions: z.number().int().min(0).optional(),
   crew: z.array(crewHireSchema).optional(),
-}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
+}).superRefine(refuserLeVivreDuNavire), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } }, provisions: { label: "rations (jours-homme)" }, crew: { label: "équipage" } });
 
 export const endDialogueSchema = nommerChamps(z.strictObject({ type: z.literal('endDialogue') }), { type: { label: "type"  } });
 

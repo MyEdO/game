@@ -14,7 +14,7 @@ import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
   byId, findTalentById, findTrappingById, findSeaShantyById,
-  findWeaponGroupById, findGroupById, findCrewTestTypeById,
+  findWeaponGroupById, findGroupById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
@@ -211,9 +211,9 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
   // LA GARDE UNIQUE ci-dessous (§ Phase 3 complétude) : aucune liste de domaines n'est tenue ici.
   describe('sanité de catalogue — specsSource déclaré, specs[] bien formées (Phase 3)', () => {
     it('skills.json/talents.json : specsSource migré → pool DÉRIVÉ (aucun specs[] inline), ids connus du registre', () => {
-      const WEAPON_GROUP_IDS = new Set(weaponGroups.map((g) => g.id));
-      const DOMAIN_IDS = new Set(domains.map((d) => d.id));
-      const GOD_IDS = new Set(gods.map((g) => g.id));
+      const WEAPON_GROUP_IDS = new Set<string>(weaponGroups.map((g) => g.id));
+      const DOMAIN_IDS = new Set<string>(domains.map((d) => d.id));
+      const GOD_IDS = new Set<string>(gods.map((g) => g.id));
       const cases: [ 'skills' | 'talents', string, SpecsSource, (id: string) => boolean ][] = [
         ['skills', 'corps-a-corps', 'weaponGroupsMelee', (id) => WEAPON_GROUP_IDS.has(id)],
         ['skills', 'projectiles', 'weaponGroupsRanged', (id) => WEAPON_GROUP_IDS.has(id)],
@@ -535,7 +535,7 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
         for (const n of items) {
           if (!isObj(n)) continue;
           if ('text' in n) sites.push(siteIntegrite('dotation-texte', 'src/data/careerLevels.json', niveau.id, 'trappings.text', '', String(n.text)));
-          if (Array.isArray(n.choice)) walk(n.choice);
+          if (Array.isArray(n.of)) walk(n.of);
         }
       };
       walk(niveau.trappings);
@@ -612,7 +612,6 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
 // champs que le parse ne juge pas sont câblés ICI, où ils sont typés.
 describe('GameOp — toute référence de la donnée committée est jugée au parse ou résout dans son registre (#847, #1473)', () => {
   const resolvers: Record<string, (id: string) => boolean> = {
-    crewTestTypes: (id) => !!findCrewTestTypeById(id),
     seaManannFactors: (id) => MANANN_FACTORS.some((f) => f.id === id),
   };
 
@@ -735,15 +734,15 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   });
 
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
-    const fixture = (testType: string) => [{
+    const fixture = (factorId: string) => [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effet: { ops: [{ op: 'skillDRBonus', testType, bonus: 1 }] } } }] }],
+      data: [{ effects: [{ flow: { effet: { ops: [{ op: 'manann', factorId }] } } }] }],
     }];
-    expect(scanGameOpRefs({ sources: fixture('manoeuvre'), resolvers }).offenders).toEqual([]);
-    const out = scanGameOpRefs({ sources: fixture('test-fantome'), resolvers }).offenders;
+    expect(scanGameOpRefs({ sources: fixture('chat-heureux'), resolvers }).offenders).toEqual([]);
+    const out = scanGameOpRefs({ sources: fixture('facteur-fantome'), resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('crewTestTypes');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].testType');
+    expect(out[0].registry).toBe('seaManannFactors');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].factorId');
   });
 
   it('un champ NON-RÉFÉRENCE porte sa justification', () => {

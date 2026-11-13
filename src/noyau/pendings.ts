@@ -115,7 +115,6 @@ export type DialogueTransition = EtatDialogue | 'close';
 /** Test de compétence interactif en attente d'acquittement par le joueur. */
 export interface PendingTest {
   actorId: string;
-  actorName: string;
   /** Intitulé de la SITUATION (« Esquiver les piques de la dalle ») → titre de la modale. */
   label: string;
   /** Compétence/Caractéristique RÉELLE testée (« Athlétisme », « Dextérité ») → libellé du cadre de
@@ -149,10 +148,10 @@ export interface PendingTest {
   /** CONTEXTE du Test que l'interlocuteur déclare (sa fiche : amateur d'art ou de théâtre, ACE 12
    *  l.60-62) — lu par l'inversion (LDB 12 l.42). */
   contexte?: ContexteDeTest;
-  /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
+  /** Jet de la table Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
-  /** Delta de DR de la table Capricieux (`capriciousDR`, MSRC 15 l.149-159) : appliqué au DR du Test
+  /** Delta de DR de la table Capricieux (`tirerLeCapricieux`, MSRC 15 l.149-159) : appliqué au DR du Test
    *  RÉSOLU (`FLOWS.test.resolve`), jamais à `skillValue`/`target`. */
   capriciousDR?: number;
   /** Outil utilisé (uid résolu sur l'acteur) : sa qualité d'artisanat module l'issue / casse l'objet (Phase C2a). */
@@ -229,7 +228,6 @@ export interface PendingTest {
  *  l'Armure) via `jetValider('fuiteDeVapeur')`, puis la boucle maritime reprend. */
 export interface PendingSteamSave {
   actorId: string;
-  actorName: string;
   skillValue: number;
   target: number;
   /** Écrêtage de `target`, mesuré avec elle (`engine/tests.cibleMesuree`). */
@@ -247,7 +245,6 @@ export interface PendingSteamSave {
  *  La modale affiche « Lancer », le DR, puis Chance avant d'acquitter (cumul vers `reload`). */
 export interface PendingReload {
   actorId: string;
-  actorName: string;
   weaponUid: string; // arme de rechargement (loadout) — résolue en NOM à l'affichage
   reload: number; // Indice DR cible
   progressBefore: number; // DR déjà cumulés (Test étendu)
@@ -272,7 +269,6 @@ export interface PendingReload {
  *  de Force contre la source ; En flammes = Test d'Athlétisme simple. Modale Lancer → DR → Chance. */
 export interface PendingStateRecovery {
   actorId: string;
-  actorName: string;
   /** ÉTAT en cours de récupération — un id de `etats.json` : c'est la DONNÉE de l'État (`recover`)
    *  qui dit s'il se récupère par une Action, jamais une union gravée ici. */
   state: string;
@@ -353,7 +349,6 @@ export interface PendingBargain {
  *  une seule tentative par artefact. Même modale (« Lancer », résultat, Chance, acquittement). */
 export interface PendingAppraise {
   actorId: string;
-  actorName: string;
   /** Objet d'un héros (uid d'inventaire)… */
   itemUid?: string;
   /** …ou ligne de butin ENCORE en fenêtre (loot/victoire) — révélation AVANT attribution. */
@@ -474,7 +469,6 @@ export interface PendingAttack {
  *  l'objet glisse (op `disarm`) et l'Action est consommée. Chemin IA = jet inline forcé côté `doAttack`. */
 export interface PendingHandGate {
   attackerId: string;
-  actorName: string;
   /** Main gatée (loadout actif) — pour le `disarm` sur Échec (convention DROITIER `main`/`secondaire`). */
   hand: Main;
   /** La ligne du jet, figée à l'ouverture (`rollLine`) : ce que la fenêtre annonce et ce que le résolveur jette. */
@@ -708,8 +702,6 @@ export interface PendingApproach {
   test: TestNomme;
   /** Source de Peur la plus proche dont le déplacement RAPPROCHE. */
   sourceId: string;
-  /** Son nom, FIGÉ au geste qui ouvre le Test. */
-  sourceName: string;
   /** Geste différé, relancé après un succès avec l'intention de son clic d'origine (`OptionsDuClic.intentionId`), que ce
    *  clic a dissoute. */
   intent: { kind: 'tile'; pt: Pt; intentionId?: IdDIntention } | { kind: 'entity'; id: string; intentionId?: IdDIntention };
@@ -725,8 +717,6 @@ export interface PendingWard {
   attackerId: string;
   /** Cible bénie (porte le drapeau `attackWardFM`). */
   targetId: string;
-  /** Son nom, FIGÉ au geste qui ouvre le Test. */
-  targetName: string;
   /** L'intention du clic qui a ouvert ce gate (même raison que `PendingApproach`). */
   intentionId?: IdDIntention;
   result: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
@@ -1593,7 +1583,7 @@ export interface OpposedFreeze {
    *  Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
   attackerId?: string;
   /** Nom de l'attaquant (affichage de la ligne d'opposition) — tout producteur a un adversaire nommé. */
-  attackerName: string;
+  attackerName: PlayerText;
   /** CE QUE TESTE l'attaquant, en STRUCTURE (ids de Compétence/Caractéristique) : le libellé de sa
    *  ligne en est DÉRIVÉ par le rendu (`testSkillLabel`), jamais composé par le flux qui fige le jet —
    *  un flux déclare, le renderer écrit. */
@@ -1950,7 +1940,7 @@ export interface BatchParticipant extends RollParticipant {
 export type CascadeActorCounter = 'sinPoints';
 
 /**
- * LE DÉ D'UNE ÉTAPE DE CASCADE — la DÉCLARATION, sérialisable (coop) : quels dés (`spec`), quel
+ * LE DÉ D'UNE ÉTAPE DE CASCADE — la DÉCLARATION, sérialisable (coop) : quel
  * modificateur appliqué au naturel (`mod`, `modPerActor`), quel dé IMPOSÉ (`forcedRoll` — dé posé par
  * un siège, ou injection d'un résolveur moteur), combien de tirages dont on retient le meilleur
  * (`keepHighest`). `result` absent = dé non jeté (interaction `'de'`).
@@ -1960,18 +1950,6 @@ export type CascadeActorCounter = 'sinPoints';
  * `tableId`). Le tirage est le même geste ; seule la lecture diffère.
  */
 export interface CascadeDeTirage {
-  /**
-   * Les DÉS du tirage (`engine/dice.DiceSpec`, forme canonique partagée avec la Formula `{dice}`).
-   *
-   * OPTIONNEL ICI, REQUIS À LA PORTE — et la raison est la TABLE : une `TableStepDef` déclare déjà les
-   * siens (`die`, d100 par défaut), et les ~20 déclarations de table du dépôt n'ont pas à les répéter
-   * pour que la table reste la source de son propre dé (`cascade.tableSpec` : la déclaration l'emporte,
-   * la table donne son défaut, d100 sinon). Un DÉ NU, lui, n'a aucune table où les prendre : sa porte
-   * les EXIGE au type (`rollSeam.DieStepSpec.spec`, non optionnel) et REFUSE une déclaration non
-   * tirable, et `roulerDe` lève plutôt que de replier en silence — il n'y a donc pas de d100 fantasmé
-   * pour un dé nu, seulement pour une table qui a le sien.
-   */
-  spec?: DiceSpec;
   mod?: number;
   forcedRoll?: number;
   /** Modificateur VIVANT : `factor` × le COMPTEUR `counter` de l'ACTEUR de l'étape, lu à l'instant du
@@ -1999,6 +1977,10 @@ export interface CascadeDeTirage {
  *  deux ne divergent que par leur `result`, ce qui interdit une intersection naïve (le socle prend
  *  donc `CascadeDeTirage` en paramètre partout où il ROULE, jamais la déclaration complète). */
 export interface CascadeDeDecl extends CascadeDeTirage {
+  /** Les DÉS du tirage (`engine/dice.DiceSpec`) : un dé NU n'a aucune table où les prendre, sa
+   *  déclaration les porte (`rollSeam.DieStepSpec.spec`). Une TABLE porte les siens
+   *  (`cascade.TableStepDef.die`), seul porteur du dé d'une étape à table (#1667). */
+  spec: DiceSpec;
   result?: CascadeDeResult | null;
   /** LECTURE EN SEUIL de ce tirage (#1508) — troisième lecture du MÊME dé, à côté de la nue (le total EST
    *  la conséquence) et de la table : le total est comparé à un INDICE. Déclaré SUR l'étape, comme
@@ -2101,8 +2083,8 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  est exigée EN AMONT, au paramètre, et le cast de sortie n'a plus rien à blanchir. Restent murés par
    *  le lint les deux voies de CONTENEUR (`Object.assign` sur une étape, `x as CascadeStep`).
    *
-   *  `PlayerText` n'a que trois origines (`i18n.t`, `data.dataLabel`/`data.refLabel`,
-   *  `rollSeam.composeRollLabel`) — un littéral ne s'y pose plus, et le stock d'avant est ÉTEINT : le
+   *  `PlayerText` ne sort que de ses minteurs (leur liste : en-tête de `i18n/playerText.ts`) — un
+   *  littéral ne s'y pose plus, et le stock d'avant est ÉTEINT : le
    *  fossile qui le gelait est mort, son cliquet reste en tripwire (`player-text-ratchet.test.ts`). */
   label?: PlayerText;
   /** Genre de l'étape : clé de la table `appliers` (`GenreDEtape`), ou genre que l'hôte ou le jet traite
@@ -2236,7 +2218,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'psychologieDeRencontre' pose le `psychState`
    *  RANGÉE PAR RANGÉE ; Détermination (LDB 17 l.59) jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeRencontre?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
+  psychologieDeRencontre?: { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy };
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
@@ -2244,7 +2226,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`psychologieDeRencontre` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
-  psychologieDeCombat?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy; round: number };
+  psychologieDeCombat?: { kind: PsychType; sourceId: string; sourceName: PlayerText; indice: number; cible?: CiblePsy; round: number };
   /** Étape « choix » : options présentées au joueur (l'option retenue pilote la conséquence). Leur
    *  `label` est du TEXTE JOUEUR marqué (#1318 V8a₁), comme celui de l'étape qui les porte. `refus` =
    *  la CAUSE d'indisponibilité de CETTE option (coût d'Avantage hors de portée…), rendue au survol/
@@ -2388,8 +2370,9 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  `attackerId` (attaques gratuites restantes puis avance) au lieu du `resumeSuspendedAI` générique. */
   maneuverResume?: { attackerId: string };
   /** Séquence PARQUÉE par le pilote IMMÉDIAT (`cascade.runCascadeImmediate`) sur un choix sans défaut,
-   *  ou derrière un combat ouvert en plein vol : le choix validé ou le combat clos, la suite reprend par ce
-   *  même pilote (`cascade.avanceUnPas`), jamais en fenêtre, avec le CONTEXTE de son lancement
+   *  ou derrière ce que l'applier d'une étape a ouvert (séquence ou combat) : le choix validé, ou ce qui
+   *  a été ouvert clos, la suite reprend par ce même pilote (`cascade.avanceUnPas`,
+   *  `cascade.resumeSuspendedCascade`), jamais en fenêtre, avec le CONTEXTE de son lancement
    *  (`ReprisePilote`). */
   piloteImmediat?: ReprisePilote;
   /** ACCOSTAGE à finaliser À LA CLÔTURE (MDG 15 l.245) : une cascade dont la fermeture doit résoudre
@@ -2416,9 +2399,8 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
  *  mode de pendingHeal : c'est une opération « armée » sur l'infirmerie (noyau/medicFlow). */
 export interface PendingHeal {
   healerId: string;
-  healerName: string;
+  healerName: PlayerText;
   targetId: string;
-  targetName: string;
   /** L'acte (réglage `soins.mode`). Hors combat, `chirurgie`/`reeducation` : le brouillon de l'opération que
    *  `jetLancer('soins')` arme (`acteDeSoin.ts`). */
   mode: HealMode;
@@ -2453,9 +2435,7 @@ export interface PendingHeal {
  *  `medic.surgery` à l'ouverture de la passe (affichage DrBar dans la modale). */
 export interface PendingSurgery extends PendingBase {
   healerId: string; // chirurgien (héros → influence ; PNJ → no-op)
-  healerName: string;
   targetId: string; // patient opéré
-  targetName: string;
   /** La ligne de la passe, figée à son ouverture sur l'opération armée (`rollLine`, Soutien LDB 12 compris) : ce que
    *  la fenêtre annonce et ce que le résolveur jette. */
   ligne: RollLineParts;

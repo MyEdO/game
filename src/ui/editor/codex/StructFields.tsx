@@ -7,14 +7,35 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
-import { ChoixDeSpec, ChoixDeSpecs, RefField, reposerLId, typeDuDataset, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg, type SuggestionsPartagees } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  ChoixDeSpecs,
+  RefField,
+  reposerLId,
+  typeDuDataset,
+  useSuggestionsPartagees,
+  useValeursDistinctes,
+  type RefFieldCfg,
+  type SuggestionsPartagees,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
-import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
+import type {
+  AdvancementRef,
+  DotationDePossession,
+  TrappingRef,
+  CountSpec,
+  DomainData,
+  HarvestRarity,
+  HarvestDanger,
+  TalentTest,
+  TestMatch,
+  SpecEntry,
+} from '../../../data';
 import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
@@ -38,7 +59,7 @@ import type { CrewTarget } from '../../../data/shipCriticals';
 import { NumberField } from '../../NumberField';
 import { ProseField } from '../../ProseField';
 import { OptionChooser } from '../../OptionChooser';
-import type { OptionalRule, RuleValue } from '../../../engine/policy';
+import type { OptionalRule, RuleKind, RuleValue } from '../../../engine/policy';
 import { IconField } from '../worldMapPickers';
 
 const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
@@ -509,7 +530,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
               <option value="creature">Bête (creatures.json)</option>
               <option value="text">Texte (narratif)</option>
             </select>
-            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) })} /></label>
+            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) } as TrappingRef)} /></label>
             <button className="btn small danger" title="Retirer la possession" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
           {isText(t)
@@ -849,8 +870,8 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /** Le sous-ensemble de la règle qui pilote le contrôle rendu (jamais l'entrée entière : cet éditeur
- *  ne lit ni ne modifie autre chose que la valeur). */
-export type RuleShape = Pick<OptionalRule, 'kind' | 'options' | 'min' | 'max' | 'step'>;
+ *  ne lit ni ne modifie autre chose que la valeur), lâche : elle décrit l'entrée en cours d'édition, avant sa validation. */
+export type RuleShape = { kind: RuleKind; options?: readonly string[]; min?: number; max?: number; step?: number };
 
 export function RuleValueField({ id, label, rule, value, onChange }: {
   id: string; label: string; rule: RuleShape; value: RuleValue | undefined; onChange: (v: RuleValue) => void;

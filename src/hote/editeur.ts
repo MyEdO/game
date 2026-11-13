@@ -22,7 +22,7 @@ import {
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
-  findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
+  findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacementActif, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
   findSpellById, listesDeSorts, sortsImprimes,
   aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
@@ -251,7 +251,8 @@ export interface ZonesDeLEditeur {
    *
    * d'un personnage porteur d'une fiche, son entité de son schéma (`ficheEditee`), son profil porté
    * (`ficheDuCombattant`) : d'un PNJ de carrière, le Niveau atteint et son Statut, puis ses Caractéristiques et ses
-   * Blessures, ses Compétences, ses Talents et ses possessions, chacun sur sa ligne `profil/<clé>` ;
+   * Blessures, ses Compétences, ses Talents et ses possessions, chacun sur sa ligne `profil/<clé>`, puis ses mentions,
+   * une ligne `profil/mentions/<nature>` par nature ;
    *
    * d'un personnage qui a une fiche, ses sorts (#3715), lus sur elle : ceux que son profil imprime, sur la ligne
    * `sorts/imprimes` ; sinon, s'il a une liste qu'ouvrent ses Talents ou Traits de lanceur (`listesDeSorts`), ses sorts
@@ -855,7 +856,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
   const choisis = p.dotationsDeCarriere ?? {};
   const dotation = (e: EmplacementDeDotation): Choix[] => {
     const v = choisis[e.adresse];
-    const sous = e.sorte === 'branches' && typeof v === 'number' ? sousEmplacement(e, v) : undefined;
+    const sous = sousEmplacementActif(e, choisis);
     const id = `carriere/dotation/${e.adresse}`;
     const poser = (x?: number | string) => ecrire({ ...p, dotationsDeCarriere: { ...Object.fromEntries(Object.entries(choisis).filter(([a]) => a !== e.adresse)), ...(x === undefined ? {} : { [e.adresse]: x }) } });
     return [choix(id, e.sorte === 'branches' ? t('ecran.editeur.carriere.dotation') : trappingRefLabel(e.ref), [
@@ -873,7 +874,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
 
 /** Le profil porté du personnage `ent` de la session `s`, s'il porte une fiche (`ficheEditee`, `ficheDuCombattant`) : d'un
  *  PNJ de carrière, le Niveau atteint de sa carrière actuelle et son Statut ; ses Caractéristiques et ses Blessures, ses
- *  Compétences à la valeur de leur Test, ses Talents et ses possessions. */
+ *  Compétences à la valeur de leur Test, ses Talents, ses possessions et ses mentions, une ligne par nature. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
   const porte = ficheEditee(ent, presetDuNarratif(s.projet.narratif));
@@ -891,6 +892,7 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
     liste('competences', fiche.competences.map((c) => `${c.libelle} ${c.valeur}`)),
     liste('talents', fiche.talents.map((x) => (x.fois > 1 ? `${x.libelle} ×${x.fois}` : x.libelle))),
     liste('possessions', fiche.possessions.map((x) => (x.nombre > 1 ? `${x.libelle} (${x.nombre})` : x.libelle))),
+    ...fiche.mentions.map((m) => ligne(`profil/mentions/${m.nature}`, t('ecran.editeur.profil.mentions', { nature: m.titre, liste: m.mentions.map((x) => (x.nombre > 1 ? `${x.libelle} (${x.nombre})` : x.libelle)).join(', ') }))),
   ];
 }
 

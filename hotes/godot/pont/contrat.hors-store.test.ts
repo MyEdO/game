@@ -12,6 +12,8 @@ import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
 import { CLIC_DU_CHAMP, PREFERENCES, cleDuGeste, plateauDeLaScene, preferenceDef } from '../../../src/noyau/index';
+import { t } from '../../../src/i18n';
+import { SONS_DE_LA_PARTIE } from '../../../src/noyau/effetsDeLAppel';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { testScenarios } from '../../../src/scenes/test-scenarios';
@@ -36,7 +38,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : accueil, demarrer, ouvrir, lancer, quitter, sauvegardes, sauvegarder, charger, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, roster, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, reglages, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : accueil, demarrer, ouvrir, lancer, quitter, sauvegardes, sauvegarder, charger, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, roster, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, reglages, salon, nouvelles, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
   });
 
   it('`preferences` rend sans partie la valeur effective de chaque préférence de la table, par id', () => {
@@ -176,5 +178,42 @@ describe('le pont et sa partie', () => {
       erreurs: [{ message: 'boum', source: 'wfrp-pont.js:12' }, { message: 'promesse rejetée', source: 'unhandledrejection' }],
     });
     expect(appel('erreursGlobales'), 'relevées, elles sont vidées').toEqual({ ok: true, erreurs: [] });
+  });
+});
+
+describe('la file de la partie', () => {
+  /** Ce que la `Suite` de `regarder` porte de la partie : ses jetons, son journal, ses lignes d'écran et ses effets. */
+  const produit = () => {
+    const s = suiteDe(appel('regarder', { regard: 'tactique' }));
+    return { programmes: s.programmes, journal: s.journal, lignes: s.zones['journal.lignes'], effets: s.effets };
+  };
+  const RIEN = { programmes: [], journal: [], lignes: [], effets: [] };
+
+  it('la `Suite` de `demarrer` porte le journal de son lancement ; la suivante n’en redit rien', { timeout: 120_000 }, () => {
+    appel('quitter');
+    const s = suiteDe(appel('demarrer', { scenario: 'dome', graine: 7 }));
+    expect(s.journal.length, 'le lancement du dôme écrit au journal').toBeGreaterThan(0);
+    expect(produit(), 'rien ne sort deux fois').toEqual(RIEN);
+  });
+
+  it('un geste refusé à un siège sort sa ligne et le son de ses dés à la `Suite` suivante, une fois', () => {
+    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
+    expect(erreurDe(appel('jouer', { type: 'jetLancer', args: ['cascade', 'sorciere'], siege: 1 })).categorie).toBe('permission');
+    const p = produit();
+    expect(p.journal.map((l) => ('texte' in l ? l.texte : null)), 'la ligne de chaque refus').toEqual([t('coop.intentRefused'), t('coop.intentRefused')]);
+    expect(p.effets.some((e) => e.quoi === 'son' && e.son.id === SONS_DE_LA_PARTIE.des), 'le son des dés du verbe de jet').toBe(true);
+    expect(produit(), 'rien ne sort deux fois').toEqual(RIEN);
+  });
+
+  it('le jeton d’un pas joué avant le refus de `jouer { suite }` sort à la `Suite` suivante, une fois, et se reprend', { timeout: 120_000 }, () => {
+    drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['debutDuRound'] }));
+    for (let tour = 0; tour < 3; tour++) expect(suiteDe(appel('jouer', { type: 'terminerLeTour', args: [] })).programmes, `fin de tour ${tour + 1}, sans jeton`).toEqual([]);
+    const refus = erreurDe(appel('jouer', { suite: [{ type: 'terminerLeTour', args: [] }, { type: 'inconnu' }] }));
+    expect(refus.categorie).toBe('validation');
+    expect(refus.message).toContain('verbe inconnu : inconnu');
+    const { programmes } = produit();
+    expect(programmes.length, 'le jeton de la quatrième fin de tour').toBe(1);
+    expect(produit().programmes, 'rien ne sort deux fois').toEqual([]);
+    expect(appel('reprendre', { jeton: programmes[0].id }).ok, 'le jeton se reprend').toBe(true);
   });
 });

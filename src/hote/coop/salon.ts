@@ -4,19 +4,18 @@
  *  - HÔTE : crée une room sur le Worker (code de 6 caractères à partager) ; chaque écriture de l'état arme une
  *    diffusion lissée (`DIFFUSION_MS`) d'un instantané complet, différée tant que l'envoi est saturé (`BUFFER_MAX`) :
  *    seul le DERNIER état part.
- *  - INVITÉ : rejoint par code ; ses actions de l'allowlist partent en intention vers l'hôte (`emettreIntentInvite`),
- *    l'état local n'est que le reflet des instantanés reçus.
- * Reconnexion (spec v2 §6) : coupure d'un invité → son siège est réservé `GRACE_MS` (présence `away` chez l'hôte), il
+ *  - INVITÉ : rejoint par code ; ses actions de l'allowlist partent en intention vers l'hôte
+ *    (`transmettreLesIntentions`, `noyau/reseau.ts`), l'état local n'est que le reflet des instantanés reçus.
+ * Reconnexion (spec v2 §6) : coupure d'un invité → son siège est réservé `GRACE_MS` (présence `absent` chez l'hôte), il
  * reprend par token (persisté par room, `cleDuJeton`) ; passé la grâce, ses héros reviennent à l'hôte (`fermerLeSiege`).
  *
  * La plateforme s'injecte (`PortsDuSalon`) : la socket, la minuterie, la compression, l'URL et le `fetch` du relay, le
- * stockage du jeton, l'abonnement aux écritures de l'état et l'enrobage des actions de l'invité.
+ * stockage du jeton et l'abonnement aux écritures de l'état. Le salon lit l'état par `get` et l'écrit par la machinerie
+ * du noyau (`poserLeReseau`, `ecrireAuJournal`, `transmettreLesIntentions`, `restaurerLesIntentions`), chez l'hôte par
+ * le rappel `appliquer` que reçoit `heberger` et, chez l'invité, par le rappel `appliquerSnapshot` que reçoit `rejoindre`.
+ * Une ouverture à la fois (`heberger` avant sa session posée, `rejoindre` avant `seated`), que `quitter` achève.
  */
-import {
-  appliquerLIntentionDUnSiege, argsAvecIntentionLocale, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
-  initialNet, instantaneDeLaCoop, intentEluLocalement, poserLeSiegeMJ, preparerLIntentLocal, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
-  refusDuSiegeMJ, refuserGesteDuSiege, type Get, type NetState, type Set,
-} from '../../noyau/index';
+import { buildDeLaCoop, fermerLeSiege, initialNet, instantaneDeLaCoop, type Get } from '../../noyau/index';
 import { t } from '../../i18n';
 import { RoomGuest, RoomHost, type PortsDuRelais } from './relay';
 import { GuestSession, HostSession } from './session';
@@ -55,80 +54,35 @@ export interface PortsDuSalon extends PortsDuRelais {
   stockage: () => StockageDuJeton | null;
   /** Abonne `ecouteur` à chaque écriture de l'état ; rend le désabonnement. */
   abonner: (ecouteur: () => void) => () => void;
-  /** L'enrobage des actions de l'allowlist chez l'invité, et son retrait. */
-  invite: { intercepter(): void; restaurer(): void };
-}
-
-/**
- * Le sort d'UNE action de l'allowlist chez l'invité, dans cet ordre :
- *  - ÉLECTION LOCALE (`intentEluLocalement`) : le clic n'ouvre qu'un CHOIX D'ÉCRAN — le paramètre borné qui reste à
- *    demander — et se joue ENTIER chez le client, par son action locale. Rien ne part : le porteur élu est hors
- *    instantané, l'exécuter chez l'hôte y ferait naître un panneau étranger et n'en montrerait aucun à l'émetteur ;
- *  - sinon l'émetteur PRÉPARE chez lui ce que l'hôte ne pose pas (`preparerLIntentLocal` : l'intention qu'arme une
- *    offre jouée chez l'hôte), puis l'intent PART, avec l'intention ARMÉE ICI (`argsAvecIntentionLocale`) : elle est
- *    locale au client, l'hôte ne peut pas la relire dans son propre état, il la juge.
- */
-export function emettreIntentInvite(
-  get: Get,
-  name: string,
-  local: (...args: unknown[]) => unknown,
-  envoyer: (action: string, args: unknown[]) => void,
-  args: unknown[],
-): void {
-  if (intentEluLocalement(get, name, args)) {
-    local(...args);
-    return;
-  }
-  preparerLIntentLocal(get, name, args);
-  envoyer(name, argsAvecIntentionLocale(get, name, args));
 }
 
 /** HÔTE : siège FERMÉ (départ définitif, fin de grâce) — `fermerLeSiege` (spec §6). */
-function siegeFerme(get: Get, set: Set, seat: number): void {
-  set({ net: fermerLeSiege(get().net, seat) });
+function siegeFerme(get: Get, seat: number): void {
+  get().poserLeReseau(fermerLeSiege(get().net, seat));
   get().ecrireAuJournal(t('coop.seatClosed'));
 }
 
-/** Pose le réseau `apres(net)`, sauf si `refus` tombe : le refus se dit alors au siège qui décide
- *  (`refuserGesteDuSiege`) et `net` reste inchangé. */
-function poserLeReseau(get: Get, set: Set, refus: string | null, apres: (net: NetState) => NetState): void {
-  if (refus !== null) {
-    refuserGesteDuSiege(get, set, refus);
-    return;
-  }
-  const net = apres(get().net);
-  if (net !== get().net) set({ net });
-}
+/** L'intention d'un invité, chez l'hôte : `action(...args)` au nom de `siege`. */
+export type AppliquerLIntention = (action: string, args: unknown[], siege: number) => void;
 
-/** `attribuerLeHeros` (`noyau/sieges.ts`), refusé par `refusDAttribuerLeHeros`. */
-export function netAssign(get: Get, set: Set, heroId: string, seat: number): void {
-  const { net, party } = get();
-  poserLeReseau(get, set, refusDAttribuerLeHeros(net, party, heroId, seat), (n) => attribuerLeHeros(n, party, heroId, seat));
-}
-
-/** `poserLeSiegeMJ` (`noyau/sieges.ts`), refusé par `refusDuSiegeMJ`. */
-export function setGmSeat(get: Get, set: Set, seat: number | null): void {
-  poserLeReseau(get, set, refusDuSiegeMJ(get().net, seat), (n) => poserLeSiegeMJ(n, seat));
-}
-
-/** `attribuerLEmplacement` (`noyau/sieges.ts`), refusé par `refusDAttribuerLEmplacement`. */
-export function netAssignSlot(get: Get, set: Set, slot: number, seat: number): void {
-  const { net, party } = get();
-  poserLeReseau(get, set, refusDAttribuerLEmplacement(net, party, slot, seat), (n) => attribuerLEmplacement(n, party, slot, seat));
+/** Une ouverture en vol ; `finir` la clôt une fois, par une seule voie, et rend si c'était la sienne. */
+interface Ouverture {
+  vive(): boolean;
+  finir(issue: string | null): boolean;
 }
 
 /** Un salon : au plus une session à la fois, hôte ou invité. Ses objets réseau vivants (sessions, sockets) restent
  *  dans sa fermeture, jamais dans l'état (non sérialisables, jamais dans les instantanés). */
 export interface Salon {
-  /** Devient HÔTE : crée la room sur le Worker → code court, attend les invités. false = service injoignable. */
-  heberger(get: Get, set: Set, name: string): Promise<boolean>;
-  /** INVITÉ : rejoint une room par son code. Résout null si connecté, sinon le message d'erreur. Un token stocké
-   *  (reload) reprend le MÊME siège tant que la room vit. */
-  rejoindre(get: Get, set: Set, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null>;
-  /** INVITÉ : envoie l'intention à l'hôte ; inerte hors session. */
-  envoyer(action: string, args: unknown[]): void;
-  /** Quitte la session (les deux rôles) — retour au mode local, actions restaurées. */
-  quitter(set: Set): void;
+  /** Devient HÔTE : crée la room sur le Worker → code court, attend les invités, applique leurs intentions par
+   *  `appliquer`. Résout null s'il héberge, sinon le message d'erreur ; une levée en chemin va aussi à `panne`. */
+  heberger(get: Get, appliquer: AppliquerLIntention, name: string): Promise<string | null>;
+  /** INVITÉ : rejoint une room par son code. Résout null si connecté, sinon le message d'erreur ; une levée en chemin
+   *  va aussi à `panne`. Un token stocké (reload) reprend le MÊME siège tant que la room vit. */
+  rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null>;
+  /** Quitte la session (les deux rôles) — retour au mode local, actions restaurées. Une ouverture en vol se résout
+   *  dans l'appel (`coop.ouvertureAbandonnee`). */
+  quitter(get: Get): void;
 }
 
 export function creerLeSalon(ports: PortsDuSalon): Salon {
@@ -138,7 +92,47 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
   let roomGuest: RoomGuest | null = null;
   let desabonner: (() => void) | null = null;
   let annulerLaDiffusion: (() => void) | null = null;
+  let ouverture: Ouverture | null = null;
   const graces = new Map<number, () => void>();
+
+  /** Pose l'ouverture en vol ; sa fin `annule` ce qu'elle a armé puis `resolve` son issue. */
+  function commencer(resolve: (issue: string | null) => void, annuler: () => void = () => {}): Ouverture {
+    const o: Ouverture = {
+      vive: () => ouverture === o,
+      finir: (issue) => {
+        if (ouverture !== o) return false;
+        ouverture = null;
+        annuler();
+        resolve(issue);
+        return true;
+      },
+    };
+    ouverture = o;
+    return o;
+  }
+
+  /** L'échec `issue` de l'ouverture `o`, puis le ménage de ce qu'elle a posé. */
+  function echouer(get: Get, o: Ouverture, issue: string): void {
+    if (o.finir(issue)) quitter(get);
+  }
+
+  /** Le refus d'ouvrir : déjà en session ou en ouverture, ou nom vide. */
+  function refusDOuvrir(get: Get, name: string): string | null {
+    if (get().net.mode !== 'local' || ouverture) return t('coop.alreadyInSession');
+    if (!name.trim()) return t('coop.nomRequis');
+    return null;
+  }
+
+  /** La room créée sur le Worker ; null si le service est injoignable. */
+  async function creerLaRoom(): Promise<{ code: string; hostToken: string } | null> {
+    try {
+      const res = await ports.fetch(`${ports.relais()}/rooms`, { method: 'POST' });
+      if (!res.ok) return null;
+      return (await res.json()) as { code: string; hostToken: string };
+    } catch {
+      return null;
+    }
+  }
 
   function diffuser(): void {
     if (!host || annulerLaDiffusion != null) return;
@@ -153,11 +147,12 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     }, DIFFUSION_MS);
   }
 
-  function presente(get: Get, set: Set, seat: number, gname: string): void {
-    set({ net: { ...get().net, seatNames: { ...get().net.seatNames, [seat]: gname }, presence: { ...get().net.presence, [seat]: 'present' } } });
+  function presente(get: Get, seat: number, gname: string): void {
+    get().poserLeReseau({ ...get().net, seatNames: { ...get().net.seatNames, [seat]: gname }, presence: { ...get().net.presence, [seat]: 'present' } });
   }
 
-  function quitter(set: Set): void {
+  function quitter(get: Get): void {
+    ouverture?.finir(t('coop.ouvertureAbandonnee'));
     desabonner?.();
     desabonner = null;
     annulerLaDiffusion?.();
@@ -172,92 +167,100 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     roomHost = null;
     roomGuest?.close();
     roomGuest = null;
-    ports.invite.restaurer();
-    set({ net: initialNet() });
+    get().restaurerLesIntentions();
+    get().poserLeReseau(initialNet());
   }
 
-  async function heberger(get: Get, set: Set, name: string): Promise<boolean> {
-    if (get().net.mode !== 'local') return false;
-    let room: { code: string; hostToken: string };
-    try {
-      const res = await ports.fetch(`${ports.relais()}/rooms`, { method: 'POST' });
-      if (!res.ok) return false;
-      room = (await res.json()) as { code: string; hostToken: string };
-    } catch {
-      return false;
-    }
+  function heberger(get: Get, appliquer: AppliquerLIntention, name: string): Promise<string | null> {
+    const refus = refusDOuvrir(get, name);
+    if (refus) return Promise.resolve(refus);
+    return new Promise((resolve) => {
+      const o = commencer(resolve);
+      void creerLaRoom().then((room) => {
+        if (!room) o.finir(t('coop.hote.erreur'));
+        else if (o.vive()) {
+          try {
+            poserLHote(get, appliquer, name, room);
+          } catch (erreur) {
+            echouer(get, o, t('coop.hote.erreur'));
+            ports.panne(erreur);
+            return;
+          }
+          o.finir(null);
+        }
+      });
+    });
+  }
+
+  function poserLHote(get: Get, appliquer: AppliquerLIntention, name: string, room: { code: string; hostToken: string }): void {
     const rh = new RoomHost(ports.relais(), room.code, room.hostToken, ports);
     roomHost = rh;
     host = new HostSession({
       build: buildDeLaCoop(),
-      applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
+      applyIntent: appliquer,
       getSnapshot: () => instantaneDeLaCoop(get()),
-      campagne: () => get().pendingCampaign,
-      onSeatClosed: (seat) => siegeFerme(get, set, seat),
+      onSeatClosed: (seat) => siegeFerme(get, seat),
     });
     rh.onFatal = () => {
       get().ecrireAuJournal(t('coop.hote.lienPerdu'));
-      quitter(set);
+      quitter(get);
     };
     rh.onJoin = (seat, gname) => {
       host?.addGuest(rh.seatTransport(seat), seat);
-      presente(get, set, seat, gname);
+      presente(get, seat, gname);
     };
     rh.onResume = (seat, gname) => {
       graces.get(seat)?.();
       graces.delete(seat);
       // Revenu APRÈS la grace : son siège a été fermé → re-join sur le même siège.
       if (!host?.seats[seat]) host?.addGuest(rh.seatTransport(seat), seat);
-      presente(get, set, seat, gname);
+      presente(get, seat, gname);
     };
     rh.onGone = (seat) => {
-      set({ net: { ...get().net, presence: { ...get().net.presence, [seat]: 'absent' } } });
+      get().poserLeReseau({ ...get().net, presence: { ...get().net.presence, [seat]: 'absent' } });
       graces.set(seat, ports.minuterie.programmer(() => {
         graces.delete(seat);
         rh.closeSeat(seat); // → onClose du transport virtuel → onSeatClosed (héros à l'hôte)
       }, GRACE_MS));
     };
-    set({ net: { ...initialNet(), mode: 'hote', roomCode: room.code, seatNames: { 0: name } } });
+    get().poserLeReseau({ ...initialNet(), mode: 'hote', roomCode: room.code, seatNames: { 0: name } });
     desabonner = ports.abonner(diffuser);
-    return true;
   }
 
-  function rejoindre(get: Get, set: Set, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null> {
-    if (get().net.mode !== 'local') return Promise.resolve(t('coop.alreadyInSession'));
+  function rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null> {
+    const refus = refusDOuvrir(get, name);
+    if (refus) return Promise.resolve(refus);
     const code = codeRaw.trim().toUpperCase();
     if (!FORMAT_DU_CODE.test(code)) return Promise.resolve(t('coop.badCode'));
-    const stored = ports.stockage()?.getItem(cleDuJeton(code)) ?? undefined;
     return new Promise((resolve) => {
-      let settled = false;
-      const fail = (msg: string) => {
-        if (settled) return;
-        settled = true;
-        quitter(set);
-        resolve(msg);
-      };
-      const annulerLeDelai = ports.minuterie.programmer(() => fail(t('coop.joinFailed')), DELAI_DE_CONNEXION_MS);
-      const rg = new RoomGuest(ports.relais(), code, name, ports, stored);
+      const o = commencer(resolve, ports.minuterie.programmer(() => echouer(get, o, t('coop.joinFailed')), DELAI_DE_CONNEXION_MS));
+      let rg: RoomGuest;
+      try {
+        rg = new RoomGuest(ports.relais(), code, name, ports, ports.stockage()?.getItem(cleDuJeton(code)) ?? undefined);
+      } catch (erreur) {
+        echouer(get, o, t('coop.joinFailed'));
+        ports.panne(erreur);
+        return;
+      }
       roomGuest = rg;
       rg.onFatal = (reason) => {
-        if (settled) {
-          get().ecrireAuJournal(t('coop.reason', { reason }));
-          quitter(set);
+        if (o.vive()) {
+          echouer(get, o, reason);
           return;
         }
-        fail(reason);
+        get().ecrireAuJournal(t('coop.reason', { reason }));
+        quitter(get);
       };
       rg.onHostAway = (away) => {
-        if (get().net.mode === 'invite') set({ net: { ...get().net, hoteAbsent: away } });
+        if (get().net.mode === 'invite') get().poserLeReseau({ ...get().net, hoteAbsent: away });
       };
       rg.onConnState = (s) => {
-        if (get().net.mode === 'invite') set({ net: { ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' } });
+        if (get().net.mode === 'invite') get().poserLeReseau({ ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' });
       };
       rg.onReconnected = () => guest?.rejoin();
       rg.onSeated = (seat) => {
         ports.stockage()?.setItem(cleDuJeton(code), rg.token);
-        if (settled) return; // reprise en cours de partie : déjà câblé
-        settled = true;
-        annulerLeDelai();
+        if (!o.vive()) return; // reprise en cours de partie : déjà câblé
         guest = new GuestSession({
           build: buildDeLaCoop(),
           label: name,
@@ -266,12 +269,12 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           // qui suit juste après (silencieux, cf. session.ts).
           onProtocolMismatch: (expected, got) => get().ecrireAuJournal(t('coop.protocolMismatch', { got, expected })),
           onFormatMismatch: () => get().ecrireAuJournal(t('coop.formatMismatch')),
-          onClosed: () => quitter(set),
+          onClosed: () => quitter(get),
         });
-        set({ net: { ...initialNet(), mode: 'invite', mySeat: seat, roomCode: code, seatNames: { [seat]: name } } });
-        ports.invite.intercepter();
+        get().poserLeReseau({ ...initialNet(), mode: 'invite', mySeat: seat, roomCode: code, seatNames: { [seat]: name } });
+        get().transmettreLesIntentions((action, args) => guest?.sendIntent(action, args));
         guest.connect(rg);
-        resolve(null);
+        o.finir(null);
       };
     });
   }
@@ -279,7 +282,6 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
   return {
     heberger,
     rejoindre,
-    envoyer: (action, args) => guest?.sendIntent(action, args),
     quitter,
   };
 }

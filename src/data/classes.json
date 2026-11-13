@@ -90,7 +90,10 @@
         "id": "pince-a-epiler"
       },
       {
-        "id": "cure-oreille"
+        "id": "cure-oreille",
+        "count": {
+          "fixed": 2
+        }
       },
       {
         "id": "peigne"
@@ -183,7 +186,7 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "id": "feuille-de-parchemin",
+        "id": "parchemin",
         "count": {
           "roll": {
             "n": 1,
@@ -265,7 +268,8 @@
         }
       },
       {
-        "choice": [
+        "pick": 1,
+        "of": [
           {
             "id": "capuchon"
           },

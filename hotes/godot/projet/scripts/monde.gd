@@ -8,15 +8,15 @@
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
 ## (`forces_du_clavier`). Il rend la caméra posée (`camera`), le lieu qu'elle suit (`lieu_suivi`), la case du triangle que le rayon du pointeur touche, hors
-## des cases que le masque du volume retire, et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
+## des cases que le masque du volume retire sauf les cases jouables qui s'y voient (`poser_les_cases_jouables`), et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
 ## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
-## la caméra (`cacher_le_bati`), la météo (`poser_la_meteo`) et le calque de référence de l'éditeur ; tout autre chose
+## la caméra (`cacher_le_bati`), la météo par son nœud `Meteo` (`poser_la_meteo`) et le calque de référence de l'éditeur ; tout autre chose
 ## posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
-## La caméra a pivoté ou zoomé : ce qui est sous le pointeur a pu changer.
+## La caméra pivote, zoome, glisse ou se décale, ou cesse de le faire : ce qui est sous le pointeur a pu changer.
 signal cadrage_change
 
 const DUREE_QUART_S := 0.25
@@ -29,10 +29,6 @@ const SOUS_LE_MONDE := -1000.0
 const LANCERS_DU_RAYON := 64
 ## La vitesse (m/s) de la caméra qui glisse au clavier.
 const VITESSE_DE_GLISSE_M_S := 16.0
-## La distance (cases) en deçà de laquelle une particule de météo s'efface devant la caméra, et celle où elle est
-## pleine : une goutte qui frôle l'œil de l'immersion n'est pas un pan de mur.
-const PRES_DE_L_OEIL := 0.5
-const LOIN_DE_L_OEIL := 1.5
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
 ## La hauteur (m) au-dessus du lieu que regarde la caméra d'où se cherche le sol sous lui (`camera`).
@@ -54,7 +50,7 @@ const ACTIONS_DE_MARCHE: Array[StringName] = [&"gauche", &"droite", &"avant", &"
 ## Le volume de la scène, que qui instancie le monde pose (`VolumeDeScene`).
 @onready var volume: VolumeDeScene = $VolumeDeScene
 @onready var _corps: StaticBody3D = $VolumeDeScene/Volume/Corps
-@onready var _meteo: Node3D = $VolumeDeScene/Volume/Meteo
+@onready var _meteo: Meteo = $VolumeDeScene/Volume/Meteo
 @onready var _pivot: Node3D = $Pivot
 @onready var _inclinaison: Node3D = $Pivot/Inclinaison
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
@@ -64,8 +60,6 @@ const ACTIONS_DE_MARCHE: Array[StringName] = [&"gauche", &"droite", &"avant", &"
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 @onready var _calque: MeshInstance3D = $Calque
 
-## Le son de la météo qui joue en boucle, `null` sans son (`poser_la_meteo`).
-var _son_de_la_meteo: AudioStreamPlayer = null
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
 var _lacet := 0.0
@@ -86,6 +80,9 @@ var _prises: Dictionary = {}
 ## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
 ## occupant (`poser_les_stations`).
 var _stations := {}
+## Les cases (`Vector3i`, leur couche comprise) que qui instancie le monde montre jouables
+## (`poser_les_cases_jouables`) : le rayon s'y arrête, même retirées.
+var _cases_jouables := {}
 ## La part de la fenêtre où le monde se voit, que l'interface ne couvre pas ; vide, toute la fenêtre. Le lieu que
 ## regarde la caméra des regards `tactique` et `plateau` se pose en son centre (`_decaler`).
 var cadre := Rect2():
@@ -138,100 +135,14 @@ func _forme_de(morceau: Dictionary) -> CollisionShape3D:
 	return noeud
 
 
-## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
-## averse de particules par boîte de `pluie.averses`, étirées dans le sens de leur chute et effacées près de la caméra,
-## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834) sur le bus de son canal, que le même
-## son laisse jouer ; rien sans météo.
+## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») posée dans le volume par son nœud (`Meteo.poser`).
 func poser_la_meteo(meteo: Variant) -> void:
-	for posee in _meteo.get_children():
-		_meteo.remove_child(posee)
-		posee.free()
-	_entendre_la_meteo(null if meteo == null else meteo.son)
-	if meteo == null:
-		return
-	if meteo.pluie != null:
-		for averse in meteo.pluie.averses:
-			_meteo.add_child(_averse(meteo.pluie, averse))
-	for nappe in meteo.nappes:
-		_meteo.add_child(_nappe_de_brume(nappe))
+	_meteo.poser(meteo)
 
 
-## Le son `son` de la météo (`null` : aucun) joué partout en boucle, sur le bus de son canal (`son.canal`), à la place
-## du précédent s'il en diffère.
-func _entendre_la_meteo(son: Variant) -> void:
-	var voulu: String = "" if son == null else son.id
-	var joue: String = "" if _son_de_la_meteo == null else _son_de_la_meteo.get_meta("son")
-	if voulu == joue:
-		return
-	if _son_de_la_meteo != null:
-		_son_de_la_meteo.queue_free()
-		_son_de_la_meteo = null
-	if son == null:
-		return
-	_son_de_la_meteo = AudioStreamPlayer.new()
-	_son_de_la_meteo.name = "son-%s" % son.id
-	_son_de_la_meteo.set_meta("son", son.id)
-	_son_de_la_meteo.stream = Effets.variante_du_son(son, true)
-	_son_de_la_meteo.volume_db = linear_to_db(son.volume)
-	_son_de_la_meteo.bus = son.canal
-	_son_de_la_meteo.autoplay = true
-	add_child(_son_de_la_meteo, true)
-
-
-## Le son de la météo qui joue, `null` sans son.
+## Le son de la météo qui joue, `null` sans son (`Meteo.son`).
 func son_de_la_meteo() -> AudioStreamPlayer:
-	return _son_de_la_meteo
-
-
-func _averse(pluie: Dictionary, averse: Dictionary) -> CPUParticles3D:
-	var particules := CPUParticles3D.new()
-	particules.position = Vector3(averse.centre[0], averse.centre[1], averse.centre[2])
-	particules.amount = int(averse.nombre)
-	particules.lifetime = pluie.dureeS
-	particules.preprocess = pluie.dureeS
-	particules.local_coords = true
-	particules.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	particules.emission_box_extents = Vector3(averse.demiEtendue[0], averse.demiEtendue[1], averse.demiEtendue[2])
-	particules.direction = Vector3(pluie.sens.x, pluie.sens.y, pluie.sens.z)
-	particules.spread = 0.0
-	particules.gravity = Vector3.ZERO
-	particules.initial_velocity_min = pluie.vitesseMs
-	particules.initial_velocity_max = pluie.vitesseMs
-	particules.particle_flag_align_y = true
-	particules.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var goutte := BoxMesh.new()
-	goutte.size = Vector3(pluie.largeurM, pluie.traineeM, pluie.largeurM)
-	var matiere := _translucide(pluie.couleur, pluie.opacite)
-	matiere.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
-	matiere.distance_fade_min_distance = PRES_DE_L_OEIL
-	matiere.distance_fade_max_distance = LOIN_DE_L_OEIL
-	goutte.material = matiere
-	particules.mesh = goutte
-	return particules
-
-
-func _nappe_de_brume(nappe: Dictionary) -> MeshInstance3D:
-	var tableaux := []
-	tableaux.resize(Mesh.ARRAY_MAX)
-	tableaux[Mesh.ARRAY_VERTEX] = PackedFloat32Array(nappe.positions).to_byte_array().to_vector3_array()
-	var maillage := ArrayMesh.new()
-	maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
-	var instance := MeshInstance3D.new()
-	instance.mesh = maillage
-	instance.material_override = _translucide(nappe.couleur, nappe.alpha)
-	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return instance
-
-
-## Une matière sans éclairage ni brume de profondeur, vue des deux côtés, de teinte `couleur` à l'opacité `opacite`.
-func _translucide(couleur: String, opacite: float) -> StandardMaterial3D:
-	var matiere := StandardMaterial3D.new()
-	matiere.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	matiere.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	matiere.cull_mode = BaseMaterial3D.CULL_DISABLED
-	matiere.disable_fog = true
-	matiere.albedo_color = Color(couleur, opacite)
-	return matiere
+	return _meteo.son()
 
 
 ## Chaque nappe de toit que `toits_leves` nomme (`plateau.toitsLeves`) cachée à la caméra (`VolumeDeScene.cacher`),
@@ -286,6 +197,16 @@ func poser_les_stations(navires: Dictionary) -> void:
 	for id: String in navires:
 		for s: Dictionary in navires[id].stations:
 			_stations[Vector3i(int(s.x), int(s.y), int(s.z))] = Vector2(s.point.x, s.point.y)
+
+
+## Les cases `cases` (`Vector3i`, leur couche comprise) que qui instancie le monde montre jouables (un corps dessiné,
+## une plaque de cible), à la place des précédentes : le rayon s'arrête sur chacune même retirée (`_toucher`). De
+## deux cases jouables d'une même colonne, la plus haute retirée, il rend celle qu'il touche la première, celle qui se
+## dessine par-dessus ; la case d'en dessous garde son point sous un regard qui ne retire pas l'autre.
+func poser_les_cases_jouables(cases: Array[Vector3i]) -> void:
+	_cases_jouables = {}
+	for case in cases:
+		_cases_jouables[case] = true
 
 
 ## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.
@@ -398,7 +319,7 @@ func sol_sous(lieu: Vector3) -> Variant:
 
 
 ## Ce que le rayon de `origine` à `fin`, de sens unitaire `sens`, touche le premier hors des cases que le masque du
-## volume retire (`VolumeDeScene.retiree`) : lancé entier, puis, touchant une case retirée, repris au-delà
+## volume retire (`VolumeDeScene.retiree`), sauf les cases jouables (`poser_les_cases_jouables`) : lancé entier, puis, touchant une case retirée, repris au-delà
 ## (`MiseEnPage.point_au_dela`) par tronçons bornés (`MiseEnPage.bout_du_troncon`), dont chacun qui ne touche rien
 ## avant `fin` est suivi du prochain, qui recouvre sa fin (`MiseEnPage.point_en_deca`) ; au plus
 ## `LANCERS_DU_RAYON` lancers. Rend `{ case, f, lieu }`, la case du triangle touché et sa couche (`Vector3i(x, y, z)`,
@@ -419,7 +340,7 @@ func _toucher(origine: Vector3, fin: Vector3, sens: Vector3) -> Variant:
 		else:
 			var forme := _corps.shape_owner_get_owner(_corps.shape_find_owner(touche.shape)) as CollisionShape3D
 			var case := Vector3i(forme.get_meta("cases")[touche.face_index])
-			if not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
+			if _cases_jouables.has(case) or not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
 				return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
 			requete.from = MiseEnPage.point_au_dela(touche.position, rayon, volume.metres_par_case)
 		bout = MiseEnPage.bout_du_troncon(requete.from, rayon, depart, longueur, volume.metres_par_case)
@@ -477,6 +398,13 @@ func _rejoindre(lieu: Vector3) -> void:
 	_suivi = create_tween()
 	_suivi.tween_property(_pivot, "position", lieu, DUREE_QUART_S)
 	_suivi.tween_callback(cadrage_change.emit)
+	cadrage_change.emit()
+
+
+## Si la caméra des regards `tactique` et `plateau` glisse vers un lieu ou pivote : les points de l'écran (`points`)
+## changent jusqu'à ce qu'elle se pose, où le cadrage se dit changé.
+func glisse() -> bool:
+	return (_suivi != null and _suivi.is_running()) or (_pivotement != null and _pivotement.is_running())
 
 
 ## L'œil du regard `immersion` au lieu `lieu`, tourné du lacet `lacet` et du tangage `tangage`.
@@ -581,8 +509,11 @@ func _decaler() -> void:
 	var orthogonale := _camera.projection == Camera3D.PROJECTION_ORTHOGONAL
 	var etendue := _camera.size if orthogonale else MiseEnPage.etendue_en_perspective(_camera.position.z, _camera.fov)
 	var decalage := MiseEnPage.decalage_de_l_objectif(centre, fenetre.size.x, fenetre.size.y, etendue)
+	if is_equal_approx(_camera.h_offset, decalage.x) and is_equal_approx(_camera.v_offset, decalage.y):
+		return
 	_camera.h_offset = decalage.x
 	_camera.v_offset = decalage.y
+	cadrage_change.emit()
 
 
 ## Le lacet de la caméra posé sur le pivot : décalé d'un demi-quart de tour au plateau (`MiseEnPage.lacet_du_plateau`).
@@ -623,6 +554,7 @@ func _pivoter(sens: float) -> void:
 	_pivotement.tween_property(_pivot, "rotation:y", MiseEnPage.lacet_du_plateau(_lacet) if _regard == "plateau" else _lacet, DUREE_QUART_S)
 	_pivotement.tween_callback(_abattre_les_aretes)
 	_pivotement.tween_callback(cadrage_change.emit)
+	cadrage_change.emit()
 
 
 func _zoomer(sens: float) -> void:
@@ -643,11 +575,12 @@ func _zoomer(sens: float) -> void:
 ## Les nappes retirées (`plateau.toitsLeves`), les arêtes retirées (`plateau.aretesDegagees`) et les couronnes crénelées
 ## tombées avec leur mur abattu (`plateau.couronnesAbattues`), `Monde.cacher_le_bati` les cache à la caméra : les
 ## nappes, et chaque arête retirée sous le cran de la caméra (`MiseEnPage.rotation_iso`) avec sa couronne, revue à
-## chaque quart de tour ; chaque nappe et chaque couronne en ombre seule (`SHADOWS_ONLY`, `VolumeDeScene._cacher_sous`),
-## chaque arête hors du compte visible des instances vues de son groupe, les instances en ombre seule du groupe
-## entières (`VolumeDeScene._ecrire_les_instances`). Le regard ne change que ce que voit la caméra, jamais l'éclairage :
-## sous un toit levé, l'intérieur reste à l'ombre (recette `projet/recettes/ombres-du-regard.gd`) ; une couronne
-## abattue, tombée avec son mur, disparaît (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
+## chaque quart de tour ; de chaque nappe et de chaque couronne, l'instance vue cachée, son instance en ombre seule
+## (`SHADOWS_ONLY`) gardée (`VolumeDeScene._cacher_sous`), chaque arête hors du compte visible des instances vues de son
+## groupe, les instances en ombre seule du groupe entières (`VolumeDeScene._ecrire_les_instances`). Le regard ne change
+## que ce que voit la caméra, jamais l'éclairage : sous un toit levé, l'intérieur reste à l'ombre (recette
+## `projet/recettes/ombres-du-regard.gd`) ; une couronne abattue, tombée avec son mur, disparaît
+## (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
 
 ## @contrat Monde
 ## Le volume de la scène (`projet/scenes/VolumeDeScene.tscn`, `VolumeDeScene`, #3802), que le monde
@@ -677,19 +610,39 @@ func _zoomer(sens: float) -> void:
 ## chaque sommet d'une case retirée ; l'instance en ombre seule n'est jamais masquée : le retiré ne se voit pas et porte
 ## son ombre (recette `projet/recettes/ombres-du-regard.gd`). Le rayon du pointeur, et celui qui cherche le sol sous un
 ## lieu, traverse une case retirée, puis reprend par tronçons bornés, sans sauter une face sous le biais coplanaire du
-## noyau (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`).
+## noyau (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`), sauf une case jouable qui s'y voit (la case
+## d'un corps dessiné, celle d'une plaque de cible, `Monde.poser_les_cases_jouables`), où il s'arrête : de deux cases
+## jouables d'une même colonne, la plus haute retirée, le clic rend la plus haute, qui se dessine par-dessus (recette
+## `projet/recettes/jouable-sur-couche-retiree.gd`).
 ##
-## Le shader de monde rend chaque surface vue d'un morceau, une matière standard chaque surface d'une nappe, de sa
-## texture, `projet/textures/<matiere>.jpg`, et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du
-## volume, un motif tous les deux mètres ; une matière sans texture garde la couleur de ses sommets. La provenance et la
-## licence de chaque texture sont dans `projet/textures/provenance.json` ; celles du kit des arêtes, dans
-## `projet/kit/provenance.json` (dossiers épinglés, `asset/epingles.ts`).
+## Le shader de monde rend chaque surface vue d'un morceau et d'une nappe de sa texture, `projet/textures/<matiere>.jpg`,
+## et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une
+## matière sans texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
+## `projet/textures/provenance.json` ; celles du kit des arêtes, dans `projet/kit/provenance.json` (dossiers épinglés,
+## `asset/epingles.ts`).
 ##
-## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, dans une matière standard
-## que le masque ne lie jamais, et que le rayon du pointeur traverse. Aucune géométrie ni couleur ne se réécrit en
-## GDScript.
+## Le monde pose chaque nappe de toit et chaque couronne crénelée sous le volume comme un morceau : une instance vue
+## dans le shader de monde, que la vision voile (chaque sommet porte en `UV2` le texel de sa case au plan `sol` de sa
+## couche, `2·i·h + y`) et que le masque ne lie jamais, et une instance en ombre seule ; le rayon du pointeur la
+## traverse. Aucune géométrie ne se réécrit en GDScript.
 ##
-## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
-## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son
-## (`meteo.son` : la pluie, l'orage, #3834) en boucle, partout, sans lieu : la même météo garde son lecteur, une autre
-## le remplace, aucune le retire (recette `projet/recettes/meteo.gd`).
+## La vision du groupe (méthode `vision`, `VisionDuMonde`) voile le monde case par case dans le shader de monde
+## (`VolumeDeScene.voir`) ; chaque instance vue d'une arête prend pour couleur la part de lumière de la meilleure des
+## cases qu'elle sépare (`cases`), fondue comme le reste, en sRGB (`MiseEnPage.teinte_d_instance`, jumelle de
+## `part_de_lumiere` du shader, recette `projet/recettes/voile-du-bati.gd`) ; sans vision, blanche. Ses matières n'ont
+## pas de spéculaire, que la couleur d'instance ne voilerait pas. La couleur d'instance, en sRGB, se lit de même sous
+## les deux rendus (`vertex_color_is_srgb`). Le reflet d'un fragment voilé suit sa part de lumière. Un navire monté se
+## voile par la même vision, chaque surface à l'état de la case qu'elle regarde (`VolumeDeScene.voile`,
+## `art/voile.gdshader`, recettes `projet/recettes/voile-de-la-barge.gd` et `voile-de-la-caraque.gd`).
+## La part est exacte par passe de lumière ; sous un soleil qui porte une ombre, le pilote de compatibilité somme deux
+## passes déjà encodées en sRGB, et la part rendue s'abaisse avec la luminance du pixel, mesurée jusqu'à 0,10 sous la
+## teinte (#3950, `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs`). Sous Forward+, le brouillard volumétrique
+## (`scenes/Lumiere.tscn`) diffuse une lumière que la vision ne voile pas : mesuré sous le ciel du jeu, une case inconnue
+## se rend à 0,17 de sa lumière au soleil et jusqu'à 0,26 sur une face à l'ombre, pour 0,15 (#4066).
+##
+## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume par son nœud `Meteo` (`projet/scripts/meteo.gd`,
+## #4081) : une averse par boîte, instance de `projet/effets/meteo/averse.tscn`, étirée dans le sens de sa chute, et
+## chaque nappe, instance de `projet/effets/meteo/nappe.tscn`, translucide, sans éclairage ni brume de profondeur ;
+## chaque scène se règle dans l'éditeur et ne reçoit que les valeurs de la donnée. Il joue aussi son son (`meteo.son` :
+## la pluie, l'orage, #3834) en boucle, partout, sans lieu : la même météo garde son lecteur, une autre le remplace,
+## aucune le retire (recette `projet/recettes/meteo.gd`).

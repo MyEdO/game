@@ -126,7 +126,7 @@ describe('composerSurLaBase', () => {
 });
 
 describe('le pont : composer, catalogues, presetDeComposition', () => {
-  const pont = creerPont(null);
+  const pont = creerPont(null, null);
   const appeler = (methode: string, entree?: unknown) => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
 
   it('composer se refuse avant modeles, puis compose sur une base servie', () => {

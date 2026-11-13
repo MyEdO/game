@@ -4,13 +4,13 @@
  * (`horlogeVirtuelle`, `src/noyau/horlogeVirtuelle.ts`), là où Godot arme ses minuteurs, et ce qu'il manque à une vue pour que
  * Godot dessine la fenêtre qui tient la main (`fautesDeLaFenetre`).
  */
-import { join } from 'node:path';
 import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
+import { DOSSIER_DES_MODELES, recupererModeles } from '../asset/release';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import type { Stockage } from '../../../src/lib/stockage';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
-import { creerPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite, type VueDuPont } from './pont';
+import { creerPont, type ReseauDuPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite, type VueDuPont } from './pont';
 import { gestesDessines } from './dessines';
 export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
@@ -21,10 +21,10 @@ import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } fro
 /** Une réponse décodée. */
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
 
-/** Un pont neuf sur le stockage `stockage`, en mémoire et vide par défaut, et ses appels : `entree` passe en JSON,
- *  absente sans entrée. */
-export function table(stockage: Stockage = stockageEnMemoire()) {
-  const pont: Pont = creerPont(stockage);
+/** Un pont neuf sur le stockage `stockage`, en mémoire et vide par défaut, et sur le réseau `reseau`, aucun par
+ *  défaut, et ses appels : `entree` passe en JSON, absente sans entrée. */
+export function table(stockage: Stockage = stockageEnMemoire(), reseau: ReseauDuPont | null = null) {
+  const pont: Pont = creerPont(stockage, reseau);
   const appel = (methode: string, entree?: unknown): Reponse => {
     const brut = pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree));
     expect(typeof brut, 'le pont rend une chaîne JSON').toBe('string');
@@ -59,11 +59,14 @@ export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
  *  elle. */
 export const sectionDeLaFiche = (vue: VueDuPont, id: string): Element[] => vue.zones['fiche.sections'].find((e) => e.id === `section/${id}`)?.elements ?? [];
 
-/** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert. */
-export const modelesCommites = () => listage(join(import.meta.dirname, '../projet/modeles'));
+let commites: Promise<ReturnType<typeof listage>> | undefined;
+
+/** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert, le GLB épinglé de
+ *  chacun déposé d'abord (`recupererModeles`) ; lu une fois par graphe de modules. */
+export const modelesCommites = () => (commites ??= recupererModeles({ dossier: DOSSIER_DES_MODELES, journal: () => {} }).then(() => listage(DOSSIER_DES_MODELES)));
 
 /** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */
-export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof modelesCommites>, manifestes = commites.manifestes): void {
+export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof listage>, manifestes = commites.manifestes): void {
   expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => commites.osDesRigides[id] ?? []) })).toMatchObject({ ok: true });
 }
 

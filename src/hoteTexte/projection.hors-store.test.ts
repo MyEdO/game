@@ -1,6 +1,6 @@
 /**
  * LA VUE LIT CE QUE LE JEU LIT (#2898, M4, sondes `distance` et `mvt` du juge promues ; lot C) : la distance d'un
- * combattant à l'actif est celle du ciblage (`combatDistance` : empreinte et relief), et le Mouvement du Tour est celui
+ * combattant à l'actif est celle du ciblage (`distanceDeCombat` : empreinte et relief), et le Mouvement du Tour est celui
  * de la jauge de la console (`mouvementDuTour`). `pastilles-entite` porte une monture dont l'empreinte écarte la distance
  * de combat de la distance de case ; `ecuries-clayonnage`, un actif dont le budget du Tour n'est pas sa caractéristique.
  * La fenêtre nomme les verbes de chaque étape de cascade (`cascade-dome.jsonl`), le jet lancé se lit avant sa
@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
+import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
 import type { Geste } from '../hote/geste';
@@ -40,7 +40,7 @@ function enPartie(r: PartieRejouee, faire: (r: PartieRejouee) => void) {
 }
 
 describe('la projection lit les lecteurs du jeu', () => {
-  it('la distance de chaque combattant est sa distance de combat à l’actif (`combatDistance`)', { timeout: 120_000 }, () => {
+  it('la distance de chaque combattant est sa distance de combat à l’actif (`distanceDeCombat`)', { timeout: 120_000 }, () => {
     auPremierTour('pastilles-entite', (r) => {
       const etat = r.partie.etat();
       const b = etat.battle!;
@@ -48,7 +48,7 @@ describe('la projection lit les lecteurs du jeu', () => {
       const { combattants } = pageDeLaCarte(etat);
       expect(combattants.length, 'témoin : la carte liste les combattants').toBe(b.combatants.length);
       for (const c of combattants) {
-        const vrai = combatDistance(actif, b.combatants.find((x) => x.id === c.id)!);
+        const vrai = distanceDeCombat(actif, b.combatants.find((x) => x.id === c.id)!);
         expect(c.distance, `${c.id} : distance de la vue`).toBe(Number.isFinite(vrai) ? vrai : null);
       }
     });
@@ -197,14 +197,23 @@ describe('projection des positions', () => {
   });
 });
 
-describe('ce que le groupe ne voit pas (#3950, `embuscade-fluviale` : 5 ennemis hors de vue au départ)', () => {
+describe('ce que le groupe ne voit pas (#3950, `siege-enceinte` : 8 ennemis derrière la muraille au départ)', () => {
   it('`carte` liste les seuls combattants en vue ; la `fiche` d’un ennemi hors de vue se refuse en mots du joueur', { timeout: 120_000 }, () => {
-    const table = partie('embuscade-fluviale', verbe('fenetreValider', 'debutDuRound'));
+    const table = partie('siege-enceinte', verbe('fenetreValider', 'debutDuRound'));
     try {
-      const listes = table.lire('carte').lignes.map((l) => l.slice(2).split(' ')[0]).sort();
-      expect(listes, 'la carte : les quatre héros et la barge alliée').toEqual(['chasseur-de-test', 'enemy-enc-fluvial-5', 'soldat-de-test', 'sorcier-de-test', 'tueur-de-test']);
-      const fiche = table.lire('fiche', { id: 'enemy-enc-fluvial-1' });
-      expect([fiche.erreur, fiche.texte], 'la fiche d’un pirate hors de vue').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
+      const lignes: string[] = [];
+      for (let depuis: number | undefined = 0; depuis !== undefined;) {
+        const page = table.lire('carte', { depuis }).lignes;
+        const suite = /"depuis":(\d+)\}`$/.exec(page[page.length - 1]);
+        lignes.push(...(suite ? page.slice(0, -1) : page));
+        depuis = suite ? Number(suite[1]) : undefined;
+      }
+      const listes = lignes.map((l) => l.slice(2).split(' ')[0]).sort();
+      expect(listes, 'la carte, page après page : les héros, les défenseurs du chemin de ronde, la porte, et les deux ennemis en vue').toEqual([
+        'chasseur-de-test', 'crew-baliste', 'crew-canon', 'personnage-0', 'personnage-4', 'personnage-8', 'personnage-9', 'personnage-a', 'personnage-b', 'personnage-c', 'personnage-d', 'personnage-e', 'soldat-de-test', 'sorcier-de-test', 'structure-14-37-N-0', 'structure-15-37-N-0', 'tueur-de-test',
+      ]);
+      const fiche = table.lire('fiche', { id: 'personnage-7' });
+      expect([fiche.erreur, fiche.texte], 'la fiche d’un gobelin derrière la muraille').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
     } finally {
       fermerLaTable();
     }

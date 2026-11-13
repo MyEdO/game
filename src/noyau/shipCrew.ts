@@ -6,7 +6,23 @@
  */
 import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
-import { crewRoleValue, competencesDuRole, moraleBand, moraleBase, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
+import {
+  crewRoleValue,
+  competencesDuRole,
+  moraleBand,
+  moraleBase,
+  undercrewPenalty,
+  weeklyCrewWageBrass,
+  recalcMorale,
+  payChoiceCostBrass,
+  payChoices,
+  isPayChoice,
+  isFreePayChoice,
+  freePayChoiceId,
+  recommendedPayChoiceId,
+  type CrewAssignment,
+  type UndercrewPenalty,
+} from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
@@ -87,7 +103,7 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
   // Le reste → rôle par défaut (MDG 14 l.15) s'il en a la formation.
-  if (parDefaut && testType.roles.includes(parDefaut)) for (const id of free) {
+  if (parDefaut && testType.roles.some((r) => r === parDefaut)) for (const id of free) {
     const c = apte.find((x) => x.id === id)!;
     if (peutTenter(c) && trainedForRole(c, parDefaut, navigation)) out.set(id, parDefaut);
   }
@@ -116,7 +132,7 @@ export function navigationDuNavire(get: Get, ship: Combatant): RefDesignee {
 }
 
 export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], testTypeId: string, navigation: RefDesignee): CrewAssignment[] {
-  const roleSet = new Set(findCrewTestTypeById(testTypeId)?.roles ?? []);
+  const roleSet = new Set<string>(findCrewTestTypeById(testTypeId)?.roles ?? []);
   const crew = (ship.crewIds ?? [])
     .map((id) => combatants.find((c) => c.id === id))
     .filter((c): c is Combatant => !!c);

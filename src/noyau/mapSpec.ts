@@ -45,7 +45,7 @@ import type {
   WallOverlay,
   WallSeg,
 } from './monde/scene';
-import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
+import { DEFAULT_TERRAIN, canonEdge, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './monde/scene';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
@@ -70,8 +70,32 @@ import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
-import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
-import { canonEdge, edgeWallState } from './sceneEditLecture';
+import {
+  type Pt,
+  setEdgeWall,
+  patchWall,
+  toggleDiagonalWall,
+  paintHeight,
+  paintCrenellated,
+  paintTiles,
+  fillTerrainRect,
+  addLayer,
+  putLayer,
+  placeEmplacement,
+  setPosteCrew,
+  setPosteSide,
+  pasteEntity,
+  addRestZone,
+  setSceneScalaires,
+  setSceneFlags,
+  realFloorAt,
+  roofExclusionsByZ,
+  deriveArchitectureMasses,
+  bodyFootCellsByZ,
+  bodyFootCells,
+  adoptableOpeningsAt,
+} from './sceneEdit';
+import { edgeWallState } from './sceneEditLecture';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
  *  « niveau » de relief, cf. `METRES_PER_LEVEL`). */
@@ -745,7 +769,11 @@ export function buildScene(spec: MapSpec): Scene {
       ...(side === '\\' || side === '/' ? { x: wall.x, y: wall.y, side } : canonEdge(wall.x, wall.y, side)), ...(z ? { z } : {}),
       ...(wall.door ? { door: true } : {}), ...champs,
     });
-    if (!compile.success) throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
+    if (!compile.success) {
+      // Un id inconnu se nomme par la source de l'AUTEUR (`assertAuthoredIds`) avant l'arête compilée.
+      assertAuthoredIds(spec, s);
+      throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
+    }
     if (side === '\\' || side === '/') continue;
     s = setEdgeWall(s, wall.x, wall.y, side, z, wall.door ? 'door' : 'wall');
     if (wall.structure || wall.appearance || wall.window || wall.climb || wall.secret) {
@@ -980,7 +1008,7 @@ export function buildScene(spec: MapSpec): Scene {
  */
 function assertAuthoredIds(spec: MapSpec, scene: Scene): void {
   const inconnus: { source: string; quoi: string; id: string; catalogue: string }[] = [];
-  const appearanceIds = new Set(structureAppearances.map((a) => a.id));
+  const appearanceIds = new Set<string>(structureAppearances.map((a) => a.id));
   // Un MÊME id faux est atteint par plusieurs sources (le char de `wallLegend` ET chacune des arêtes
   // qu'il a posées) : une faute = UNE ligne, nommée par la source la PLUS PROCHE de l'auteur — les
   // tables du spec sont parcourues avant les arêtes compilées.

@@ -3,7 +3,8 @@ import { nomDuNavire } from '../noyau/carriers';
 import { FORMULES_DES_MARCHES, achatDeLOffre } from '../noyau/cargaison';
 import { useGame } from '../state/store';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
-import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
+import { findVehicleById, findNavalTrait, findNavalPortById, refLabel, type NavalPortData } from '../data';
+import { rationsDeCale, type VivresDeCale } from '../engine/provisions';
 import { type PortProfile } from '../engine/seaVoyage';
 import { REPARATION } from '../engine/seaNavigation';
 import { humanizeFormula } from '../noyau/codex/humanize';
@@ -11,7 +12,15 @@ import { findCargoEntryById } from '../engine/cargo';
 import { toMoney, priceToMoney, fromBrass, formatMoney, PA_PER_CO, type Money } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
-import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement, devisDAvitaillement } from '../noyau/portFlow';
+import {
+  devisDAchatEnPort,
+  caleALEscale,
+  refusDeBradageEnPort,
+  rolesRecrutables,
+  refusDEmbauche,
+  refusDeDebarquement,
+  devisDAvitaillement,
+} from '../noyau/portFlow';
 import { devisDeChantier, ameliorationsAuChantier, type PendingShoreLeave } from '../noyau/seaVoyageFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
@@ -50,29 +59,35 @@ export function PortHeader({ pp, catalogue }: { pp: PortProfile; catalogue?: Nav
   );
 }
 
-/** AVITAILLEMENT de la cale : rations-jour et tonneaux d'eau douce à embarquer, au devis du noyau
- *  (`devisDAvitaillement`) contre la bourse `bourse` du groupe. MDG 14 l.248-252 ; MDG 15 l.262 */
+/** AVITAILLEMENT de la cale : rations-jour de chaque vivre achetable (`vivresAchetables`) et tonneaux d'eau douce à
+ *  embarquer, au devis du noyau (`devisDAvitaillement`) contre la bourse `bourse` du groupe. MDG 14 l.238, l.248-252 ;
+ *  MDG 15 l.262 */
 function AvitaillementDeLaCale({ vessel, bourse, refusHote, onAvitailler }: {
   vessel: CampaignVessel; bourse: Money; refusHote: string | null;
-  onAvitailler: (rations: number, tonneaux: number) => void;
+  onAvitailler: (quantites: VivresDeCale, tonneaux: number) => void;
 }) {
-  const [rations, setRations] = useState(0);
+  const [quantites, setQuantites] = useState<VivresDeCale>({});
   const [tonneaux, setTonneaux] = useState(0);
-  const devis = devisDAvitaillement(vessel, bourse, refusHote, rations, tonneaux);
+  const devis = devisDAvitaillement(vessel, bourse, refusHote, quantites, tonneaux);
   return (
     <section className="panel port-section">
       <h3>Avitailler la cale</h3>
       <p className="port-hint">
-        Vivres : <b>{vessel.provisions ?? '—'}</b> ration(s)-jour · Eau douce : <b>{vessel.waterLitres ?? '—'}</b> L
+        Vivres : <b>{vessel.provisions != null ? rationsDeCale(vessel.provisions) : '—'}</b> ration(s)-jour · Eau douce : <b>{vessel.waterLitres ?? '—'}</b> L
       </p>
       <Stack gap="md">
-        <div className="port-upgrade">
-          <div className="port-upgrade-head">
-            <b>Rations-jour</b>
-            <span className="port-hint"><Coins money={devis.ration} /> l’unité</span>
-          </div>
-          <NumberField variant="nu" label="Rations-jour à embarquer" min={0} value={rations} disabled={!!refusHote} onChange={setRations} />
-        </div>
+        {devis.vivres.map(({ id, prix }) => {
+          const libelle = refLabel('trappings', { id });
+          return (
+            <div key={id} className="port-upgrade">
+              <div className="port-upgrade-head">
+                <b>{libelle}</b>
+                <span className="port-hint"><Coins money={prix} /> l’unité</span>
+              </div>
+              <NumberField variant="nu" label={`${libelle} à embarquer`} min={0} value={quantites[id] ?? 0} disabled={!!refusHote} onChange={(n) => setQuantites({ ...quantites, [id]: n })} />
+            </div>
+          );
+        })}
         <div className="port-upgrade">
           <div className="port-upgrade-head">
             <b>Tonneaux d’eau douce</b>
@@ -87,7 +102,7 @@ function AvitaillementDeLaCale({ vessel, bourse, refusHote, onAvitailler }: {
         ariaLabel="Avitailler la cale"
         enabled={devis.refus === null}
         {...raisonSi(devis.refus)}
-        onClick={() => onAvitailler(rations, tonneaux)}
+        onClick={() => onAvitailler(quantites, tonneaux)}
         primary={false}
       />
     </section>
@@ -102,7 +117,7 @@ export function EscaleTab({ vessel, bourse, refusHote, pendingShoreLeave, onHire
   vessel: CampaignVessel; bourse: Money; refusHote: string | null;
   pendingShoreLeave: PendingShoreLeave | null;
   onHire: (roleId: string) => void; onDismiss: (roleId: string) => void;
-  onAvitailler: (rations: number, tonneaux: number) => void;
+  onAvitailler: (quantites: VivresDeCale, tonneaux: number) => void;
 }) {
   const hireable = rolesRecrutables();
   const countOf = (roleId: string) => vessel.crew?.find((h) => h.roleId === roleId)?.count ?? 0;
@@ -181,7 +196,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const [tab, setTab] = useState<'coque' | 'cargaison' | 'escale'>(initialTab);
 
   const vd = vessel ? findVehicleById(vessel.vehicleId) : undefined;
-  const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote) : [];
+  const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote, port?.ref) : [];
   if (!port || !vessel || !vd?.ship) return null;
   const etat = useGame.getState();
   const devisDe = (cargoId: string) => {

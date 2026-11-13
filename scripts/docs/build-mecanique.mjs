@@ -9,7 +9,7 @@
  *  - l'union `EffectTrigger` et les formes d'`EffectTargeting` (`src/engine/flowCore.ts`), plus les
  *    champs de `TriggeredEffect` ;
  *  - les KINDS de source réunis par `effectSourcesOf` — lus dans son corps, dans l'ordre du code ;
- *  - les interfaces de capacités (`src/data/index.ts`) et leur nombre de drapeaux ;
+ *  - les types de capacités (`src/data/index.ts`, interface ou inférence d'un schéma) et leur nombre de drapeaux ;
  *  - les documents PORTEURS de chaque canal, lus au def zod, avec leur population réelle ;
  *  - le site de l'annulation `suppressesCapabilities` (cherchée DANS le corps de `traitCapability`)
  *    et ses porteurs en donnée ;
@@ -26,6 +26,7 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { champsDuSchemaObjet, schemaInfere } from './lib/canauxMecaniques.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -163,13 +164,20 @@ function rendu() {
 
   // ── Interfaces de CAPACITÉS : nombre de drapeaux, mesuré ─────────────────────────────────────────
 
+  /** Les champs du schéma `nom` (`z.infer<typeof nom>`) déclaré sous `DEFS`. */
+  const champsDuSchema = (nom) => listerDossier(DEFS).filter((f) => f.endsWith('.ts') && !f.includes('.test.'))
+    .map((f) => champsDuSchemaObjet(loadSource(`${DEFS}/${f}`).sf, nom)).find(Boolean)
   const CAPACITES = ['TraitCapabilities', 'QualityCapabilities', 'ItemCapabilities', 'SymptomCapabilities']
-    .filter((n) => new RegExp(`interface ${n}\\b`).test(readFileSync(INDEX, 'utf8')))
+    .filter((n) => new RegExp(`(interface|type) ${n}\\b`).test(readFileSync(INDEX, 'utf8')))
     .map((n) => {
       const d = declaration(INDEX, n)
-      return { ...d, drapeaux: d.noeud.members.filter(ts.isPropertySignatureDeclaration).length }
+      if (ts.isInterfaceDeclaration(d.noeud)) return { ...d, drapeaux: d.noeud.members.filter(ts.isPropertySignatureDeclaration).length }
+      const schema = schemaInfere(d.noeud, d.sf)
+      const champs = schema && champsDuSchema(schema)
+      if (!champs) abandon(`\`${n}\` n'est ni une interface ni l'inférence d'un schéma objet de \`${DEFS}\``)
+      return { ...d, drapeaux: champs.length }
     })
-  if (CAPACITES.length < 3) abandon(`moins de 3 interfaces de capacités dans ${INDEX} — le canal a changé de forme`)
+  if (CAPACITES.length < 3) abandon(`moins de 3 types de capacités dans ${INDEX} — le canal a changé de forme`)
 
   // ── Documents PORTEURS, par canal — def zod + population réelle ──────────────────────────────────
 
@@ -261,7 +269,7 @@ function rendu() {
 chaque canal (\`${PASSIF.site}\`, \`${DECLENCHE.site}\`, \`${CAPACITE.site}\`), les
 ${TRIGGERS_LIST.length} membres d'\`EffectTrigger\` et les ${CIBLAGES.length} formes d'\`EffectTargeting\`
 (\`${FLOWCORE}\`), les ${EFFET.champs.length} champs de \`TriggeredEffect\`, les ${SOURCES.kinds.length} kinds
-de source réunis par \`effectSourcesOf\`, les ${CAPACITES.length} interfaces de capacités et leur nombre de
+de source réunis par \`effectSourcesOf\`, les ${CAPACITES.length} types de capacités et leur nombre de
 drapeaux, les documents PORTEURS de chaque canal (def zod + population réelle du \`.json\`), le site
 de l'annulation \`suppressesCapabilities\` avec ses porteurs, les trois sites de l'Indice de qualité,
 et le site de \`${HOOKS.nom}\`.
@@ -356,7 +364,7 @@ Réservé aux drapeaux que le moteur **interroge** (résolution, IA, psychologie
 SANS formule ni déclencheur : un booléen qui pilote une branche de code, jamais un nombre (voir
 ci-dessous).
 
-${table(CAPACITES, ['Interface', 'Site', 'Drapeaux déclarés'], (c) => `| \`${c.nom}\` | \`${c.site}\` | ${c.drapeaux} |`)}
+${table(CAPACITES, ['Type', 'Site', 'Drapeaux déclarés'], (c) => `| \`${c.nom}\` | \`${c.site}\` | ${c.drapeaux} |`)}
 
 Lecture — un seul point d'entrée par portée, chaque canal restant disjoint par nom de capacité :
 
@@ -433,7 +441,7 @@ ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describ
       'docs:mecanique — docs/ajouter-une-mecanique.md est PÉRIMÉ (diverge de src/engine/flowCore.ts, src/noyau/triggeredEffects.ts, src/engine/trauma.ts, src/engine/capabilities.ts, des defs, ou du script).',
     rerunMsg: '  → relancer `npm run docs:mecanique` (dérivé jamais commité, #2203).',
     okMsg: 'docs:mecanique — OK (docs/ajouter-une-mecanique.md à jour)',
-    writeMsg: `docs/ajouter-une-mecanique.md — ${TRIGGERS_LIST.length} déclencheurs, ${SOURCES.kinds.length} kinds de source, ${CAPACITES.length} interfaces de capacités, ${GARDES_MESUREES.length} gardes.`,
+    writeMsg: `docs/ajouter-une-mecanique.md — ${TRIGGERS_LIST.length} déclencheurs, ${SOURCES.kinds.length} kinds de source, ${CAPACITES.length} types de capacités, ${GARDES_MESUREES.length} gardes.`,
   }
 }
 

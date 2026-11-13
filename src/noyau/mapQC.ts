@@ -4,8 +4,8 @@
  * Node-safe (aucun import d'hôte). RÉFUTE (échoue si une pièce est murée) plutôt que certifier.
  */
 import { walkComponentAt, walkComponentsFrom, walkReachableFrom } from './monde/path';
-import { isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './monde/scene';
-import { memoByRef } from './monde/sceneMemo';
+import { champsDuPlan, isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './monde/scene';
+import { memoByRef, memoByRefDeps } from './monde/sceneMemo';
 import { sceneZoneTiles } from './monde/zones';
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
@@ -39,7 +39,15 @@ const sceneSelonAuteur = memoByRef((scene: Scene): Scene =>
 /** Zones descriptives (pièces nommées, `isDescriptiveZone`) dont AUCUNE case marchable n'est atteignable
  *  depuis `start`, toute porte authorée comprise (`sceneSelonAuteur`) — vide = toutes les pièces nommées sont
  *  accessibles. Une zone SANS aucune case marchable (posée sur du vide) est aussi « inatteignable ». */
-export function unreachableDescriptiveZones(scene: Scene, start: { x: number; y: number; z?: number }): SceneEffectZone[] {
+export function unreachableDescriptiveZones(scene: Scene, start: { x: number; y: number; z?: number }): readonly SceneEffectZone[] {
+  return zonesInatteignables(scene.layers, [...champsDuPlan(scene), start.x, start.y, start.z ?? 0], () => zonesInatteignablesDepuis(scene, start));
+}
+
+/** Mémo de `unreachableDescriptiveZones` (`memoByRefDeps`), même clé et mêmes dépendances que les défauts de plan
+ *  (`scenePlanDefects`), plus le départ : une écriture non spatiale ne refait pas la connexité. */
+const zonesInatteignables = memoByRefDeps<Scene['layers'], readonly SceneEffectZone[]>();
+
+function zonesInatteignablesDepuis(scene: Scene, start: { x: number; y: number; z?: number }): SceneEffectZone[] {
   const vue = sceneSelonAuteur(scene);
   const composantes = walkComponentsFrom(vue, start);
   const atteinte = (p: { x: number; y: number; z: number }) => {

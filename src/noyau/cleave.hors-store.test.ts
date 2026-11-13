@@ -49,9 +49,9 @@ describe('cleaveTargets — cibles de balayage adjacentes (pur)', () => {
     const ally = at('ennemi', 'E2', 4, 5); // même camp que l'attaquant
     const battle = { combatants: [attacker, adj1, adj2, far, dead, ally] } as unknown as BattleState;
 
-    expect(cleaveTargets(battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
+    expect(cleaveTargets(banc.getState().scene, battle, attacker, []).map((c) => c.id).sort()).toEqual(['H1', 'H2']);
     // une cible déjà frappée ce balayage est exclue
-    expect(cleaveTargets(battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
+    expect(cleaveTargets(banc.getState().scene, battle, attacker, ['H1']).map((c) => c.id)).toEqual(['H2']);
   });
 });
 

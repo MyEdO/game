@@ -1,10 +1,21 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { findSpeciesById, talentConcrete, talents, talentsAleatoires, rangeesDesTalentsAleatoires, specPoolOf, firstLevel, careerLevels, species } from '../data';
+import {
+  findSpeciesById,
+  talentConcrete,
+  talents,
+  talentsAleatoires,
+  rangeesDesTalentsAleatoires,
+  specPoolOf,
+  firstLevel,
+  careerLevels,
+  species,
+} from '../data';
 import { setDataset } from '../data/overrides';
 import { findTableEntry } from './tables';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Combatant } from './types';
+import { toBrass } from './money';
 import {
   speciesSkillDefaults,
   resolveSpeciesTalents,
@@ -449,5 +460,33 @@ describe('répartition par défaut des 40 Augmentations de carrière (LDB 05 l.5
     const h = createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'archer', label: 'a', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
     expect(h.skills.reduce((a, s) => a + s.advances, 0)).toBe(40);
     expect(h.skills.filter((s) => s.advances > 0)).toHaveLength(8);
+  });
+});
+
+describe('createHero — les Possessions du premier Échelon, argent, valeur et mentions comprises (LDB 05 l.572)', () => {
+  const heros = (careerId: string, speciesId = REIK, seed = 4) => createHero({ idNeuf: idsDeTest, speciesId, careerId, label: 'T', seed });
+  const bourse = (h: Combatant) => h.items!.filter((i) => i.trappingId === 'bourse');
+
+  it('le Marchand porte dans sa Bourse les 3d10 pistoles d’argent de son Échelon (LDB 08 l.419)', () => {
+    for (const seed of [1, 2, 3]) {
+      const sacs = bourse(heros('marchand', REIK, seed));
+      const pistoles = toBrass(sacs[0].money!) / 12;
+      expect([sacs.length, Number.isInteger(pistoles) && pistoles >= 3 && pistoles <= 30], String(pistoles)).toEqual([1, true]);
+    }
+  });
+
+  it('le Noble porte des bijoux valant 3d10 couronnes d’or, au prix tiré (LDB 08 l.965)', () => {
+    const bijoux = heros('noble').items!.filter((i) => i.trappingId === 'bijoux');
+    expect(bijoux).toHaveLength(1);
+    const p = bijoux[0].price!;
+    expect([p.silver, p.brass, p.gold >= 3 && p.gold <= 30], String(p.gold)).toEqual([0, 0, true]);
+  });
+
+  it('le Tueur porte la mention « Honte », sous sa nature (LDB 08 l.1474)', () => {
+    expect(heros('tueur', 'nains').mentions).toEqual([{ nature: 'intangible', label: 'Honte', nombre: 1 }]);
+  });
+
+  it('un héros sans mention n’a pas de champ `mentions`', () => {
+    expect('mentions' in heros('soldat')).toBe(false);
   });
 });

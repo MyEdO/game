@@ -3,7 +3,7 @@
  * L'écran du port lit les verdicts du NOYAU (#3059) : la pose d'une Amélioration se ferme sur le refus de
  * `devisDAmelioration`, l'achat de cargaison sur celui de `devisDAchatEnPort` (cale au plafond dur, bourse sous
  * le prix plancher au meilleur Marchandage). MDG 12 l.195-364 ; MDG 12 l.70-75 ; MDG 15 l.319-349 ; MDG 15 l.335 ;
- * LDB 59 l.43.
+ * LDB 59 l.43 ; MDG 12 l.230.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { acheterAuMarche } from '../noyau/cargaison.testkit';
@@ -14,12 +14,13 @@ import { PortView } from './PortView';
 import { useGame } from '../state/store';
 import { emptyScene } from '../noyau/monde/scene';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
-import { findVehicleById, NAVAL_TRAITS } from '../data';
+import { findNavalTrait, findVehicleById, NAVAL_TRAITS } from '../data';
+import { PORT_A_CHANTIER, PORT_SANS_CHANTIER } from '../data/navalPorts.testkit';
 import { installCost } from '../engine/shipBuild';
 import { overloadMaxEnc } from '../engine/seaVoyage';
 import { t } from '../i18n';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
-import type { WorldMap } from '../noyau/worldMap';
+import { resolvePortRef, type WorldMap } from '../noyau/worldMap';
 import type { CampaignVessel } from '../noyau/etat';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
@@ -112,6 +113,20 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
     expect(offre, 'escale sans offre').toBeTruthy();
     expect(geste('cargaison', `port-buy-${offre.cargoId}`)).toEqual({ ferme: 'true', raison: t('port.holdFull') });
   });
+
+  /** Le lieu `A` est le port `ref` du catalogue, l'escale ouverte en porte la `ref`, la bourse est pleine. */
+  const auPort = (ref: string) => {
+    const port = resolvePortRef({ ref })!;
+    useGame.setState({ worldMap: { ...carte, places: [{ ...carte.places[0], port }] }, port: { ...get().port!, ref, port: structuredClone(port) } });
+    creditBourse(get, useGame.setState, get().party[0].id, { gold: 100000, silver: 0, brass: 0 });
+  };
+
+  it('Blindage : fermé sur le refus du noyau au port sans chantier naval spécialisé, ouvert au port qui en a un', () => {
+    auPort(PORT_SANS_CHANTIER);
+    expect(geste('coque', 'port-upgrade-blindage-fer')).toEqual({ ferme: 'true', raison: t('sv.upgradeNeedsShipyard', { label: findNavalTrait('blindage-fer')!.label }) });
+    auPort(PORT_A_CHANTIER);
+    expect(geste('coque', 'port-upgrade-blindage-fer')).toEqual({ ferme: null, raison: null });
+  });
 });
 
 /** Saisit `n` dans le champ de nom accessible `nom`, sous `hote`. */
@@ -124,36 +139,60 @@ function saisir(hote: HTMLElement, nom: string, n: number): void {
   });
 }
 
-describe('#1652 lot 11b — l’onglet Escale avitaille la cale au devis du noyau (MDG 14 l.248-252 ; MDG 15 l.262)', () => {
-  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: 0, waterLitres: 0, ...patch });
-
-  it('à quai : 3 rations-jour et 1 tonneau embarqués, la cale les reçoit et la bourse paie 3 × 2/– + 8/6', () => {
-    ouvrir(navire({ escale: 'A' }));
-    creditBourse(get, useGame.setState, get().party[0].id, { gold: 1, silver: 0, brass: 0 });
+describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au devis du noyau (MDG 14 l.238, l.248-252 ; MDG 15 l.262)', () => {
+  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: {}, waterLitres: 0, ...patch });
+  /** Les champs de quantité de l'onglet Escale, par nom accessible. */
+  const champsDEscale = (patch: Partial<CampaignVessel>): string[] => {
+    ouvrir(navire(patch));
     const hote = document.createElement('div');
     const root = createRoot(hote);
     act(() => root.render(<PortView initialTab="escale" />));
-    saisir(hote, 'Rations-jour à embarquer', 3);
-    saisir(hote, 'Tonneaux d’eau douce à embarquer', 1);
-    const bouton = hote.querySelector('button[aria-label="Avitailler la cale"]') as HTMLButtonElement;
-    act(() => bouton.click());
+    const noms = [...hote.querySelectorAll('input')].map((i) => i.getAttribute('aria-label') ?? '');
     act(() => root.unmount());
-    expect({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
-      .toEqual({ provisions: 3, eau: 145, bourse: 240 - (3 * 24 + 102) });
+    return noms;
+  };
+
+  it('un champ par vivre achetable : biscuits et préservée, jamais le frais hors Bonne pêche, puis les tonneaux', () => {
+    expect(champsDEscale({ escale: 'A' })).toEqual([
+      'Ration de nourriture préservée pour un jour à embarquer',
+      'Ration de biscuits de mer pour un jour à embarquer',
+      'Tonneaux d’eau douce à embarquer',
+    ]);
   });
 
-  it('hors quai : l’avitaillement est fermé, raison = le refus du noyau', () => {
-    ouvrir(navire({}));
-    expect(geste('escale', 'port-avitailler')).toEqual({ ferme: 'true', raison: t('port.pasAQuai') });
-  });
-
-  it('Bonne pêche à l’escale : la ration-jour s’affiche au prix de l’escale, 3 sc', () => {
-    ouvrir(navire({ escale: 'A', rationsDEscale: 3 }));
+  it('Bonne pêche à l’escale : le frais s’ajoute aux vivres achetables, à 3 sc la ration-jour', () => {
+    expect(champsDEscale({ escale: 'A', rationsDEscale: 3 })).toEqual([
+      'Nourriture, courses/journée à embarquer',
+      'Ration de nourriture préservée pour un jour à embarquer',
+      'Ration de biscuits de mer pour un jour à embarquer',
+      'Tonneaux d’eau douce à embarquer',
+    ]);
     const hote = document.createElement('div');
     const root = createRoot(hote);
     act(() => root.render(<PortView initialTab="escale" />));
     const prix = hote.querySelector('.port-upgrade .port-hint .coins')?.textContent;
     act(() => root.unmount());
     expect(prix).toBe('3 sc');
+  });
+
+  it('à quai : 3 rations de biscuits, 2 de préservée et 1 tonneau embarqués, la cale les reçoit par vivre et la bourse paie 3 × 1/– + 2 × 2/– + 8/6', () => {
+    ouvrir(navire({ escale: 'A' }));
+    creditBourse(get, useGame.setState, get().party[0].id, { gold: 1, silver: 0, brass: 0 });
+    const hote = document.createElement('div');
+    const root = createRoot(hote);
+    act(() => root.render(<PortView initialTab="escale" />));
+    saisir(hote, 'Ration de biscuits de mer pour un jour à embarquer', 3);
+    saisir(hote, 'Ration de nourriture préservée pour un jour à embarquer', 2);
+    saisir(hote, 'Tonneaux d’eau douce à embarquer', 1);
+    const bouton = hote.querySelector('button[aria-label="Avitailler la cale"]') as HTMLButtonElement;
+    act(() => bouton.click());
+    act(() => root.unmount());
+    expect({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
+      .toEqual({ provisions: { 'ration-biscuits-de-mer': 3, 'ration-nourriture-preservee': 2 }, eau: 145, bourse: 240 - (3 * 12 + 2 * 24 + 102) });
+  });
+
+  it('hors quai : l’avitaillement est fermé, raison = le refus du noyau', () => {
+    ouvrir(navire({}));
+    expect(geste('escale', 'port-avitailler')).toEqual({ ferme: 'true', raison: t('port.pasAQuai') });
   });
 });

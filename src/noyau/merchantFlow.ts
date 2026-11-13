@@ -18,7 +18,18 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { hasTalent } from '../engine/magic';
-import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type CatalogItem, type StockLine } from '../engine/disponibilite';
+import {
+  rollStock,
+  fullStock,
+  availabilitySearchBonus,
+  barterRatio,
+  availabilityAfterHalvings,
+  priceAfterHalvings,
+  isTradable,
+  outOfTradeReason,
+  type CatalogItem,
+  type StockLine,
+} from '../engine/disponibilite';
 import type { Settlement } from '../data/schemas/grammaire/valeurs';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
@@ -26,7 +37,18 @@ import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMon
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, findMerchantArchetypeById, type TrappingData } from '../data/index';
+import {
+  findTrappingById,
+  trappingsInstanciables,
+  findVehicleById,
+  findCreatureById,
+  vehicles,
+  creatures,
+  combatStakeRef,
+  findMerchantArchetypeById,
+  type QualityRef,
+  type TrappingData,
+} from '../data/index';
 import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
@@ -35,6 +57,7 @@ import { freeCons, openPartyTest } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { nomEnVue } from './visionDuGroupe';
 import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
 import { sceneNpc } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
@@ -115,8 +138,8 @@ export type MerchantStocks = Record<string, { stock: { id: string; qty: number }
 
 /** Prix listé d'un objet en sous de cuivre (catalogue × qualité d'artisanat) — la référence du seuil
  *  « Tenir les comptes » ET du Troc (avant majoration/Marchandage). null (0) si prix non chiffré. */
-function listedBrassOf(t: { price: Partial<Money> | 'ND' | null; qualities?: unknown[] }): number {
-  const b = toBrass(priceToMoney(t.price)) * craftPriceFactor({ qualities: t.qualities as never });
+function listedBrassOf(t: { price: Partial<Money> | 'ND' | null; qualities?: QualityRef[] }): number {
+  const b = toBrass(priceToMoney(t.price)) * craftPriceFactor({ qualities: t.qualities ?? [] });
   return Number.isFinite(b) ? Math.round(b) : 0;
 }
 
@@ -131,7 +154,7 @@ export interface CatalogEntry {
   label: string;
   price: Partial<Money> | null;
   availability: Availability | null;
-  qualities?: unknown[];
+  qualities?: QualityRef[];
   unit?: UniteVendue;
 }
 
@@ -227,7 +250,7 @@ export function prixDeLigne(m: MerchantState, id: string, ent: SceneEntity | und
   if (!entry?.price) return null;
   if (comptesFree(ent, party, listedBrassOf(entry))) return fromBrass(0);
   const haggle = m.bargainBuy ? bargainBuyFactor(m.bargainBuy.won, m.bargainBuy.drNet, m.bargainBuy.negotiator) : 1;
-  const brass = toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * haggle;
+  const brass = toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities ?? [] }) * (m.buyMarkup ?? 1) * haggle;
   return Number.isFinite(brass) ? fromBrass(Math.round(brass)) : null;
 }
 
@@ -292,7 +315,7 @@ function computeFreshStockLines(
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
   const cat: CatalogItem[] = trappingsInstanciables()
-    .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType !== null && arch.category.subTypes.includes(t.subType.id))))
+    .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType !== null && arch.category.subTypes.some((id) => id === t.subType?.id))))
     .map((t) => {
       const base: CatalogItem['availability'] = isTradable(t.availability) ? t.availability : null;
       const av = guild && base ? shiftAvailability(base, { qualities: t.qualities }, { guild: true }) : base;
@@ -962,7 +985,7 @@ function openAppraise(
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
-    actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
+    actorId: best.actor.id, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', APPRAISE_SKILL[mode].skill),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
@@ -1067,20 +1090,21 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     const item = pa.itemUid ? get().party.flatMap((h) => h.items ?? []).find((i) => i.uid === pa.itemUid) : undefined;
     const isMagic = line ? line.magic : !!item && (item.identified === false || !!item.magicKnown);
     const rules = line ? (line.effect.qualities?.length ?? (line.effect.identified === false ? 1 : 0)) : 1;
+    const actor = garanti(nomEnVue(get(), pa.actorId), pa.actorId, 'détecteur de la Détection');
     if (!pa.success) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionVaine', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionVaine', { actor, item: pa.itemName }));
       return;
     }
     if (!isMagic) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionSansAura', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionSansAura', { actor, item: pa.itemName }));
       return;
     }
     // Succès : aura sentie ; chaque DR apprend une règle → tout révélé quand DR couvre les règles.
     const allKnown = pa.sl >= Math.max(1, rules);
     patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
-    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor: pa.actorName, item: pa.itemName, dr: pa.sl }));
+    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor, item: pa.itemName, dr: pa.sl }));
     return;
   }
   if (!pa.success) {

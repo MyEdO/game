@@ -25,7 +25,7 @@ import { refuseSi } from './verrousDeFiche';
 import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
-  brouillonDe, ciblesDActivite, devisDeDepot, poserDansLeBrouillon, optionDApprentissage, optionDEntrainement, refusDActivite,
+  brouillonDe, ciblesDActivite, devisDeDepot, poserDansLeBrouillon, optionDEntrainement, refusDActivite,
   refusDeCommande, refusDeConfirmerLActivite, refusDeRetrait, opsCiblees, viseDuTrait, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type AxeDuBrouillon, type CiblesChoisies, type CompositionDActivite, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
@@ -33,7 +33,7 @@ import { confirmBattleActivity, engagerLaBataille, battlePrepEntries, soutienCou
 import {
   craftTarget, craftSpecOf, metierOf, qualitesDArtisanat, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
-  ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
+  ACTIVITIES, activitiesFor, activityById, learnOptionOf, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
   type ActivityDef, type ActivityResolver, type GenreDeDepot, type ResolverOf,
 } from '../engine/activities';
@@ -55,9 +55,20 @@ import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
-import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
+import {
+  findTrappingById,
+  findTalentById,
+  findSpellById,
+  refLabel,
+  skillInstanceLabel,
+  qualityRefLabel,
+  qualities,
+  combatStakeRef,
+  libelleOuAbsence,
+  testSkillLabel,
+} from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
@@ -155,7 +166,7 @@ export const INTERLUDE_EVENT_TABLE = 'interlude-events';
 
 /** Le dé de la table (`interludeEventDie`), sans modificateur : le dé NATUREL est le dé du lookup —
  *  c'est aussi ce que `perHero.eventRoll` persiste, et donc ce que tout lecteur re-résout. */
-const interludeEventDecl = (): CascadeTableDecl => ({ tableId: INTERLUDE_EVENT_TABLE, spec: interludeEventDie() });
+const interludeEventDecl = (): CascadeTableDecl => ({ tableId: INTERLUDE_EVENT_TABLE });
 
 /** La séquence des tirages est SA propre séquence (`purpose:'interlude'`, doctrine du slot #942 L1) :
  *  l'interlude ne s'ouvre jamais en combat, et aucun autre `purpose` hors-combat ne doit y fusionner. */
@@ -515,7 +526,7 @@ function openCatalogActivity(get: Get, set: Set, heroId: string, def: ActivityDe
   } else if (def.resolver === 'learnTalent') {
     // Apprentissage particulier : tuteur tiré, puis jugé. LDB 23 l.66-72
     const talent = findTalentById(opts.talentId ?? '');
-    const xpCost = optionDApprentissage(h, opts.talentId ?? '')?.xpCost;
+    const xpCost = learnOptionOf(h, opts.talentId ?? '')?.xpCost;
     if (!talent || xpCost == null) return ouverteSansCible(def);
     const tutorBrass = toBrass(apprenticeshipTutorCost(xpCost, battleRng()));
     const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutorBrass), 'if.tuteurKo');
@@ -1292,7 +1303,7 @@ export const TABLES = {
   tablesTirables: {
     [INTERLUDE_EVENT_TABLE]: {
       label: msg('if.eventTableLabel'),
-      get die() { return facesDuDe(interludeEventDie()); },
+      get die() { return interludeEventDie(); },
       rows: INTERLUDE_EVENTS,
       lines: (die) => [interludeEventFor(die).label, interludeEventFor(die).desc],
       entryCategory: 'interludeEvents', // la ligne tirée EST l'Événement : sa fiche porte son texte

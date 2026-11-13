@@ -68,13 +68,31 @@ import { translaterFormation } from '../noyau/monde/shipPostes';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
-import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
+import {
+  checkBattleOver,
+  etatDeTourNeuf,
+  subirLaCharge,
+  approachFearTrigger,
+  aiTurnLog,
+  clearAiTurnLog,
+  maybeRunEnemyTurn,
+  applyHullCriticalToTarget,
+  maybeOpenDefense,
+  defenseEnCours,
+  placingZoneOf,
+  effectiveSpellOf,
+  aiCreatureFreeAttacks,
+  armeDeLaGratuite,
+  fileDesGratuites,
+  refusDeDefenseReactive,
+  choixPiegeLame,
+  type PlacingZone,
+} from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
 import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from '../noyau/flowVerbs';
-import { combatDistance } from '../noyau/monde/footprint';
+import { distanceDeContact } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
-import { canonEdge } from '../noyau/sceneEditLecture';
-import type { CellSide } from '../noyau/monde/scene';
+import type { CellSide, Scene } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
 import { setAiTrace } from '../noyau/monde/ai';
@@ -107,8 +125,9 @@ import { hoverTargeting } from '../noyau/targeting';
 import { maneuverShip } from '../noyau/shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from '../noyau/visionState';
-import { doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
-import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
+import { canonEdge, doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
+import { rule, surchargerUneSaisie, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
+import type { FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 import { remettreUneRegleMaisonWeb } from './reglesMaison';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { cadence } from '../engine/cadence';
@@ -140,7 +159,14 @@ import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
 import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
 import { CLES_DE_DATASET, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
-import { collectionDuDataset, datasetSerializeRoot, datasetObjectSerializeRoot, OBJECT_DATASET_KEYS, type DatasetKey, type ObjectDatasetKey } from '../data/overrides';
+import {
+  collectionDuDataset,
+  datasetSerializeRoot,
+  datasetObjectSerializeRoot,
+  OBJECT_DATASET_KEYS,
+  type DatasetKey,
+  type ObjectDatasetKey,
+} from '../data/overrides';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../data/schemas/exposition-derivee';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';
@@ -338,7 +364,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           dégâts) — `dealShipDamage(999)` est EFFACÉ par la Réparation de fortune du
  *                           MÊME jour (la garde de naufrage n'est évaluée qu'à l'ENTRÉE de `runSeaDay`,
  *                           `seaVoyageFlow.ts` : piège d'ordonnancement, cf. `docs/recette-navigateur.md`)
- *   __wfrp.gmSeat(bool)  → flip du siège MJ solo (`setGmSeat`) — setup légitime ; le siège SURVIT à
+ *   __wfrp.gmSeat(bool)  → flip du siège MJ solo (`affecterLeSiegeMJ`) — setup légitime ; le siège SURVIT à
  *                           `scenario()` (le retirer à la main entre deux) ; la VALIDATION du flux
  *                           reste la checkbox réelle, ce helper n'économise que la mise en place
  *   __wfrp.fillCreatorDefaults(uptoStep?) → remplit le brouillon du CRÉATEUR OUVERT (écran Roster →
@@ -508,10 +534,10 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
 }
 
 /** Réglage auto-rendu par le harnais : une RÈGLE optionnelle (`policy`) ou une PRÉFÉRENCE (`preferences`). */
-type SettingDef = { id: string; label: string; kind: string; options?: readonly string[]; min?: number; max?: number; default: RuleValue };
+type SettingDef = FormeDeControle & { id: string; label: string; default: RuleValue };
 
-const settingShape = (d: { kind: string; options?: readonly string[]; min?: number; max?: number }) =>
-  d.kind === 'mode' ? `{${d.options?.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
+const settingShape = (d: FormeDeControle) =>
+  d.kind === 'mode' ? `{${d.options.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
 const settingUnknown = (id: string, api: 'rules' | 'prefs') => `réglage inconnu : ${id} — voir __wfrp.${api}()`;
 const settingDetail = (d: SettingDef, val: RuleValue | undefined) =>
   `${d.id} = ${JSON.stringify(val)} · ${d.label} (défaut ${JSON.stringify(d.default)} · ${settingShape(d)})`;
@@ -522,8 +548,8 @@ const settingDone = (id: string, v: RuleValue) => `✓ ${id} → ${JSON.stringif
 function coerceSetting(d: SettingDef, value: RuleValue): { v: RuleValue } | { err: string } {
   if (d.kind === 'flag') return { v: value === true || value === 'true' || value === 'on' };
   if (d.kind === 'param') return { v: Number(value) };
-  if (!d.options?.includes(String(value))) {
-    return { err: `${d.id} : valeur invalide « ${value} » — options : ${d.options?.join(' | ')}` };
+  if (!d.options.includes(String(value))) {
+    return { err: `${d.id} : valeur invalide « ${value} » — options : ${d.options.join(' | ')}` };
   }
   return { v: value };
 }
@@ -750,7 +776,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE COOP : la vue RÉSEAU du siège local — `state()` n'expose RIEN de `net`, alors qu'une
      *  recette à deux navigateurs se juge siège par siège (qui est qui, qui possède quoi). Copie en
      *  LECTURE : muter le retour ne touche pas le store. `gmSeat` absent = camp ennemi conduit par
-     *  l'IA ; `presence` est la vue HÔTE des sièges en reconnexion (`netFlow.NetState`). */
+     *  l'IA ; `presence` est la vue HÔTE des sièges en reconnexion (`NetState`, `noyau/etat.ts`). */
     net: () => {
       const n = g().net;
       return {
@@ -984,10 +1010,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  IMMÉDIAT (liste des ids valides) plutôt qu'un routage silencieux vers un écran blanc (#211,
      *  ex. 'game' n'existe pas : `SCREENS` est la source unique, `noyau/etat.ts`). */
     screen: (screen: string) => {
-      if (!(SCREENS as readonly string[]).includes(screen)) {
+      const ecran = SCREENS.find((s) => s === screen);
+      if (!ecran) {
         throw new Error(`__wfrp.screen : id invalide « ${screen} » — écrans valides : ${SCREENS.join(', ')}`);
       }
-      g().setScreen(screen as never);
+      g().setScreen(ecran);
       return g().screen;
     },
 
@@ -1368,7 +1395,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const arme = att.weapons[0];
       const refus = refusDeDefenseReactive(g(), att, def, arme);
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
-      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (distance ${combatDistance(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (${distanceEnClair(g().scene, att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
@@ -1400,13 +1427,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
       if (att.kind !== 'ennemi') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
       if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
-      const disponibles = [...new Set(fileDesGratuites(att).melee)].filter((k) => freeAttackTargetOk(b, att, k, def));
+      const disponibles = [...new Set(fileDesGratuites(att).melee)].filter((k) => freeAttackTargetOk(g().scene, b, att, k, def));
       if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
       const kind = disponibles.find((k) => k === (type ?? disponibles[0]));
       if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
       const arme = armeDeLaGratuite(att, kind)!;
       const refus = refusDeDefenseReactive(g(), att, def, arme);
-      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (${distanceEnClair(g().scene, att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       donnerLeTour(b, idx);
@@ -1821,14 +1848,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ Moral d'équipage → ${n}`;
     },
 
-    /** RECETTE #332 : flip du siège MJ SOLO (`setGmSeat`, bac-à-sable local, siège 0) — setup légitime
+    /** RECETTE #332 : flip du siège MJ SOLO (`affecterLeSiegeMJ`, bac-à-sable local, siège 0) — setup légitime
      *  (3 clics réels × N scénarios par recette). `gmSeat()` sans argument bascule l'état courant ;
      *  `gmSeat(true)`/`gmSeat(false)` force. ATTENTION : le siège SURVIT à `scenario()` (mesuré #1028 : aucun
      *  chemin de lancement ne touche `net.gmSeat`) — le retirer EXPLICITEMENT entre deux scénarios.
      *  La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI — ce helper économise la mise en place, pas le test. */
     gmSeat: (on?: boolean) => {
       const v = on ?? g().net.gmSeat == null;
-      g().setGmSeat(v ? 0 : null);
+      g().affecterLeSiegeMJ(v ? 0 : null);
       return v ? '✓ siège MJ posé (siège 0)' : '✓ siège MJ retiré (IA)';
     },
 
@@ -2113,7 +2140,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const c = coerceSetting(def, value);
       if ('err' in c) return c.err;
-      setRule(def.id, c.v);
+      surchargerUneSaisie(def.id, c.v);
       return settingDone(id, c.v);
     },
 
@@ -2432,3 +2459,9 @@ export function installDevtools() {
   w.__game = useGame; // handle brut du store (à côté de __wfrp) pour les recettes navigateur
   setAiTrace(true); // DEV uniquement (devtools chargé en dev) → la trace de décision IA s'enregistre
 }
+
+/** La distance de contact dite à l'outil de dev : un sol plein ou une arête pleine entre les deux se dit tel quel. */
+const distanceEnClair = (scene: Scene | null, a: Combatant, b: Combatant): string => {
+  const d = distanceDeContact(scene, a, b);
+  return Number.isFinite(d) ? `distance ${d}` : 'un sol ou une arête pleine les sépare';
+};

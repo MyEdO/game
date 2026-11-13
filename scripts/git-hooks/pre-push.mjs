@@ -35,7 +35,19 @@
 import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { TRONC, depotDe, estAncetre, estShaComplet, fetchOrigin, objetsNommes, origineDe, refsDistantes, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import {
+  TRONC,
+  depotDe,
+  estAncetre,
+  estShaComplet,
+  fetchOrigin,
+  objetsNommes,
+  origineDe,
+  refsDistantes,
+  refusDeGit,
+  reussi,
+  urlOrigineAcceptee,
+} from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'

@@ -17,7 +17,16 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, jsdocRole, findAlias, aliasDoc, constanteImportee, indexerConstantes, noyauZod, proprietesZod as lireProprietesZod } from './lib/jsdocUnion.mjs'
+import {
+  loadSource,
+  jsdocRole,
+  findAlias,
+  aliasDoc,
+  constanteImportee,
+  indexerConstantes,
+  noyauZod,
+  proprietesZod as lireProprietesZod,
+} from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
@@ -93,11 +102,14 @@ function rendu() {
     return cles
   }
 
-  /** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`) — au-delà, on casse bruyamment
+  /** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`), ou d'une feuille d'id NUE
+   *  (`idDe(type, …, { nue: true })` → `string`, `grammaire/ref.ts`) — au-delà, on casse bruyamment
    *  plutôt que d'écrire un type faux dans la doc. */
   function typeZod(init, cle, schema) {
     if (!init) abandon(`clé héritée « ${cle} » de \`${schema}\` : initialiseur Zod absent`)
-    const m = init.getText().match(/^z\.(string|number|boolean)\(\)/)
+    const texte = init.getText()
+    if (/^idDe\([^)]*\{\s*nue:\s*true\s*\}\s*\)/.test(texte)) return 'string'
+    const m = texte.match(/^z\.(string|number|boolean)\(\)/)
     if (!m) abandon(`clé héritée « ${cle} » de \`${schema}\` : type zod non primitif — étendre \`typeZod\` dans ${OUTIL}`)
     return m[1]
   }

@@ -17,6 +17,7 @@
 import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import type { BattleState, Jeu } from './etat';
+import type { Scene } from './monde/scene';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
 import type { ActionsDuNoyau, GesteDuNoyau, VerbesDeLaBarre } from './actionsDuNoyau';
@@ -42,6 +43,7 @@ import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, attaqueImmediate, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { healableTargets, modesDOuverture } from '../engine/healing';
+import { campAuContact } from './monde/combatGeometry';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from './monde/commandTeam';
 import { controlsCombatant, decidingSeat, unSiegeAgit } from './netOwnership';
@@ -50,12 +52,22 @@ import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear } from './mount';
-import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusPriereImposee, refusSansMouvement } from './refusDuTour';
+import {
+  refusActionDepensee,
+  refusCoque,
+  refusDeCharge,
+  refusDeCourse,
+  refusHorsDEtatDAgir,
+  refusMouvementEntame,
+  refusPriereImposee,
+  refusSansMouvement,
+} from './refusDuTour';
 import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ItemInstance, type ShipPoste, type Weapon, type WeaponLoadout } from '../engine/types';
 import { pushSlot } from './siegePush';
 import { ACTIONS, byId, type ManeuverDef, findConditionById, findSpellById, type ActionDef } from '../data/index';
+import type { BattleActionMode, GateDAction, RunDAction, SelecteurDAction } from '../data/schemas/defs/actions';
 import { garanti } from '../lib/garanti';
 import { tableTotale } from '../lib/tableTotale';
 import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWindLabel } from '../engine/magic';
@@ -75,6 +87,7 @@ export interface ActionGate {
 export interface ActionCtx {
   active: Combatant;
   battle: BattleState;
+  scene: Scene | null;
   netMode?: string;
   /** L'ENTRÉE évaluée, posée par `actionGate` à partir de l'entrée résolue : un gate y lit ce que
    *  l'action DÉCLARE (l'État qu'elle traite) au lieu de nommer un id. */
@@ -91,7 +104,7 @@ export interface ActionCtx {
 
 /** Le gate qui désigne une entrée comme REMÈDE de l'État qu'elle déclare : deux lecteurs le nomment,
  *  la donnée (`actions.json`) et `remedesPertinents`. */
-export const GATE_ETAT_PORTE = 'etat-porte';
+export const GATE_ETAT_PORTE = 'etat-porte' satisfies GateDAction;
 
 const ok: ActionGate = { ok: true };
 const no = (reason: string): ActionGate => ({ ok: false, reason });
@@ -173,7 +186,7 @@ const et =
   };
 
 /** Les PRÉDICATS d'offre du registre, par id (`gate` de `actions.json`). */
-export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
+export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> = {
   toujours: () => ok,
   'hors-verrou-d-etat': horsVerrouDEtat,
   'peut-agir': peutAgir,
@@ -202,8 +215,8 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'determination-en-reserve': ({ active, args }) => verdict(refusDeDetermination(active, args?.conditionId) ?? null),
   'attaque-libre-frenesie': ({ active }) =>
     hasFreeWeaponAttack(active) ? ok : no(t('agate.noFreeWeaponAttack')),
-  'pietinement-gratuit': ({ active, battle }) =>
-    availableAttacks(active, battle).some((o) => o.freeKind === 'pietinement') ? ok : no(t('agate.noTrample')),
+  'pietinement-gratuit': ({ active, battle, scene }) =>
+    availableAttacks(scene, active, battle).some((o) => o.freeKind === 'pietinement') ? ok : no(t('agate.noTrample')),
   'set-commutable': ({ active, battle }) =>
     (active.loadouts?.length ?? 0) < 2
       ? no(t('agate.singleLoadout'))
@@ -241,12 +254,12 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   /** Postures de tir (spec §1a G5) — PRÉDICATS UNIQUES de `combatFlow`, partagés avec le store
    *  (`basculerLaPosture`), le versement dans le pending et la fenêtre de jet. Le refus est celui
    *  du prédicat : la raison appartient à `STANCE_BLOCK`, jamais au gate. */
-  'tir-immobile-armable': ({ active, battle }) => {
-    const refus = STANCE_BLOCK.tirImmobile(battle, active);
+  'tir-immobile-armable': ({ active, battle, scene }) => {
+    const refus = STANCE_BLOCK.tirImmobile(scene, battle, active);
     return refus ? no(refus) : ok;
   },
-  'tir-dans-le-tas-armable': ({ active, battle }) => {
-    const refus = STANCE_BLOCK.dansLeTas(battle, active);
+  'tir-dans-le-tas-armable': ({ active, battle, scene }) => {
+    const refus = STANCE_BLOCK.dansLeTas(scene, battle, active);
     return refus ? no(refus) : ok;
   },
   /** Battement (`LDB 10 l.103` · `AA 13 l.11-17` · `LDB 13 l.114`) : la case porte le prédicat du
@@ -323,7 +336,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
 
 /** Les gates de PERTINENCE (#2911) : une entrée dont l'un refuse n'a pas lieu d'être pour ce porteur, et
  *  `offresDeLActif` ne l'offre pas ; tout autre refus FERME l'offre en gardant sa raison. */
-export const GATES_DE_PERTINENCE: ReadonlySet<string> = new Set([
+export const GATES_DE_PERTINENCE: ReadonlySet<GateDAction> = new Set<GateDAction>([
   'fantassin', 'set-de-melee', 'tireur', 'arme-de-repousse', 'engage', 'battement-connu', 'distraire-connu',
   'frenesie-possible', 'equipe-a-aider', 'monte', 'pas-deja-en-joue', 'poste-servi', 'a-la-barre', 'navire', 'vehicule', 'pause-de-round', GATE_ETAT_PORTE,
 ]);
@@ -372,8 +385,6 @@ export function actionGate(actionId: string, ctx: ActionCtx): ActionGate {
   const def = ACTIONS.find((a) => a.id === actionId);
   if (!def) return no(`action inconnue : ${actionId}`);
   const noms = Array.isArray(def.gate) ? def.gate : [def.gate];
-  const inconnu = noms.find((g) => !ACTION_GATES[g]);
-  if (inconnu) return no(`gate inconnu : ${inconnu}`);
   return et(...noms.map((g) => ACTION_GATES[g]))({ ...ctx, def });
 }
 
@@ -391,9 +402,9 @@ function sortsDissipables({ active, battle }: ActionSelectorCtx): DispellableSpe
 
 /** Les SÉLECTEURS de candidats, par id (`candidates` de `actions.json`) — enveloppes nommées des
  *  fonctions déjà écrites (la liste manuscrite de l'IA n'a plus lieu d'être). */
-export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unknown[]> = {
-  'montures-adjacentes': ({ active, battle }) => mountablesNear(battle, active),
-  'pieces-servables': ({ active, battle }) => servablePostes(active, battle.combatants),
+export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx) => unknown[]> = {
+  'montures-adjacentes': ({ active, battle, scene }) => mountablesNear(battle, scene, active),
+  'pieces-servables': ({ active, battle, scene }) => servablePostes(scene, active, battle.combatants),
   /** La pièce POUSSABLE que l'actif sert — l'entité qui porte le geste de Pousser (spec zone 4 : le
    *  geste vit sur ce qui l'offre). Le verdict d'AFFORDANCE est celui de la source unique déjà écrite
    *  (`pushSlot.show` : chef d'un engin à roues résolu, arme + affût présents, ADE II 8 l.258) — une
@@ -404,10 +415,10 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
     const sp = crewPosteOf(active.id, battle.combatants);
     return sp ? [sp] : [];
   },
-  'cibles-soin': ({ active, battle }) =>
-    healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true }).filter((c) => modesDOuverture(c, active).length > 0),
-  'cibles-aspersion': ({ active, battle }) =>
-    hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
+  'cibles-soin': ({ active, battle, scene }) =>
+    healableTargets(campAuContact(scene, battle, active)).filter((c) => modesDOuverture(c, active).length > 0),
+  'cibles-aspersion': ({ active, battle, scene }) =>
+    hasWaterContainer(active) ? waterSprayCandidates(active, campAuContact(scene, battle, active)) : [],
   /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. Le
    *  mode Dissiper (`dissipation`) s'offre une fois s'il en existe un. */
   'sorts-dissipables': sortsDissipables,
@@ -421,8 +432,8 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
   /** Attaques de TRAIT qui ARMENT le clic, une cible ou un point à désigner (`attaque-trait`), et attaques IMMÉDIATES,
    *  sans cible (`attaque-zone`) : le tri se lit à la forme de ciblage de leur manœuvre (`attaqueImmediate`). L'attaque
    *  d'ARME est le geste du conduit (`attaque`), jamais une case de la grille. */
-  'attaques-de-trait': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && !attaqueImmediate(a)),
-  'attaques-de-zone': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && attaqueImmediate(a)),
+  'attaques-de-trait': ({ active, battle, scene }) => availableAttacks(scene, active, battle).filter((a) => a.kind !== 'arme' && !attaqueImmediate(a)),
+  'attaques-de-zone': ({ active, battle, scene }) => availableAttacks(scene, active, battle).filter((a) => a.kind !== 'arme' && attaqueImmediate(a)),
   'sorts-du-heros': ({ active }) => active.spells ?? [],
   /** Les États PORTÉS : la réserve de Détermination est le verdict d'offre (`determination-en-reserve`), qui dit son refus. */
   'etats-retirables': ({ active }) => active.conditions,
@@ -489,7 +500,7 @@ const porteurDArme = declarerPorteur(['weaponUid'], (c) => {
  *  DEVINETTE d'identité (`o?.id ?? o?.uid`) : le registre la DÉCLARE, les deux surfaces qui offrent
  *  des candidats (pastilles du champ, gestes secondaires de la console) la LISENT. Toute action dont
  *  la surface offre par candidat doit avoir la sienne — garde `action-atteignabilite`. */
-export const ACTION_PORTEURS: Record<string, PorteurDeclare> = {
+export const ACTION_PORTEURS: Partial<Record<SelecteurDAction, PorteurDeclare>> = {
   'montures-adjacentes': declarerPorteur(['targetId'], (c) => {
     const m = c as Combatant;
     return { porteurId: m.id, args: { targetId: m.id } };
@@ -639,7 +650,7 @@ const idDeLActif = (o: OffreAJouer): IdDeCombattant => garanti(o.active, o.def.i
 
 /** Le candidat que le CORPS d'un verbe prend pour une position omise, dans le combat de l'actif : l'argument même qu'il
  *  recevrait, lu aux fonctions que lit le corps. */
-type DefautDuCorps = (b: { active: Combatant; battle: BattleState }) => unknown;
+type DefautDuCorps = (b: Pick<ActionCtx, 'active' | 'battle' | 'scene'>) => unknown;
 
 /** Ce que porte une position d'argument d'un verbe de la barre :
  *  - une clé du contexte de la case (`cle`) ;
@@ -664,7 +675,7 @@ interface LectureDuVerbe {
 const lActif: DefautDuCorps = ({ active }) => active.id;
 
 /** La lecture de chaque verbe de la barre (`VerbesDeLaBarre`), entrée des offres qui le déclarent par leur `run` : un
- *  verbe de la barre sans lecture ne compile pas. Chaque clé d'argument d'une entrée se désigne par les candidats de son
+ *  verbe de la barre sans lecture, ou absent de `RUNS_D_ACTION`, ne compile pas. Chaque clé d'argument d'une entrée se désigne par les candidats de son
  *  porteur, par un PRÉALABLE qui la lit (`CLES_DES_PREALABLES`) ou par son défaut : sinon le registre lève au chargement
  *  (`CLES_DESIGNABLES`). */
 const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuVerbe } = {
@@ -680,7 +691,7 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   },
   basculerLaRepousse: {},
   basculerLaPosture: { args: [{ entree: (def) => def.stance }] },
-  aspergerDEau: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind))[0]?.id, omissible: true }] },
+  aspergerDEau: { args: [{ cle: 'targetId', defaut: ({ active, battle, scene }) => waterSprayCandidates(active, campAuContact(scene, battle, active))[0]?.id, omissible: true }] },
   prendreLaDefensive: {},
   rompreLEngagement: {},
   gagnerLAvantage: { args: [{ cle: 'skillId' }], requis: ['skillId'] },
@@ -691,9 +702,9 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   tenterDeDistraire: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => distraireFoes(active, battle)[0]?.id, omissible: true }] },
   entrerEnFrenesie: {},
   manoeuvrerSurSoi: { args: [{ cle: 'maneuverId' }], requis: ['maneuverId'] },
-  monterEnSelle: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => mountablesNear(battle, active)[0]?.id, omissible: true }] },
+  monterEnSelle: { args: [{ cle: 'targetId', defaut: ({ active, battle, scene }) => mountablesNear(battle, scene, active)[0]?.id, omissible: true }] },
   mettrePiedATerre: {},
-  servirLePoste: { args: [{ cle: 'posteUid', defaut: ({ active, battle }) => servablePostes(active, battle.combatants)[0]?.poste.item.uid, omissible: true }] },
+  servirLePoste: { args: [{ cle: 'posteUid', defaut: ({ active, battle, scene }) => servablePostes(scene, active, battle.combatants)[0]?.poste.item.uid, omissible: true }] },
   quitterLePoste: {},
   pousserLEngin: {},
   aiderLEquipe: {},
@@ -702,7 +713,7 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   chanterLaChanson: { args: [{ cle: 'shipId', defaut: lActif }] },
   annulerLeDeplacement: {},
   terminerLeTour: {},
-};
+} satisfies Partial<Record<RunDAction, LectureDuVerbe>>;
 
 /** `verbe` est-il un verbe de la barre (`VerbesDeLaBarre`) ? */
 export function estVerbeDeLaBarre(verbe: string): verbe is keyof VerbesDeLaBarre {
@@ -731,7 +742,7 @@ function gesteDuVerbeDeLaBarre(verbe: keyof VerbesDeLaBarre, o: OffreAJouer): Ge
   const ctx: Record<string, unknown> = { ...o.args };
   for (const a of lecture.args ?? []) {
     if ('entree' in a || a.omissible || !a.defaut || argumentDuContexte(a, o.def, o.args, 0) !== undefined) continue;
-    Object.assign(ctx, versLeContexte(a, a.defaut({ active: garanti(o.active, o.def.id, 'actif de l’offre'), battle: garanti(o.etat.battle, o.def.id, 'combat de l’offre') })));
+    Object.assign(ctx, versLeContexte(a, a.defaut({ active: garanti(o.active, o.def.id, 'actif de l’offre'), battle: garanti(o.etat.battle, o.def.id, 'combat de l’offre'), scene: o.etat.scene })));
   }
   return { verbe, args: argumentsDuContexte(lecture, o.def, ctx as ContexteDOffre) };
 }
@@ -744,7 +755,7 @@ function versLeContexte(a: ArgumentDuVerbe, v: unknown): Record<string, unknown>
 
 /** Sens ARGUMENTS → CANDIDAT : le contexte de case que les arguments `args` du verbe lu par `lecture` désignent, dans le
  *  combat `b`. Un argument omis (`undefined`, ou `null` qu'un hôte JSON écrit pour omettre) prend le défaut du corps. */
-function contexteDesArguments(lecture: LectureDuVerbe, args: readonly unknown[], b: { active: Combatant; battle: BattleState }): ContexteDOffre {
+function contexteDesArguments(lecture: LectureDuVerbe, args: readonly unknown[], b: Pick<ActionCtx, 'active' | 'battle' | 'scene'>): ContexteDOffre {
   return Object.assign({}, ...(lecture.args ?? []).map((a, i) => {
     const pose = args[i] ?? undefined;
     return versLeContexte(a, pose === undefined && !('entree' in a) && a.defaut ? a.defaut(b) : pose);
@@ -773,7 +784,7 @@ const avec = <T>(valeur: T | undefined, jouer: (v: T) => GesteDuNoyau): GesteDuN
 
 /** Les entrées des offres qui déclarent un verbe hors de `VerbesDeLaBarre`, par leur `run` : un verbe que d'autres gestes
  *  jouent aussi, son porteur l'actif, ou la sortie d'une phase. */
-const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>> = {
+const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<Exclude<RunDAction, keyof VerbesDeLaBarre>, EntreeDOffre>> = {
   utiliserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('utiliserLObjet', uid))),
   poserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('poserLObjet', uid))),
   ramasserLObjet: duTour((o) => (o.args.entityId && o.args.pickKey ? geste('ramasserLObjet', o.args.entityId, o.args.pickKey) : null)),
@@ -814,19 +825,14 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>
   resterSurPlace: horsDuTour(({ active }) => (active?.pos ? geste('cliquerLaCase', { ...active.pos }) : null)),
 };
 
-/** Les entrées des offres, par `run` : celle de chaque verbe de la barre, et les autres. Un `run` des deux lève. */
-export const ENTREES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
+/** Les entrées des offres, par `run` : celle de chaque verbe de la barre, et les autres. */
+const ENTREES_PAR_RUN: Readonly<Record<RunDAction, EntreeDOffre>> = {
   ...ENTREES_HORS_DES_VERBES_DE_LA_BARRE,
-  ...tableTotale(Object.keys(ARGUMENTS_DE_LA_BARRE) as (keyof VerbesDeLaBarre)[], (verbe) => {
-    if (Object.prototype.hasOwnProperty.call(ENTREES_HORS_DES_VERBES_DE_LA_BARRE, verbe)) throw new Error(`entrée d’offre ${verbe} déclarée deux fois`);
-    return duTour((o) => gesteDuVerbeDeLaBarre(verbe, o));
-  }),
+  ...tableTotale(Object.keys(ARGUMENTS_DE_LA_BARRE) as (keyof VerbesDeLaBarre)[], (verbe) => duTour((o) => gesteDuVerbeDeLaBarre(verbe, o))),
 };
 
-/** L'entrée d'offre de chaque action qui se joue (`run`), résolue au CHARGEMENT : un `run` absent d'`ENTREES_PAR_RUN`
- *  lève ici, en nommant l'action. */
-const ENTREE_DE_L_ACTION: ReadonlyMap<string, EntreeDOffre> = new Map(ACTIONS.flatMap((def) =>
-  def.run ? [[def.id, garanti(Object.prototype.hasOwnProperty.call(ENTREES_PAR_RUN, def.run) ? ENTREES_PAR_RUN[def.run] : undefined, def.run, `entrée de l’offre ${def.id}`)] as const] : []));
+/** L'entrée d'offre de chaque action qui se joue (`run`). */
+const ENTREE_DE_L_ACTION: ReadonlyMap<string, EntreeDOffre> = new Map(ACTIONS.flatMap((def) => (def.run ? [[def.id, ENTREES_PAR_RUN[def.run]] as const] : [])));
 
 /** L'entrée du registre d'id `id`, ou `undefined`. */
 export const offreDeId = (id: unknown): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
@@ -857,7 +863,7 @@ export function refusDeLOffreHorsDuTour(s: Jeu, actionId: string): string | null
   const b = s.battle && !s.battle.over ? s.battle : undefined;
   const active = b && (activeCombatant(b) ?? b.combatants[0]);
   if (!b || !active) return t('barre.personneNAgit');
-  const gate = actionGate(actionId, { active, battle: b, netMode: s.net.mode, gameTime: s.gameTime });
+  const gate = actionGate(actionId, { active, battle: b, scene: s.scene, netMode: s.net.mode, gameTime: s.gameTime });
   return gate.ok ? null : garanti(gate.reason, actionId, 'raison du refus de l’offre');
 }
 
@@ -939,12 +945,12 @@ export function refusDuGeste(s: Jeu, g: GesteDuNoyau): { def: ActionDef; args: C
   if (barre.forme !== 'ouverte') return { refus: barre.raison };
   if (!estVerbeDeLaBarre(g.verbe)) return { refus: t('offre.sansEntree') };
   const lecture: LectureDuVerbe = ARGUMENTS_DE_LA_BARRE[g.verbe];
-  const base: ActionSelectorCtx = { active: barre.active, battle: barre.battle, netMode: s.net.mode, gameTime: s.gameTime, state: s };
+  const base: ActionSelectorCtx = { active: barre.active, battle: barre.battle, scene: s.scene, netMode: s.net.mode, gameTime: s.gameTime, state: s };
   const defs = ACTIONS.filter((def) => def.run === g.verbe && entreeDesignee(lecture, def, g.args));
   if (!defs.length) return { refus: t('offre.sansEntree') };
   const pertinentes = defs.filter((def) => pertinente(def, base));
   if (!pertinentes.length) return { refus: garanti(actionGate(defs[0].id, base).reason, defs[0].id, 'raison de la pertinence') };
-  const args = contexteDesArguments(lecture, g.args, barre);
+  const args = contexteDesArguments(lecture, g.args, base);
   let refusDeRegle: string | undefined;
   let refusDeCandidat: string | undefined;
   for (const def of pertinentes) {
@@ -1109,27 +1115,3 @@ export function currentInterludeAction(get: () => Jeu): ActionDef | undefined {
   const modeId = currentTargetingMode(get).id;
   return ACTIONS.find((a) => a.surface === 'interlude' && a.mode === modeId);
 }
-
-/** Modes ARMABLES de `battle.action`, DÉRIVÉS du registre (le `mode` des actions `armed`) + les modes qui n'appartiennent
- *  à aucune action de barre, déclarés ici avec leur porteur (garde de parité :
- *  `src/noyau/action-atteignabilite.hors-store.test.ts`). */
-export const MODES_HORS_REGISTRE = {
-  /** Armé par la RÉSOLUTION d'un sort de Téléportation (case d'arrivée), jamais par une case. */
-  teleportation: 'sort de Téléportation (combatFlow)',
-} as const;
-
-/** Union des valeurs légales de `BattleState.action` — le type raconte le registre. */
-export type BattleActionMode =
-  | 'incantation'
-  | 'soins'
-  | 'dissipation'
-  | 'bordee'
-  | 'poussee'
-  | keyof typeof MODES_HORS_REGISTRE;
-
-/** Les MÊMES valeurs, énumérables à l'exécution — la garde `action-atteignabilite` vérifie qu'elles
- *  couvrent EXACTEMENT les modes `armed` du registre + `MODES_HORS_REGISTRE` (union validée, pas dérivée :
- *  un JSON importé n'a pas de type littéral). */
-export const BATTLE_ACTION_MODES: readonly BattleActionMode[] = [
-  'incantation', 'soins', 'dissipation', 'bordee', 'poussee', 'teleportation',
-];

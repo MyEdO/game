@@ -1,17 +1,18 @@
-## Le pont d'une planche (#3935) : il rend à `demarrer`, à `monde`, à `morceaux`, à `retrait` et à `aretes` les réponses
-## enregistrées d'un état de partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont du
-## noyau. Le combat
-## (`combat.gd`) montre alors cet état comme une partie qu'il démarre, sans la jouer.
+## Le pont d'une planche (#3935) : il rend à chaque méthode la réponse que la planche enregistre sous son nom
+## (`Planche`, `hotes/godot/recettes/ecran.ts`), et une méthode qu'elle n'enregistre pas est une panne. Le combat
+## (`combat.gd`) montre alors cet état comme une partie qu'il démarre, sans la jouer. Avant la planche lue, toute méthode
+## va au pont du noyau.
 class_name PontDePlanche
 extends PontDuNoyau
 
 ## @contrat Écran publié
-## Une planche est un état de partie enregistré (`hotes/godot/etalons/planches/<nom>.json`, servi sous
-## `planches/<nom>.json` : les réponses de `demarrer`, `aretes` et `retrait`), le monde de son scénario sous
-## `planches/mondes/<scenario>.json` (`{ monde, morceaux }` : la réponse de `monde`, et celle de `morceaux` à toutes ses
-## clés, que le pont de la planche rend à toute entrée). L'adresse `?planche=<nom>`
+## Une planche est un état de partie figé par le pont, déposé dans l'export (`construire.mjs --export`) sous
+## `planches/<nom>.json` (ses réponses propres, `reponses`), les réponses que partagent les planches de son scénario
+## sous `planches/communes/<scenario>.json`. Le pont de la planche rend à chaque méthode la réponse enregistrée sous son
+## nom, à toute entrée ; une méthode sans réponse enregistrée est une panne (`PontDuNoyau.panne`, une erreur de la page),
+## jamais une question au pont du noyau. L'adresse `?planche=<nom>`
 ## l'ouvre à la place du menu d'entrée : le combat la montre par son routeur, comme la partie de `?scenario=` qu'il
-## démarre, et un geste qu'on y presse est refusé par le pont, aucune partie n'étant démarrée. `&monde=sans` ne dessine
+## démarre, et un geste qu'on y presse est une panne, la planche ne servant pas les gestes. `&monde=sans` ne dessine
 ## pas le monde 3D sous l'écran (`Viewport.disable_3d`) : l'image ne dépend alors que de l'interface. Godot publie à la
 ## page `globalThis.wfrpPlancheMontree`, le nom de la planche une fois son écran publié et ses portraits pris (`CALME_S`
 ## sans écran neuf), `null` tant qu'elle ne l'est pas. Le banc des étalons (`hotes/godot/etalons.mjs`) le lit.
@@ -22,8 +23,9 @@ const COMBAT := "res://scenes/Combat.tscn"
 const CALME_S := 0.5
 
 var _nom := ""
-var _planche := {}
-var _monde := {}
+var _parametres := {}
+## Les réponses de la planche par méthode, vides avant la planche lue.
+var _reponses := {}
 var _calme := Timer.new()
 
 
@@ -41,38 +43,32 @@ func _ready() -> void:
 func _montrer(nom: String) -> void:
 	var recueil: Array[String] = []
 	var planche: Variant = JSON.parse_string((await requeter("%s/%s.json" % [DOSSIER, nom], recueil)).get_string_from_utf8())
-	var monde: Variant = null
+	var communes: Variant = null
 	if planche is Dictionary:
-		monde = JSON.parse_string((await requeter("%s/mondes/%s.json" % [DOSSIER, planche.parametres.scenario], recueil)).get_string_from_utf8())
-	if not monde is Dictionary:
+		communes = JSON.parse_string((await requeter("%s/communes/%s.json" % [DOSSIER, planche.parametres.scenario], recueil)).get_string_from_utf8())
+	if not communes is Dictionary:
 		_signaler("planche %s illisible : %s" % [nom, " ; ".join(recueil)])
 		return
 	_nom = nom
-	_planche = planche
-	_monde = monde
+	_parametres = planche.parametres
+	_reponses = planche.reponses.merged(communes)
 	get_tree().root.disable_3d = parametre("monde") == "sans"
 	get_tree().change_scene_to_file(COMBAT)
 
 
+## La réponse de la planche à `methode`, à toute entrée ; `{}` et une panne si elle n'en enregistre pas.
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
-	if not _planche.is_empty():
-		match methode:
-			"demarrer":
-				return _planche.demarrer
-			"monde":
-				return _monde.monde
-			"morceaux":
-				return _monde.morceaux
-			"retrait":
-				return _planche.retrait
-			"aretes":
-				return _planche.aretes
-	return super(methode, entree)
+	if _reponses.is_empty():
+		return super(methode, entree)
+	if not _reponses.has(methode):
+		_signaler("planche %s : la méthode %s n'y est pas servie" % [_nom, methode])
+		return {}
+	return _reponses[methode]
 
 
 ## Le paramètre `cle` de la partie de la planche (son `scenario`), sinon celui du lancement (`PontDuNoyau.parametre`).
 func parametre(cle: String) -> String:
-	return str(_planche.parametres[cle]) if _planche.get("parametres", {}).has(cle) else super(cle)
+	return str(_parametres[cle]) if _parametres.has(cle) else super(cle)
 
 
 func publier_l_ecran(publie: Callable) -> void:

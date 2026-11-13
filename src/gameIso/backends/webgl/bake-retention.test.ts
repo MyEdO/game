@@ -7,7 +7,7 @@ import { scenario } from '../../../scenes/test-scenarios/zones-pieces';
 import { findPropById, materials, matieresDe, props, terrains } from '../../../data';
 import { setDataset, resetData } from '../../../data/overrides';
 import type { MaterialEntry } from '../../../data/materials.types';
-import type { TerrainDef } from '../../../data/terrains.types';
+import type { TerrainDef } from '../../../data';
 import { effectiveArchitecture } from '../../../noyau/sceneEdit';
 import { roofMaterial } from '../../../noyau/monde/volume/matieres';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';

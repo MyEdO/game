@@ -16,11 +16,13 @@ import { creerProvenanceFs } from './provenanceFs.mjs'
 
 const norm = p => p.replaceAll('\\', '/')
 /** Les PORTES d'une table : un appel lit son champ du nœud JSON qu'il reçoit (et, par id de document, d'un
- *  fichier qui en porte plusieurs). `rangeesDe` (`src/data/rangees.ts`) rend `entries` au type dérivé du
- *  schéma ; `deDeTirageDe` (même module) lit `die`, et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die`
- *  du nœud : tous deux rendent un `DeDeTable`, jamais une valeur JSON. */
+ *  fichier qui en porte plusieurs). `datasetDe` (`src/data/datasets.ts`) rend le nœud lui-même et `rangeesDe`
+ *  (`src/data/rangees.ts`) son `entries`, au type dérivé du schéma ; `deDeTirageDe` (même module) lit `die`,
+ *  et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die` du nœud : tous deux rendent un `DeDeTable`,
+ *  jamais une valeur JSON. */
 const PORTES = {
-  rangeesDe: { module: 'src/data/rangees.ts', champ: 'entries' },
+  datasetDe: { module: 'src/data/datasets.ts', champ: null, rendJson: true },
+  rangeesDe: { module: 'src/data/rangees.ts', champ: 'entries', rendJson: true },
   deDeTirageDe: { module: 'src/data/rangees.ts', champ: 'die' },
   deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: 'die' },
 }
@@ -153,8 +155,8 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
     if (!porte || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, porte.module))) return null
     const racine = origin(call.arguments[0])
     if (!racine) return null
-    const champ = porte.champ
-    return { file: racine.file, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', champ] : [champ])], rendJson: porte === PORTES.rangeesDe }
+    const champs = porte.champ === null ? [] : call.arguments.length > 1 ? ['[]', porte.champ] : [porte.champ]
+    return { file: racine.file, path: [...racine.path, ...champs], rendJson: porte.rendJson === true }
   }
   const originCache = new Map()
   const origin = (node, seen = new Set()) => {
@@ -380,11 +382,33 @@ const parUnites = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
 function natureDuType(root, type) {
   if (type.flags & TypeFlags.AnyOrUnknown) return { raison: `type \`${type.flags & TypeFlags.Any ? 'any' : 'unknown'}\`` }
   const decl = (type.getAliasSymbol() ?? type.getSymbol())?.declarations?.[0]?.resolve()
-  if (!decl) return { raison: type.isUnionType() ? 'union anonyme' : type.isIntersectionType() ? 'intersection anonyme' : 'type calculé sans déclaration' }
+  if (!decl) return type.isUnionType() || type.isIntersectionType() ? { raison: `${type.isUnionType() ? 'union' : 'intersection'} anonyme`, composee: true } : { raison: 'type calculé sans déclaration' }
   if (!DECLARATIONS_NOMMEES.some(est => est(decl)) || !decl.name) return { raison: 'littéral anonyme `{…}`' }
   const home = norm(relative(root, decl.getSourceFile().fileName))
   if (home.startsWith('../') || home.includes('node_modules/')) return { raison: `type \`${decl.name.text}\` d'une bibliothèque` }
   return { decl, type: decl.name.text, home }
+}
+
+/** Les alias qui ADOPTENT une entrée dérivée (`type X = EntreeDe<typeof def>`, `DatasetDe` ou `RangeeDe`), par fichier
+ *  de donnée du def (`export const file`) : le nom sous lequel le dépôt lit cette entrée. */
+function aliasAdoptants(root, program, files) {
+  const adoptants = new Map()
+  for (const f of files) {
+    const sf = program.getSourceFile(f)
+    if (!sf) continue
+    const defs = new Map(sf.statements.filter(ts.isImportDeclaration).flatMap(i => {
+      const ns = i.importClause?.namedBindings
+      return ns && ts.isNamespaceImport(ns) ? [[ns.name.text, resolve(dirname(sf.fileName), `${i.moduleSpecifier.text}.ts`)]] : []
+    }))
+    for (const n of sf.statements) {
+      if (!ts.isTypeAliasDeclaration(n) || !ts.isTypeReferenceNode(n.type) || !['EntreeDe', 'DatasetDe', 'RangeeDe'].includes(n.type.typeName.getText())) continue
+      const arg = n.type.typeArguments?.[0]
+      const module = arg && ts.isTypeQueryNode(arg) ? defs.get(arg.exprName.getText()) : undefined
+      const file = module && /^export const file = '([^']+)';$/m.exec(program.getSourceFile(module)?.text ?? '')?.[1]
+      if (file) adoptants.set(file, { decl: n, type: n.name.text, home: norm(relative(root, sf.fileName)) })
+    }
+  }
+  return adoptants
 }
 
 /**
@@ -398,6 +422,7 @@ function natureDuType(root, type) {
 export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEFS) {
   const { checker } = session
   const { claims } = relierChargements(root, session, { files, definitions, lectures: false })
+  const adoptants = aliasAdoptants(root, session.program, files)
   const cibles = new Map(), sorties = []
   for (const d of [...definitions].sort((a, b) => parUnites(a.file, b.file))) {
     // L'ENTRÉE d'un document à rangées est sa rangée (`documentARangees.mts`, #3012).
@@ -407,7 +432,11 @@ export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEF
     const cles = declares.filter(p => p.length === entree.length + 1).map(p => p.at(-1))
     const duDataset = claims.filter(c => c.file === d.file)
     const vues = duDataset.filter(c => c.path.length <= entree.length && c.path.every((k, i) => entree[i] === k))
-    const natures = vues.flatMap(c => typesDuChemin(checker, c, entree.slice(c.path.length)).map(t => ({ ...natureDuType(root, t), site: siteDe(root, c.node) })))
+    // Une entrée DÉRIVÉE n'a pas de déclaration propre — instanciation d'alias générique (`DatasetDuDocument`), ou
+    // union des cas d'une charge par discriminant : elle se nomme par l'alias du dépôt qui l'adopte.
+    const derivee = n => n.decl ? n.decl.typeParameters?.length > 0 : n.composee
+    const adoptee = n => !derivee(n) ? n : adoptants.get(d.file) ?? (n.decl ? { raison: 'type dérivé sans alias qui l’adopte (`EntreeDe`/`DatasetDe`/`RangeeDe`)' } : n)
+    const natures = vues.flatMap(c => typesDuChemin(checker, c, entree.slice(c.path.length)).map(t => ({ ...adoptee(natureDuType(root, t)), site: siteDe(root, c.node) })))
     for (const n of natures.filter(n => n.decl)) {
       const cle = `${n.home}#${n.type}`
       const cible = cibles.get(cle) ?? { type: n.type, home: n.home, position: n.decl.getStart(), cles: [], files: [] }
@@ -420,7 +449,7 @@ export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEF
       ? natures.map(n => `${n.raison} au chargement ${n.site}`)
       : duDataset.length
         ? [`aucune vue typée de l'entrée — vues de sous-chemins seulement : ${[...new Set(duDataset.map(c => `\`${c.path.join('.').replaceAll('.[]', '[]')}\` (${siteDe(root, c.node)})`))].sort(parUnites).join(', ')}`]
-        : ['aucun chargement typé (cast, annotation ou porte `rangeesDe`)']
+        : ['aucun chargement typé (cast, annotation ou porte `datasetDe`/`rangeesDe`)']
     sorties.push({ file: d.file, raison: [...new Set(raisons)].sort(parUnites).join(' ; ') })
   }
   return {

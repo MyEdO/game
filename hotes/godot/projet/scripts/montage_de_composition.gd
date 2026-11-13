@@ -96,6 +96,8 @@ var _noeuds: Dictionary = {}
 var _demandes: Dictionary = {}
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
+## Les matières locales de ses pièces (`materiau_local`), qu'il tient au-delà de leur vie.
+var _locaux: Dictionary = {}
 ## Par id d'emplacement d'un objet rangé, ses meshes rangés : `{ noeud, piece }`, le nœud `Range_<point>` qui porte le
 ## mesh et le mesh (`_ranger`).
 var _rangements: Dictionary = {}
@@ -130,36 +132,41 @@ static func retenir_les_modeles(reponse: Dictionary, listage: Dictionary) -> voi
 
 
 ## Le listage des modèles (`GET modeles/listage.json`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par le pont que `hote`
-## rejoint (`PontDuNoyau.requeter`) ; ses erreurs à `recueil`, vide s'il ne se lit pas.
+## rejoint (`PontDuNoyau.requeter`) ; ses erreurs à `recueil`, vide s'il ne se lit pas, panne dite aussi à la console.
 static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
 	var octets := await (hote.get_node("/root/Pont") as PontDuNoyau).requeter("modeles/listage.json", recueil)
 	var listage: Variant = JSON.parse_string(octets.get_string_from_utf8()) if not octets.is_empty() else null
 	if not listage is Dictionary:
 		recueil.append("listage-illisible : modeles/listage.json")
+		push_error("[modeles] %s" % " ; ".join(PackedStringArray(recueil)))
 		return {}
 	for erreur in listage.get("erreurs", []):
 		recueil.append(str(erreur))
 	return listage
 
 
-## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne.
+## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne, dont celle
+## d'un listage qui ne s'est pas lu (vide), jamais indexé.
 static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
+	if listage.is_empty():
+		return {}
 	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
 
 
 ## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :
-## les erreurs du listage, les refus de l'index et celui du pont, que l'hôte dit en panne.
-static func indexer_les_modeles(hote: Node) -> Array[String]:
-	var recueil: Array[String] = []
+## `true` une fois retenu ; les erreurs du listage, les refus de l'index et celui du pont à `recueil`, que l'hôte dit en
+## panne. Non retenu, aucun corps ne se monte : l'hôte n'entre pas en partie.
+static func indexer_les_modeles(hote: Node, recueil: Array[String]) -> bool:
 	var listage := await lister(hote, recueil)
 	var reponse := indexer(hote.get_node("/root/Pont") as PontDuNoyau, listage)
 	if reponse.get("ok") == true:
 		retenir_les_modeles(reponse, listage)
 		for refus in reponse.refus:
 			recueil.append(str(refus))
-	elif reponse.get("ok") == false:
+		return true
+	if reponse.get("ok") == false:
 		recueil.append(str(reponse.erreur.message))
-	return recueil
+	return false
 
 
 ## Le premier `Skeleton3D` sous `noeud`, `null` s'il n'en porte aucun.
@@ -193,14 +200,21 @@ static func repere(declaration: Dictionary) -> Transform3D:
 		Vector3(declaration.position[0], declaration.position[1], declaration.position[2]))
 
 
-## Le duplicata du matériau actif de la surface `surface` de `piece`, posé en matériau de surface propre à `piece` ;
-## `null` si ce matériau n'est pas un `BaseMaterial3D`.
-static func materiau_local(piece: MeshInstance3D, surface: int) -> BaseMaterial3D:
+## Le duplicata du matériau actif de la surface `surface` de `piece`, posé en matériau de surface propre à `piece` et
+## tenu dans `locaux`, ceux de son porteur, par id d'instance de pièce : un mesh libéré libère ses matériaux de surface
+## avant que le serveur de rendu ne relise son instance (`servers/rendering/renderer_scene_cull.cpp:4415` à 4.7), et le
+## porteur, dont les pièces meurent avant lui, les tient jusqu'à la création suivante qui suit leur mort ; `null` si ce
+## matériau n'est pas un `BaseMaterial3D`.
+static func materiau_local(piece: MeshInstance3D, surface: int, locaux: Dictionary) -> BaseMaterial3D:
 	var original := piece.get_active_material(surface) as BaseMaterial3D
 	if original == null:
 		return null
+	for id: int in locaux.keys():
+		if not is_instance_id_valid(id):
+			locaux.erase(id)
 	var local := original.duplicate() as BaseMaterial3D
 	piece.set_surface_override_material(surface, local)
+	locaux.get_or_add(piece.get_instance_id(), []).append(local)
 	return local
 
 
@@ -325,6 +339,15 @@ static func boucler(lecteur: AnimationPlayer, noms: Array) -> void:
 			propre.add_animation(local, clip)
 		lecteur.remove_animation_library(cle)
 		lecteur.add_animation_library(cle, propre)
+
+
+## Sorti de l'arbre avec son combattant ou son atelier, qui n'y reviennent pas (#4195) : chaque montage en vol est
+## jeté (`_demandes`, `monter`), sa refonte demandée (`_refondre_la_demande`) et la pile qu'il attend du pont
+## (`recevoir_la_pile`) aussi.
+func _exit_tree() -> void:
+	_demandes.clear()
+	_refonte_demandee = false
+	_pile_fondue = ""
 
 
 ## Le montage ramené à aucun modèle : ni squelette ni lecteur, ni élément monté, ni demande de montage en vol.
@@ -1054,7 +1077,7 @@ func _habiller(id: String) -> bool:
 	var palette: Dictionary = composee.get("palette", {}).duplicate()
 	if monte.get("element") == element:
 		palette.merge(monte.get("palette", {}), true)
-	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette)
+	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette, _locaux)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
 	_demander_la_refonte()
@@ -1076,7 +1099,7 @@ func habiller_la_base() -> void:
 			erreurs.append("materiau-absent : %s" % materiaux[surface])
 		else:
 			remplacants[surface] = remplacant
-	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants, composee.get("reliefs", {}))
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, remplacants, composee.get("reliefs", {}))
 	_demander_la_refonte()
 
 
@@ -1089,8 +1112,8 @@ func habiller_la_base() -> void:
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
-## surface au moins.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
+## surface au moins. Chaque matériau propre se tient dans `locaux`, ceux du porteur, qui lâche ceux d'avant de chaque mesh.
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -1098,6 +1121,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 	for piece: MeshInstance3D in meshes:
 		if texture != null:
 			_uv2_des_emblemes(piece, par_nom)
+		locaux.erase(piece.get_instance_id())
 		for rang in piece.mesh.get_surface_count():
 			piece.set_surface_override_material(rang, null)
 			var materiau := piece.get_active_material(rang)
@@ -1113,7 +1137,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			var relief: float = reliefs.get(surface.nom, 1.0)
 			if couleur == null and not blason and not texturee and relief == 1.0:
 				continue
-			var local := materiau_local(piece, rang)
+			var local := materiau_local(piece, rang, locaux)
 			if local == null:
 				continue
 			if texturee:
@@ -1312,7 +1336,13 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 func _demander_la_refonte() -> void:
 	if not _refonte_demandee:
 		_refonte_demandee = true
-		refondre.call_deferred()
+		_refondre_la_demande.call_deferred()
+
+
+## La refonte demandée (`_demander_la_refonte`), si rien ne l'a faite ni jetée entre-temps.
+func _refondre_la_demande() -> void:
+	if _refonte_demandee:
+		refondre()
 
 
 ## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce
@@ -1499,16 +1529,25 @@ func pile_posee() -> Dictionary:
 ## Par liaison de `piece` (une seule pour une pièce rigide ; celles du skin de son auteur, compensées, pour une pièce
 ## skinnée), le rang de la liaison de `skin` qui la porte, ajoutée à
 ## `skin` et à `liaisons` (par os et repère) si elle est neuve ; vide si `piece` ne se fond pas : invisible dans le
-## modèle, déjà fondue elle-même, ou hors des cas de `refondre`.
+## modèle, déjà fondue elle-même, ou hors des cas de `refondre`. Le repère d'une pièce rigide dans l'os de son
+## `BoneAttachment3D` compose les repères des nœuds qui l'y portent (chaque axe par la base du porteur, l'origine par son
+## repère entier, `_par`), jamais leurs places dans le monde : il ne dépend pas de la pose du squelette à la refonte
+## (#3935).
 func _renvois(piece: MeshInstance3D, skin: Skin, liaisons: Dictionary) -> PackedInt32Array:
 	var renvois := PackedInt32Array()
 	var attache: BoneAttachment3D = null
+	var dans_l_attache := Transform3D.IDENTITY
 	var noeud: Node = piece
 	while noeud != modele:
 		if not (noeud as Node3D).visible or (noeud != piece and (noeud as Node3D).top_level and attache == null):
 			return renvois
 		if attache == null and noeud is BoneAttachment3D:
 			attache = noeud
+		if attache == null:
+			var porteur := (noeud as Node3D).transform
+			var axes := [Transform3D(porteur.basis, Vector3.ZERO)]
+			dans_l_attache = Transform3D(_par(axes, dans_l_attache.basis.x), _par(axes, dans_l_attache.basis.y),
+					_par(axes, dans_l_attache.basis.z), _par([porteur], dans_l_attache.origin))
 		noeud = noeud.get_parent()
 	if piece.mesh == null or not _surfaces_fondables(piece):
 		return renvois
@@ -1521,11 +1560,7 @@ func _renvois(piece: MeshInstance3D, skin: Skin, liaisons: Dictionary) -> Packed
 		return renvois
 	if attache == null or not _sans_projection(piece):
 		return renvois
-	var repere_ := Node3D.new()
-	attache.add_child(repere_)
-	repere_.global_transform = piece.global_transform
-	renvois.append(_liaison(skin, liaisons, attache.bone_name, repere_.transform))
-	repere_.free()
+	renvois.append(_liaison(skin, liaisons, attache.bone_name, dans_l_attache))
 	return renvois
 
 

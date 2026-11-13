@@ -5,8 +5,27 @@ import * as ts from 'typescript/unstable/ast';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers, AMORCE_DES } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
-import { RACINE_DU_SEAM, rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
+import {
+  scanRollSeamExclusivity,
+  ROLL_SEAM_RX,
+  scanPendingJetFabrication,
+  engineRollerExports,
+  engineHomonyms,
+  scanEngineDelegatedRoll,
+  scanDesHorsPorte,
+  engineDiceRollers,
+  AMORCE_DES,
+} from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
+import {
+  RACINE_DU_SEAM,
+  rollSeamExcluded,
+  ROLL_SEAM_PHASE2_STOCK,
+  WORLD_DIE_SUBTRACTED_STOCK,
+  PENDING_JET_FABRICATION_STOCK,
+  ENGINE_DELEGATED_ROLL_STOCK,
+  DES_HORS_PORTE_STOCK,
+  SEAM_CALLERS,
+} from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
 import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';

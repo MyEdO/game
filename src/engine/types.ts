@@ -1,18 +1,19 @@
 /** Types partagés du moteur de règles WFRP v4. */
-import type { IconId } from '../data/icons';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
+import type { EntreeDe } from '../data/datasets';
+import type * as structuresDef from '../data/schemas/defs/structures';
+import type * as vehiclesDef from '../data/schemas/defs/vehicles';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
-import type { Money } from './money';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import type { CibleEtendue, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
+import type { CibleEtendue, NatureDeMention } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 import type { ActionId, NightStakeId } from '../data/index';
 
@@ -168,9 +169,6 @@ export const APPRAISED_AVAILABILITIES = ['rare', 'exotique'] as const satisfies 
  *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */
 export type Propulsion = 'terrestre' | 'fluvial' | 'maritime';
 
-/** Classe de voyage payant d'un véhicule : prix RAW en sous (PA) par km ET par passager (LDB 51 l.180-189). */
-export interface VehicleTravelClass { id: string; label: string; brassPerKm: number; }
-
 /**
  * Véhicule / embarcation à coque — FOYER UNIQUE de la donnée (`src/data/vehicles.json`), data-driven.
  * Le même enregistrement porte TROIS facettes indépendantes (fin des doublons transports/trappings) :
@@ -188,65 +186,7 @@ export interface VehicleTravelClass { id: string; label: string; brassPerKm: num
  *  (résolu pour l'affichage via `findNavalTrait(id)?.label`). Même esprit que `TraitInstance`, registre distinct. */
 export type NavalTraitRef = import('zod').z.input<typeof import('../data/schemas/grammaire/reference').navalTraitRefSchema>;
 
-export interface VehicleData {
-  /** id STABLE (slug) — cible de `TravelMode`/réfs de scène. */
-  id: string;
-  type: 'vehicles';
-  label: string;
-  /** Pictogramme d'affichage (registre `src/data/icons/`, famille `voyage/*`) — donnée, pas de ternaire
-   *  par id en dur. */
-  icon?: IconId;
-  source?: { book: string; page: number };
-  /** Encombrement de l'objet véhicule (LDB 61) — généralement `null` (on ne porte pas une diligence) ;
-   *  un coracle se porte (`enc` chiffré). */
-  enc?: number | null;
-  /** Chargement (EDOC 07 l.233-243) : Points d'Enc que la section bagages contient — véhicules
-   *  TERRESTRES uniquement (charrette 25, chariot 30, diligence 80). Capacité de porteur (`CargoCarrier`,
-   *  engine/cargo.ts) ; champ parallèle à `ship.capacity` (Contenance navale), même concept. */
-  chargement?: number;
-  /** Description (LDB) — reprise sur l'`ItemInstance` à l'achat/possession. */
-  desc?: string;
-  /** Facette ACHAT (marché / possession de carrière). `availability` absent pour les navires (MDG ne
-   *  donne pas de Disponibilité). */
-  purchase?: { price: Money; availability?: Availability };
-  /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `movement` = Déplacement du véhicule (km/h).
-   *  `medium` = milieu du TRAJET PAYÉ — INDÉPENDANT de `hull.propulsion` (un véhicule peut être
-   *  bi-milieu : la Barge navigue le fleuve, LDB 51 l.185/197, tout en figurant à la table navale MDG 12
-   *  avec `propulsion:'maritime'` — jamais l'un dérivé de l'autre) ; absent = terrestre implicite.
-   *  `draft` = ATTELAGE (bêtes qui tirent, réf `montures.json`) — requis pour l'allure forcée EDOC 07
-   *  l.229 (« pas de course ») ; `count` = nombre de bêtes (Tests de Résistance sur échec du conducteur). */
-  travel?: { movement: number; medium?: Propulsion; draft?: { montureId: string; count: number }; classes: VehicleTravelClass[] };
-  /** Facette COQUE (entité à PV). `char.endurance` = Endurance, `char.B` = Blessures. `bodyShape` = 'vehicule'.
-   *  `locationTable`/`criticalTable` = réfs de tables data-driven (branchées aux dalles fluvial/maritime). */
-  hull?: {
-    char: { endurance: number; B: number };
-    bodyShape: 'vehicule';
-    propulsion: Propulsion;
-    traits?: { id: string; value?: number; arg?: string }[];
-    locationTable?: string | null;
-    criticalTable?: string | null;
-  };
-  /** Facette NAVIRE (profil naval MDG 12) : caractéristiques de navigation/équipage du vaisseau.
-   *  `manoeuvre` = modificateur de DR (Man) ; `sail`/`oars` = Mouvement (M) + équipage minimum (É) ;
-   *  `lengthM` = Taille (longueur, m) ; `capacity` = Contenance ; `traits` = Traits de construction (réfs par id). */
-  ship?: {
-    crew: number;
-    manoeuvre: number;
-    lengthM: number;
-    /** EMPREINTE du navire sur la grille (côté N×N), AUTORÉE par navire (≈ sa longueur à l'échelle Mer : ~10 m → 1,
-     *  ~20 m → 2, ~30 m → 3, ~40 m+ → 4). Posée sur `c.footprint` par `vehicleCombatant`. DÉCOUPLÉE de la Taille
-     *  créature : un navire occupe ses cases (grille + rendu) sans être une créature (aucune Peur de Taille). */
-    footprint?: number;
-    capacity: number;
-    sail?: ProfilDeVoile;
-    oars?: ProfilDePropulsion;
-    traits: NavalTraitRef[];
-  };
-  /** Ponts d'un navire qu'on visite (#3686) : les cartes box-drawing de ses ponts, du plus bas au plus haut
-   *  (`MOTS_DES_PONTS`, `src/data/schemas/grammaire/carte-ascii.ts`), et la hauteur (m, depuis la flottaison) de
-   *  chaque glyphe de case (`defautsDesPonts`). */
-  ponts?: [cartes: string[], hauteurs: Record<string, number>];
-}
+export type VehicleData = EntreeDe<typeof vehiclesDef>;
 
 /**
  * Structure DESTRUCTIBLE de siège (ADE II 8 « Le théâtre de la guerre », table « Barricades et
@@ -255,56 +195,7 @@ export interface VehicleData {
  * via la langue UNIQUE `GameOp`/`woundsFromHit` (cf. `engine/structures.ts`). RAW dit lui-même que
  * Structure / Véhicule / Navire suivent le MÊME modèle Endurance/Blessures + table de Critiques (AA 10 l.13/116).
  */
-export interface StructureData {
-  /** id STABLE (slug) — clé d'instance/lookup. */
-  id: string;
-  type: 'structures';
-  label: string;
-  /** Catégorie physique (ADE II 8) : `porte` est seule visable par un Bélier (`ram`) ; `mur` couvre
-   *  murs/tours. Découplée des Atouts (une porte peut être Résistante OU Impénétrable). */
-  kind: 'porte' | 'mur';
-  /** Nature d'AUTHORING (posable sur une arête d'architecture), DÉCOUPLÉE de `kind` (mécanique RAW,
-   *  Bélier ne visant QUE les portes, cf. `structures-aa.test.ts`). `undefined` = découle de `kind`.
-   *  Redéfinit le choix quand il DIVERGE du `kind` mécanique verrouillé par le RAW — ex. Herse
-   *  (`kind:'mur'` mais se pose comme une FERMETURE de passage, #830). */
-  edgeKind?: 'porte' | 'mur';
-  /** `true` = véhicule (charrette, chariot, barge…) : partage la mécanique de PV « objet destructible »
-   *  (AA 10) mais N'EST PAS posable sur une arête — exclu de tout sélecteur de matériau de mur/porte (#830). */
-  vehicle?: boolean;
-  /** RENDU (pas règle) : `true` = fortification de siège (rempart de PIERRE crénelé + ferré, brèche =
-   *  gravats). `false`/absent = cloison ORDINAIRE (mur de maison texturé, sans créneaux). Découplé de
-   *  `kind` : une `porte` fortifiée = corps de garde à herse ; un `mur` fortifié = courtine. Route le
-   *  rendu du `WallSeg` porteur (`structureSeg`) — TOUJOURS destructible/brèchable. */
-  fortified?: boolean;
-  /** Profil à PV (calqué sur `VehicleData.hull.char`) — `BE` = Bonus d'Endurance (l'Endurance dérivée vaut
-   *  `BE × 10`, posée par `structureCombatant`) ; `B` = Blessures (PV de la structure). ADE II donne le BE
-   *  verbatim ; AA (« Tableau des Structures Courantes », AA 10 l.26-92) donne l'Endurance BRUTE — `BE`
-   *  se dérive alors par troncature à la dizaine (convention Bonus = dizaines de la Caractéristique). */
-  char: { BE: number; B: number };
-  /** Atouts de structure (Résistant / Impénétrable) — réfs NUES de Trait par id STABLE (JAMAIS le
-   *  libellé), forme de `ref('trait')` (`src/data/schemas/defs/structures.ts`). */
-  traits: { id: string }[];
-  /** ENC de la Structure transportée (AA 10 l.28-52) — `undefined` = N/A (Structure fixe, ne se transporte pas). */
-  enc?: number;
-  /** Limite d'Encombrement supportée par la Structure elle-même (AA 10 l.28-52) — `undefined` = N/A. */
-  encLimit?: number;
-  /** Pénalité de Couvert par défaut pour un assaillant qui tire sur une cible réfugiée sur/derrière la
-   *  Structure (AA 10 l.23, colonne l.28-51) — `undefined` = N/A (aucun couvert : Herse l.42 et Solide
-   *  porte en bois l.50 ; les 5 entrées ADE II, dont la table n'a pas cette colonne, ADE II 8 l.282-288). */
-  couvertPenalty?: CouvertDifficulty;
-  /** Laisse-t-elle VOIR à travers ? `undefined` = occultante ; seul `false` est écrivable, et il porte
-   *  son `maison` (LDB 14 l.86, LDB 85 l.329). Lu par le seul `areteOcculte` (`noyau/monde/scene.ts`). */
-  occulte?: false;
-  /** Catégorie de Taille de la Structure — entre dans le compte de son Bonus d'Endurance (`AA 10 l.98`).
-   *  Aucune table de source ne l'imprime : c'est une valeur MAISON par entrée, éditable au Codex, dont la
-   *  raison vit dans `maison`. */
-  taille: import('./size').SizeCategory;
-  /** Provenance RAW au FOLIO imprimé (ADE II 89 ; AA 119-120) — même forme que `SourceRef`. */
-  source: { book: string; page: number };
-  /** Raison MAISON — exigée par le schéma pour `taille` (toujours) et pour `occulte: false`. */
-  maison?: string;
-  desc?: string;
-}
+export type StructureData = EntreeDe<typeof structuresDef>;
 
 export interface SkillInstance {
   /** id STABLE de la Compétence (langue-indépendant) ; l'affichage résout en libellé via `skillInstanceLabel`. */
@@ -408,7 +299,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   subType?: string;
   /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` porte la catégorie de catalogue (« armes-de-siege »).
-   *  Résolu par `acceptableSpecs` (`weaponGroup ?? subType`) → Spé de tir du chef ET décompte d'équipage
+   *  Résolu par `acceptableSpecs` (`groupeDeLArme`) → Spé de tir du chef ET décompte d'équipage
    *  (servants à la bonne Projectiles, AA 10 l.230). Absent = `subType` EST le Groupe (armes normales). */
   weaponGroup?: string;
   /** Bloque la fusion des qualités de FAMILLE du Groupe (`resolveQualities`, `WeaponGroupData.qualities`)
@@ -1372,6 +1263,13 @@ export interface TerreurSubie {
   groupes: string[];
 }
 
+/** Une mention portée : sa nature, son libellé imprimé et son nombre. */
+export interface MentionDuPorteur {
+  nature: NatureDeMention;
+  label: string;
+  nombre: number;
+}
+
 export interface Combatant {
   id: string;
   /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
@@ -1641,6 +1539,8 @@ export interface Combatant {
    *  début de séance (`restoreFortune`, LDB 17 l.41). Persisté (party + writeback de combat). */
   resistanceUsed?: string[];
   motivation?: string;
+  /** Les mentions de ses dotations (`DotationDeMention`), posées par `doterLePorteur` ; absent si aucune. #4053 */
+  mentions?: MentionDuPorteur[];
   /** Signe astral (« Naissance sous les Étoiles », ADE II) — `id` STABLE du signe (≠ libellé —
    *  multilangue-safe) ; résolu à l'affichage par `findStarById`. */
   star?: string;

@@ -12,6 +12,9 @@ import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
 import { deDuVoyageRapide, resolveFastVoyage } from '../engine/seaVoyage';
 import { makeRNG } from '../engine/dice';
+import { deSelonLaPlage } from '../engine/dice.testkit';
+import { scatter } from '../engine/scatter';
+import { tirerLaReactionAuStatut, tirerLeCapricieux } from '../engine/social';
 
 type Entree = Record<string, unknown>;
 const traits = () => datasetArray('traits') as unknown as Entree[];
@@ -57,6 +60,36 @@ describe('enregistrerEntree — transaction d’une entrée éditée', () => {
     const issue = enregistrerEntree('traits', { ...avant[0], passive: [{ op: 'grantTalent', talent: {} }] }, 0);
     expect(issue).toEqual({ ok: false, erreurs: ['Accorder un Talent : Talent à choisir'] });
     expect(traits()[0]).toBe(avant[0]);
+  });
+});
+
+describe('enregistrerEntree — une référence morte d’un champ typé est refusée au parse, son catalogue nommé', () => {
+  afterEach(() => resetData());
+  /** L'issue d'une entrée `modifiee` de `categorie` à la position 0 ; le dataset reste celui d'avant. */
+  const refus = (categorie: string, modifiee: (e: Entree) => Entree): string => {
+    const ds = CATEGORY_DATASET_DERIVE[categorie] as DatasetKey;
+    const premiere = (datasetArray(ds) as unknown as Entree[])[0];
+    const issue = enregistrerEntree(categorie, modifiee(premiere), 0);
+    expect(issue.ok, categorie).toBe(false);
+    expect((datasetArray(ds) as unknown as Entree[])[0], categorie).toBe(premiere);
+    return issue.ok ? '' : issue.erreurs.join('\n');
+  };
+
+  it('un Trait inconnu d’une créature', () => {
+    expect(refus('creatures', (e) => ({ ...e, traits: [{ id: 'trait-fantome' }] }))).toMatch(/« trait-fantome » est absent du catalogue des traits/);
+  });
+
+  it('un LIBELLÉ écrit à la place de l’id d’une séquelle de Critique (#173)', () => {
+    expect(refus('criticalsTete', (e) => ({ ...e, traumas: ['Fracture'] }))).toMatch(/« Fracture » est absent du catalogue des séquelles/);
+  });
+
+  it('une dotation de POSSESSION `{ id, type }` d’un véhicule inconnu', () => {
+    const marchand = (datasetArray('careerLevels') as unknown as Entree[]).findIndex((e) => e.id === 'marchand-1');
+    const entree = (datasetArray('careerLevels') as unknown as Entree[])[marchand];
+    const trappings = (entree.trappings as Entree[]).map((t) => (t.type === 'vehicle' ? { ...t, id: 'vehicule-fantome' } : t));
+    const issue = enregistrerEntree('careerLevels', { ...entree, trappings }, marchand);
+    expect(issue.ok).toBe(false);
+    expect(issue.ok ? '' : issue.erreurs.join('\n')).toMatch(/« vehicule-fantome » est absent du catalogue des véhicules/);
   });
 });
 
@@ -136,5 +169,30 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe('Palier édité');
     expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, [{ ancetre: 'fastVoyage', champ: 'die', valeur: 'd20' }]).ok).toBe(true);
     expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
+  });
+
+  it('Dispersion : le dé édité est celui que tire le lecteur', () => {
+    const rangees = datasetArray('dispersion') as unknown as Entree[];
+    setDataset('dispersion', rangees.filter((r) => (r.max as number) <= 8) as never);
+    expect(enregistrerEntree('dispersion', rangees[0], 0, [{ ancetre: ancetreDuDe('dispersion')!, champ: 'die', valeur: 'd8' }]).ok).toBe(true);
+    const plages: number[] = [];
+    const de = deSelonLaPlage((_min, max) => { plages.push(max); return max; });
+    // Face 8 du d8 = (+1, +1) ; 2d10 = 20 m, demi-distance 20 m → 10 tuiles.
+    expect(scatter({ x: 0, y: 0 }, { x: 20, y: 20 }, de, 2)).toEqual({ x: 30, y: 30 });
+    expect(plages[0]).toBe(8);
+  });
+
+  it('Capricieux et Réaction au Statut : le dé édité est celui que tire le lecteur', () => {
+    const plages: number[] = [];
+    const de = deSelonLaPlage((_min, max) => { plages.push(max); return max; });
+    const capricieux = datasetArray('tableauCapricieux') as unknown as Entree[];
+    setDataset('tableauCapricieux', capricieux.filter((r) => (r.max as number) <= 3) as never);
+    expect(enregistrerEntree('tableauCapricieux', capricieux[0], 0, [{ ancetre: ancetreDuDe('tableauCapricieux')!, champ: 'die', valeur: 'd3' }]).ok).toBe(true);
+    expect(tirerLeCapricieux(de)).toEqual({ roll: 3, dr: -1 });
+    const reaction = datasetArray('reactionAuStatut') as unknown as Entree[];
+    setDataset('reactionAuStatut', reaction.filter((r) => (r.max as number) <= 2) as never);
+    expect(enregistrerEntree('reactionAuStatut', reaction[0], 0, [{ ancetre: ancetreDuDe('reactionAuStatut')!, champ: 'die', valeur: 'd2' }]).ok).toBe(true);
+    expect(tirerLaReactionAuStatut(de)).toBe('braver-le-statut');
+    expect(plages).toEqual([3, 2]);
   });
 });
