@@ -1,13 +1,15 @@
 /**
  * LE BRANCHEMENT DU JEU (#2889, D7) — ce qui ferme sur le propriétaire de l'état (le store web, la
- * partie) : le hook `onGainCondition` du moteur, la clôture de cascade et les tables du jeu. Un seul
- * propriétaire par contexte JS : une seconde pose sans retrait LÈVE.
+ * partie) : le hook `onGainCondition` du moteur, le nommeur du texte du moteur (#4017), la clôture de cascade et les
+ * tables du jeu. Un seul propriétaire par contexte JS : une seconde pose sans retrait LÈVE.
  *
  * Le moteur garde son contrat (`engine/conditions.ts`, « Absent ⇒ aucune réaction ») : c'est le noyau
  * qui garantit la pose, ici.
  */
 import type { Get, Set } from './flowTypes';
 import { setConditionGainedHook } from '../engine/conditions';
+import { poserLeNommeur } from '../engine/nom';
+import { nomEnVue } from './visionDuGroupe';
 import { setClotureDeCascade } from './cascade';
 import { dispatchCascadeDone } from './combatSlice';
 import { handleConditionGained } from './combat/triggeredTest';
@@ -21,6 +23,7 @@ export function brancherLeJeu(get: Get, set: Set, tables: TablesDuJeu): void {
   branche = { get, set };
   poserLesTables(tables);
   setConditionGainedHook((c, name) => handleConditionGained(get, set, c, name));
+  poserLeNommeur((id) => nomEnVue(get(), id));
   setClotureDeCascade((done) => dispatchCascadeDone(get, set, done));
 }
 
@@ -29,6 +32,7 @@ export function debrancherLeJeu(): void {
   branche = null;
   retirerLesTables();
   setConditionGainedHook(undefined);
+  poserLeNommeur(undefined);
   setClotureDeCascade(undefined);
 }
 
