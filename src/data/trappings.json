@@ -4013,7 +4013,7 @@
   {
     "id": "costume-de-cour",
     "type": "trappings",
-    "label": "Costume de cour",
+    "label": "Habit de cour",
     "categorie": "trapping",
     "subType": {
       "id": "vetements-et-accessoires"
@@ -4499,6 +4499,29 @@
       "book": "livre-de-base",
       "page": 86,
       "note": "LDB 08 l.2104"
+    }
+  },
+  {
+    "id": "couronne-de-triton",
+    "type": "trappings",
+    "label": "Couronne de Triton",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.307) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 149,
+      "note": "MDG 16 l.307"
     }
   },
   {
@@ -5714,7 +5737,7 @@
   {
     "id": "piege-a-animaux",
     "type": "trappings",
-    "label": "Piège à animaux",
+    "label": "Piège à animal",
     "categorie": "trapping",
     "subType": {
       "id": "outils-et-necessaires"
@@ -6364,6 +6387,32 @@
     }
   },
   {
+    "id": "cartouchiere",
+    "type": "trappings",
+    "label": "Cartouchière",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": "commune",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 0,
+      "silver": 6,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 88,
+      "note": "AA 08 l.30"
+    }
+  },
+  {
     "id": "meche",
     "type": "trappings",
     "label": "Mèche",
@@ -6410,6 +6459,75 @@
       "book": "livre-de-base",
       "page": 56,
       "note": "LDB 08 l.384"
+    }
+  },
+  {
+    "id": "cadran-lunaire",
+    "type": "trappings",
+    "label": "Cadran lunaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 16 l.364) : Encombrement posé sur le repère Télescope, Enc 0 (LDB 67 l.61).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 151,
+      "note": "MDG 16 l.364"
+    }
+  },
+  {
+    "id": "sable-a-secher-l-encre",
+    "type": "trappings",
+    "label": "Sable à sécher l'encre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 15 l.157) : Encombrement posé sur le repère Plume d'oie, Enc 0 (LDB 67 l.56).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 213,
+      "note": "VDM 15 l.157"
+    }
+  },
+  {
+    "id": "trousse-de-toilette",
+    "type": "trappings",
+    "label": "Trousse de toilette",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ZI 14 l.126) : Encombrement posé sur le repère Nécessaire de déguisement, Enc 0 (LDB 67 l.44).",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 122,
+      "note": "ZI 14 l.126"
     }
   },
   {
@@ -6748,31 +6866,6 @@
     },
     "shape": {
       "id": "parchemin"
-    }
-  },
-  {
-    "id": "feuille-de-parchemin",
-    "type": "trappings",
-    "label": "Feuille de parchemin",
-    "categorie": "trapping",
-    "subType": {
-      "id": "livres-et-documents"
-    },
-    "enc": 0,
-    "availability": "commune",
-    "reach": null,
-    "loc": null,
-    "pa": null,
-    "damage": null,
-    "qualities": [],
-    "price": {
-      "gold": 0,
-      "silver": 1,
-      "brass": 0
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 304
     }
   },
   {
@@ -10707,6 +10800,29 @@
       "book": "archives-de-l-empire-1",
       "page": 90,
       "note": "ADE I 07 l.172-174"
+    }
+  },
+  {
+    "id": "gamelles",
+    "type": "trappings",
+    "label": "Gamelles",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (EDOC 16 l.481) : Encombrement posé sur le repère Casserole, Enc 1 (LDB 74 l.19).",
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 113,
+      "note": "EDOC 16 l.481"
     }
   },
   {
