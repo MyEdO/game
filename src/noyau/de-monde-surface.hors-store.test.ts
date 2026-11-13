@@ -952,7 +952,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(a) MER — même règle pour l’Événement de bord : tiré sans arrêt, raconté à la clôture du jour (#3534)', () => {
     ouvreJourMaritime(4);
     expect(draineJour(false), 'aucune table ne retient la journée').toBeUndefined();
-    // Le jour CLOS déplace ses events dans sa carte de récap (`sea.events` repart à vide).
+    // Le jour CLOS déplace ses events dans sa carte de récap (`travelPlan.evenements` se vide).
     expect(get().travelPlan!.log![0].events, 'l’événement de bord a été raconté').toHaveLength(1);
   });
 
