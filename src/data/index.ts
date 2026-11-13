@@ -1024,7 +1024,7 @@ export interface ItemCapabilities {
   weatherProtection?: boolean;
   /** Abri de campement (Tente, LDB 74 l.39) — annule/atténue l'Exposition d'une nuit dehors (NON gaté). */
   isShelter?: boolean;
-  /** Ration de voyage (« Ration (1 jour) », LDB 66 l.20) — consommée par l'entretien de Faim (NON gaté). */
+  /** Ration de voyage (LDB 66 l.20) — consommée par l'entretien de Faim (NON gaté). */
   isRations?: boolean;
   /** Grimoire / livre de Sorts (LDB 47 l.21) — un Sort non mémorisé du Domaine peut y être lu (NON gaté). */
   isGrimoire?: boolean;
@@ -1212,7 +1212,7 @@ export interface TrappingData {
   /** Capacités IRRÉDUCTIBLES de l'objet (drapeaux NON exprimables en GameOp) — canal `capabilities`,
    *  MÊME logique que `TraitCapabilities`/`QualityCapabilities` : règles que le moteur INTERROGE par id
    *  (`engine/capabilities`), jamais par le nom FR de l'objet. Couvre les 5 marqueurs de catégorie :
-   *  `weatherProtection` (Cape/Manteau), `isShelter` (Tente), `isRations` (Ration), `isGrimoire`
+   *  `weatherProtection` (Cape/Manteau), `isShelter` (Tente), `isRations` (Vivres), `isGrimoire`
    *  (Grimoire), `preventForcedDrop` (Gantelet verrouillé). Édité au Compendium. */
   capabilities?: ItemCapabilities;
   /** Modificateurs PASSIFS continus de l'objet (OpPassive[], MÊME vocabulaire que traits/qualités/sorts) —
