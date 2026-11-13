@@ -521,7 +521,7 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     const carte = presser(boutonDe(e, 'document/carte'));
     const ids = (x: Edition) => x.vue.zones['editeur.inspecteur'].map((el) => el.id);
     expect([boutonDe(carte, 'document/carte').presse, boutonDe(carte, 'annuler').refus !== null]).toEqual([true, true]);
-    expect(ids(carte).filter((id) => /^valeur\/[^/]+(\/ajouter)?$/.test(id))).toEqual(['valeur/label', 'valeur/background', 'valeur/params/ajouter']);
+    expect(ids(carte).filter((id) => /^valeur\/[^/]+(\/ajouter)?$/.test(id))).toEqual(['valeur/label', 'valeur/background', 'valeur/params/ajouter', 'valeur/activeAxes/ajouter']);
     const scene = presser(boutonDe(carte, 'document/scene'));
     expect([boutonDe(scene, 'document/scene').presse, ids(scene)]).toEqual([true, ids(e)]);
   });
@@ -582,6 +582,47 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(sans.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => id.endsWith('/supprimer') || id.endsWith('/retirer'))).toEqual(['carte/retirer']);
     const retiree = presser(boutonDe(sans, 'carte/retirer'));
     expect([boutonDe(retiree, 'document/scene').presse, retiree.vue.zones['editeur.carte']]).toEqual([true, []]);
+  });
+
+  it('« Plan du lieu » montre au plan les points d’intérêt du lieu, aux outils du plan : Épingler en pose un au point, le glissé le déplace, « Retirer le point d’intérêt » l’ôte ; le refermer rend la carte', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const pointer = (geste: 'appui' | 'glisse' | 'relache', u: number, v: number) => editionDe(appel('editer', surLePlan(geste, u, v)));
+    const carte = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'document/carte'));
+    const lieu = planDe(carte).points[0].id;
+    const choisi = presser(boutonDe(carte, `logique/lieu/${lieu}`));
+    expect([boutonDe(choisi, 'lieu/plan').presse, choisi.vue.zones['editeur.inspecteur'].some((el) => el.id === 'lieu/poi/retirer')]).toEqual([false, false]);
+    const ouvert = presser(boutonDe(choisi, 'lieu/plan'));
+    expect([planDe(ouvert).id, boutonDe(ouvert, 'lieu/plan').presse, boutonDe(ouvert, 'lieu/poi/retirer').refus !== null]).toEqual(['lieu/plan', true, true]);
+    expect((ouvert.vue.zones['editeur.outils'][0] as Choix).valeurs.map((b) => [b.id, b.presse])).toEqual([['outil/select', true], ['outil/epingler', false]]);
+    const avant = planDe(ouvert).points.length;
+    presser(boutonDe(ouvert, 'outil/epingler'));
+    const pose = pointer('appui', 0.3, 0.4);
+    const neuf = planDe(pose).points.find((p) => p.ton === 'alerte')!;
+    expect([planDe(pose).points.length, neuf.x, neuf.y, boutonDe(pose, 'lieu/poi/retirer').refus]).toEqual([avant + 1, 0.3, 0.4, null]);
+    pointer('relache', 0.3, 0.4);
+    presser(boutonDe(pose, 'outil/select'));
+    pointer('appui', 0.3, 0.4);
+    pointer('glisse', 0.55, 0.6);
+    const glisse = pointer('relache', 0.55, 0.6);
+    expect(planDe(glisse).points.find((p) => p.id === neuf.id)).toEqual({ ...neuf, x: 0.55, y: 0.6 });
+    const retire = presser(boutonDe(glisse, 'lieu/poi/retirer'));
+    expect(planDe(retire).points.map((p) => p.id)).toEqual(planDe(ouvert).points.map((p) => p.id));
+    const ferme = presser(boutonDe(retire, 'lieu/plan'));
+    expect([planDe(ferme).id, boutonDe(ferme, 'lieu/plan').presse]).toEqual(['carte/plan', false]);
+  });
+
+  it('sur la carte sans sélection, les axes actifs du projet s’ajoutent parmi ceux du catalogue, et se retirent', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const carte = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'document/carte'));
+    const offerts = valeursDeLInspecteur(carte, 'valeur/activeAxes/ajouter');
+    expect(offerts.map((b) => b.libelle)).toContain('Mêlée');
+    const ajoute = presser(offerts.find((b) => b.libelle === 'Mêlée')!);
+    const retirer = ajoute.vue.zones['editeur.inspecteur'].flatMap((el) => (el.type === 'bouton' && el.id.startsWith('valeur/activeAxes/') && el.id.endsWith('/retirer') ? [el] : []));
+    expect(retirer).toHaveLength(1);
+    const retire = presser(retirer[0]);
+    expect(valeursDeLInspecteur(retire, 'valeur/activeAxes/ajouter').map((b) => b.libelle)).toEqual(offerts.map((b) => b.libelle));
   });
 });
 

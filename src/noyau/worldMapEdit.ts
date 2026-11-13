@@ -7,7 +7,7 @@
 import { semencesDeScene } from '../data';
 import type { TravelMode } from '../engine/travel';
 import type { LandMarketProfile } from '../engine/landCargo';
-import type { MapPlace, MapRoute, MapRouteTrace, Praticabilite, RoutePeril, WorldMap } from './worldMap';
+import type { MapPlace, MapRoute, MapRouteTrace, PlacePoi, Praticabilite, RoutePeril, WorldMap } from './worldMap';
 
 type Pos = MapPlace['pos'];
 
@@ -60,6 +60,36 @@ export function majRoute(map: WorldMap, id: string, patch: PatchDeRoute): WorldM
   const modes = 'modes' in p ? p.modes : undefined;
   if (route && modes && Object.keys(route.billets ?? {}).some((mode) => !modes.includes(mode as TravelMode))) return map;
   return { ...map, routes: map.routes.map((r) => (r.id === id ? ({ ...r, ...p } as MapRoute) : r)) };
+}
+
+/** Bornes d'une position de point d'intérêt (`PlacePoi.pos`), en % du plan de son lieu. */
+export const BORNES_DU_PLAN_DE_LIEU = { x: { min: 0, max: 100 }, y: { min: 0, max: 100 } } as const;
+
+/** Les points d'intérêt du lieu `lieu` de la carte `map` devenus `f(poi)`, une liste vidée retirée ; refusé pour un lieu
+ *  inconnu. */
+function surLesPoints(map: WorldMap, lieu: string, f: (poi: readonly PlacePoi[]) => PlacePoi[]): WorldMap {
+  const place = map.places.find((p) => p.id === lieu);
+  if (!place) return map;
+  const poi = f(place.poi ?? []);
+  return majLieu(map, lieu, { poi: poi.length ? poi : undefined });
+}
+
+/** Pose le point d'intérêt `poi` au plan du lieu `lieu`, sa position plafonnée aux bornes du plan
+ *  (`BORNES_DU_PLAN_DE_LIEU`). Refusé pour un id qu'un point de la carte porte déjà. */
+export function ajouterPoi(map: WorldMap, lieu: string, poi: PlacePoi): WorldMap {
+  if (map.places.some((p) => p.poi?.some((x) => x.id === poi.id))) return map;
+  return surLesPoints(map, lieu, (liste) => [...liste, { ...poi, pos: { x: borne(poi.pos.x, BORNES_DU_PLAN_DE_LIEU.x), y: borne(poi.pos.y, BORNES_DU_PLAN_DE_LIEU.y) } }]);
+}
+
+/** Pose le point d'intérêt `id` du lieu `lieu` à `pos`, plafonnée aux bornes du plan (`BORNES_DU_PLAN_DE_LIEU`). */
+export function deplacerPoi(map: WorldMap, lieu: string, id: string, pos: Pos): WorldMap {
+  const ici = { x: borne(pos.x, BORNES_DU_PLAN_DE_LIEU.x), y: borne(pos.y, BORNES_DU_PLAN_DE_LIEU.y) };
+  return surLesPoints(map, lieu, (liste) => liste.map((x) => (x.id === id ? { ...x, pos: ici } : x)));
+}
+
+/** Retire le point d'intérêt `id` du lieu `lieu`. */
+export function retirerPoi(map: WorldMap, lieu: string, id: string): WorldMap {
+  return surLesPoints(map, lieu, (liste) => liste.filter((x) => x.id !== id));
 }
 
 /** Coche ou décoche `mode` sur la route `id`. */

@@ -1362,7 +1362,8 @@ export function creerPont(stockage: Stockage | null) {
      * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
      * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas ; la carte ouverte, le
      * pointeur la sélectionne, glisse un lieu, en pose un à l'outil Lieu et tire une route à l'outil Chemin, et les zones
-     * propres à la scène se vident
+     * propres à la scène se vident ; le plan d'un lieu ouvert (`lieu/plan`), le pointeur y désigne, glisse et épingle
+     * ses points d'intérêt au point du cadre de ce plan, aux mêmes unités
      */
     editer(json) {
       const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));

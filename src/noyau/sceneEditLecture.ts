@@ -25,7 +25,7 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, estUnNavireAPonts, findCreatureById, findTrappingById, profilsStandard, refEstVolumique, siegeEngines, spells, trappingsInstanciables, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { creatures, estUnNavireAPonts, navalPorts, findCreatureById, findTrappingById, profilsStandard, refEstVolumique, siegeEngines, spells, trappingsInstanciables, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
@@ -33,7 +33,7 @@ import { objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './mon
 import { entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
 import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
-import { emptyWorldMap, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
+import { emptyWorldMap, resolvePortRef, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
 import type { Warning } from './validateScene';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
@@ -434,7 +434,7 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 export type EntityTool = Extract<Tool, { mode: 'entite' }>;
 
 /** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
-export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene; lieu: MapPlace; route: MapRoute; carte: WorldMap }
+export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene; lieu: MapPlace; route: MapRoute; carte: WorldMap; projet: ReglagesDuProjet }
 
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
@@ -450,8 +450,12 @@ export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes
 /** Le projet édité : le document que tient un cran de l'historique de l'éditeur. */
 export type ProjetDEdition = Omit<ProjectDoc, 'schema'>;
 
+/** Les réglages du projet édité que porte le projet lui-même, hors de ses scènes, de sa carte et de son narratif : ses
+ *  axes actifs (#409), sous son identifiant. */
+export type ReglagesDuProjet = Pick<ProjetDEdition, 'id' | 'activeAxes'>;
+
 /** Le type de chaque document du projet édité où vit un porteur. */
-interface TypesDesDocuments { scene: Scene; carte: NonNullable<ProjectDoc['worldMap']>; narratif: ProjectDoc['narratif'] }
+interface TypesDesDocuments { scene: Scene; carte: NonNullable<ProjectDoc['worldMap']>; narratif: ProjectDoc['narratif']; projet: ReglagesDuProjet }
 
 /** La sorte d'un document du projet édité. */
 export type SorteDeDocument = keyof TypesDesDocuments;
@@ -468,7 +472,8 @@ export interface DocumentDuProjet<T> {
 }
 
 /** Les documents du projet édité : la scène montrée, sous son identifiant, la carte du monde et le narratif, chacun seul
- *  de sa sorte au projet, sous elle. La carte absente du projet en reçoit une vide (`emptyWorldMap`), sous un identifiant
+ *  de sa sorte au projet, sous elle, et ses réglages (`ReglagesDuProjet`), sous `projet`, lus et écrits au projet, sous
+ *  son schéma : ses axes actifs absents valent le socle (`resolveActiveAxes`). La carte absente du projet en reçoit une vide (`emptyWorldMap`), sous un identifiant
  *  qu'aucune de ses scènes ne porte : la validation range ses avertissements sous lui (`Warning.sceneId`). #3606 */
 export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<TypesDesDocuments[K]> } = {
   scene: {
@@ -485,6 +490,12 @@ export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<Type
     neuf: (projet) => emptyWorldMap(nextEntityId('carte', projet.scenes.map((sc) => sc.id))),
   },
   narratif: { id: () => 'narratif', lire: (projet) => projet.narratif, ecrire: (projet, _sceneId, narratif) => ({ ...projet, narratif }), schema: narratifSchema },
+  projet: {
+    id: () => 'projet',
+    lire: ({ id, activeAxes }) => (activeAxes === undefined ? { id } : { id, activeAxes }),
+    ecrire: ({ activeAxes: _avant, ...projet }, _sceneId, { activeAxes }) => (activeAxes === undefined ? projet : { ...projet, activeAxes }),
+    schema: projetSchema,
+  },
 };
 
 /** La clé du type `T` dont la collection, présente ou non, a pour élément exactement `D`. */
@@ -750,15 +761,21 @@ const PROFILS_NEUFS_DU_LIEU = {
   market: { neuf: marcheNeuf, libelle: 'ecran.editeur.lieu.marcheNeuf' },
 } as const;
 
+/** Les ports du catalogue qu'un lieu reçoit à son port absent : chaque port de l'Index (`navalPorts`), son profil
+ *  entier tiré du catalogue (`resolvePortRef`). MDG 15 */
+const portsDuCatalogue = (): readonly ChoixDuContexte[] =>
+  navalPorts.map((p) => ({ valeur: resolvePortRef({ ref: p.id }), libelle: `${p.label} (${p.region})`, refus: null }));
+
 /** Les choix que le contexte du lieu `lieu` pose au chemin `chemin` de sa donnée : à son point d'entrée, ceux de sa
- *  scène (`entreesDeLaScene`) ; à son port ou à son marché absent, son profil neuf (`PROFILS_NEUFS_DU_LIEU`). #3606 */
+ *  scène (`entreesDeLaScene`) ; à son port ou à son marché absent, son profil neuf (`PROFILS_NEUFS_DU_LIEU`), et, au
+ *  port, chaque port du catalogue (`portsDuCatalogue`). #3606 */
 function choixDuLieu(lieu: MapPlace, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const [cle, ...reste] = chemin;
   if (reste.length) return undefined;
   if (cle === 'entry') return entreesDeLaScene(lieu.scene.id, cadre);
   if ((cle !== 'port' && cle !== 'market') || lieu[cle] !== undefined) return undefined;
   const { neuf, libelle } = PROFILS_NEUFS_DU_LIEU[cle];
-  return [{ valeur: neuf(), libelle: t(libelle), refus: null }];
+  return [{ valeur: neuf(), libelle: t(libelle), refus: null }, ...(cle === 'port' ? portsDuCatalogue() : [])];
 }
 
 /** Les choix que le contexte de la route `route` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière
@@ -794,7 +811,8 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`) ;
  *  de la scène, porteur singulier de son document, son message de départ ; d'un lieu, ses champs (`champsDuLieu`), aux
  *  choix de son contexte (`choixDuLieu`) ; d'une route, les siens (`CHAMPS_DE_LA_ROUTE`), aux choix de son contexte
- *  (`choixDeLaRoute`) ; de la carte, porteur singulier de son document, son libellé, son fond et ses réglages. Chacun
+ *  (`choixDeLaRoute`) ; de la carte, porteur singulier de son document, son libellé, son fond et ses réglages ; de ses
+ *  réglages, porteur singulier de leur document, ses axes actifs. Chacun
  *  déclare la portée des avertissements qui le désignent ; ceux de la carte, la portée `worldMap`. */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { acces: { document: 'scene', collection: 'effectZones' }, sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
@@ -813,6 +831,7 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   lieu: { acces: { document: 'carte', collection: 'places' }, sel: 'place', schema: mapPlaceSchema, portee: 'worldMap', logique: true, champs: champsDuLieu, choix: choixDuLieu },
   route: { acces: { document: 'carte', collection: 'routes' }, sel: 'route', schema: mapRouteSchema, portee: 'worldMap', logique: true, champs: () => CHAMPS_DE_LA_ROUTE, choix: choixDeLaRoute },
   carte: { acces: { document: 'carte' }, schema: worldMapSchema, portee: 'worldMap', champs: () => [['label'], ['background'], ['params']] },
+  projet: { acces: { document: 'projet' }, schema: projetSchema, champs: () => [['activeAxes']] },
 };
 
 /** Le porteur de formulaire que la sélection `sel` désigne, le document `document` ouvert où la scène d'identifiant

@@ -13,8 +13,8 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import type { MapPlace, MapRoute, WorldMap } from './worldMap';
-import { ajouterLieu, BORNES_DE_CARTE, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, type PatchDeCarte, type PatchDeRoute } from './worldMapEdit';
+import type { MapPlace, MapRoute, PlacePoi, WorldMap } from './worldMap';
+import { ajouterLieu, ajouterPoi, BORNES_DE_CARTE, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, type PatchDeCarte, type PatchDeRoute } from './worldMapEdit';
 import { t as tr } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
 import { findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
@@ -1400,6 +1400,16 @@ export function lieuNeuf(carte: WorldMap, pos: MapPlace['pos'], scenes: readonly
   return { carte: ajouterLieu(carte, id, pos, scenes), id };
 }
 
+/** La carte `carte` où un point d'intérêt neuf est posé au plan du lieu `lieu`, à `pos` (`ajouterPoi`, borné), sous un
+ *  identifiant qu'aucun point de la carte ne porte (`nextEntityId`), menant à la première des scènes `scenes`, dont il
+ *  prend le nom ; `undefined` pour un lieu inconnu. #3606 */
+export function poiNeuf(carte: WorldMap, lieu: string, pos: PlacePoi['pos'], scenes: readonly Pick<Scene, 'id' | 'label'>[]): { carte: WorldMap; id: string } | undefined {
+  const id = nextEntityId('poi', carte.places.flatMap((p) => (p.poi ?? []).map((x) => x.id)));
+  const [scene] = scenes;
+  const posee = ajouterPoi(carte, lieu, { id, label: scene.label, pos, sceneId: { id: scene.id } });
+  return posee === carte ? undefined : { carte: posee, id };
+}
+
 /** Le centre des bornes de la carte (`BORNES_DE_CARTE`). */
 const CENTRE_DE_CARTE = { x: (BORNES_DE_CARTE.x.min + BORNES_DE_CARTE.x.max) / 2, y: (BORNES_DE_CARTE.y.min + BORNES_DE_CARTE.y.max) / 2 };
 
@@ -1446,7 +1456,8 @@ function routeCreee(projet: ProjetDEdition, _sceneId: string, depuis: Sel, avec?
  *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`) ; d'une route,
  *  son écriture (`routeEcrite`), sa création depuis le lieu
  *  sélectionné vers l'un de ceux qu'il rejoint (`routeCreee`, `lieuxAJoindre`) et son retrait (`supprimerRoute`) ; de la
- *  carte, son écriture (`majCarte`) et son retrait du projet, qui n'offre plus de voyage. Les écrivains de la scène y sont relevés au projet (`deLaScene`). */
+ *  carte, son écriture (`majCarte`) et son retrait du projet, qui n'offre plus de voyage ; des réglages du projet, leur
+ *  remplacement (`remplace`). Les écrivains de la scène y sont relevés au projet (`deLaScene`). */
 export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { ecrire: remplace('zone') },
   declencheur: { ...deLaScene({ renommer: renameTrigger, retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }) }), ecrire: remplace('declencheur') },
@@ -1477,6 +1488,7 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
       return sans;
     },
   },
+  projet: { ecrire: remplace('projet') },
 };
 
 /** Le projet `projet`, où la scène `sceneId` est montrée, sans le porteur `porteur`, retiré par la table de sa sorte

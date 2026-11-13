@@ -27,7 +27,7 @@ import {
   findSpellById, listesDeSorts, sortsImprimes,
   aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
   PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition,
-  OUTILS_DE_LA_CARTE, UNITES_DU_PLAN_DE_CARTE, orienterRoute, type OutilDeLaCarte, type PlanDeLaCarte, type SorteDeDocument,
+  OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, orienterRoute, planDuLieuOuvert, type OutilDeLaCarte, type OutilDuPlanDuLieu, type PlanDeLaCarte, type SorteDeDocument,
 } from '../noyau/index';
 import { pluriel, t, type MsgKey } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -144,7 +144,10 @@ export interface ZonesDeLEditeur {
    * son plan (`OUTILS_DE_LA_CARTE`) : `outil/select`, l'appui sur un lieu le sélectionne et son glissé le déplace
    * (`majLieu`, borné, un cran pour le glissé), sur une route la sélectionne ; `outil/lieu`, l'appui sur le fond pose
    * un lieu neuf au point (`ajouterLieu`), sélectionné ; `outil/chemin`, l'appui sur un lieu tire une route que le
-   * relâché sur un autre lieu pose (`lierLieux`), sélectionnée
+   * relâché sur un autre lieu pose (`lierLieux`), sélectionnée. Le plan d'un lieu ouvert (`lieu/plan` de l'inspecteur),
+   * ceux de ce plan (`OUTILS_DU_PLAN_DU_LIEU`) : `outil/select`, l'appui sur un point d'intérêt le désigne et son glissé
+   * le déplace (`deplacerPoi`, borné, un cran pour le glissé) ; `outil/epingler`, l'appui sur le fond pose un point
+   * d'intérêt neuf au point (`poiNeuf`), menant à la première scène du projet dont il prend le nom, désigné
    */
   'editeur.outils': Choix[];
   /**
@@ -345,9 +348,13 @@ export interface ZonesDeLEditeur {
    * comme un dialogue, ou tant qu'une embuscade de route la lance, la route dite (`removeEncounter`, `embuscadesDeLaRencontre`).
    *
    * La carte du monde ouverte, sans sélection : le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
-   * id }`), puis `carte/retirer`, « Retirer du projet », `{ geste: 'supprimer' }`, qui retire la carte du projet sur un
-   * cran et rouvre la scène. D'un lieu : son formulaire tiré du schéma, sa position exceptée, qui se glisse au plan ; le
-   * supprimer, ses routes avec lui. D'une route : son sens, `route/sens/deux` ou `route/sens/<lieu>`, le courant pressé,
+   * id }`), puis celui des réglages du projet (`{ sorte: 'projet', id: 'projet' }`), ses axes actifs parmi ceux du
+   * catalogue, absents valant le socle, puis `carte/retirer`, « Retirer du projet », `{ geste: 'supprimer' }`, qui retire
+   * la carte du projet sur un cran et rouvre la scène. D'un lieu : `lieu/plan`, « Plan du lieu », pressé quand son plan
+   * est ouvert, qui l'ouvre ou le ferme (`{ geste: 'planDuLieu', lieu }`, `lieu` nul pour le fermer) ; son plan ouvert,
+   * `lieu/poi/retirer`, « Retirer le point d'intérêt » désigné au plan, refusé sans lui (`{ geste: 'retirerPoi' }`) ;
+   * son formulaire tiré du schéma, sa position et la position de ses points d'intérêt exceptées, qui se glissent au
+   * plan ; le supprimer, ses routes avec lui. D'une route : son sens, `route/sens/deux` ou `route/sens/<lieu>`, le courant pressé,
    * chacun refusé quand une autre route de la paire l'offre déjà, `{ geste: 'sens', depuis }` (`depuis` nul : les deux
    * sens, `orienterRoute`) ; son formulaire tiré du schéma ; la supprimer.
    *
@@ -463,7 +470,10 @@ export interface ZonesDeLEditeur {
    * se tire à l'outil Chemin, le point `brouillon/route`, sans nom, au bout du pointeur et le trait `brouillon/route`
    * qui l'y mène depuis son lieu de départ, en `reussite`. Les gestes du pointeur sur ce plan
    * (`{ geste: appui | glisse | relache, point }`) portent `point.f`, le point du cadre multiplié par
-   * `UNITES_DU_PLAN_DE_CARTE`, et `point.case`, sa partie entière (`PointDeCarte`) ; vide sur un autre document
+   * `UNITES_DU_PLAN_DE_CARTE`, et `point.case`, sa partie entière (`PointDeCarte`) ; vide sur un autre document.
+   * Le plan d'un lieu ouvert (`{ geste: 'planDuLieu', lieu }`) le remplace et reçoit le pointeur, aux mêmes unités :
+   * `lieu/plan`, un `Plan` sans trait dont chaque point est un point d'intérêt du lieu à sa position (`PlacePoi.pos` ÷
+   * `UNITES_DU_PLAN_DE_CARTE`), le désigné en `alerte`
    */
   'editeur.carte': Plan[];
 }
@@ -550,7 +560,7 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
  *  aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
-  if (outil.mode === 'selection' || outil.mode === 'gomme' || outil.mode === 'entree' || outil.mode === 'lieu' || outil.mode === 'chemin' || (outil.mode === 'entite' && outil.kind === 'heroStart')) return [];
+  if (outil.mode === 'selection' || outil.mode === 'gomme' || outil.mode === 'entree' || outil.mode === 'lieu' || outil.mode === 'chemin' || outil.mode === 'epingler' || (outil.mode === 'entite' && outil.kind === 'heroStart')) return [];
   if (outil.mode === 'escalier') return optionsDeLaVolee(s, outil.toZ);
   if (outil.mode === 'zone') {
     return [choix('zones', t('ecran.editeur.zones'),
@@ -1698,14 +1708,27 @@ function sensDeLaRoute(s: SessionDEdition, route: DonneeDuPorteur['route']): Cho
   return [choix('route/sens', t('ecran.editeur.route.sens'), sens)];
 }
 
+/** Les éléments propres du lieu `lieu` de la session `s` : « Plan du lieu », pressé quand son plan est ouvert, qui
+ *  l'ouvre ou le ferme (`{ geste: 'planDuLieu', lieu }`) ; son plan ouvert, « Retirer le point d'intérêt » désigné,
+ *  refusé sans lui (`{ geste: 'retirerPoi' }`). #3606 */
+function planDuLieuEnInspecteur(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): Bouton[] {
+  const plan = planDuLieuOuvert(s);
+  const ouvert = plan?.lieu.id === lieu.id;
+  return [
+    bouton('lieu/plan', t('ecran.editeur.lieu.plan'), { geste: 'planDuLieu', lieu: ouvert ? null : lieu.id }, ouvert),
+    ...(ouvert ? [bouton('lieu/poi/retirer', t('ecran.editeur.lieu.poi.retirer'), { geste: 'retirerPoi' }, false, plan.poi ? null : t('ecran.editeur.lieu.poi.aucun'))] : []),
+  ];
+}
+
 /** Les éléments propres de l'inspecteur d'un porteur qui se liste à la zone Logique (`FORMULAIRES`, `logique`), par
  *  sorte : les nœuds d'un dialogue (`noeudsDuDialogue`), les membres d'une rencontre (`membresDeLaRencontre`), le sens
- *  d'une route (`sensDeLaRoute`) ; sans
+ *  d'une route (`sensDeLaRoute`), le plan d'un lieu (`planDuLieuEnInspecteur`) ; sans
  *  entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme elle (`inspecteurDeZone`). */
 const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[] } = {
   dialogue: noeudsDuDialogue,
   rencontre: membresDeLaRencontre,
   route: sensDeLaRoute,
+  lieu: planDuLieuEnInspecteur,
 };
 
 /** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique
@@ -1715,9 +1738,23 @@ function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sor
   return inspecteurDuPorteur(s, sorte, { sorte, id: donnee.id }, propres?.(s, donnee) ?? []);
 }
 
-/** L'inspecteur du porteur singulier d'un document qui en a un propre, par sorte : de la scène, `inspecteurDeScene`. */
+/** Les documents dont l'inspecteur de la carte du monde, sans sélection, montre le porteur singulier : la carte, puis le
+ *  projet (ses axes actifs), que l'éditeur règle sur l'écran de la carte (#409). */
+const DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE = ['carte', 'projet'] as const;
+
+/** L'inspecteur de la carte du monde ouverte de la session `s`, sans sélection : le formulaire tiré du schéma du porteur
+ *  singulier de chacun de ses documents (`DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE`, `porteurDeLaSel`). */
+const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] =>
+  DOCUMENTS_DE_L_INSPECTEUR_DE_LA_CARTE.flatMap((document) => {
+    const porteur = porteurDeLaSel(null, document, idDeLaSceneEditee(s))!;
+    return formulaireDuPorteur(s, porteur, porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee);
+  });
+
+/** L'inspecteur du porteur singulier d'un document qui en a un propre, par sorte : de la scène, `inspecteurDeScene` ;
+ *  de la carte du monde, `inspecteurDeLaCarte`. */
 const INSPECTEURS_DES_SINGULIERS: { readonly [S in SorteDePorteur]?: (s: SessionDEdition) => (Choix | Ligne | Bouton | Formulaire)[] } = {
   scene: inspecteurDeScene,
+  carte: inspecteurDeLaCarte,
 };
 
 /** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, d'un
@@ -2033,8 +2070,9 @@ function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
   };
 }
 
-/** Les libellés des outils de la carte du monde (`OUTILS_DE_LA_CARTE`), sous `ecran.editeur.outil.`. */
-const LIBELLES_DES_OUTILS_DE_LA_CARTE: { readonly [O in OutilDeLaCarte]: string } = { selection: 'select', lieu: 'lieu', chemin: 'chemin' };
+/** Les libellés des outils de la carte du monde (`OUTILS_DE_LA_CARTE`) et du plan d'un lieu (`OUTILS_DU_PLAN_DU_LIEU`),
+ *  sous `ecran.editeur.outil.`. */
+const LIBELLES_DES_OUTILS_DE_LA_CARTE: { readonly [O in OutilDeLaCarte | OutilDuPlanDuLieu]: string } = { selection: 'select', lieu: 'lieu', chemin: 'chemin', epingler: 'epingler' };
 
 /** Le brouillon de la route tirée sur le plan de la carte : l'id de son bout et de son trait. */
 const BROUILLON_DE_ROUTE = 'brouillon/route';
@@ -2059,24 +2097,34 @@ function planDeLEdition(s: SessionDEdition): PlanDeLaCarte {
   };
 }
 
-/** Les zones propres à la carte du monde ouverte de la session `s` : son nom, ses outils (`OUTILS_DE_LA_CARTE`), l'actif
- *  pressé, et son plan (`planDeLEdition`, `planDeLaCarte`). */
+/** Le plan du lieu ouvert `plan` (`planDuLieuOuvert`) en élément `lieu/plan` : chaque point d'intérêt du lieu à sa
+ *  position dans le cadre (`PlacePoi.pos` ÷ `UNITES_DU_PLAN_DE_CARTE`), le désigné en `alerte`. */
+const planDuLieu = ({ lieu, poi }: NonNullable<ReturnType<typeof planDuLieuOuvert>>): Plan => ({
+  type: 'plan', id: 'lieu/plan', traits: [],
+  points: (lieu.poi ?? []).map((p) => ({ type: 'point', id: p.id, nom: p.label, x: p.pos.x / UNITES_DU_PLAN_DE_CARTE, y: p.pos.y / UNITES_DU_PLAN_DE_CARTE, ton: p.id === poi ? 'alerte' : 'neutre', elements: [] })),
+});
+
+/** Les zones propres à la carte du monde ouverte de la session `s` : son nom, puis, le plan d'un lieu ouvert
+ *  (`planDuLieuOuvert`), ses outils (`OUTILS_DU_PLAN_DU_LIEU`) et ce plan (`planDuLieu`), sinon ceux de la carte
+ *  (`OUTILS_DE_LA_CARTE`) et son plan (`planDeLEdition`, `planDeLaCarte`), l'outil actif pressé. */
 function zonesDeLaCarte(s: SessionDEdition): Partial<ZonesDeLEditeur> {
   const carte = projetEdite(s).worldMap!;
-  const outils = OUTILS_DE_LA_CARTE.map((mode) => bouton(`outil/${LIBELLES_DES_OUTILS_DE_LA_CARTE[mode]}`, t(`ecran.editeur.outil.${LIBELLES_DES_OUTILS_DE_LA_CARTE[mode]}` as MsgKey), { geste: 'outil', outil: { mode } }, s.outil.mode === mode));
+  const plan = planDuLieuOuvert(s);
+  const outils = (plan ? OUTILS_DU_PLAN_DU_LIEU : OUTILS_DE_LA_CARTE).map((mode) => bouton(`outil/${LIBELLES_DES_OUTILS_DE_LA_CARTE[mode]}`, t(`ecran.editeur.outil.${LIBELLES_DES_OUTILS_DE_LA_CARTE[mode]}` as MsgKey), { geste: 'outil', outil: { mode } }, s.outil.mode === mode));
   return {
     'editeur.titre': [ligne('carte', carte.label || carte.id)],
     'editeur.outils': [choix('outils', t('ecran.editeur.outils'), outils)],
-    'editeur.carte': [planDeLaCarte('carte/plan', planDeLEdition(s), () => [])],
+    'editeur.carte': [plan ? planDuLieu(plan) : planDeLaCarte('carte/plan', planDeLEdition(s), () => [])],
   };
 }
 
 /** Les zones propres au document ouvert, par document : la scène (`zonesDeLaScene`), la carte du monde
- *  (`zonesDeLaCarte`) ; le narratif, aucune. */
+ *  (`zonesDeLaCarte`) ; le narratif et le projet, aucune. */
 const ZONES_DES_DOCUMENTS: { readonly [K in SorteDeDocument]: (s: SessionDEdition) => Partial<ZonesDeLEditeur> } = {
   scene: zonesDeLaScene,
   carte: zonesDeLaCarte,
   narratif: () => ({}),
+  projet: () => ({}),
 };
 
 /** Chaque zone de l'éditeur, vide : celles qu'un document ne montre pas le restent. */

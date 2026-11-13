@@ -12,8 +12,8 @@ import { caseDe } from '../../data/props.types';
 import { FORMULAIRES, canonEdge, dansLaCarte, empriseDuPinceau, hitAt, nearestEdge, pickArchitectureEdge, pickWallEdge, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { provenanceDesNavires } from '../planDeNavire';
 import { CADRE, type WorldMap } from '../worldMap';
-import { majLieu } from '../worldMapEdit';
-import { lieuNeuf, routeLiee } from '../sceneEdit';
+import { deplacerPoi, majLieu } from '../worldMapEdit';
+import { lieuNeuf, poiNeuf, routeLiee } from '../sceneEdit';
 
 /** Ce que l'éditeur tient autour du geste : l'outil, la couche, le pinceau, la rencontre que l'outil de rencontre
  *  complète et la fiche qu'il pose, les calques visibles, la sélection, le rectangle du terrain, et le mode
@@ -55,9 +55,10 @@ export type GesteEnCours =
   | GesteSurLaCarte;
 
 /** Le geste en cours sur le plan de la carte du monde : `lieu`, le glissé du lieu `id` appuyé au point `depuis`,
- *  `deplace` une fois la carte écrite ; `liaison`, la route tirée depuis le lieu `depuis`, son bout au point `bout`. */
+ *  `deplace` une fois la carte écrite ; `liaison`, la route tirée depuis le lieu `depuis`, son bout au point `bout` ;
+ *  `poi`, sur le plan d'un lieu, le glissé de son point d'intérêt `id`, comme celui d'un lieu. */
 export type GesteSurLaCarte =
-  | { sorte: 'lieu'; id: string; depuis: Pt; deplace: boolean }
+  | { sorte: 'lieu' | 'poi'; id: string; depuis: Pt; deplace: boolean }
   | { sorte: 'liaison'; depuis: string; bout: Pt };
 
 /** L'effet d'un pas du pointeur. `scene` : la scène écrite, `cran` vrai quand elle ouvre un cran d'annulation,
@@ -206,6 +207,7 @@ export function glisser(scene: Scene, ctx: ContexteDuPointeur, geste: GesteEnCou
     case 'redimension':
       return { geste: { ...geste, deplace: true }, scene: resizeSel(scene, geste.sel, p), cran: !geste.deplace };
     case 'lieu':
+    case 'poi':
     case 'liaison':
       return { geste };
   }
@@ -269,12 +271,16 @@ const selDeLaRoute = (id: string): Sel => ({ type: FORMULAIRES.route.sel!, id })
 /** Le point `p` en unités de la position d'un lieu, porté au cadre de la carte (`CADRE`), où les distances se mesurent. */
 const auCadre = (p: Pt): Pt => ({ x: (p.x * CADRE.w) / UNITES_DU_PLAN_DE_CARTE, y: (p.y * CADRE.h) / UNITES_DU_PLAN_DE_CARTE });
 
-/** Le lieu de la carte `carte` que touche le point `f`, le plus proche. */
-function lieuSous(carte: WorldMap, f: Pt): WorldMap['places'][number] | undefined {
+/** Celui des `points` que touche le point `f`, le plus proche : un lieu de la carte, un point d'intérêt du plan d'un
+ *  lieu, dont les médaillons ont la même taille. */
+function pointSous<P extends { pos: Pt }>(points: readonly P[], f: Pt): P | undefined {
   const c = auCadre(f);
   const distance = (pos: Pt) => { const q = auCadre(pos); return Math.hypot(q.x - c.x, q.y - c.y); };
-  return carte.places.filter((p) => distance(p.pos) <= RAYON_DU_LIEU).sort((a, b) => distance(a.pos) - distance(b.pos))[0];
+  return points.filter((p) => distance(p.pos) <= RAYON_DU_LIEU).sort((a, b) => distance(a.pos) - distance(b.pos))[0];
 }
+
+/** Le lieu de la carte `carte` que touche le point `f`, le plus proche. */
+const lieuSous = (carte: WorldMap, f: Pt) => pointSous(carte.places, f);
 
 /** La route de la carte `carte` dont le trait touche le point `f`, la plus proche. */
 function routeSous(carte: WorldMap, f: Pt): WorldMap['routes'][number] | undefined {
@@ -318,6 +324,37 @@ export function glisserSurLaCarte(carte: WorldMap, geste: GesteEnCours | null, p
   if (geste?.sorte !== 'lieu') return { geste };
   if (!geste.deplace && memeCase(pt.case, { x: Math.floor(geste.depuis.x), y: Math.floor(geste.depuis.y) })) return { geste };
   return { geste: { ...geste, deplace: true }, carte: majLieu(carte, geste.id, { pos: pt.f }), cran: !geste.deplace };
+}
+
+/** L'effet d'un pas du pointeur sur le plan d'un lieu de la carte du monde (`EffetSurLaCarte`), et le point d'intérêt
+ *  qu'il désigne (présent), `null` pour aucun. */
+export interface EffetSurLePlanDuLieu extends Omit<EffetSurLaCarte, 'sel'> {
+  poi?: string | null;
+}
+
+/** Les outils du pointeur sur le plan d'un lieu : sélectionner un point d'intérêt (et le glisser), en poser un sur le
+ *  fond (épingler). */
+export const OUTILS_DU_PLAN_DU_LIEU = ['selection', 'epingler'] as const;
+export type OutilDuPlanDuLieu = (typeof OUTILS_DU_PLAN_DU_LIEU)[number];
+
+/** L'appui au point `pt` du plan du lieu `lieu` de la carte `carte`, à l'outil `outil` (`OUTILS_DU_PLAN_DU_LIEU`), les
+ *  points neufs menant à la première des scènes `scenes` : un point d'intérêt touché se désigne et ouvre son glissé ;
+ *  hors d'eux, l'outil epingler pose un point neuf au point, désigné (`poiNeuf`), la sélection n'en désigne aucun. Un autre
+ *  outil ne fait rien. */
+export function appuyerSurLePlanDuLieu(carte: WorldMap, lieu: string, scenes: Parameters<typeof poiNeuf>[3], outil: string, pt: PointDeCarte): EffetSurLePlanDuLieu {
+  if (!OUTILS_DU_PLAN_DU_LIEU.includes(outil as OutilDuPlanDuLieu)) return { geste: null };
+  const touche = pointSous(carte.places.find((p) => p.id === lieu)?.poi ?? [], pt.f);
+  if (touche) return { geste: { sorte: 'poi', id: touche.id, depuis: pt.f, deplace: false }, poi: touche.id };
+  const pose = outil === 'epingler' ? poiNeuf(carte, lieu, pt.f, scenes) : undefined;
+  return pose ? { geste: null, carte: pose.carte, cran: true, poi: pose.id } : { geste: null, poi: null };
+}
+
+/** Le glissé du geste `geste` au point `pt` du plan du lieu `lieu` de la carte `carte` : le point d'intérêt glissé posé
+ *  au point (`deplacerPoi`, borné), un cran au premier pas réel, hors de la case de son appui. */
+export function glisserSurLePlanDuLieu(carte: WorldMap, lieu: string, geste: GesteEnCours | null, pt: PointDeCarte): EffetSurLePlanDuLieu {
+  if (geste?.sorte !== 'poi') return { geste };
+  if (!geste.deplace && memeCase(pt.case, { x: Math.floor(geste.depuis.x), y: Math.floor(geste.depuis.y) })) return { geste };
+  return { geste: { ...geste, deplace: true }, carte: deplacerPoi(carte, lieu, geste.id, pt.f), cran: !geste.deplace };
 }
 
 /** Le relâché du geste `geste` au point `pt` du plan de la carte `carte` : la route tirée relie son lieu de départ au lieu

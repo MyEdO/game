@@ -21,7 +21,7 @@ import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
 import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, projetSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, type PatchDeZone, type Pt } from '../sceneEdit';
-import { DOCUMENTS, FORMULAIRES, accesDe, cheminOffert, entiteDeLaSelection, formeDuPorteur, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, porteursDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDeDocument, type SorteDePorteur, type Tool, type DocumentDuProjet } from '../sceneEditLecture';
+import { DOCUMENTS, FORMULAIRES, accesDe, cheminOffert, entiteDeLaSelection, formeDuPorteur, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDeDocument, type SorteDePorteur, type Tool, type DocumentDuProjet } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -36,9 +36,9 @@ import { memoByDeps } from '../monde/sceneMemo';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
 import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } from './historique';
-import { appuyer, appuyerSurLaCarte, glisser, glisserSurLaCarte, relacher, relacherSurLaCarte, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type EffetSurLaCarte, type GesteEnCours, type PointDeCarte } from './pointeur';
-import { orienterRoute } from '../worldMapEdit';
-import type { WorldMap } from '../worldMap';
+import { appuyer, appuyerSurLaCarte, appuyerSurLePlanDuLieu, glisser, glisserSurLaCarte, glisserSurLePlanDuLieu, relacher, relacherSurLaCarte, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type EffetSurLaCarte, type EffetSurLePlanDuLieu, type GesteEnCours, type PointDeCarte } from './pointeur';
+import { orienterRoute, retirerPoi } from '../worldMapEdit';
+import type { MapPlace, WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';
 import type { Manifeste } from '../../data/source/chapitres';
 import { estGraphieDeChapitre, parseChapitre, type ChapitreParse } from '../../data/source/decoupe';
@@ -65,14 +65,16 @@ const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, en
 export const ACTIONS_D_ARCHITECTURE = ['selection', 'facade', 'exclusion'] as const;
 export type ActionDArchitecture = (typeof ACTIONS_D_ARCHITECTURE)[number];
 
-/** Les outils que l'éditeur offre, dont celui qui pose un navire du type `ref` au cap `cap` (`poserUnNavire`), et ceux
- *  du plan de la carte du monde qui posent un lieu et tirent une route (`OUTILS_DE_LA_CARTE`). */
+/** Les outils que l'éditeur offre, dont celui qui pose un navire du type `ref` au cap `cap` (`poserUnNavire`), ceux
+ *  du plan de la carte du monde qui posent un lieu et tirent une route (`OUTILS_DE_LA_CARTE`), et celui du plan d'un lieu
+ *  qui pose un point d'intérêt (`OUTILS_DU_PLAN_DU_LIEU`). */
 export type OutilDeLEditeur =
   | Extract<Tool, { mode: 'selection' | 'terrain' | 'hauteur' | 'arete' | 'escalier' | 'crenelage' | 'entite' | 'emplacement' | 'entree' | 'zone' | 'casesDeZone' | 'gomme' }>
   | { mode: 'architecture'; action: ActionDArchitecture }
   | { mode: 'navire'; ref: string; cap: Dir4 }
   | { mode: 'lieu' }
-  | { mode: 'chemin' };
+  | { mode: 'chemin' }
+  | { mode: 'epingler' };
 
 /** Ce que bâtit l'outil d'architecture : un corps ou une partie sur la case pointée, l'étage au-dessus du corps actif,
  *  une masse de toiture sur la case pointée. */
@@ -168,7 +170,7 @@ const scenesDeLHistorique = (h: Historique<CranDEdition>): Scene[] => [...h.pass
 /** La session `s` montrant une autre scène : à l'outil de sélection, sur la couche 0, sans sélection, geste, volée,
  *  brouillon, case pointée, défaut suivi ni calage. */
 const remiseAZero = (s: SessionDEdition): SessionDEdition => ({
-  ...s, outil: { mode: 'selection' }, z: 0, sel: null, geste: null, volee: [], brouillon: null, pointee: null, defaut: null, calage: HORS_DU_CALAGE,
+  ...s, outil: { mode: 'selection' }, z: 0, sel: null, geste: null, volee: [], brouillon: null, pointee: null, defaut: null, calage: HORS_DU_CALAGE, planDuLieu: null,
 });
 
 /** La session `s` qui édite la scène `p.scene` de son projet `p`, sur un cran neuf, remise à zéro (`remiseAZero`).
@@ -371,6 +373,9 @@ export interface SessionDEdition {
   chapitreEnAttente: { book: string; ch: string } | null;
   /** Les calques que l'hôte gardait étaient d'un autre format, retirés à l'ouverture. */
   ecartes: boolean;
+  /** Le plan du lieu `lieu` de la carte du monde, ouvert : le pointeur y va (`planDuLieuOuvert`), et `poi` y est le
+   *  point d'intérêt désigné, `null` sans lui ; `null` : le pointeur va au plan du document ouvert. */
+  planDuLieu: { lieu: string; poi: string | null } | null;
 }
 
 /** Un geste de l'éditeur : choisir l'outil, la taille du pinceau, le rectangle du pinceau de terrain, la couche
@@ -381,7 +386,8 @@ export interface SessionDEdition {
  *  sélectionner le porteur de formulaire `porteur` (`selDuPorteur`) ; en ajouter un neuf de sorte `sorte`, par la table
  *  d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`, `creer`), depuis la sélection, avec l'identifiant `avec` que sa
  *  table offre (`avecs`), sélectionné ; orienter la route sélectionnée depuis l'une de ses extrémités, ou dans les deux
- *  sens (`null`, `orienterRoute`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
+ *  sens (`null`, `orienterRoute`) ; ouvrir le plan du lieu `lieu` de la carte du monde ouverte, sélectionné, ou le fermer (`null`, `planDuLieu`) ; retirer le point
+ *  d'intérêt désigné sur ce plan (`retirerPoi`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou sans sélection le porteur singulier du
@@ -416,6 +422,8 @@ export type GesteDEdition =
   | { geste: 'selectionner'; porteur: { sorte: SorteDePorteur; id: string } }
   | { geste: 'ajouter'; sorte: SorteDePorteur; avec?: string }
   | { geste: 'sens'; depuis: string | null }
+  | { geste: 'planDuLieu'; lieu: string | null }
+  | { geste: 'retirerPoi' }
   | { geste: 'document'; document: SorteDeDocument }
   | { geste: 'valeur'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[]; valeur?: unknown }
   | { geste: 'resceller'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[] }
@@ -478,7 +486,7 @@ export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistre: projet, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
-    manifeste, chapitres: {}, chapitreEnAttente: null,
+    manifeste, chapitres: {}, chapitreEnAttente: null, planDuLieu: null,
   };
 }
 
@@ -562,7 +570,7 @@ export const etageActif = (s: SessionDEdition): ArchitectureStorey | null => cor
 function contexte(s: SessionDEdition): ContexteDuPointeur {
   const outil = s.outil;
   const architecture = outil.mode === 'architecture' ? { z: s.z, action: outil.action === 'facade' ? 'facade' as const : 'selection' as const, bodyId: corpsActif(s)?.id ?? null } : null;
-  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' || outil.mode === 'lieu' || outil.mode === 'chemin' ? { mode: 'selection' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
+  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' || outil.mode === 'lieu' || outil.mode === 'chemin' || outil.mode === 'epingler' ? { mode: 'selection' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
 }
 
 /** Si le clic de la session `s` tire une exclusion de toiture du corps actif. */
@@ -721,6 +729,34 @@ const POINTEURS_DES_DOCUMENTS: { readonly [K in SorteDeDocument]?: PointeurDuDoc
   carte: POINTEUR_DE_LA_CARTE,
 };
 
+/** Le plan du lieu ouvert de la session `s` (`SessionDEdition.planDuLieu`) : son lieu, au projet, et son point d'intérêt
+ *  désigné, s'il est à ce lieu ; `undefined` s'il n'est pas ouvert ou que son lieu a quitté la carte. */
+export function planDuLieuOuvert(s: SessionDEdition): { lieu: MapPlace; poi: string | null } | undefined {
+  const plan = s.planDuLieu;
+  const lieu = plan && projetEdite(s).worldMap?.places.find((p) => p.id === plan.lieu);
+  return lieu ? { lieu, poi: lieu.poi?.some((x) => x.id === plan.poi) ? plan.poi : null } : undefined;
+}
+
+/** L'effet d'un pas du pointeur sur le plan du lieu ouvert porté à la session : la carte écrite comme sur son plan
+ *  (`porterSurLaCarte`), le point d'intérêt désigné. */
+function porterSurLePlanDuLieu(s: SessionDEdition, lieu: string, effet: EffetSurLePlanDuLieu): SessionDEdition {
+  const portee = porterSurLaCarte(s, effet);
+  return effet.poi === undefined ? portee : { ...portee, planDuLieu: { lieu, poi: effet.poi } };
+}
+
+/** Le pointeur sur le plan du lieu ouvert (`appuyerSurLePlanDuLieu`, `glisserSurLePlanDuLieu`), les points neufs menant
+ *  à la première scène du projet ; le relâché finit le geste. */
+const POINTEUR_DU_PLAN_DU_LIEU: PointeurDuDocument = {
+  appui: (s, point) => porterSurLePlanDuLieu(s, s.planDuLieu!.lieu, appuyerSurLePlanDuLieu(carteEditee(s), s.planDuLieu!.lieu, projetEdite(s).scenes, s.outil.mode, point)),
+  glisse: (s, point) => porterSurLePlanDuLieu(s, s.planDuLieu!.lieu, glisserSurLePlanDuLieu(carteEditee(s), s.planDuLieu!.lieu, s.geste, point)),
+  relache: (s) => ({ ...s, geste: null }),
+};
+
+/** Le pointeur de la session `s` : celui du plan du lieu ouvert (`planDuLieuOuvert`), sinon celui du plan de son
+ *  document ouvert (`POINTEURS_DES_DOCUMENTS`), aucun sans plan. */
+const pointeurDeLaSession = (s: SessionDEdition): PointeurDuDocument | undefined =>
+  (planDuLieuOuvert(s) ? POINTEUR_DU_PLAN_DU_LIEU : POINTEURS_DES_DOCUMENTS[s.document]);
+
 /** Ce que le porteur singulier d'un document fait sans sélection, par sorte, quand il le fait : se nommer `nom` (non
  *  vide), prendre l'identifiant `id`. La scène se nomme (`setSceneLabel`) et s'identifie (`sceneRenommee`) ; la carte du
  *  monde se nomme à son formulaire (`label`). */
@@ -856,11 +892,12 @@ function projetAvecLaDonnee<S extends SorteDePorteur>(s: SessionDEdition, porteu
   return ecrite.ok ? table.ecrire(projet, sceneId, avant, ecrite.valeur) : ecrite;
 }
 
-/** La session `s` où le projet `projet` s'écrit sur un cran neuf si les porteurs de formulaire de sa scène montrée
- *  (`FORMULAIRES`, `porteursDuProjet`) y changent : sinon, `s` telle quelle. La sélection reste. */
-function ecrireSurLesPorteurs(s: SessionDEdition, projet: ProjetDEdition): SessionDEdition {
-  const porteurs = (p: ProjetDEdition) => jsonCanonique((Object.keys(FORMULAIRES) as SorteDePorteur[]).map((sorte) => porteursDuProjet(accesDe(sorte), p, idDeLaSceneEditee(s))));
-  return porteurs(projet) === porteurs(projetEdite(s)) ? s : ecrireLeProjet(s, projet, s.sel);
+/** La session `s` où le projet `projet`, qu'une écriture au porteur de sorte `sorte` rend, s'écrit sur un cran neuf si
+ *  le document de ce porteur (`accesDe`, `DOCUMENTS`), là où la scène montrée l'est, y change : sinon, `s` telle quelle.
+ *  La sélection reste. */
+function ecrireSurLesPorteurs(s: SessionDEdition, sorte: SorteDePorteur, projet: ProjetDEdition): SessionDEdition {
+  const document = (p: ProjetDEdition) => jsonCanonique(documentDe(accesDe(sorte).document).lire(p, idDeLaSceneEditee(s)) ?? null);
+  return document(projet) === document(projetEdite(s)) ? s : ecrireLeProjet(s, projet, s.sel);
 }
 
 /** Le projet édité de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
@@ -897,7 +934,9 @@ export function refusDeRetrait(s: SessionDEdition): string | null {
  *  élément d'un porteur, d'un nom vide ou déjà pris, supprimer un porteur dont le retrait est refusé (`refusDeRetrait`), copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
  *  dupliquer sans entité sélectionnée, poser une troupe sans personnage sélectionné ou sans case où en poser une copie, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, d'un chapitre qui n'est pas celui qu'elle attend, demander une planche pendant un chargement, régler ou retirer un calque
- *  absent) la rend telle quelle. */
+ *  absent, ouvrir le plan d'un lieu absent de la carte ouverte ou celui déjà ouvert, retirer un point d'intérêt sans point
+ *  désigné) la rend telle quelle. Le plan d'un lieu ouvert reçoit le pointeur (`pointeurDeLaSession`), ses outils remis
+ *  à la sélection. */
 function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
   const scene = sceneEditee(s);
   switch (g.geste) {
@@ -918,7 +957,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'appui':
     case 'glisse':
     case 'relache': {
-      const pointeur = POINTEURS_DES_DOCUMENTS[s.document];
+      const pointeur = pointeurDeLaSession(s);
       return pointeur ? pointeur[g.geste](s, g.point) : s;
     }
     case 'poserVolee': {
@@ -955,11 +994,11 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
       const ecrite = projetAvecLaValeur(s, g);
-      return ecrite.ok ? ecrireSurLesPorteurs(s, ecrite.valeur) : s;
+      return ecrite.ok ? ecrireSurLesPorteurs(s, g.porteur.sorte, ecrite.valeur) : s;
     }
     case 'resceller': {
       const ecrite = projetAvecLaDonnee(s, g.porteur, (sorte, donnee, cadre) => avecLAdresseRescellee(sorte, donnee, g.chemin, cadre));
-      return ecrite.ok ? ecrireSurLesPorteurs(s, ecrite.valeur) : s;
+      return ecrite.ok ? ecrireSurLesPorteurs(s, g.porteur.sorte, ecrite.valeur) : s;
     }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);
@@ -991,6 +1030,18 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'document':
       return ouvrirLeDocument(s, g.document);
+    case 'planDuLieu': {
+      if ((s.planDuLieu?.lieu ?? null) === g.lieu) return s;
+      if (g.lieu === null) return { ...s, planDuLieu: null, geste: null, outil: { mode: 'selection' } };
+      const ouvert = accesDe('lieu').document === s.document && porteurDuProjet(accesDe('lieu'), projetEdite(s), idDeLaSceneEditee(s), g.lieu);
+      return ouvert ? { ...s, planDuLieu: { lieu: g.lieu, poi: null }, sel: selDuPorteur('lieu', g.lieu), geste: null, brouillon: null, outil: { mode: 'selection' } } : s;
+    }
+    case 'retirerPoi': {
+      const plan = planDuLieuOuvert(s);
+      if (!plan?.poi) return s;
+      const carte = carteEditee(s);
+      return { ...ecrireLeProjet(s, DOCUMENTS.carte.ecrire(projetEdite(s), idDeLaSceneEditee(s), retirerPoi(carte, plan.lieu.id, plan.poi)), s.sel), planDuLieu: { lieu: plan.lieu.id, poi: null } };
+    }
     case 'sens': {
       const carte = projetEdite(s).worldMap;
       const route = s.sel && 'id' in s.sel && s.sel.type === FORMULAIRES.route.sel ? s.sel.id : undefined;
