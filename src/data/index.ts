@@ -8,7 +8,7 @@ import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppe
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, MatiereDArmure } from './schemas/grammaire/valeurs';
-import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type Id, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
+import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES, type IdDeColonneDuMarchand } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
@@ -2593,7 +2593,7 @@ export const piecesCouvrant = (locs: readonly HitLocation[]): PieceId[] =>
   gardeRobe.flatMap((e) => (e.kind === 'piece' && e.localisations?.some((l) => locs.includes(l)) ? [e.id] : []));
 /** Les pièces que revêt un objet porté : celles de l'ensemble qui habille son trapping `trappingId`, à défaut celles qui
  *  couvrent ses localisations, `locs`, à défaut celles de son trapping (`localisationsDeLoc`). #3456 */
-export function piecesDeLObjet(trappingId: string | undefined, locs?: readonly HitLocation[]): readonly (PieceId | Id<'gardeRobe'>)[] {
+export function piecesDeLObjet(trappingId: string | undefined, locs?: readonly HitLocation[]): readonly PieceId[] {
   const ensemble = trappingId === undefined ? undefined : findEnsembleParHabille({ type: 'trapping', id: trappingId });
   return ensemble?.pieces ?? piecesCouvrant(locs ?? localisationsDeLoc(findTrappingById(trappingId)?.loc));
 }
@@ -2907,7 +2907,7 @@ type EntiteDe<T extends TypeResolu> = NonNullable<ReturnType<(typeof PAR_ID)[T]>
 /**
  * PORTE UNIQUE de résolution d'une entité par son `id` STABLE (#1463 L2) : le type d'entité
  * paramètre le lookup ET le type rendu ; `undefined` si l'id est absent de son dataset.
- * L'`id` est un `string` NU — la marque `Id<'skill'>` se frappe à la porte zod, côté DONNÉE
+ * L'`id` est un `string` NU — l'id fermé `Id<'skill'>` se frappe à la porte zod, côté DONNÉE
  * (`idDe`, `schemas/grammaire/ref.ts`) ; le moteur, lui, porte des ids nus (`SkillInstance.id`).
  */
 export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | undefined {
