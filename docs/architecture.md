@@ -441,8 +441,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             machinerie (`machinerieDuNoyau.ts`, #3370) : les écritures que le noyau, l'éditeur ou
                             un test appellent et qu'aucun hôte ne joue, hors de `Intention` et de `VERBES`.
                             `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
-                            n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre` rend `{ issue,
-                            evenements, journal }`. `lancementDeScenario.ts` (#2898) : le lancement d'un
+                            n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre`/`relever`/`recevoir`
+                            rend `{ issue, evenements, journal }` (`recevoir` y joint `neuve` et `autreScene`),
+                            et `abonner` suit chaque écriture. `lancementDeScenario.ts` (#2898) : le lancement d'un
                             scénario de test et sa séquence unique, jouée par la partie et par
                             `state/scenarioFlow.ts`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
                             réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
@@ -628,8 +629,8 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             par entrée, causes d'un stockage indisponible) ; la poignée porte le cache, les tombes en
                             attente et les refus au geste), `coop/` (la coop sur le `Transport` que l'hôte fournit :
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
-                            hôte-autoritaires, dont le paquet de campagne : envoyé au join, rattrapé à la diffusion
-                            qui suit son chargement, ses scènes enregistrées chez l'invité ; `transport.ts`, le port
+                            hôte-autoritaires, l'instantané pour seul état diffusé, scènes de la campagne comprises
+                            (`campaignDoc`, `appliquerLInstantane`) ; `transport.ts`, le port
                             `Transport`, et sa paire en mémoire de test `transport.testkit.ts`),
                             `stockageWeb.ts` (accès protégé au `localStorage` et au `sessionStorage`, `stockageWeb`,
                             pour l'hôte web comme pour la page de l'hôte Godot ; un dictionnaire persisté s'y relit par
@@ -872,9 +873,10 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/noyau/intentionsDeSiege.ts  Allowlist coop : la classe de chaque action du noyau (invité, hôte,
-                            local, interne), `GUEST_INTENTS` que `netFlow.ts` enrobe chez l'invité, et
-                            `appliquerLIntentionDUnSiege`, seul point d'entrée d'une intention chez l'hôte.
-src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte, interne).
+                            local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusDuVerbeDHote`
+                            que `Partie.envoyer` lit chez l'invité, et `appliquerLIntentionDUnSiege`, seul point
+                            d'entrée d'une intention chez l'hôte.
+src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte).
 src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
                             paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
                             plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
@@ -887,10 +889,13 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
 src/net/                    compress.ts : la compression de l'hôte web (CompressionStream), port `Compression` du relay
 src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, session.ts, relay.ts (RelayClient
                             heartbeat/backoff, RoomHost = un Transport virtuel par siège, RoomGuest), salon.ts
-                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web
+                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web.
+                            L'attribution des sièges (héros, emplacement, rôle MJ) n'y vit pas : trois verbes
+                            `hôte` du noyau (`src/noyau/reseau.ts`, `affecter…`) sur les fonctions pures
+                            de `src/noyau/sieges.ts`
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
-                            relance le handshake, puis reçoit campagne et snapshot autoritaire frais.
+                            relance le handshake, puis reçoit un snapshot autoritaire frais.
 server/                     Worker Cloudflare du relay coop (Durable Object « Room », hibernation WS,
                             TTL 30 min) — npm run relay:dev / relay:deploy
 art-ref/                    Illustrations extraites des PDFs + mapping.json (GITIGNORÉ — droits Cubicle 7)
