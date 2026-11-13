@@ -46,9 +46,10 @@ export interface VueFigee {
  * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
  * (`projet/scripts/pont_de_planche.gd`). `nom` la nomme dans l'adresse (`?planche=<nom>`) et dans son fichier
  * (`hotes/godot/etalons/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
- * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `retrait` et `aretes` les réponses du pont à ces
- * trois méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous `journal.lignes`, le
- * masque du regard et les arêtes de sa scène ; `monde`, le monde de sa scène (`MondeDeLaPlanche`).
+ * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `retrait`, `aretes` et `vision` les réponses du
+ * pont à ces quatre méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous
+ * `journal.lignes`, le masque du regard, les arêtes de sa scène et ce que le groupe en connaît ; `monde`, le monde de sa
+ * scène (`MondeDeLaPlanche`).
  */
 export interface Planche {
   nom: string;
@@ -58,6 +59,7 @@ export interface Planche {
   monde: MondeDeLaPlanche;
   retrait: unknown;
   aretes: unknown;
+  vision: unknown;
 }
 
 /** Le monde d'une planche, que `pont_de_planche.gd` sert : la réponse de `monde` et celle de `morceaux` à toutes ses
@@ -172,6 +174,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       monde: mondeDeLaPlanche(),
       retrait: JSON.parse(pont.appeler('retrait', null)),
       aretes: JSON.parse(pont.appeler('aretes', null)),
+      vision: JSON.parse(pont.appeler('vision', null)),
     });
     const jouer = (methode: string, entree: unknown): Suite => {
       let s = appeler(methode, entree);
@@ -390,6 +393,11 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   s = atelier.appeler('creation', deLaCreation('creation.corps', 'methode', 'Répartir 100 points'));
   figer(atelier, 'creation-caracteristiques', 'création, les Caractéristiques en 100 points', s);
   atelier.fermer();
+  const variante = unPont([]);
+  s = viderLesFenetres(variante.jouer, variante.jouer('demarrer', { scenario: 'marche-equipement', graine: 3 }));
+  for (const [zone, id] of [['groupe.gestes', 'creation'], ['creation.corps', 'tirage'], ['creation.gestes', 'suivante'], ['creation.corps', 'tirage']] as const) s = variante.appeler('creation', deLaCreation(zone, id));
+  figer(variante, 'creation-carriere-second-lancer', 'création, la carrière tirée et son second lancer', s);
+  variante.fermer();
 
   vues.push({
     nom: 'formulaire de chaque saisie',

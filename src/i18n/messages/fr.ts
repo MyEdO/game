@@ -4325,6 +4325,8 @@ export const fr = {
   'crea.vue.tirageCarriere': 'Carrière au d100',
   'crea.vue.deuxJetsDePlus': 'Deux jets de plus (+{px} PX)',
   'crea.vue.relancerCarriere': 'Relancer',
+  'crea.vue.secondLancer': 'Second lancer : {carriere}',
+  'crea.vue.jetEtSecondLancer': '{jet} → {second}',
   'crea.vue.tirees': 'Tirées',
   'crea.vue.classe': 'Classe',
   'crea.vue.carriere': 'Carrière',

@@ -3,7 +3,7 @@
  * dé ne parle avant le geste qui le jette.
  */
 import { describe, it, expect } from 'vitest';
-import { carrieresOffertes, draftSpecies, newDraft, withCareer, withCoastalSwap, withSpecies, type CreatorDraft } from './brouillon';
+import { carrieresOffertes, draftSpecies, newDraft, rollDraftCareer, withCareer, withCoastalSwap, withSpecies, type CreatorDraft } from './brouillon';
 import { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, rubriquesDeLaPage, type RubriqueDeCreation } from './vueDeLaCreation';
 import { carrieresAleatoires, offreDuJet, species, varianteDe } from '../../data';
 import { setDataset } from '../../data/overrides';
@@ -97,5 +97,34 @@ describe('les carrières offertes : celles que le tirage offre sur la table effe
     } finally {
       setDataset('carrieresAleatoires', imprimes);
     }
+  });
+});
+
+describe('le second lancer : un geste offert au jet dont la carrière a une variante (AA 02 l.109-111 ; VDM 03 l.17-19)', () => {
+  /** Le premier brouillon d'un Reiklander, graines 1.., dont le premier jet de carrière vérifie `voulu`. */
+  const premierJetOu = (voulu: (d: CreatorDraft) => boolean) => {
+    for (let graine = 1; graine < 5000; graine++) {
+      const d = rollDraftCareer(withSpecies(newDraft(graine), 'humains-reiklander'));
+      if (voulu(d)) return d;
+    }
+    throw new Error('aucune graine');
+  };
+  const aUneVariante = (d: CreatorDraft) => !!varianteDe(d.careerRolls[0].id, draftSpecies(d)!);
+
+  it('offert sur un jet à variante, il tire le second d100, que le tirage dit, puis ne s’offre plus', () => {
+    const soldat = premierJetOu((d) => d.careerRolls[0].id === 'soldat');
+    const offert = rubrique(rubriquesDeLaPage(soldat, 'career'), 'variante/0');
+    expect(offert.genre === 'geste' && offert.libelle).toBe('Second lancer : Soldat');
+    const engage = apresLeGeste(soldat, (offert as Extract<RubriqueDeCreation, { genre: 'geste' }>).geste);
+    const [jet] = engage.careerRolls;
+    const page = rubriquesDeLaPage(engage, 'career');
+    expect(page.filter((r) => r.id.startsWith('variante/')), 'fait, le second lancer ne s’offre plus').toEqual([]);
+    const tirage = rubrique(page, 'tirage');
+    expect(tirage.genre === 'jet' && tirage.resultat, 'le tirage dit les deux d100').toBe(`${jet.roll} → ${jet.second!.roll}`);
+  });
+
+  it('absent sur un jet dont la carrière n’a pas de variante', () => {
+    const sans = premierJetOu((d) => !aUneVariante(d));
+    expect(rubriquesDeLaPage(sans, 'career').filter((r) => r.id.startsWith('variante/'))).toEqual([]);
   });
 });

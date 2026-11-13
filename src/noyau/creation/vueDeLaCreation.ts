@@ -10,7 +10,7 @@ import {
   charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
-  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomCount, speciesTalentRandomDrawn, speciesXp, starXp, stepIds,
+  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomCount, speciesTalentRandomDrawn, speciesXp, starXp, stepIds, tirerLaVariante,
   valeurDuCompteur, bornesDuCompteur, validateStep, withAssignment, withCareer, withCareerSkillSpec, withCareerTalent, withCharMode,
   withCoastalSwap, withCompteur, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
   withRandomTalentSpec, withSexe, withSpecies, withSpeciesSkillDefaults, withSpeciesSkillSpec, withSpeciesSkillTier, withSpeciesTalentChoice,
@@ -19,7 +19,7 @@ import {
 } from './brouillon';
 import {
   advancementLabel, careerLabelFor, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
-  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars,
+  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, varianteDe,
   trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -41,6 +41,7 @@ const GESTES_DU_BROUILLON = {
   tirerLEspece: (d: CreatorDraft) => rollDraftSpecies(d),
   espece: (d: CreatorDraft, id: string) => withSpecies(d, id),
   tirerLaCarriere: (d: CreatorDraft) => rollDraftCareer(d),
+  tirerLaVariante: (d: CreatorDraft, jet: number) => tirerLaVariante(d, jet),
   carriere: (d: CreatorDraft, id: string) => withCareer(d, id),
   restrictions: (d: CreatorDraft, ignorees: boolean) => withIgnoreRestrictions(d, ignorees),
   cotiers: (d: CreatorDraft, cotiers: boolean) => withCoastalSwap(d, cotiers),
@@ -157,8 +158,9 @@ function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** 2) La carrière (LDB 05 l.204-212) : le d100 et ses relances, les carrières tirées, la classe puis la carrière,
- *  les restrictions de race et les Côtiers (MDG 09 l.9). */
+/** 2) La carrière (LDB 05 l.204-212) : le d100 et ses relances, le second lancer offert à chaque jet dont la carrière
+ *  a une variante (AA 02 l.109-111 ; VDM 03 l.17-19), les carrières tirées, la classe puis la carrière, les
+ *  restrictions de race et les Côtiers (MDG 09 l.9). */
 function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
   const offertes = carrieresOffertes(d);
   const carriere = offertes.find((c) => c.id === d.careerId);
@@ -169,8 +171,11 @@ function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
   return [
     ...(d.careerRolls.length
       ? [
-          jet('tirage', t('crea.vue.tirageCarriere'), d.careerRolls.map((r) => r.roll).join(t('crea.vue.separateur'))),
+          jet('tirage', t('crea.vue.tirageCarriere'), d.careerRolls.map((r) => (r.second ? t('crea.vue.jetEtSecondLancer', { jet: r.roll, second: r.second.roll }) : String(r.roll))).join(t('crea.vue.separateur'))),
           gesteDe('relance', relance ? t('crea.vue.deuxJetsDePlus', { px: relance }) : t('crea.vue.relancerCarriere'), geste('tirerLaCarriere')),
+          ...d.careerRolls.flatMap((r, i) => (sp && !r.second && varianteDe(r.id, sp)
+            ? [gesteDe(`variante/${i}`, t('crea.vue.secondLancer', { carriere: libelleDeCarriere(d, r.id) }), geste('tirerLaVariante', i))]
+            : [])),
           choix('tirees', t('crea.vue.tirees'), tirees.map((id) => option(libelleDeCarriere(d, id), geste('carriere', id), id === d.careerId))),
         ]
       : [gesteDe('tirage', t('crea.vue.tirerCarriere', { px: XP_CAREER_FIRST }), geste('tirerLaCarriere'))]),
