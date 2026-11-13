@@ -23,6 +23,7 @@ import {
 } from './gabarit.ts';
 import { nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit } from '../gabarit.ts';
 import { FACTEURS_NEUTRES } from '../facteursDuGabarit.ts';
+import { tableTotale } from '../../../../src/lib/tableTotale.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ } from '../silhouettes.ts';
 import { validerManifesteDeBase, type CandidatDAppui, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
 import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
@@ -1564,7 +1565,7 @@ describe('gardeSilhouettes', () => {
   const evaluerPorte = async (formes: Record<string, readonly number[]>, portees: readonly string[]) => {
     const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
     const m = manifesteDe(base, ['racine', 'pelvis']);
-    const osDesSilhouettes = Object.fromEntries(portees.map((s) => [s, { pelvis: [0.05, 0, 0] as const }]));
+    const osDesSilhouettes = tableTotale(portees, () => ({ pelvis: [0.05, 0, 0] as const }));
     const f = await evaluer({ base, manifeste: { ...m, silhouettes: Object.keys(formes), gabarit: { ...m.gabarit, osDesSilhouettes } }, pas: 0.5 });
     expect(f.ecarts.filter((e) => e.garde === 'manifeste')).toEqual([]);
     return f;
