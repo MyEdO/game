@@ -74,7 +74,7 @@ import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVe
 import { distanceDeContact } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
 import { canonEdge } from '../noyau/sceneEditLecture';
-import type { CellSide } from '../noyau/monde/scene';
+import type { CellSide, Scene } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
 import { setAiTrace } from '../noyau/monde/ai';
@@ -1369,7 +1369,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const arme = att.weapons[0];
       const refus = refusDeDefenseReactive(g(), att, def, arme);
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
-      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (${distanceEnClair(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (${distanceEnClair(g().scene, att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
@@ -1401,13 +1401,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
       if (att.kind !== 'ennemi') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
       if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
-      const disponibles = [...new Set(fileDesGratuites(att).melee)].filter((k) => freeAttackTargetOk(b, att, k, def));
+      const disponibles = [...new Set(fileDesGratuites(att).melee)].filter((k) => freeAttackTargetOk(g().scene, b, att, k, def));
       if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
       const kind = disponibles.find((k) => k === (type ?? disponibles[0]));
       if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
       const arme = armeDeLaGratuite(att, kind)!;
       const refus = refusDeDefenseReactive(g(), att, def, arme);
-      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (${distanceEnClair(att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (${distanceEnClair(g().scene, att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
       if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       donnerLeTour(b, idx);
@@ -2434,8 +2434,8 @@ export function installDevtools() {
   setAiTrace(true); // DEV uniquement (devtools chargé en dev) → la trace de décision IA s'enregistre
 }
 
-/** La distance de contact dite à l'outil de dev : un sol plein entre les deux se dit tel quel. */
-const distanceEnClair = (a: Combatant, b: Combatant): string => {
-  const d = distanceDeContact(a, b);
-  return Number.isFinite(d) ? `distance ${d}` : 'un sol les sépare';
+/** La distance de contact dite à l'outil de dev : un sol plein ou une arête pleine entre les deux se dit tel quel. */
+const distanceEnClair = (scene: Scene | null, a: Combatant, b: Combatant): string => {
+  const d = distanceDeContact(scene, a, b);
+  return Number.isFinite(d) ? `distance ${d}` : 'un sol ou une arête pleine les sépare';
 };

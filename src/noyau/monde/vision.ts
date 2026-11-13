@@ -12,8 +12,7 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, type SceneDuVolume, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
-import { wallOnSight } from './lineOfSight';
+import { Scene, type SceneDuVolume, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte, wallOnSight } from './scene';
 import { terrainOpaque, terrainSolidHeightM } from './terrain';
 import { METRES_PER_LEVEL } from './relief';
 import { sceneIsDark } from './sceneRules';

@@ -335,7 +335,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
     const anchor = (c: Combatant) => ({ cx: (c.pos?.x ?? 0) * 10, cy: (c.pos?.y ?? 0) * 10 });
     return renderToStaticMarkup(
       <svg>
-        <AimOverlay battle={battle} hoverAim={aim} anchor={anchor} dims={dims}
+        <AimOverlay scene={useGame.getState().scene} battle={battle} hoverAim={aim} anchor={anchor} dims={dims}
           pendingAttack={null} pendingDefense={null} pendingHeal={null} pendingCast={null} />
       </svg>,
     );

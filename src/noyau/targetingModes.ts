@@ -308,7 +308,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
  */
 export function gesteAuTestDArme(get: Get, active: Combatant, target: Combatant, option: AttackOption): boolean {
   const battle = get().battle;
-  if (target.postes?.length && battle && serveTargetPoste(active, target, battle.combatants)) return false;
+  if (target.postes?.length && battle && serveTargetPoste(get().scene, active, target, battle.combatants)) return false;
   return option.targeting === 'melee';
 }
 
@@ -337,7 +337,7 @@ export function previewDifficultyOf(get: Get): DifficultyShown | undefined {
   const active = activeCombatant(battle);
   const target = inBattleId(battle, pv.targetId);
   if (!active || !target) return undefined;
-  const option = selectedAttackOption(active, battle);
+  const option = selectedAttackOption(get().scene, active, battle);
   if (!option || !gesteAuTestDArme(get, active, target, option)) return undefined;
   return difficultyOf(apercuDuGeste(get, active, target, option, 'dest' in pv ? pv.dest : undefined));
 }
@@ -358,7 +358,7 @@ export function refusDAttaque(get: Get, active: Combatant, target: Combatant, op
   if (horsDAgir) return { reason: 'hors-d-etat', texte: horsDAgir };
   const ft = isFrenzied(active) ? frenzyTarget(get, active) : null;
   if (ft && ft.id !== target.id) return { reason: 'frenesie-cible', texte: t('cs.frenzyMustAttack', { name: active.label, foe: ft.label }) };
-  if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) {
+  if (option.freeKind && !freeAttackTargetOk(get().scene, battle, active, option.freeKind, target)) {
     return { reason: 'cible-gratuite', texte: t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }) };
   }
   if (!plan) return null;
@@ -392,12 +392,12 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   // servi, renfort sinon) → réticule « Servir » ; le clic rejoint l'équipe (jamais une attaque futile sur l'engin
   // inerte). Prioritaire. SOURCE `serveTargetPoste` (= hotbar/IA). Le tooltip d'ÉQUIPE (IsoStage) montre le détail.
   if (target.postes?.length) {
-    const p = serveTargetPoste(active, target, battle.combatants);
+    const p = serveTargetPoste(get().scene, active, target, battle.combatants);
     if (!p) return { kind: 'none' };
     const join = isPosteManned(p, battle.combatants);
     return { kind: 'ok', line: 'solid', title: `${join ? 'Renfort' : 'Servir'} : ${p.item.label}`, targetName: target.label, skill: join ? "Renfort d'équipe" : 'Chef de pièce', base: 0, mod: 0, dmg: null };
   }
-  const option = selectedAttackOption(active, battle);
+  const option = selectedAttackOption(get().scene, active, battle);
   if (!option) return { kind: 'none' }; // mode non-attaque (cast/heal/…) ou aucune attaque abordable
   if (target.kind === active.kind || isOutOfAction(target)) return { kind: 'none' };
   // Structure (mur/porte) : le réticule tombe (none) quand AUCUNE arme du porteur ne peut l'abîmer
@@ -453,7 +453,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
 /** Alliés soignables à portée de `active` (soi et son camp au contact). */
 const soignablesAPortee = (get: Get<Jeu>, active: Combatant): Combatant[] => {
   const battle = get().battle;
-  return battle ? healableTargets(campAuContact(battle, active)) : [];
+  return battle ? healableTargets(campAuContact(get().scene, battle, active)) : [];
 };
 
 /** Mode SOIN (Guérison, LDB 09 ; Dextérité sous Bandages, LDB 74 l.41) : réticule « Soigner » sur soi + alliés
@@ -501,8 +501,8 @@ function cleaveAffordance(get: Get, _active: Combatant, target: Combatant): Hove
   const battle = s.battle!;
   const pc = s.pendingCleave!;
   const atk = inBattleId(battle, pc.attackerId);
-  if (!atk || !cleaveTargets(battle, atk, pc.hitIds).some((c) => c.id === target.id)) return { kind: 'none' };
-  const weapon = firedWeapon(atk, target, undefined, battle.combatants); // MÊME résolution que la chaîne (resolveAttack, aucun weaponUid)
+  if (!atk || !cleaveTargets(s.scene, battle, atk, pc.hitIds).some((c) => c.id === target.id)) return { kind: 'none' };
+  const weapon = firedWeapon(s.scene, atk, target, undefined, battle.combatants); // MÊME résolution que la chaîne (resolveAttack, aucun weaponUid)
   // L'enchaînement est une VRAIE frappe : son réticule porte la valeur et la Difficulté du jet qu'il
   // ouvrira, comme le ciblage ordinaire (`attackAffordance`) — un interlude n'est pas un ciblage aveugle.
   const p = previewAttack(get, atk, target);
@@ -516,7 +516,7 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
   const ds = s.pendingDualStrike!;
   const atk = inBattleId(battle, ds.attackerId);
   const off = atk?.weapons.find((w) => w.uid === ds.offWeaponUid);
-  if (!atk || !off || !dualStrikeTargets(battle, atk, off).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!atk || !off || !dualStrikeTargets(s.scene, battle, atk, off).some((c) => c.id === target.id)) return { kind: 'none' };
   // 2ᵉ frappe = une frappe : le réticule porte la valeur et la Difficulté de SON jet — celui de la main
   // SECONDAIRE (`LDB 14 l.181`, pénalité comprise), pas celui de l'arme principale déjà résolue.
   const p = previewAttack(get, atk, target, undefined, { weaponUid: off.uid });
@@ -538,12 +538,12 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Pièce de siège : un clic REJOINT l'équipe (chef/renfort) au lieu d'attaquer l'engin inerte — MÊME chemin que le
   // bouton hotbar (`servirLePoste`) et l'IA (`serveAtPoste`). `serveTargetPoste` = source unique de la cible.
   if (target.postes?.length) {
-    const p = serveTargetPoste(active, target, battle.combatants);
+    const p = serveTargetPoste(get().scene, active, target, battle.combatants);
     if (p) { get().servirLePoste(p.item.uid); return; }
   }
   // ATTAQUE unifiée : l'`AttackOption` armée (`selectedAttack`, défaut 'arme' ; les modes
   // maneuver/tentacle mappent sur leur option).
-  const option = selectedAttackOption(active, battle);
+  const option = selectedAttackOption(get().scene, active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
   const plan = planDuGeste(get, active, target, option);
@@ -664,8 +664,8 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       // #BUG-A : une arme personnelle n'hérite jamais de l'allonge de la coque servie) — PAS weapons[0],
       // sinon un héros mixte mêlée+distance ne pourrait jamais tirer une cible éloignée (LDB Armes l.297-298).
       const battleNow = get().battle!;
-      const w = pickAttackWeapon(battleNow, active, target, option.weaponUid);
-      if (w.type === 'melee' && distanceDeContact(attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
+      const w = pickAttackWeapon(get().scene, battleNow, active, target, option.weaponUid);
+      if (w.type === 'melee' && distanceDeContact(get().scene, attackGeomOf(battleNow, active, w), combatGeomOf(battleNow, target)) > reachTiles(w)) {
         refuserGesteDuSiege(get, set, t('cs.meleeOutOfRange')); // aucune arme à distance dispo → mêlée hors de portée
         return;
       }
@@ -850,7 +850,7 @@ const CLEAVE_MODE = {
     const battle = s.battle;
     const pc = s.pendingCleave;
     const atk = battle && pc && inBattleId(battle, pc.attackerId);
-    return battle && pc && atk ? cleaveTargets(battle, atk, pc.hitIds) : [];
+    return battle && pc && atk ? cleaveTargets(s.scene, battle, atk, pc.hitIds) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperEnBalayage(id); },
 } satisfies TargetingMode;
@@ -862,7 +862,7 @@ const DUAL_MODE = {
     const ds = s.pendingDualStrike;
     const atk = battle && ds && inBattleId(battle, ds.attackerId);
     const off = atk && ds && atk.weapons.find((w) => w.uid === ds.offWeaponUid);
-    return battle && atk && off ? dualStrikeTargets(battle, atk, off) : [];
+    return battle && atk && off ? dualStrikeTargets(s.scene, battle, atk, off) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperDeLaSecondeArme(id); },
 } satisfies TargetingMode;
