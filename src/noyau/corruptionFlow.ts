@@ -39,7 +39,7 @@ import {
 import { mutationNature, natureDeMutationDe, combatStakeRef, refLabel } from '../data';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { mutationKindSchema } from '../data/schemas/grammaire/valeurs';
-import { deDeLaTableTiree, facesDuDe, findTableEntry } from '../engine/tables';
+import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
 import { pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
@@ -154,7 +154,7 @@ const tablesDeNature = memoParVersion('mutationNature', () => {
     const rows = doc.entries;
     tables.set(doc.id, {
       label: doc.label,
-      die: facesDuDe(deDeLaTableTiree(doc)),
+      die: deDeLaTableTiree(doc),
       rows,
       lines: (die) => [libelleDeValeur(mutationKindSchema, findTableEntry(rows, die).id)],
       // La ligne tirée EST l'id du Tableau de Corruption qui suivra : sa fiche Codex est le foyer de
@@ -179,7 +179,7 @@ const tablesDeMutation = memoParVersion(['mutationTables', 'mutations'], () => {
     const rows = mutationTableRows(id);
     tables.set(id, {
       label: mutationTablePlayerLabel(id),
-      die: facesDuDe(mutationTableDie(id)),
+      die: mutationTableDie(id),
       rows,
       lines: (die) => [mutationAt(id, die).label],
       entryCategory: 'mutations', // la ligne tirée EST la mutation : sa fiche est le foyer de l'enjeu
@@ -207,7 +207,7 @@ function natureStep(hero: Combatant, align: ChaosAlign | undefined, index: numbe
     id: `mutation-nature-${hero.id}-${index}`,
     kind: 'mutationNature', actorId: hero.id, icon: 'navigation/mutation',
     label: t('step.dissolution'),
-    table: { tableId: table.id, spec: deDeLaTableTiree(table) },
+    table: { tableId: table.id },
     mutation: { heroId: hero.id, align },
     stake: combatStakeRef('mutation-nature'),
   });
@@ -218,7 +218,7 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
     id: `mutation-table-${tableId}-${hero.id}`,
     kind: 'mutationTable', actorId: hero.id, icon: 'navigation/mutation',
     label: stepDetail(t('step.mutation'), mutationTablePlayerLabel(tableId)),
-    table: { tableId, spec: mutationTableDie(tableId) },
+    table: { tableId },
     mutation: { ...ctx, tableId },
     stake: combatStakeRef('mutation-tableau'),
   });

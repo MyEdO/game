@@ -6,7 +6,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG, d100 } from '../engine/dice';
-import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
+import { deDeLaTableTiree } from '../engine/tables';
 import {
   mutationKindFor, attachMutation, mutationLimitExceeded, corruptionThresholdExceeded,
 } from '../engine/corruption';
@@ -76,7 +76,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
       const def = tableStepDef(id)!;
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(mutationTableRows(id)); // par RÉFÉRENCE : zéro duplication de fourchettes
-      expect(def.die).toBe(facesDuDe(mutationTableDie(id))); // le dé de la DONNÉE (`die`)
+      expect(def.die).toEqual(mutationTableDie(id)); // le dé de la DONNÉE (`die`)
       // La ligne d'affichage est le libellé de la mutation atteinte par le dé (lookup moteur).
       const row = def.rows[0];
       expect(def.lines(row.min)[0]).toBe(mutationAt(id, row.min).label);
@@ -88,14 +88,14 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
       const def = tableStepDef(doc.id)!;
       expect(def, `document « ${doc.id} » sans table de nature`).toBeDefined();
       expect(def.rows).toBe(doc.entries); // les lignes du tableau sont celles de la DONNÉE, par référence
-      expect(def.die).toBe(facesDuDe(deDeLaTableTiree(doc)));
+      expect(def.die).toEqual(deDeLaTableTiree(doc));
     }
     // Chaque espèce tire au document de sa race (`refChar`).
     for (const sp of species) expect(natureDeMutationDe(sp.id).race, sp.id).toBe(sp.refChar);
     // Sur TOUT le dé et pour chaque race, l'id de ligne EST la nature du moteur.
     for (const sp of ['hauts-elfes', 'nains', 'halflings', 'ogres', 'gnomes', HUMAIN]) {
       const doc = natureDeMutationDe(sp);
-      const decl = { tableId: doc.id, spec: deDeLaTableTiree(doc) };
+      const decl = { tableId: doc.id };
       for (let die = 1; die <= 100; die++) {
         expect(rollTableStep({ ...decl, forcedRoll: die }, makeRNG(1)).id, `${sp} @${die}`).toBe(mutationKindFor(sp, die));
       }
@@ -109,7 +109,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     try {
       applyMutation(banc.getState, banc.setState, hero);
       const nature = banc.getState().pendingCascade!.participants[0];
-      expect(nature.table).toMatchObject({ tableId: doc.id, spec: { n: 1, sides: 10 } });
+      expect(nature.table).toMatchObject({ tableId: doc.id });
       const naturels = Array.from({ length: 40 }, (_, s) => rollTableStep(nature.table!, makeRNG(s + 1)).roll);
       expect(Math.max(...naturels)).toBeLessThanOrEqual(10);
       expect(Math.min(...naturels)).toBeGreaterThanOrEqual(1);
@@ -118,12 +118,12 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     }
   });
 
-  it('registre : surchargé à d10, `TableStepDef.die` = 10 ; un id renommé est tirable sous son id neuf (#1667)', () => {
+  it('registre : surchargé à d10, `TableStepDef.die` = 1d10 ; un id renommé est tirable sous son id neuf (#1667)', () => {
     const doc = natureDeMutationDe('nains');
     const avant = tableStepDef(doc.id)!.die;
     setDataset('mutationNature', mutationNature.map((d) => (d.id === doc.id ? { ...d, id: 'nature-neuve', die: 'd10' } : d)));
     try {
-      expect([avant, tableStepDef('nature-neuve')?.die]).toEqual([100, 10]);
+      expect([avant, tableStepDef('nature-neuve')?.die]).toEqual([{ n: 1, sides: 100 }, { n: 1, sides: 10 }]);
     } finally {
       resetData();
     }
@@ -192,7 +192,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('mutationNature');
     expect(stepInteraction(step)).toBe('table'); // dé À POSER → les deux affordances de la modale
-    expect(step.table).toMatchObject({ tableId: natureDeMutationDe(hero.species).id, spec: { n: 1, sides: 100 } });
+    expect(step.table).toMatchObject({ tableId: natureDeMutationDe(hero.species).id });
     expect(step.table!.result).toBeUndefined();
     expect(hero.mutations ?? []).toHaveLength(0);
   });

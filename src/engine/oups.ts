@@ -11,7 +11,6 @@ import { oupsTable, oupsMisfire, oupsDie, OupsKind } from '../data/oups';
 import { isFirearmQuality, hasQuality, isUnbreakable } from './qualities/dispatch';
 import { solideSaveThreshold, sauvegardeImperdable } from './weaponDamage';
 import { TABLE_SALVE_MISFIRE } from './artilleryMisfire';
-import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import type { DemandeDe } from './ops';
 import { formatWardSave, type SourceDeSauvegarde } from './traits/dispatch';
 import { t } from '../i18n';
@@ -59,8 +58,11 @@ export type LectureDeCasse =
   | { kind: 'seuil'; indice: number; source: SourceDeSauvegarde }
   | { kind: 'table'; tableId: string };
 
-/** UN dé de la grappe d'une casse d'arme — `DemandeDe` (forme du canal op → porte) + sa LECTURE. */
-export type DemandeDeCasse = DemandeDe & { lecture: LectureDeCasse };
+/** UN dé de la grappe d'une casse d'arme — `DemandeDe` (forme du canal op → porte) + sa LECTURE. Lu en
+ *  TABLE, il ne porte aucun dé : sa table est le seul porteur du sien (`noyau/cascade.TableStepDef.die`, #1667). */
+export type DemandeDeCasse =
+  | (DemandeDe & { lecture: Extract<LectureDeCasse, { kind: 'seuil' }> })
+  | (Omit<DemandeDe, 'spec'> & { lecture: Extract<LectureDeCasse, { kind: 'table' }> });
 
 /** La qualité qui OFFRE la sauvegarde contre la cassure instantanée (`LDB 60 l.30`) — id STABLE. */
 export const SOURCE_SOLIDE: SourceDeSauvegarde = Object.freeze({ kind: 'qualite', id: 'solide' }); // #2097
@@ -111,7 +113,7 @@ export function desDOups(c: Combatant, weapon: Weapon, r: OupsResolved): Demande
   const out: DemandeDeCasse[] = [];
   const indice = casseSurMaladresse(weapon, r) ? seuilSolide(c, weapon) : null;
   if (indice != null) out.push(deSolide(CLE_SOLIDE, indice, weapon.label));
-  if (r.kind === 'misfire' && hasQuality(weapon, 'salve')) out.push({ cle: 'salve-table', spec: artilleryMisfireDie(), libelle: t('step.salveMisfire', { weapon: weapon.label }), lecture: { kind: 'table', tableId: TABLE_SALVE_MISFIRE } });
+  if (r.kind === 'misfire' && hasQuality(weapon, 'salve')) out.push({ cle: 'salve-table', libelle: t('step.salveMisfire', { weapon: weapon.label }), lecture: { kind: 'table', tableId: TABLE_SALVE_MISFIRE } });
   return out;
 }
 

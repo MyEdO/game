@@ -103,7 +103,7 @@ describe('desDOups — la grappe d’une Maladresse, dans l’ordre', () => {
   it('Bâclé + Solide(1) : la seule demande est `solide`, lue en SEUIL 9+ sur 1d10', () => {
     const d = desDOups(porteur(), { ...solide(1), qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] } as Weapon, SONNE);
     expect(cles(d)).toEqual(['solide']);
-    expect(d[0].spec).toEqual({ n: 1, sides: 10 });
+    expect(d[0]).toMatchObject({ spec: { n: 1, sides: 10 } });
     expect(d[0].lecture).toEqual({ kind: 'seuil', indice: 9, source: { kind: 'qualite', id: 'solide' } });
   });
 

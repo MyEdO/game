@@ -6,6 +6,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import type { CascadeStep } from './pendings';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { fermeturesDuFlux } from './verbesOuverts';
+import { deDeLaTableTiree } from '../engine/tables';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -25,7 +26,7 @@ const TABLE = 'table-etape-attendue';
 function etapeDeviation(): CascadeStep {
   const etape = tableStep({
     id: 'deviation', kind: cleDeFixture('etape-attendue'), label: fixtureText('Blessure critique'), worldOwner: true,
-    table: { tableId: TABLE, spec: { n: 1, sides: 100 } },
+    table: { tableId: TABLE },
     stake: { key: { dataset: 'combat' as const, kind: 'mutation' } },
   })!;
   return { ...etape, options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }] };
@@ -38,7 +39,7 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
   beforeEach(() => {
     set({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     avecLesTables({
-      tablesTirables: { [TABLE]: { label: fixtureText('Sévérité'), die: 100, rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }], lines: () => ['sévérité tirée'] } },
+      tablesTirables: { [TABLE]: { label: fixtureText('Sévérité'), die: deDeLaTableTiree({ die: 'd100' }), rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }], lines: () => ['sévérité tirée'] } },
       appliers: { 'etape-attendue': () => undefined },
     });
     startCascade(get, set, { title: 'Critique', purpose: 'test', steps: [etapeDeviation(), displayStep({ id: 'suite', kind: cleDeFixture('etape-attendue'), worldOwner: true, label: fixtureText('Suite') })] });

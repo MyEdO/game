@@ -205,7 +205,7 @@ const INTERACTIONS: Record<'jet' | 'jetOppose' | 'batch' | 'batchOppose' | 'tabl
 function tableJetee(): CascadeStep {
   const tableId = Object.values(CRIT_TABLE_IDS)[0];
   const rangee = tableStepDef(tableId)!.rows[0];
-  return { id: 't', kind: 'testDeclenche', actorId: H.id, table: { tableId, spec: { n: 1, sides: 100 }, result: { roll: 5, die: 5, id: rangee.id, lines: [rangee.label ?? rangee.id] } } };
+  return { id: 't', kind: 'testDeclenche', actorId: H.id, table: { tableId, result: { roll: 5, die: 5, id: rangee.id, lines: [rangee.label ?? rangee.id] } } };
 }
 
 /** Le dé d'une ligne est tombé et se lit en entier : d100, cible, DR et verdict ; la ligne tirée d'une table ; le
@@ -304,7 +304,7 @@ describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie'
 
   it('table : après `jetLancer(\'cascadeTirage\')`, la ligne dit la table, le dé et la ligne tirée', () => {
     const tableId = Object.values(CRIT_TABLE_IDS)[0];
-    const partie = partieSur(cascade({ id: 't', kind: 'testDeclenche', actorId: H.id, table: { tableId, spec: { n: 1, sides: 100 } } }));
+    const partie = partieSur(cascade({ id: 't', kind: 'testDeclenche', actorId: H.id, table: { tableId } }));
     try {
       expect(jetsEnVue(partie.etat())[0].lignes[0], 'avant le tirage : la table, à lancer').toMatchObject({ genre: 'table', jet: null });
       partie.envoyer({ type: 'jetLancer', args: ['cascadeTirage', 't'] });
