@@ -33,7 +33,7 @@ import { imposerLesD100 } from './battleRng.testkit';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { applierDe, runCascadeImmediate, tableStepDef } from './cascade';
+import { applierDe, runCascadeImmediate, startCascade, tableStepDef } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe, type ChoisitCle } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
@@ -1185,8 +1185,8 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
 describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 choix (couture RÉELLE, re-recette)', () => {
   beforeEach(freshState);
 
-  /** Force l’événement de bord `cogue-pirate` au jour courant et déroule la résolution RÉELLE du jour
-   *  (`runSeaDay` → `resolveSeaDayEvent` → op `navireHostile` → `openPirateHail`) — PAS un step
+  /** Nomme l’événement de bord `cogue-pirate` d’avance et déroule la résolution RÉELLE du jour
+   *  (`runSeaDay` → étape d’événement de bord → op `navireHostile` → `openPirateHail`) — PAS un step
    *  fabriqué : on vérifie que la COUTURE présente bien la cascade de choix (le lot D ne testait que les
    *  appliers, sur un step monté à la main → il passait alors que le joueur ne voyait rien). */
   function forceHail(id = 'cogue-pirate') {
@@ -1231,17 +1231,19 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     expect(get().travelPlan!.sea!.crisis?.kind).toBe('poursuite');
   });
 
-  it('après « fuir », la conduite du jour REPREND SYNCHRONEMENT (couture `dispatchCascadeDone`, pas de `setTimeout`) → la manche de Poursuite finit par surfacer (#383)', () => {
+  it('après « fuir », la pile rend le jour en vol, qui compose la manche de Poursuite le jour même (#383)', () => {
     forceHail();
+    expect(get().suspendedCascades.map((c) => c.purpose), 'la sommation s’ouvre sous le jour en vol').toEqual(['travelDay']);
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', 'fuir', cur.id);
-    get().jetValider('cascade'); // ferme la cascade de choix → dispatchCascadeDone (purpose 'test' + mer) relance runSeaDay
-    // Pas de soft-lock : le jour a redémarré SANS attendre un macrotask (la crise reste posée).
+    get().jetValider('cascade'); // ferme la sommation → `reprendreLaPile` rend le jour, sans `setTimeout`
     expect(get().travelPlan!.sea!.crisis?.kind).toBe('poursuite');
-    expect(get().pendingCascade?.purpose).toBe('travelDay');
-    // La Progression du jour ouvre ; sa résolution INSÈRE la manche de Poursuite (buildPostProgressionSteps).
-    for (let i = 0; i < 6 && !get().pendingCascade?.participants.some((s) => s.kind === 'equipage-poursuite'); i++) stepCascade();
-    expect(get().pendingCascade?.participants.some((s) => s.kind === 'equipage-poursuite')).toBe(true);
+    draineCascade(get);
+    const prefixeManche = t('sv.chase', { label: '§', issue: '', gain: '', distance: '', escapeAt: '' }).split('§')[0];
+    expect(get().journal.filter((l) => l.startsWith(prefixeManche)), 'la manche de Poursuite se joue dans le jour de la sommation').toHaveLength(1);
+    expect(get().journal.filter((l) => l.startsWith(t('sv.weatherOfDay', { weather: '§', from: '', heading: '' }).split('§')[0])), 'le jour n’est bâti qu’une fois').toHaveLength(1);
+    expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
+    expect(get().pendingRest, 'le jour se dénoue sur la halte').toBeTruthy();
   });
 
   it('équipage SANS compétence navale : la manche de Poursuite se JOUE quand même (plancher de Manque de bras, MDG 14 l.55), jamais droppée en silence (#383)', () => {
@@ -3041,19 +3043,21 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     expect(get().journal.filter((l) => l.includes(t('tf.perilDAuteur', { label: 'Froid mordant' }))), 'le jour n’est bâti qu’une fois').toHaveLength(1);
   });
 
-  it('Ouragan : la bande du coup à l’équipage (MDG 13 l.763) se joue dans le Test de l’événement, puis le vrai jour joue sa Progression', () => {
+  it('Ouragan nommé d’avance : la bande du coup à l’équipage (MDG 13 l.763) se joue dans le Test de l’événement, ouvert sous le jour en vol, que la pile rend ensuite à sa Progression', () => {
     seedBattleRng(1);
     set({ party: get().party.map((h) => ({ ...h, shipStation: 'greement', skills: (h.skills ?? []).filter((s) => s.id !== 'voile') })) } as never);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'ouragan' } } } as never);
     runSeaDay(get, set);
     expect(get().pendingCascade?.purpose, 'prémisse : le Test d’équipage de l’Ouragan tient le slot').toBe('test');
+    expect(get().suspendedCascades.map((c) => c.purpose), 'le jour en vol attend sous le Test').toEqual(['travelDay']);
+    const curseurParque = get().suspendedCascades[0]!.cursor;
     const estBande = (x: CascadeStep) => x.id.startsWith('mer-equipage-touche');
     const bandeVivante = () => [get().pendingCascade, ...get().suspendedCascades].some((c) => c?.participants.some(estBande));
     let bandeVue = false;
     let bandeDansLeTest = false;
     for (let i = 0; i < 20 && get().pendingCascade?.purpose === 'test'; i++) {
-      expect(journeesVivantes(), 'aucune journée avant la clôture du Test de l’événement').toEqual([]);
+      expect(journeesVivantes(), 'une seule journée, en pile, pendant le Test de l’événement').toHaveLength(1);
       if (bandeVivante()) bandeVue = true;
       if (get().pendingCascade!.participants.some(estBande)) bandeDansLeTest = true;
       unPas(affalerRate);
@@ -3062,7 +3066,8 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     expect(bandeVue, 'prémisse : Affaler raté, le tirage des Critiques porte un coup à l’équipage, une bande `mer-equipage-touche` existe').toBe(true);
     expect(bandeDansLeTest, 'la bande `mer-equipage-touche` rejoint la séquence du Test').toBe(true);
     const jour = get().pendingCascade;
-    expect(jour?.purpose, 'la clôture du Test bâtit le vrai jour').toBe('travelDay');
+    expect(jour?.purpose, 'la clôture du Test rend le jour par la pile').toBe('travelDay');
+    expect(jour!.cursor, 'le jour est repris à son curseur, pas rebâti').toBe(curseurParque);
     expect(jour!.participants.some(estBande), 'la bande ne passe pas dans le jour').toBe(false);
     expect(jour!.participants.some((x) => x.kind === 'merProgressionChoix' || x.kind === 'equipage-progression'), 'le jour porte sa Progression, quelle que soit sa forme').toBe(true);
     for (let i = 0; i < 40 && get().pendingCascade && !get().pendingRest; i++) {
@@ -3077,8 +3082,8 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
    * applier ouvre suspend le jour, dont la clôture le reprend une fois. */
   const CADENCES = ['jourParJour', 'commande'] as const;
   /** Le montage des sondes du juge (#4006) : le gréement sans Voile, l'Humeur de Manann à −60, l'événement de bord
-   *  dû ce jour ; la graine tire l'événement. */
-  const jourNaturel = (graine: number, cadence: (typeof CADENCES)[number]) => {
+   *  dû ce jour ; la graine tire l'événement. `sea` surcharge l'état de traversée (un événement nommé d'avance). */
+  const monterLeJour = (graine: number, cadence: (typeof CADENCES)[number], sea: Partial<SeaVoyageState> = {}) => {
     freshState();
     set({
       party: get().party.map((h) => ({ ...h, shipStation: 'greement', skills: (h.skills ?? []).filter((s) => s.id !== 'voile') })),
@@ -3086,7 +3091,10 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     } as never);
     seedBattleRng(graine);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence })!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1 } } } as never);
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, ...sea } } } as never);
+  };
+  const jourDuMontage = (graine: number, cadence: (typeof CADENCES)[number], sea: Partial<SeaVoyageState> = {}) => {
+    monterLeJour(graine, cadence, sea);
     runSeaDay(get, set);
   };
   /** L'événement de bord du jour est-il raconté (`sea.events`, versé au procès-verbal à la clôture) ? */
@@ -3137,7 +3145,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
   it('Ouragan NATUREL (graines 4 et 11) : le Test d’équipage passe avant le choix de Progression du jour, présenté une fois, une journée comptée', () => {
     for (const cadence of CADENCES) for (const graine of [4, 11]) {
       const cas = `${cadence}, graine ${graine}`;
-      jourNaturel(graine, cadence);
+      jourDuMontage(graine, cadence);
       expect(evenementRaconte('ouragan'), `prémisse (${cas}) : la table du jour tire l’Ouragan`).toBe(true);
       expect(ouverte('testDEquipage'), `prémisse (${cas}) : l’applier de la table ouvre le Test d’équipage`).toBe(true);
       expect(etapeAuSlot(), `le Test d’équipage tient le slot (${cas})`).toBe('testDEquipage');
@@ -3154,7 +3162,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     const montages = [{ graine: 12, evenement: 'vaisseau-fantome-litteralement', noeud: 'choixDeFlux' }, { graine: 13, evenement: 'ouragan', noeud: 'testDEquipage' }];
     for (const cadence of CADENCES) for (const { graine, evenement, noeud } of montages) {
       const cas = `${cadence}, ${evenement}`;
-      jourNaturel(graine, cadence);
+      jourDuMontage(graine, cadence);
       expect(evenementRaconte(evenement), `prémisse (${cas}) : la table du jour tire l’événement`).toBe(true);
       expect(ouverte(noeud), `prémisse (${cas}) : l’applier de la table ouvre son nœud`).toBe(true);
       expect(etapeAuSlot(), `le nœud de l’événement tient le slot (${cas})`).toBe(noeud);
@@ -3168,7 +3176,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
   it('sommation NATURELLE (Cogue pirate, graine 3) « fuir » : la Poursuite ouverte une fois, composée le jour même, une journée comptée', () => {
     const fuir: ChoisitCle = (etape) => (etape.kind === 'merPiratesSommation' ? 'fuir' : undefined);
     for (const cadence of CADENCES) {
-      jourNaturel(3, cadence);
+      jourDuMontage(3, cadence);
       expect(evenementRaconte('cogue-pirate'), `prémisse (${cadence}) : la table du jour tire la Cogue pirate`).toBe(true);
       expect(ouverte('merPiratesSommation'), `prémisse (${cadence}) : l’applier de la table ouvre la sommation`).toBe(true);
       expect(etapeAuSlot(), `la sommation tient le slot (${cadence})`).toBe('merPiratesSommation');
@@ -3186,7 +3194,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
   it('sommation NATURELLE (Cogue pirate, graine 3) « combattre » : le jour attend sous l’abordage et reprend une fois après la victoire', () => {
     const combattre: ChoisitCle = (etape) => (etape.kind === 'merPiratesSommation' ? 'combattre' : undefined);
     for (const cadence of CADENCES) {
-      jourNaturel(3, cadence);
+      jourDuMontage(3, cadence);
       expect(ouverte('merPiratesSommation'), `prémisse (${cadence}) : l’applier de la table ouvre la sommation`).toBe(true);
       expect(etapeAuSlot(), `la sommation tient le slot (${cadence})`).toBe('merPiratesSommation');
       unPas(undefined, combattre);
@@ -3205,9 +3213,172 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     }
   });
 
+  const lignesDeMeteo = () => lignesDuJournal('sv.weatherOfDay', { weather: '§', from: '§', heading: '§' });
+  /** Les événements de bord racontés sur la traversée (`sea.events` et procès-verbaux), par leur texte. */
+  const evenementsDeLaTraversee = () => [...(get().travelPlan!.sea!.events ?? []), ...(get().travelPlan!.log ?? []).flatMap((j) => j.events ?? [])];
+  const racontes = (id: string) => evenementsDeLaTraversee().filter((e) => e.text === seaBoardEventById(id)!.desc);
+
+  it('Présage NOMMÉ d’avance (albatros, feu bleu ; réussi, raté) : le Test de Prière s’ouvre sous le jour en vol, puis le jour reprend, une seule Météo du jour, compteur retiré', () => {
+    const prierManann = (x: CascadeStep) => !!x.stake && 'key' in x.stake && x.stake.key?.kind === 'mer-priere-manann';
+    // Signe de l'écart d'Humeur de Manann selon l'issue (`sea-events.json`, MDG 15 l.197-198, l.230-232).
+    const signes = { 'presage-divin-albatros': { reussi: 0, rate: -1 }, 'presage-divin-feu-bleu': { reussi: 1, rate: 0 } } as const;
+    for (const cadence of CADENCES) for (const [presage, signe] of Object.entries(signes)) for (const issue of ['reussi', 'rate'] as const) {
+      const cas = `${cadence}, ${presage}, ${issue}`;
+      monterLeJour(1, cadence, { forcedEventId: presage, daysToEvent: 99 });
+      const [h, ...reste] = get().party;
+      set({ party: [{ ...h, skills: [...(h.skills ?? []), { id: 'priere', characteristic: 'sociabilite', advances: 20 }], talents: [...h.talents, { talentId: 'beni', spec: 'manann', times: 1 }] }, ...reste] } as never);
+      runSeaDay(get, set);
+      expect(prierManann(get().pendingCascade!.participants[get().pendingCascade!.cursor]!), `le Test de Prière tient le slot (${cas})`).toBe(true);
+      expect(pile(), `le jour attend sous le Test (${cas})`).toEqual(['travelDay']);
+      const humeurAvant = get().vessel!.manann!.score;
+      let prieres = 0;
+      for (let i = 0; i < 80 && (get().pendingTest || get().pendingCascade); i++) {
+        expect(journeesVivantes().length, `jamais deux journées vivantes (${cas})`).toBeLessThanOrEqual(1);
+        if (get().pendingTest) {
+          prieres++;
+          expect(pile(), `le Test de Prière se joue sous le jour en vol (${cas})`).toEqual(['travelDay']);
+          expect(get().travelPlan!.sea!.daysAtSea, `aucune journée comptée sous le Test (${cas})`).toBe(0);
+          get().jetLancer('test');
+          get().jetImposerLeResultat('test', issue === 'reussi' ? 1 : 99);
+          get().jetValider('test');
+        } else unPas();
+      }
+      expect(prieres, `un Test de Prière joué (${cas})`).toBe(1);
+      expect(get().pendingCascade, `la cascade se draine (${cas})`).toBeNull();
+      expect(Math.sign(get().vessel!.manann!.score - humeurAvant), `l’issue du Test s’applique (${cas})`).toBe(signe[issue]);
+      uneJourneeComptee(cas);
+      expect(lignesDeMeteo(), `une seule Météo du jour (${cas})`).toBe(1);
+      expect(racontes(presage), `le Présage raconté une fois (${cas})`).toHaveLength(1);
+      expect(get().travelPlan!.sea!.forcedEventId, `l’événement nommé est consommé (${cas})`).toBeUndefined();
+      expect(get().travelPlan!.sea!.daysToEvent, `le compteur est retiré : délai suivant tiré, 1d10 (${cas})`).toBeLessThanOrEqual(10);
+    }
+  });
+
+  it('« Bateau endommagé » NOMMÉ d’avance (graines 3, 7, 14) : la bande du coup à l’équipage rejoint le jour en vol, qui se clôt une fois', () => {
+    const estBande = (x: CascadeStep) => x.kind === 'testDeclencheEnBande';
+    for (const cadence of CADENCES) for (const graine of [3, 7, 14]) {
+      const cas = `${cadence}, graine ${graine}`;
+      jourDuMontage(graine, cadence, { forcedEventId: 'bateau-endommage' });
+      const hotes = new Set<string>();
+      const releve = () => { for (const c of [get().pendingCascade, ...get().suspendedCascades]) if (c?.participants.some(estBande)) hotes.add(c.purpose); };
+      releve();
+      for (let i = 0; i < 80 && get().pendingCascade; i++) { expect(journeesVivantes().length).toBeLessThanOrEqual(1); unPas(); releve(); }
+      // Traversée commandée : la journée de routine se joue d'un trait, la bande au procès-verbal du jour.
+      if ((get().travelPlan!.log?.[0]?.entries ?? []).some((e) => e.id?.includes('testDeclencheEnBande'))) hotes.add('travelDay');
+      expect([...hotes], `la bande rejoint le jour en vol, et lui seul (${cas})`).toEqual(['travelDay']);
+      uneJourneeComptee(cas);
+    }
+  });
+
+  it('sommation NOMMÉE d’avance (Cogue pirate, graines 3 et 7) « fuir » : une seule sommation sur la traversée du montage', () => {
+    const fuir: ChoisitCle = (etape) => (etape.kind === 'merPiratesSommation' ? 'fuir' : undefined);
+    for (const cadence of CADENCES) for (const graine of [3, 7]) {
+      const cas = `${cadence}, graine ${graine}`;
+      jourDuMontage(graine, cadence, { forcedEventId: 'cogue-pirate' });
+      expect(etapeAuSlot(), `la sommation tient le slot (${cas})`).toBe('merPiratesSommation');
+      expect(pile(), `le jour attend sous la sommation (${cas})`).toEqual(['travelDay']);
+      const { etapes } = jusquAuSlotLibre(undefined, fuir);
+      expect(etapes.filter((k) => k === 'merPiratesSommation'), `une seule sommation (${cas})`).toHaveLength(1);
+      expect(racontes('cogue-pirate'), `la Cogue pirate racontée une fois (${cas})`).toHaveLength(1);
+      expect(lignesDuJournal('sv.fleeChase', { start: '§', escapeAt: '§' }), `la Poursuite ouverte une fois (${cas})`).toBe(1);
+      expect(get().travelPlan!.sea!.forcedEventId, `l’événement nommé est consommé (${cas})`).toBeUndefined();
+      uneJourneeComptee(cas);
+    }
+  });
+
+  it('nommé d’avance contre tiré à la table (Vaisseau fantôme, graine 12, même départ) : même rang, même possession, même ligne, même pile ; seules différences : pas de rangée, pas de dé au procès-verbal, un tirage de moins', () => {
+    const KIND = 'mer-evenement-de-bord';
+    const EV = 'vaisseau-fantome-litteralement';
+    const ligneDeLEvenement = `${seaBoardEventById(EV)!.label} — `;
+    for (const cadence of CADENCES) {
+      const bras = (sea: Partial<SeaVoyageState>) => {
+        jourDuMontage(12, cadence, sea);
+        const [jour] = journeesVivantes();
+        const rang = jour!.participants.findIndex((x) => x.kind === KIND);
+        const etape = jour!.participants[rang]!;
+        const releve = {
+          rang, etape, slot: etapeAuSlot(), pile: pile(), curseur: jour!.cursor,
+          lignes: get().journal.filter((l) => l.startsWith(ligneDeLEvenement)),
+          events: (get().travelPlan!.sea!.events ?? []).map((e) => ({ title: e.title, roll: e.roll })),
+          forcedEventId: get().travelPlan!.sea!.forcedEventId,
+          tirages: [battleRng().int(1, 1000), battleRng().int(1, 1000), battleRng().int(1, 1000)],
+        };
+        // Possession : l'étape posée seule au slot, telle qu'elle a été bâtie (sans son commit).
+        const { committed: _c, outcome: _o, table, ...decl } = etape;
+        const tableDeclaree = table ? (({ result: _r, ...d }) => d)(table) : undefined;
+        freshState();
+        startCascade(get, set, { title: 'possession', purpose: 'travelDay', steps: [{ ...decl, ...(tableDeclaree ? { table: tableDeclaree } : {}) } as never] });
+        return { ...releve, proprietaire: modalOwnerOf(get() as never) };
+      };
+      const naturel = bras({});
+      expect(naturel.etape.table?.result?.id, `prémisse (${cadence}) : la table du jour tire le Vaisseau fantôme`).toBe(EV);
+      const nomme = bras({ forcedEventId: EV });
+      expect(nomme.rang, `même rang dans le jour (${cadence})`).toBe(naturel.rang);
+      expect([nomme.etape.worldOwner, nomme.etape.actorId], `même possession déclarée (${cadence})`).toEqual([true, undefined]);
+      expect([naturel.etape.worldOwner, naturel.etape.actorId]).toEqual([true, undefined]);
+      expect([nomme.proprietaire, naturel.proprietaire], `même propriétaire de la fenêtre (${cadence})`).toEqual([WORLD_STEP_OWNER, WORLD_STEP_OWNER]);
+      expect(naturel.lignes, `prémisse (${cadence}) : une ligne de conséquence`).toHaveLength(1);
+      expect(nomme.lignes, `même ligne au journal (${cadence})`).toEqual(naturel.lignes);
+      expect([nomme.slot, nomme.pile, nomme.curseur], `même slot et même pile après le commit (${cadence})`).toEqual([naturel.slot, naturel.pile, naturel.curseur]);
+      expect(nomme.forcedEventId, `l’événement nommé est consommé (${cadence})`).toBeUndefined();
+      // Les trois différences, aucun dé n'étant tombé.
+      expect([nomme.etape.table, nomme.etape.stake], `pas de rangée de table ni d’enjeu de tirage (${cadence})`).toEqual([undefined, undefined]);
+      expect(naturel.etape.stake).toBeDefined();
+      expect(naturel.events, `le dé au procès-verbal du tiré (${cadence})`).toEqual([{ title: seaBoardEventById(EV)!.label, roll: expect.any(Number) }]);
+      expect(nomme.events, `pas de dé au procès-verbal du nommé (${cadence})`).toEqual([{ title: seaBoardEventById(EV)!.label, roll: undefined }]);
+      expect(nomme.tirages.slice(1), `un tirage du générateur de moins (${cadence})`).toEqual(naturel.tirages.slice(0, 2));
+    }
+  });
+
+  it('un événement nommé pendant qu’une étape tirée attend son commit : la rangée tirée se joue, l’événement nommé reste posé et se joue au jour suivant', () => {
+    const NOMME = 'presage-divin-feu-bleu'; // sans Prêtre de Manann à bord : aucune conséquence (`sea-events.json`)
+    const perilMap: WorldMap = {
+      ...seaMap,
+      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Froid mordant', chancePct: 100, effects: [{ type: 'exposureNight', kind: 'froid', count: 1, target: 'groupe' }] }] }],
+    };
+    set({ worldMap: perilMap } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', perilMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1 } } } as never);
+    runSeaDay(get, set);
+    for (let i = 0; i < 10 && get().pendingCascade?.purpose !== 'test'; i++) unPas();
+    const [jour] = journeesVivantes();
+    expect(pile(), 'prémisse : le Test du péril parque le jour').toEqual(['travelDay']);
+    expect(jour!.participants[jour!.cursor]?.kind, 'prémisse : l’étape d’événement tirée attend son commit').toBe('mer-evenement-de-bord');
+    expect(jour!.participants[jour!.cursor]?.table, 'prémisse : c’est l’étape de table').toBeDefined();
+    set({ travelPlan: { ...get().travelPlan!, sea: { ...get().travelPlan!.sea!, forcedEventId: NOMME } } } as never);
+    jusquAuSlotLibre();
+    expect(racontes(NOMME), 'le jour joue sa rangée tirée, pas l’événement nommé').toHaveLength(0);
+    expect(evenementsDeLaTraversee(), 'la rangée tirée est racontée').toHaveLength(1);
+    expect(get().travelPlan!.sea!.forcedEventId, 'l’événement nommé reste posé').toBe(NOMME);
+    get().fenetreValider('repos');
+    jusquAuSlotLibre();
+    expect(racontes(NOMME), 'le jour suivant joue l’événement nommé').toHaveLength(1);
+    expect(get().travelPlan!.sea!.forcedEventId).toBeUndefined();
+  });
+
+  it('une séquence `test` close sous la halte, en mer, ne bâtit aucune journée (nœud `choix` d’un Flow)', () => {
+    const choix = { kind: 'choix', invite: 'Payer', oui: { kind: 'effet', effet: { type: 'setFlag', flag: 'oui', value: true } }, non: EMPTY_FLOW } as never;
+    for (const cadence of CADENCES) {
+      freshState();
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence })!;
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 9 } } } as never);
+      runSeaDay(get, set);
+      for (let i = 0; i < 150 && get().pendingCascade && !get().pendingRest; i++) unPas();
+      expect(get().pendingRest, `prémisse (${cadence}) : la halte du soir attend`).toBeTruthy();
+      const avant = { meteo: lignesDeMeteo(), jours: get().travelPlan!.sea!.daysAtSea, log: get().travelPlan!.log?.length };
+      jouerFlowEntier(runFlow(get, set, choix, 'Décision'));
+      expect([get().pendingCascade?.purpose, etapeAuSlot()], `prémisse (${cadence}) : le choix ouvre sa séquence \`test\``).toEqual(['test', 'choixDeFlux']);
+      unPas(undefined, (e) => (e.kind === 'choixDeFlux' ? 'oui' : undefined));
+      expect(get().flags.oui, `prémisse (${cadence}) : la branche est jouée`).toBe(true);
+      expect(get().pendingCascade, `aucune journée bâtie à la clôture (${cadence})`).toBeNull();
+      expect({ meteo: lignesDeMeteo(), jours: get().travelPlan!.sea!.daysAtSea, log: get().travelPlan!.log?.length }, `ni météo annoncée, ni journée comptée (${cadence})`).toEqual(avant);
+      expect(get().pendingRest, `la halte attend toujours (${cadence})`).toBeTruthy();
+    }
+  });
+
   it('ouverture puis combat (Puissant monstre marin, graine 6) : derrière le combat, la pile est [travelDay, affichage]', () => {
     for (const cadence of CADENCES) {
-      jourNaturel(6, cadence);
+      jourDuMontage(6, cadence);
       expect(evenementRaconte('puissant-monstre-marin'), `prémisse (${cadence}) : la table du jour tire le Puissant monstre marin`).toBe(true);
       expect(get().battle, `prémisse (${cadence}) : le combat est ouvert`).toBeTruthy();
       expect(pile(), `le jour dessous, la carte que l’applier a ouverte dessus (${cadence})`).toEqual(['travelDay', 'affichage']);
