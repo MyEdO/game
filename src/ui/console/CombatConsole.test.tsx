@@ -1757,7 +1757,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     monter(h, { foes: [foe('e1', 9, 9)] });
     const det = caseAction('determination-psychologie')!;
     expect(det.hasAttribute('data-gated')).toBe(true);
-    const attendue = actionGate('determination-psychologie', { active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene, active: h, battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
     // La raison du REGISTRE (jamais une chaîne recopiée ici) se lit au survol ET au focus…
     expect(refusAuSurvol(det)).toBe(attendue);
     expect(refusAuFocus(det)).toBe(attendue);
@@ -2514,7 +2514,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
       const c = caseAction(id);
       expect(c, `la géométrie garde sa case « ${id} »`).not.toBeNull();
       expect(estFermee(c!), `« ${id} » reste cliquable au tour d’une coque`).toBe(true);
-      const attendue = actionGate(id, { active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
+      const attendue = actionGate(id, { scene: useGame.getState().scene, active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime }).reason;
       expect(refusAuSurvol(c!), `« ${id} » se ferme sans dire pourquoi au survol`).toBe(attendue);
       const copie = c!.querySelector('.hors-ecran[data-gate]');
       expect(copie?.textContent, `« ${id} » : rien à lire pour un lecteur d’écran`).toBe(attendue);
@@ -3820,7 +3820,7 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
 
   it('FOCUS RÉEL (clavier) : la case gatée prend le focus et ouvre sa raison ; le blur la referme', () => {
     const det = consoleGatee();
-    const attendue = actionGate('determination-psychologie', {
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene,
       active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime,
     }).reason;
     expect(refusAuFocus(det)).toBe(attendue);
@@ -3846,7 +3846,7 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
 
   it('TACTILE : un tap sur la case fermée MONTRE sa raison — et n’exécute rien', () => {
     const det = consoleGatee();
-    const attendue = actionGate('determination-psychologie', {
+    const attendue = actionGate('determination-psychologie', { scene: useGame.getState().scene,
       active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!, gameTime: useGame.getState().gameTime,
     }).reason;
     const avant = useGame.getState().battle!.combatants[0].resolve;
@@ -3882,7 +3882,7 @@ describe('CombatConsole — tout État qui déclare `restrictsAction` ferme les 
       ).toBe('');
       const b = useGame.getState().battle!;
       expect(caseAction('defensive')!.querySelector('[data-gate]')?.textContent, 'la case ne dit pas la raison du registre')
-        .toBe(actionGate('defensive', { active: b.combatants.find((c) => c.id === 'h1')!, battle: b, gameTime: useGame.getState().gameTime }).reason);
+        .toBe(actionGate('defensive', { scene: useGame.getState().scene, active: b.combatants.find((c) => c.id === 'h1')!, battle: b, gameTime: useGame.getState().gameTime }).reason);
     }
   });
 

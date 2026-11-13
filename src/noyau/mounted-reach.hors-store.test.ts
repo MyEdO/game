@@ -42,8 +42,8 @@ beforeEach(() => {
 describe('portée de mêlée d’un cavalier = empreinte de la monture', () => {
   it('prémisse : le cavalier est à distance 2 de la cible, la monture à 1', () => {
     const { hero, mount, foe } = setup();
-    expect(distanceDeContact(hero, foe)).toBe(2); // cavalier 1×1 en (11,9)
-    expect(distanceDeContact(mount, foe)).toBe(1); // monture 2×2 → croupe en (12,10) ↔ (13,10)
+    expect(distanceDeContact(banc.getState().scene, hero, foe)).toBe(2); // cavalier 1×1 en (11,9)
+    expect(distanceDeContact(banc.getState().scene, mount, foe)).toBe(1); // monture 2×2 → croupe en (12,10) ↔ (13,10)
   });
 
   it('attackPlan : cible adjacente à la MONTURE → attaque directe (pas Charge ni blocage)', () => {

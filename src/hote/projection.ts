@@ -201,7 +201,7 @@ const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
 
 /** Les offres de l'actif d'une barre ouverte (`offresDeLActif`, l'énumération que lit la console). */
 export const offresDeLaBarreOuverte = (etat: Jeu, barre: Extract<EtatDeLaBarre, { forme: 'ouverte' }>): Offre[] =>
-  offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, gameTime: etat.gameTime, state: etat });
+  offresDeLActif({ active: barre.active, battle: barre.battle, scene: etat.scene, netMode: etat.net.mode, gameTime: etat.gameTime, state: etat });
 
 /** Les offres, une par action, dans l'ordre du registre : ses candidats ouverts comptés ; fermée quand aucun ne
  *  l'ouvre, avec la raison de son premier candidat (loi du refus visible, `offresDeLActif`). */

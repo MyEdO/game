@@ -363,7 +363,16 @@
     "races": [
       "halfling"
     ],
-    "aLaPlaceDe": "soldat",
+    "aLaPlaceDe": {
+      "id": "soldat"
+    },
+    "especesALaPlaceDe": [
+      "halflings"
+    ],
+    "gatedByRule": {
+      "id": "creation-chevaucheur-de-blaireau"
+    },
+    "maison": "« halfling du Mootland » (ADE I 07 l.11) = l’espèce Halfling du Livre de base seule : les 12 clans sont du Reikland (ADE I 02 l.11) ; valeur d’adaptation du ticket #3908 (https://github.com/MyEdO/game/issues/3908#issuecomment-6841841671)",
     "desc": "*Halflings un peu « blaireaux »*\n\nLes rares érudits qui ont appris l'existence des Chevaucheurs de blaireau grâce à des sources halflings fiables se posent beaucoup de questions sur leurs origines. Se pourrait-il qu'un halfling ait été inspiré par les nobles chevaliers de Bretonnie et leurs magnifiques destriers? S'agit-il plutôt d'une réponse aux sauvages orcs, qui chevauchent leurs sangliers de guerre tout aussi effrayants (et, beaucoup s'accordent à dire, tout aussi puants)? Ou toute cette histoire a-t-elle commencé avec un pari trop arrosé qui a complètement échappé à tout contrôle? La vérité ne sera probablement jamais connue, mais tous ces érudits s'accordent sur un point: l'efficacité constatée des Chevaucheurs de blaireau au combat est littéralement incroyable. Les blaireaux sont très sociables et vivent à plusieurs dans des terriers souterrains d'une propreté impeccable, et représentent ainsi des vertus que les halflings respectent tout particulièrement. Certains observateurs ajoutent aussi qu'en cas de menace, les membres des deux espèces deviennent étonnamment féroces, et capables d'affronter des adversaires bien plus imposants qu'eux-mêmes.\n\n« L'ogre se foutait de nous et voulait à tout prix défier un champion en duel, mais il savait très bien qu'on n'était que des fermiers. Il allait cramer la maison et tous nous bouffer, c'était sûr. Et là, sur la colline, y a un mec qu'est apparu, un halfling tout petit qui chevauchait, je le jure sur l'Âtre d'Esméralda elle-même, un blaireau en armure. L'est venu en se dandinant et il a défié l'ogre. L'ogre était mort de rire, mais le blaireau lui a grimpé dans la jambe du pantalon et l'a mordu là où que ça fait mal. Et pendant qu'il gueulait et qu'il dansait avec un blaireau dans le futal, le halfling lui a éclaté la tronche avec une marmite. »\n\n– Markus, garçon de ferme\n\nLes Chevaucheurs de blaireau sont trop peu nombreux pour former une unité de cavalerie: aucun n'a jamais été aperçu en dehors du Moot, après tout. Cependant, depuis le Désastre de la Semaine de la Tourte de 2 409 CI, tout le monde s'accorde à dire qu'une telle unité ne doit plus jamais être formée. En effet, au cours de cette fête fatidique, la commission de la parade ne s'est pas rendu compte qu'elle venait de parquer ensemble plus d'une douzaine de blaireaux adultes tout près les uns des autres au plus fort de leur saison des amours. Résultat des courses: trois halflings morts et d'innombrables pâtisseries réduites en miettes. Aujourd'hui, les Chevaucheurs de blaireau sont des figures solitaires qui arpentent le Moot tels des Chevaliers en quête, en plus petits et plus courtauds. Puisqu'ils n'ont aucune organisation réglementaire, qu'ils voyagent beaucoup et qu'ils ont souvent dû changer de métier, les Chevaucheurs de blaireau disposent de compétences variées peu en rapport avec le combat monté. Mais les halflings sont ingénieux, et finissent toujours par trouver un moyen d'exploiter celles-ci.",
     "source": {
       "book": "archives-de-l-empire-1",
@@ -423,7 +432,9 @@
     "races": [
       "elfe-sylvain"
     ],
-    "aLaPlaceDe": "chasseur-de-primes",
+    "aLaPlaceDe": {
+      "id": "chasseur-de-primes"
+    },
     "desc": "Les forêts antiques et mortelles du Vieux Monde sont un véritable refuge pour bandits et autres dangereux parias. Elles regorgent de prédateurs naturels comme des ours, des loups et des araignées géantes. Et si ces dangers ne sont pas suffisants pour pousser les voyageurs à y écourter leur séjour, alors les créatures contre nature qui y résident aussi, comme les infâmes trolls, les hardes d'hommes-bêtes ou même les morts-vivants, le seront peut-être. Mais les Rôdeurs fantômes sont sans doute la plus mortelle de toutes ces menaces. Si les hauts elfes d'Ulthuan admirent et respectent la beauté de la nature, les elfes sylvains, eux, sont renommés pour la férocité dont ils peuvent faire preuve pour défendre leurs terres. Les Rôdeurs fantômes l'illustrent parfaitement. La détermination et le savoir-faire avec lesquels ces maîtres archers traquent tout ce qui menace la nature terrifieraient n'importe qui, si leur vitesse et leur silence presque surnaturels ne les rendaient pas pratiquement indécelables. L'harmonie des Rôdeurs fantômes avec la nature est telle que celle-ci semble presque cacher les traces de leur passage aux yeux indiscrets. Ils sont tellement dévoués à leur tâche que même les autres elfes sylvains les trouvent intimidants: leur dévotion confine à l'obsession malsaine pour un peuple si émotif.\n\n« Y avait une harde d'hommes-bêtes qui rôdait pas loin de Drachenhöhle, du coup on a dû sortir les chevaux et partir à leur recherche. C'était facile de suivre leur trace, ils piétinaient tout sur leur passage et en plus, ils puaient comme des latrines d'orcs. On les a retrouvés morts dans leur camp, chacun percé d'une flèche en plein cœur. Bon le truc, c'est que les gars et moi, on s'est déjà frottés aux elfes de la forêt une ou deux fois. Ils fabriquent eux-mêmes leur équipement, du coup l'empennage de leurs flèches, c'est un peu un genre de signature. Là, c'étaient toutes les mêmes. Donc toute la harde a été butée par un seul archer. Les gars et moi, on a enterré les cadavres et semé quelques graines par-dessus, mais je peux te dire, on s'est barré TRÈS prudemment. »\n\n– Gunther Rosch, Soldat impérial\n\nPour les Rôdeurs fantômes, la forêt est sacrée par-dessus tout. Ils ne tolèrent aucune transgression, et qu'il s'agisse d'une bête du Chaos qui erre sans but ou d'un simple paysan qui coupe du petit bois, tout intrus subira le même châtiment. Même si c'est dans les forêts que l'on croise le plus de Rôdeurs fantômes, ils sont à l'aise dans n'importe quelle étendue naturelle, considérant la protection d'une montagne vierge isolée avec autant au sérieux que celle d'une clairière en forêt (ce qui ne manque pas de leur attirer les foudres de nombreux mineurs nains). Les Rôdeurs fantômes aiment la solitude, et préfèrent arpenter la nature seuls plutôt que vivre au sein des royaumes elfiques qu'ils protègent. Cependant, ils sont pragmatiques, et tout à fait capables de travailler en groupe.",
     "source": {
       "book": "archives-de-l-empire-1",
@@ -470,6 +481,12 @@
       "figures-symboles-religieux",
       "religion"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "frere-loup"
+    },
     "desc": "*Alors que vous aviez perdu tout espoir, votre souffrance et la vertu de Sigmar vous ont sauvés !*\n\nLe pardon n'est pas chose facile, et n'est acquis que de haute lutte, dans la douleur et en respectant la volonté de Sigmar. Les Flagellants parcourent l'Empire, se fouettent en pénitence de leurs péchés et de celui des autres. Ils sont résolus à rester au service de Sigmar jusqu'à la fin du monde, qu'ils pensent imminente. Les bonnes personnes sont censées les accueillir, les aider, les nourrir et prier avec eux.\n\nLa plupart des Flagellants voyagent en groupes importants et sont menés par un Prophète du Destin qui interprète la volonté de Sigmar. Certains escortent des armées, se fouettant avec frénésie lorsqu'une bataille se produit et combattant sans s'inquiéter de leur propre sécurité. D'autres errent en solitaires, convaincus qu'ils serviront Sigmar plus efficacement en combattant le mal que ce dernier place sur leurs routes.\n\n« Nous frappons cette chair et faisons couler ce sang, pour l'Empire, au nom de Sigmar ! »\n\n– Viktorina Schwefel, Flagellante\n\n« Nous avons eu des Flagellants qui sont passés dans le village il y a quelques mois. Ils étaient terrifiants : agonie, douleur, souffrance. Voilà ce que nous ressentions, rien qu'à les regarder. Nous ne savions quoi faire. Nous savions que nous devions ouvrir nos portes, les accueillir, les nourrir et prier avec eux. Mais nous nous sommes finalement cachés dans la cave jusqu'à ce qu'ils soient partis. Effrayants ! »\n\n– Wulfrum Barth, Villageois\n\n« La fin est proche ! »\n\n– Pancarte très souvent portée par des Flagellants.\n\nIl n'est pas compliqué pour un Flagellant de se retrouver embarqué dans une aventure, surtout si elle implique des ennemis de Sigmar. Les Flagellants peuvent se comporter alors comme à leur habitude, se reposant sur les honnêtes gens du peuple de l'Empire pour qu'ils leur offrent nourriture, boisson et un toit alors qu'ils marchent d'un pas traînant vers la fin de toutes choses.",
     "source": {
       "book": "livre-de-base",
@@ -515,7 +532,9 @@
     "races": [
       "nain"
     ],
-    "aLaPlaceDe": "messager",
+    "aLaPlaceDe": {
+      "id": "messager"
+    },
     "desc": "Les forteresses naines isolées dans les montagnes sont difficiles d'accès: elles sont cernées de terrains dangereux, tant en surface qu'en sous-sol. Des routes entières peuvent être rendues impraticables par un glissement de terrain ; un pont jusque-là sûr peut soudain s'effondrer sous les rongements incessants des « raki » (skavens en khazalid). Chaque année, les peaux-vertes envahissent et s'approprient un peu plus du réseau souterrain des nains. La sûreté des routes doit être préservée, et un nouveau chemin doit être tracé lorsque l'ancien devient trop dangereux ; tel est le devoir des Patrouilleurs des karak. Ces nains endurcis ne doivent leur survie qu'à leur capacité à se préparer: il n'est pas facile de trouver de la compagnie ou du confort dans les tunnels sombres et les passes secrètes des montagnes, et ne parlons pas des chances de se voir apporter de l'aide en cas de danger. Selon l'itinéraire, il peut leur être nécessaire de franchir un abîme d'un bond, escalader une falaise abrupte, ou traverser une immense étendue d'eau (parfois usées, voire de lave). Le moindre buisson, la moindre ombre peut cacher son lot de dangers mortels. S'il veut survivre, un Patrouilleur des karak doit être coriace et savoir s'adapter: il doit savoir enchaîner chasse, reconnaissance et combat, voire même réparation d'un pont en plein milieu de son expédition.\n\n« Des guides? Oui, bon, je suppose que vous pouvez nous appeler comme ça... Sauf qu'un guide, ça doit pas courir sur vingt lieues, nager sur dix autres, combattre un ogre affamé et escalader le Pic de Karak Norn, tout ça avant le p'tit déj'. Maintenant, tu paies, mon petit gars, ou par Grimnir, je te jure que ta caravane va livrer ses marchandises à titre posthume! »\n\n– Snori Brakisson pendant la création d'une nouvelle route marchande entre Ubersreik et son clan des Montagnes Grises\n\nLes Patrouilleurs des karak passent souvent plusieurs mois d'affilée sur le terrain, loin de toute civilisation. Cependant, leur proximité avec la nature ne les rend pas plus sauvages, contrairement aux itinérants humains et halflings (mais pas elfes, qui ont toujours été « des sauvages qui adorent les arbres »): les Patrouilleurs des karak restent fidèles à leur peuple. Les montagnes sont brutales et sans pitié, et la seule manière de vivre en « harmonie » avec elles serait d'abandonner son peuple et ses traditions, ce qui ne viendrait même pas à l'esprit de tout nain digne de ce nom. Les Patrouilleurs des karak ne se soumettent pas à la nature: ils la domptent. Certains Patrouilleurs dressent un compagnon animal comme un chien, un rapace ou même une robuste chèvre des montagnes, à la fois pour leur tenir compagnie et pour les aider à explorer ou à chasser.",
     "source": {
       "book": "archives-de-l-empire-1",
@@ -550,7 +569,9 @@
     "races": [
       "halfling"
     ],
-    "aLaPlaceDe": "patrouilleur-routier",
+    "aLaPlaceDe": {
+      "id": "patrouilleur-routier"
+    },
     "desc": "Aux yeux de ceux qui ne connaissent pas leurs coutumes, les halflings n'ont qu'une puissance militaire limitée : ils préfèrent en effet les milices aux armées régulières. Ainsi, malgré sa frontière commune avec la Sylvanie, le pays où les morts ne connaissent jamais le repos, le Moot n'entretient pas d'armée à proprement parler. Ceci n'empêche pas ses villages d'être aussi paisibles et idylliques que possible, ce qui ne manque jamais d'abasourdir les voyageurs de passage. Cette paisibilité est en grande partie due au travail des Gardechamps. Ces halflings courageux patrouillent le long des frontières du Moot, et se servent de leur connaissance poussée du terrain et de leurs tactiques rusées de guérilla pour mettre en déroute les visiteurs clandestins. Les Gardechamps sont avant tout des halflings du peuple, des visages amicaux qui rassurent les citoyens en répétant que tout va bien. Ils connaissent toutes les familles qui vivent près de leurs itinéraires (et quelles pâtisseries elles sont susceptibles d'offrir à un Gardechamps qui patrouillerait complètement par hasard devant leur porte à l'heure du thé).\n\nTout le monde tient les Gardechamps en haute estime, et leur emploi du temps est toujours bien rempli, même en dehors du service: ils sont tout le temps invités à des repas pour le Jour des fournées, à des festins de mariage, à des dîners de commémoration funéraire ou à des concours du plus gros mangeur de tourtes.\n\n« Bonjour, Mme Vinderonce! Comment va Alfie? Oh non, le pauvre... Ah, mais je suis sûr que votre fantastique tourte à la framboise le remettra vite sur pied! Comment? Oh! Oh, non, pas pendant le service, je ne pourrais tout de même pas... Ah, fichtre, qui suis-je pour décliner une invitation de l'indétrônable championne locale de la confiture depuis quatre ans déjà! Vous me connaissez, je ne résiste pas longtemps à une offre de casser la graine... »\n\n– Brasselot Bordécharde, Gardechamps des Feuillevertes\n\nLes Gardechamps qui patrouillent le long des frontières sont au cœur de l'action. Le Moot est un endroit fertile et prospère, une terre convoitée par toutes sortes de bandits, de peaux-vertes et de nobles qui se croient au-dessus des frontières provinciales. Ces intrus se rendent rapidement compte que le pays n'est pas aussi vulnérable qu'il en a l'air, et la plupart finissent par fuir précipitamment sous une pluie de pierres lancées avec précision par des Gardechamps camouflés. Les morts-vivants sont angoissants, et afin que personne ne doive les côtoyer trop longtemps, aucun Gardechamps n'est posté plus d'une semaine par mois le long de la frontière avec la Sylvanie. En effet, même en temps de « paix » avec les Comtes vampires de Sylvanie, la plupart des patrouilles ont la garantie de tomber sur au moins un groupe de zombis pourrissants qui rôde près de la frontière. À cause de ce devoir peu engageant, mais très nécessaire, les Gardechamps vétérans surprennent souvent les autres aventuriers (surtout les Prêtres et les Répurgateurs, oui, oui) par leur expérience face à la nécromancie.",
     "source": {
       "book": "archives-de-l-empire-1",
@@ -683,6 +704,25 @@
       "figures-symboles-religieux",
       "religion"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "flagellant"
+    },
+    "especesALaPlaceDe": [
+      "humains-tileens"
+    ],
+    "talentALaPlaceDe": {
+      "id": "beni",
+      "choix": [
+        "myrmidia",
+        "morr",
+        "verena",
+        "shallya",
+        "ranald"
+      ]
+    },
     "desc": "*Vous êtes au service de votre divinité, ayant fait vœu d'une vie pieuse.*\n\nLes Nonnes font partie d'ordres religieux et sont en temps normal cloîtrées au sein d'une abbaye, d'un couvent ou d'un monastère. La plupart se lèvent avant le soleil pour effectuer leurs Prières du matin avant d'effectuer leur labeur dans les champs, de soigner les malades ou de travailler à la préservation de manuscrits importants. Les serments de pèlerinage en contraignent certaines à voyager à travers l'Empire alors que d'autres ont fait vœu d'aider la communauté, marchant aux côtés du peuple et répondant à ses besoins spirituels. Certains ermites, tout comme ceux qui prennent soin des sanctuaires, sont souvent appelés Nonnes ou Moines par les habitants de l'Empire. De nombreuses Nonnes apprennent les métiers, indispensables de vignerons, de brasseurs ou de cartographes. Les Abbesses mettent ces activités en avant afin d'attirer les dons de la noblesse locale. Les chefs d'ordres militaires, ou très rassembleurs, bénéficient d'une influence importante au sein de leur propre culte ainsi qu'avec la classe dirigeante d'une province. Pour en savoir plus sur les différentes religions et les différents ordres, référez-vous au Chapitre 7 : Religions et Croyances.\n\n« Ils sont arrivés en imaginant qu'il était simple de massacrer quelques pauvres frères malchanceux et de s'emparer de nos reliques. Je demande à Morr de ne pas juger avec trop de sévérité les sept bandits que nous enterrons ce jour, car frère Hild les a déjà suffisamment punis. »\n\n– Abbé Ernst Halfhauser\n\n« Vite ! Dépêche-toi ! Les Sœurs de la Foi et de la Chasteté vont défiler dans les rues. Je suis curieux de voir si je parviens à coincer quelques pièces de cuivre entre leurs épines. Ça porte chance pour une année entière ! »\n\n– Bengt, vagabond d'Altdorf\n\nLorsqu'un ordre religieux découvre de terribles secrets ou une partie d'une prophétie, ses dirigeants ressentent souvent la nécessité d'agir en envoyant frères et sœurs de par le monde. Les abbayes sises le long des routes de pèlerinage vont régulièrement envoyer leurs membres pour protéger les nombreux pèlerins qui parcourent les longues routes sacrées de l'Empire. De même, il y aura toujours des religieux itinérants parcourant le monde et partant à l'aventure dans chaque nouveau territoire qu'ils découvrent.",
     "source": {
       "book": "livre-de-base",
@@ -701,6 +741,25 @@
       "figures-symboles-religieux",
       "religion"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "flagellant"
+    },
+    "especesALaPlaceDe": [
+      "humains-tileens"
+    ],
+    "talentALaPlaceDe": {
+      "id": "beni",
+      "choix": [
+        "myrmidia",
+        "morr",
+        "verena",
+        "shallya",
+        "ranald"
+      ]
+    },
     "desc": "*Vous portez la parole de votre dieu et assouvissez les besoins spirituels des masses.*\n\nLes Prêtres s'occupent de tous les fidèles du Vieux Monde. Même si la plupart sont affectés à des temples spécifiques, d'autres préfèrent une vie d'errance afin de toucher les fidèles qui ne peuvent, ou ne veulent pas se rendre dans les temples. On attend d'eux qu'ils incarnent les croyances de leur religion – ce qui va dépendre de la divinité qu'ils servent. Les Grands Prêtres sont responsables d'un temple, et de tous ses membres du culte et laïcs. Souvent, ils sont appelés, aux côtés des Lecteurs, afin de porter conseil aux classes dirigeantes, et nombreux sont ceux qui tiennent une place active dans la politique d'une région. Les Prêtres ont de nombreuses obligations relatives à leur dieu, comme le devoir de consécration des nouveaux navires des Prêtres de Manann ou la responsabilité de ceux de Shallya envers les malades et les blessés. Ils interviennent donc dans tous les aspects de la vie de l'Empire. Pour en apprendre plus sur la religion et les différents ordres, voir le Chapitre 7 : Religions et Croyances.\n\n« Lorsque j'ai besoin d'un conseil sensé, je me tourne vers un Prêtre de Verena. Pour tout le reste, je cherche un Prêtre de Ranald. »\n\n– Wermer Losch, Marchand\n\n« La prêtresse de Shallya, juste une gamine, a posé sa main sur le front de mon petit Anton en murmurant et il s'est tout de suite arrêté de crier. Il m'a souri pour la première fois depuis des jours. Je n'oublierai jamais. Oh, il est mort quelques jours plus tard, mais il n'a pas souffert. Non, il n'a pas souffert. »\n\n– Sabine Schmidt, Poissonnière\n\n« Écoutez, il n'y a rien à craindre. La Nuit des Sorcières, l'Hexensnacht a lieu tous les ans. Nous devons juste demander au Seigneur de la Mort de veiller sur nous. Et, lorsque minuit sonnera, nous appellerons MORR ! MORR ! MORR ! »\n\n– Père Wilhelm Abgott, Prêtre de Morr\n\nCertains Prêtres, qui doivent normalement rester en service dans des temples, cherchent des prétextes afin de séjourner à l'extérieur. Lorsqu'ils ont vent de problèmes étranges rapportés par leur congrégation, ils peuvent partir en quête de réponses. Certains Grands Prêtres trouvent les obligations administratives tellement éloignées de ce qu'ils avaient imaginé, lorsqu'ils ont rejoint le culte, qu'ils partent pour de longs pèlerinages loin de leur temple.",
     "source": {
       "book": "livre-de-base",
@@ -1102,6 +1161,12 @@
       "haut-elfe",
       "elfe-sylvain"
     ],
+    "aLaPlaceDe": {
+      "id": "cavalier"
+    },
+    "especesALaPlaceDe": [
+      "humains-tileens"
+    ],
     "desc": "*Vous comptez sur votre vitesse pour trouver l'ennemi, distinguer vos alliés de ses éclaireurs et frapper sans prévenir là où il s'y attend le moins.*\n\nComme elles comptent moins de cavalerie lourde que l'Empire, les armées de mercenaires tiléens se reposent sur des cavaliers rapides aux armes légères pour leur fournir une puissance de frappe mobile. Plutôt que de charger frontalement, tête baissée, sur les piques de l'ennemi, les cavaliers légers tiléens, appelés des stradioti dans leur langue, préfèrent frapper sur les flancs ou, idéalement, à l'arrière, là où le train de bagages de l'ennemi est une cible très tentante.\n\n« On n'avait aucune chance, Monsieur. Ils sont sortis de nulle part. Avant même qu'on puisse se retourner, ils étaient parmi nous, à hurler leur cri de bataille effrayant en nous pourchassant. C'est vrai qu'on s'est enfui Monsieur, mais ce n'étaient pas des hommes, c'étaient des démons à cheval. »\n\n– Gunther Friesheim, après la Déroute de Rifraffa",
     "source": {
       "book": "aux-armes",
@@ -1203,6 +1268,12 @@
     ],
     "races": [
       "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "pretre-guerrier"
+    },
+    "especesALaPlaceDe": [
+      "humains-tileens"
     ],
     "desc": "*Vous prisez l'honneur, l'obéissance et l'excellence martiale et tactique, pour suivre l'exemple de votre déesse protectrice, Myrmidia.*\n\nLes prêtres de Myrmidia de l'Ordre de la Lance Vertueuse et de l'Ordre de la Furie aident à organiser les rassemblements du culte, à répandre ses enseignements et à mener ses cérémonies. Ils sont souvent recherchés comme conseillers par les généraux et les commandants de mercenaires, surtout en Tilée et en Estalie.\n\n« Se transformer de manière rapide et percutante en assaut, la lance luisante de revanche, est l'objectif que devrait viser toute défense efficace. »\n\n– Attribué à Allurian, -3325 CI\n\n« Ne cherchez pas à dire à un Longue Barbe comment faire les choses. Dites-lui quoi faire et il sera son propre commandant bien mieux que n'importe qui d'autre. »\n\n– Berndt Lance-de-lave, -1778 CI",
     "source": {
@@ -1310,6 +1381,12 @@
     ],
     "races": [
       "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "soldat"
+    },
+    "especesALaPlaceDe": [
+      "humains-tileens"
     ],
     "desc": "*La discipline et l'entraînement. Si vous gardez votre sang-froid et faites face à l'ennemi, aucune force sur un champ de bataille, pas même les chevaliers impériaux les plus lourds, ne peut arrêter une phalange de piquiers.*\n\nToutes les villes et villages du Vieux Monde ont leur milice, un effectif d'habitants armés qui peut être rassemblé rapidement pour défendre les maisons et les champs ou se battre au service de son seigneur pendant quelques semaines. Cependant, leur manque de discipline et leur désir de rentrer chez eux, où ils ont une famille et un métier civil, limite l'utilité de ces hommes lors des longues campagnes ou face à des cavaliers avec armes et armure lourdes.\n\n« Non, ils n'avaient pas l'air dangereux, on aurait plutôt dit un groupe de gosses de riches sortis parader dans leurs nouvelles armures. Ils étaient très tape-à-l'œil avec leurs joyaux et leur soie. On s'est dit qu'on allait s'amuser un peu, que c'était des cibles faciles. Oui ben, tout le monde peut faire une erreur. Pauvre capitaine Malvino, c'est la dernière qu'il a faite. »\n\n– Entendu au Vieux Cochon flûtier, à Marienburg",
     "source": {
@@ -1553,6 +1630,11 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
     "desc": "*Vous êtes à la pointe de la compréhension des propriétés de la matière, en combinant avec succès la science et la magie.*\n\nRompus aux propriétés de la matière, les Alchimistes sont des experts dans la création de matériaux nouveaux et dans l'amélioration de ceux déjà existants. Ils peuvent concocter des préparations chimiques et travaillent souvent avec des métallurgistes. Leurs connaissances sont spécialisées et très sollicitées. Par exemple à Nuln, l'École impériale d'Artillerie charge tout un département d'alchimistes de créer de la poudre noire et d'en améliorer l'efficacité.\n\n*« Je ne sais pas ce qu'ils font dans leurs laboratoires secrets avec leurs étranges concoctions, mais mon beau-frère – qui connaît quelqu'un qui sait lire – m'a dit qu'on disait dans un article de l'Altdorf Spieler que quelqu'un racontait que ces alchimistes utilisent de la Magie sans permis et que leurs bâtiments explosent tout le temps. »*\n\n– Dimbo Cendreplaine, conteur de l'Haffenstadt\n\n*« L'alchimie ? Je pense que c'est formidable ! Imaginez si tout le monde pouvait fabriquer de l'or ! Nous serions tous riches et plus personne n'aurait à travailler !»*\n\n– Lena Steiner, étudiante, tendance kloszowskiste",
     "source": {
       "book": "vents-de-la-magie",
@@ -1572,11 +1654,16 @@
       "figures-symboles-religieux",
       "religion"
     ],
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
     "desc": "*Vous êtes un garde spécialisé, contrebalançant surveillance et bras armé par la dignité qu'attend l'institution que vous protégez.*\n\nLes professeurs de l'Université d'Altdorf et les sorciers des Collèges de Magie ont tendance à se plonger dans l'étude de leur discipline. Ils préfèrent faire des recherches dans de vieux volumes sur des faits obscurs et des théories, ou bien mener des expériences et faire passer la science avant la gestion quotidienne de l'organisation dont ils font partie.\n\nC'est pourquoi ces dernières ont besoin de personnel plus pragmatique : les bedeaux. Ils protègent les salles, les bibliothèques et les laboratoires des établissements contre les voleurs ou les espions, et avant tout contre les étudiants qui se comportent mal.\n\n*« Si vous avez besoin d'en savoir plus, demandez à notre bedeau. Par Sigmar, il en sait plus sur cette université que la plupart d'entre nous. »*\n\n– Professeur Pfaff, Université d'Altdorf\n\n*« Par contre, faites attention à notre bedeau. On dirait que cette crapule est partout et que sa principale mission est de faire en sorte que les étudiants ne puissent pas s'amuser. Cette vieille bête bedonnante est… attendez, pourquoi vous regardez pardessus mon épaule comme ça…? »*\n\n– Rickhardt Kettenhemd de la Ligue de Karl-Franz",
     "source": {
       "book": "vents-de-la-magie",
       "page": 38,
-      "note": "VDM 03 l.144"
+      "note": "VDM 03 l.144 ; races : Winds of Magic 07 l.30 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1587,11 +1674,14 @@
     "class": {
       "id": "ruraux"
     },
+    "races": [
+      "humain"
+    ],
     "desc": "*Vous possédez la capacité rare de comprendre des faits passés au contact d'une personne, d'un objet ou d'un endroit.*\n\nTrès peu d'humains possèdent la capacité de voir le passé en touchant un objet ou une personne en particulier ou ce qui s'est déroulé à un endroit précis. Ils sont encore moins nombreux à pouvoir utiliser cette capacité sans devenir fous. Les seuls à pouvoir le faire régulièrement sont appelés des Devins.\n\n*« Vous avez perdu votre bourse ? Allez voir Madame Zelda. Elle peut souvent dire où se trouvent les objets perdus. Mais, bien entendu, elle aime être payée pour ses services et puisque vous avez perdu votre bourse… »*\n\n– Alfric *« Demi-nez »*, négociant en informations\n\n*« La divination ? Ce n'est pas naturel, si ? C'est sûrement une forme de sorcellerie. »*\n\n– Idée reçue d'un bout à l'autre du Vieux Monde\n\n*« Le nouveau commis de Haagen est bon. Il a déconseillé plus d'une fois à son employeur de se lancer dans des affaires avec des escrocs. C'est comme s'il pouvait sentir une transaction malhonnête. »*\n\n– Entendu près du Nouveau Palais dans le Paleisbuurt",
     "source": {
       "book": "vents-de-la-magie",
       "page": 40,
-      "note": "VDM 03 l.236"
+      "note": "VDM 03 l.236 ; races : Winds of Magic 07 l.301 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1601,11 +1691,17 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "*Vous êtes un membre de l'Ordre Lumineux, respecté pour sa pratique exigeante et perçu comme austère et exotique.*\n\nLa plupart des gens ordinaires ne font pas la distinction entre les différents lanceurs de sorts : ils les appellent tous « sorciers » (ou d'autres noms bien moins respectueux dans leur dos). Toutefois, pour ceux qui la font, les Sorciers Lumineux sont aussi connus sous le nom de sorciers blancs, hiérophantes ou parfois exorcistes.\n\nCes Sorciers revêtent généralement des vêtements d'un blanc immaculé, une couleur qui a tendance à attirer *Hysh*. Toute leur parure est brodée au fil d'or ou d'argent et fait référence aux symboles de l'ordre : le Serpent de Lumière, l'Arbre du Savoir et bien d'autres.\n\n*« Oui, la trahison de Horstmann nous a tous entachés, mais ne croyez pas un seul instant ceux qui affirment que nous n'en avons pas honte. C'était un chancre au cœur de notre collège ; une pourriture qui par pure chance ne s'est pas répandue aussi loin qu'elle aurait pu. D'ici une génération ou deux, nous pourrons nous débarrasser des ténèbres que notre ancien patriarche a introduites, mais d'ici là nous devons en porter la responsabilité. »*\n\n– Hiérophante Gertrude Langtrosser\n\n*« La lumière peut faire de deux choses l'une : éclairer ou aveugler. Assure-toi de faire bon usage des deux. »*\n\n– Un hiérophante inconnu s'adressant à un acolyte",
     "source": {
       "book": "vents-de-la-magie",
       "page": 56,
-      "note": "VDM 04 l.73"
+      "note": "VDM 04 l.73 ; races : Winds of Magic 08 l.47 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1615,11 +1711,17 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "*Vous êtes un membre de l'Ordre Doré, largement reconnu comme étant les maîtres de la manipulation de la matière.*\n\nÀ l'instar des astromanciens de l'Ordre Céleste, les magisters-alchimistes du Vent Doré ont la réputation d'être des intellectuels et des scientifiques. Mais, si les élèves d'Azyr scrutent les cieux à la recherche de signes de futurs possibles et se livrent à des débats théoriques hermétiques, les alchimistes se concentrent sur la recherche appliquée et ses usages dans le monde réel.\n\n*« Bien loin de moi l'idée de rabaisser les magisters des autres collèges, mais on peut se poser des questions : Azyr ? La tête dans les nuages. Shyish ? Tellement déprimants qu'une rose fanerait dans leurs mains. Ghur ? Eh bien, disons qu'il vous suffirait simplement de répandre de la paille au sol. Mais nous autres du Collège Doré ? Nous sommes pragmatiques et rationnels, nous prenons le monde tel qu'il est. Et nous faisons de l'argent. Beaucoup d'argent. »*\n\n– Magister Horst Bergmann\n\n*« Si l'un d'entre vous ne croit pas que les sorciers sont les ennemis du peuple, regardez les sorciers Dorés ! Ils sont en quête de savoir ? Avec leurs jolis carrosses, leurs bijoux en or et leurs potions qu'ils vendent aux puissants et à ceux de la haute à un prix bien au-delà de tout ce que nous gagnons en une année partager avec le Peuple ! Moi je le dit ! Qu'ils pourrissent dans les Royaumes du Chaos ! »*\n\n– L'agitateur Benno Metzger de la LAPIN (Ligue Armée et Populaire contre les Impôts et la Noblesse)",
     "source": {
       "book": "vents-de-la-magie",
       "page": 68,
-      "note": "VDM 05 l.67"
+      "note": "VDM 05 l.67 ; races : Winds of Magic 09 l.48 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1634,11 +1736,17 @@
       "figures-symboles-religieux",
       "religion"
     ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "Vous puisez dans la vitalité et le pouvoir de la nature pour façonner le monde naturel grâce à votre magie.\n\nLes Sorciers de Jade sont plus appréciés dans les villages de l'Empire que n'importe quel autre sorcier impérial. Chacun sait qu'ils peuvent contrôler les plantes et que les terres prospèrent en leur présence. Tout village qui accueille un druide s'attend à une récolte abondante l'année suivante.\n\n*« La spirale est le symbole de la vie. Elle représente un secret lové en chacun de nous : tout ce que nous pouvons être y est écrit, comme un code. Et il ne peut être trouvé que grâce à la compréhension de Ghyran. »*\n\n– Friedrich Miescher, Sorcier de Jade\n\n*« J'ai reçu l'une de ces Druidesses l'autre jour. Je ne suis pas bien sûr de ce qu'elle trafiquait, mais quand j'ai fait le lit le lendemain, il était plein de feuilles. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
       "book": "vents-de-la-magie",
       "page": 80,
-      "note": "VDM 06 l.61"
+      "note": "VDM 06 l.61 ; races : Winds of Magic 10 l.39 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1648,11 +1756,17 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "*Vous scrutez les cieux et ramenez le Vent d'Azyr pour courber les éléments selon votre volonté, voire manipuler le destin.*\n\nLes magisters qui canalisent *Azyr* sont des astromanciens, aussi connus sous le nom de sorciers Célestes ou, pour les incultes, *« sorciers bleus »*. Ils préfèrent mettre des calottes, des capes à col montant et des robes onéreuses dans des tons noir et bleu profond ornées de motifs en or et en argent pour représenter le ciel nocturne. Le symbole de leur ordre, la Comète de pouvoir, se trouve toujours quelque part sur eux. Nombre d'entre eux présentent au monde une apparence soignée et distante.\n\nChaque magister porte un bâton, généralement surmonté d'un télescope ornemental, d'un planétaire ou d'une sphère armillaire miniature. Ces objets sont parfois fonctionnels, mais ils servent principalement de symbole de l'art Astromancien.\n\n*« En temps normal, je ne ferais confiance à un sorcier que s'il pouvait nager avec une ancre autour du cou, mais avoir magister Aeolus à bord s'est avéré utile. Certes, il nous coûte une petite fortune et s'habille de manière un peu fantaisiste pour un civil, mais il sait comment s'adresser à ses supérieurs, peut prédire le mauvais temps et nous a sauvés avec sa foudre lorsque ces pillards skaelings nous ont attaqués. »*\n\n– Amiral Klaus von Nesselzelt de la Marine impériale",
     "source": {
       "book": "vents-de-la-magie",
       "page": 92,
-      "note": "VDM 07 l.61"
+      "note": "VDM 07 l.61 ; races : Winds of Magic 11 l.40 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1662,11 +1776,17 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "*Vous êtes un membre de l'Ordre d'Améthyste, craint et respecté pour votre familiarité avec la mort.*\n\nLes sorciers du Collège d'Améthyste, contrairement à ceux du Collège Doré, mieux acceptés dans la société impériale, sont fuis et évités dès que possible. Quelque chose dans leur regard ferme, leur attitude sombre et silencieuse donne l'impression aux profanes d'être des cadavres reposant sur une table, toujours prêts… mais à quoi exactement ?\n\n*« Sur Sigmar j'te jure, Bart ! Ils ont retrouvé le cadavre d'un rupin dans la ruelle, sans savoir qui c'était et qui l'avait tué. La garde a ramené ce sorcier en robe violette du collège. Il est resté là planté à le regarder, sans un mot. Il a finalement secoué la tête et a tout raconté au sergent sur l'assassinat. Dans l'heure ils avaient compris qui l'avait fait et ils l'ont coincé. »*\n\n– un colporteur des rues d'Altdorf\n\n*« Connaître Shyish c'est connaître la continuité du temps, la transition constante du passé vers le présent et le futur, de la naissance, à la vie, à la mort et au-delà. Non, nous ne sommes pas des voyants ; cela, nous le laissons aux astromanciens et aux prêtres du Seigneur des Rêves. Nous sommes plutôt des philosophes et notre savoir est un fardeau. »*\n\n– un Magister de *Shyish* faisant la leçon à des apprentis",
     "source": {
       "book": "vents-de-la-magie",
       "page": 116,
-      "note": "VDM 09 l.72"
+      "note": "VDM 09 l.72 ; races : Winds of Magic 13 l.46 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1676,11 +1796,17 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "*Vous vous nourrissez de votre passion brute et énergie émotionnelle pour offrir une puissance de feu magique sur le champ de bataille.*\n\nTout le monde le sait, les sorciers Flamboyants sont les plus combatifs des sorciers impériaux. Même si les autres collèges sont connus pour avoir leur propre forme d'agressivité et que, d'une manière ou d'une autre, ils servent tous l'armée, le Collège Flamboyant provoque un choc et de la stupeur sur les champs de bataille comme aucun autre. Cette réputation est peut-être biaisée et le résultat de récits simplistes émanant des soldats ordinaires ou des ennemis déconcertés, mais elle est en partie vraie. Les sorciers Flamboyants ont souvent une apparence guerrière et redoutable avec leurs bâtons en fer surmontés d'un brasier prêt à recevoir des flammes dévastatrices.\n\n*« Le pouvoir est la clef, la clef est le symbole, le symbole est une métaphore, la métaphore est une perspective, la perspective est le contrôle et le contrôle est le pouvoir… »*\n\n– Litanie du contrôle, Livre rouge d'*Aqshy*\n\n*« J'ai reçu l'un de ces pyromanciens l'année dernière. Ils ne sont pas tous comme ça… tout plein de feu et d'esbroufe. Il nous a cuisiné un joli canard grillé avec le pouvoir de son esprit. Il était délicieux. Évidemment, on a découvert le lendemain matin qu'il avait aussi brûlé notre grange. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
       "book": "vents-de-la-magie",
       "page": 128,
-      "note": "VDM 10 l.57"
+      "note": "VDM 10 l.57 ; races : Winds of Magic 14 l.40 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1690,11 +1816,17 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "*Mû par votre affinité magique, vous êtes instinctivement attiré par les endroits sauvages et leurs grandes créatures.*\n\nLes sorciers d'Ambre sont célèbres pour leur apparence et leur mode de vie sauvage, bien plus à l'aise dans la nature qu'en ville. Ils ont plus d'affinités avec les animaux qu'avec leurs semblables. Beaucoup d'entre eux errent dans les étendues inhospitalières de l'Empire, mais ils sont tout aussi nombreux à trouver un endroit qu'ils apprécient et s'y installer. Chaque village impérial connaît une histoire sur un monstre local, un géant ou une sorcière qui vit dans la forêt et que l'on craint, mais que l'on croise rarement. Dans la plupart des cas, il s'agit d'un sorcier d'Ambre.\n\n*« Le Collège d'Ambre est en dehors de la ville. »*\n\n– énigme chamanique\n\n*« J'ai reçu l'un de ces chamanes l'autre jour. Il a fini par dormir dans l'étable. J'allais le laisser partir sans payer, mais il m'a dit que c'était la meilleure chambre de l'auberge, alors je lui ai fait payer le prix d'une suite de luxe. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
       "book": "vents-de-la-magie",
       "page": 140,
-      "note": "VDM 11 l.67"
+      "note": "VDM 11 l.67 ; races : Winds of Magic 15 l.45 (VO, ligne d'espèce absente de la VF)"
     }
   },
   {
@@ -1706,6 +1838,9 @@
     },
     "grantGroups": [
       "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "humain"
     ],
     "desc": "*Vous protégez la réputation des Collèges en chassant et en éliminant les sorciers renégats.*\n\nBien que les Patriarches des Collèges refusent de confirmer leur existence, même le dernier des apprentis sorciers a entendu parler des Magisters Vigilants : ces sorciers qui débusquent et détruisent tous les parjures et traîtres à leur ordre. Chaque Collège finance un petit effectif de Magisters Vigilants, mais on raconte que le Collège Gris commandite plusieurs de leurs membres pour endosser ce rôle au cours de leurs carrières.\n\n*« Un Magister Vigilant ? Désolé, nous n'avons personne qui occupe pareil poste au sein de ce Collège. »*\n\n– Egrimm van Horstmann, ancien Patriarche du Collège Lumineux\n\n*« Chut ! Attention à ce que tu dis ! Un Magister Vigilant pourrait t'entendre ! »*\n\n– Le Crâne de Katam, en conversation",
     "source": {
@@ -1721,11 +1856,17 @@
     "class": {
       "id": "lettres"
     },
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
     "desc": "*Mystérieux et trompeur, vous conciliez les compétences d'un sorcier avec celles d'un espion.*\n\nLa seule chose dont un sorcier Gris peut être certain en ce monde c'est que rien ne l'est et que tout n'est que pure illusion. Ils savent que les mensonges en cachent souvent d'autres et ils sont devenus tellement habitués à la fausseté et à la supercherie qu'ils ont du mal à voir la vérité telle qu'elle est.\n\nLes umbramanciens sont des personnes méfiantes qui ne se fient pas à ce qu'elles observent et cherchent constamment des doubles sens, des significations et des intentions cachées. En conséquence, ils sont prudents et taisent leurs propres croyances et desseins. Ils ont appris que la vérité a de la valeur et ce qui en a ne doit pas être offert gracieusement.\n\n*« La vérité est si précieuse qu'elle doit être recouverte par un tissu de mensonges. »*\n\n– magister Reiner Starke, patriarche de l'Ordre Gris",
     "source": {
       "book": "vents-de-la-magie",
       "page": 104,
-      "note": "VDM 08 l.51"
+      "note": "VDM 08 l.51 ; races : Winds of Magic 12 l.41 (VO, ligne d'espèce absente de la VF)"
     }
   }
 ]
