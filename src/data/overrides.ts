@@ -17,7 +17,7 @@ import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, details, semencesDeScene, defautsDeCompilation, names, allAxes,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
@@ -61,6 +61,8 @@ import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
 import advancementCostsRawJson from './advancementCosts.json';
 import encumbranceTiersRawJson from './encumbranceTiers.json';
 import { MISHAP_TABLE } from '../engine/drivingMishap';
+import { TABLE_DE_DISPERSION } from '../engine/scatter';
+import { TABLE_DE_REACTION_AU_STATUT, TABLE_DU_CAPRICIEUX } from '../engine/social';
 import { DRUNK_TABLE } from '../engine/drunkenness';
 // #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
@@ -135,7 +137,7 @@ const ARRAYS = {
   // `src/noyau/monde/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
   // qu'une entrée éditée au Codex se voit dans l'éditeur et au rendu sans rechargement.
   buildings,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, names,
   // Axes de forces/faiblesses (#409) — mécanique MAISON, éditable au Codex comme tout catalogue.
   axes: allAxes,
   // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.
@@ -194,7 +196,10 @@ const ARRAYS = {
   // copie) ; Surchargé par palier (tableau RACINE).
   advancementCosts: advancementCostsRawJson,
   drivingMishap: MISHAP_TABLE,
+  dispersion: TABLE_DE_DISPERSION,
   drunkenness: DRUNK_TABLE,
+  reactionAuStatut: TABLE_DE_REACTION_AU_STATUT,
+  tableauCapricieux: TABLE_DU_CAPRICIEUX,
   encumbranceTiers: encumbranceTiersRawJson,
   // Incantations Imparfaites Mineures/Majeures (LDB 46 ; VDM 02 l.218-263) + Colère des dieux (LDB 40)
   // — les rangées des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b, #1667).

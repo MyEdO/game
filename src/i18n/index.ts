@@ -37,10 +37,7 @@ export const getLocale = (): Locale => locale;
  * GEL AU CHARGEMENT (dette nommée, #1318 V8a₁) : plusieurs cartes de libellés appellent `t()` à
  * l'ÉVALUATION DU MODULE et gardent la chaîne obtenue — `CHAR_LABELS`/`DIFFICULTY_LABELS`/
  * `HIT_LOCATION_LABELS`/`BODY_SHAPE_LOC_LABELS` (`engine/types.ts`).
- * V8c₄ ajoute UN site à cette liste, et un seul : `label: t('cor.natureTable')` de la famille
- * `tablesDeNature` (`noyau/corruptionFlow.ts`, table « Corps ou esprit ») — le libellé y est résolu à
- * la construction de la famille, puis gardé jusqu'à la prochaine édition de `species`. Les autres
- * cartes de la tranche n'en sont PAS : `SHIP_LOC_KEY`/`ALLURE_KEY`/`ENCOUNTER_KEY`/`SPELL_*` portent
+ * Les cartes de la tranche V8c₄ n'en sont PAS : `SHIP_LOC_KEY`/`ALLURE_KEY`/`ENCOUNTER_KEY`/`SPELL_*` portent
  * des CLÉS (`MsgKey`), résolues à l'appel — c'est la forme à reprendre pour éteindre les précédentes.
  * V8c₅ n'AJOUTE aucun site à cette liste : ses cartes de module portent des CLÉS résolues à l'appel
  * (`SPEC_SOURCE_KEY` de `engine/traits/dispatch.ts`, `QUALITY_CLASS_KEY` de `qualities/craftEconomy.ts`,

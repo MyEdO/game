@@ -127,20 +127,23 @@ export function footprintsOverlap(aPos: Pt, an: number, bPos: Pt, bn: number): b
 }
 
 /**
- * Distance de COMBAT (Chebyshev d'empreinte) entre deux combattants positionnés — `Infinity` si l'un
- * n'est pas posé. Un grand est « au contact » (distance 1) si UNE de ses tuiles touche la cible, et
- * la portée d'un tir se mesure du bord de l'empreinte. Remplace `chebyshev(a.pos, b.pos)` partout où
- * la Taille des deux combattants compte (mêlée, bandes de portée, sélection de cible).
- *
- * RELIEF : la séparation VERTICALE est la vraie hauteur métrique entre les deux surfaces, convertie en
- * cases (`verticalTiles`, Δhauteur ÷ échelle métrique) — un défenseur de muraille (h élevée) n'est PAS
- * superposé aux assaillants au sol. `mpt` = m/case de la scène (défaut 2 person-scale ; les appelants
- * qui ont la scène passent `sceneMetresPerTile(scene)`). Δhauteur=0 (même altitude) ⇒ terme nul ⇒
- * résultat byte-identique au plan. `pos.h` est stampé/rafraîchi à chaque mouvement (`placeCombatant`).
+ * Distance de COMBAT, en cases, entre deux combattants : Chebyshev d'empreinte et séparation verticale
+ * (`verticalTiles` sur `pos.h`) ; `Infinity` si l'un n'est pas posé. Mesure de la PORTÉE. `mpt` = m/case.
  */
-export function combatDistance(a: Combatant, b: Combatant, mpt = 2): number {
+export function distanceDeCombat(a: Combatant, b: Combatant, mpt = 2): number {
   if (!a.pos || !b.pos) return Infinity;
   const horizontal = footprintChebyshev(a.pos, footprintN(a), b.pos, footprintN(b));
   const vertical = verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, mpt);
   return Math.max(horizontal, vertical);
+}
+
+/** Distance de CONTACT, en cases : celle de tout ce qui dit « au contact » (Allonge, adjacence, Surnombre).
+ *  `Infinity` quand le plafond du plus bas (`pos.plafond`) n'est pas plus haut que le sol du plus haut. LDB 13 l.114 ;
+ *  LDB 15 l.12. */
+export function distanceDeContact(a: Combatant, b: Combatant, mpt = 2): number {
+  if (a.pos && b.pos) {
+    const [bas, haut] = (a.pos.h ?? 0) <= (b.pos.h ?? 0) ? [a.pos, b.pos] : [b.pos, a.pos];
+    if ((bas.plafond ?? Infinity) <= (haut.h ?? 0)) return Infinity;
+  }
+  return distanceDeCombat(a, b, mpt);
 }

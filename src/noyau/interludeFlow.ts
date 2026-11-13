@@ -57,7 +57,7 @@ import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
 import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
@@ -155,7 +155,7 @@ export const INTERLUDE_EVENT_TABLE = 'interlude-events';
 
 /** Le dé de la table (`interludeEventDie`), sans modificateur : le dé NATUREL est le dé du lookup —
  *  c'est aussi ce que `perHero.eventRoll` persiste, et donc ce que tout lecteur re-résout. */
-const interludeEventDecl = (): CascadeTableDecl => ({ tableId: INTERLUDE_EVENT_TABLE, spec: interludeEventDie() });
+const interludeEventDecl = (): CascadeTableDecl => ({ tableId: INTERLUDE_EVENT_TABLE });
 
 /** La séquence des tirages est SA propre séquence (`purpose:'interlude'`, doctrine du slot #942 L1) :
  *  l'interlude ne s'ouvre jamais en combat, et aucun autre `purpose` hors-combat ne doit y fusionner. */
@@ -1292,7 +1292,7 @@ export const TABLES = {
   tablesTirables: {
     [INTERLUDE_EVENT_TABLE]: {
       label: msg('if.eventTableLabel'),
-      get die() { return facesDuDe(interludeEventDie()); },
+      get die() { return interludeEventDie(); },
       rows: INTERLUDE_EVENTS,
       lines: (die) => [interludeEventFor(die).label, interludeEventFor(die).desc],
       entryCategory: 'interludeEvents', // la ligne tirée EST l'Événement : sa fiche porte son texte

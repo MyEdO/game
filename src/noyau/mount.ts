@@ -15,7 +15,8 @@ import { assertAttackWeapon } from '../engine/combat';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 import { reachTiles, meleeReachTiles } from '../engine/engagement';
 import { Scene, isWalkable } from './monde/scene';
-import { occupiesTile, footprintN, combatDistance } from './monde/footprint';
+import { occupiesTile, footprintN, distanceDeContact } from './monde/footprint';
+import { placeCombatant } from './monde/spawn';
 import { isSkittishMount } from '../engine/traits/dispatch';
 import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
 import { structureImmune } from '../engine/structures';
@@ -102,7 +103,7 @@ export const attackGeomOf = (battle: BattleState, c: Combatant, weapon: Weapon |
  *  — mieux vaut un choix cohérent qu'aucun. `undefined` si aucune arme de mêlée n'atteint la cible. */
 export function meleeWeaponInRangeList(combatants: Combatant[], attacker: Combatant, target: Combatant, weapons: Weapon[] = attacker.weapons): Weapon | undefined {
   const tGeom = combatGeomOfList(combatants, target);
-  const inRange = weapons.filter((w) => w.type === 'melee' && combatDistance(attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w));
+  const inRange = weapons.filter((w) => w.type === 'melee' && distanceDeContact(attackGeomOfList(combatants, attacker, w), tGeom) <= reachTiles(w));
   return inRange.find((w) => !structureImmune(w, target)) ?? inRange[0];
 }
 export function meleeWeaponInRange(battle: BattleState, attacker: Combatant, target: Combatant): Weapon | undefined {
@@ -154,7 +155,7 @@ export function pickAttackWeaponList(combatants: Combatant[] | undefined, attack
     }
   }
   const personal = personalWeaponsOf(attacker);
-  if (!combatants) return assertAttackWeapon(personal, combatDistance(attacker, target) <= meleeReachTiles(personal));
+  if (!combatants) return assertAttackWeapon(personal, distanceDeContact(attacker, target) <= meleeReachTiles(personal));
   return meleeWeaponInRangeList(combatants, attacker, target, personal) ?? assertAttackWeapon(personal, false);
 }
 export function pickAttackWeapon(battle: BattleState, attacker: Combatant, target: Combatant, weaponUid?: string): Weapon {
@@ -230,7 +231,7 @@ export function dismount(battle: BattleState, scene: Scene, rider: Combatant): b
   if (mount) {
     mount.riderId = undefined;
     const free = nearestFreeFoot(battle, scene, mount, rider);
-    if (free) rider.pos = free;
+    if (free) placeCombatant(rider, scene, free);
   }
   return true;
 }
@@ -244,7 +245,7 @@ export function handleMountDeath(battle: BattleState, scene: Scene, mount: Comba
   mount.riderId = undefined;
   rider.mountId = undefined;
   const free = nearestFreeFoot(battle, scene, mount, rider);
-  if (free) rider.pos = free;
+  if (free) placeCombatant(rider, scene, free);
   return rider;
 }
 

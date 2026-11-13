@@ -1475,8 +1475,8 @@ export interface DieStepSpec {
   kind: GenreDEtape;
   label: PlayerText;
   icon?: IconId;
-  /** Les DÉS — REQUIS ici (à la différence de la déclaration persistée, où une table donne les
-   *  siens) : un dé nu sans dés serait une étape prête d'office, validée sans qu'aucun dé ne tombe. */
+  /** Les DÉS — REQUIS : un dé nu n'a aucune table où les prendre, et sans dés il serait une étape
+   *  prête d'office, validée sans qu'aucun dé ne tombe. */
   spec: DiceSpec;
   /** PORTEUR du dé : l'arbitre route la fenêtre à son siège. Absent UNIQUEMENT sur un dé de MONDE
    *  (`worldOwner`), où aucun personnage n'est concerné — même exclusion que `TableSpec`. */

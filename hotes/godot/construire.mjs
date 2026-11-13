@@ -41,12 +41,13 @@ import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { chmodSync, closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { availableParallelism, homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { gzipSync, inflateRawSync } from 'node:zlib'
 import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
+import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { chargerAssets } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
@@ -394,12 +395,15 @@ function journaliser(commande, args) {
   return { fd, bilan, clore }
 }
 
+/** L'échéance d'un lancement attendu, ou mené de front avec d'autres. */
+const ECHEANCE_MS = 600_000
+
 /** `commande` (l'éditeur, un exécutable du projet, ou l'écran virtuel qui les porte) lancée sur `args`, attendue : les
  *  lignes de sa sortie et son échec (`journaliser`). */
 function lancer(commande, args) {
   const { fd, bilan, clore } = journaliser(commande, args)
   try {
-    return bilan(spawnSync(commande, args, { stdio: ['ignore', fd, fd], timeout: 600_000 }))
+    return bilan(spawnSync(commande, args, { stdio: ['ignore', fd, fd], timeout: ECHEANCE_MS }))
   } finally {
     clore()
   }
@@ -427,6 +431,32 @@ function godot(binaire, projet, args) {
   return { lignes, erreurs: [...erreursDe(lignes), ...echec] }
 }
 
+/** La variable d'environnement d'où Godot tire le dossier des données de l'utilisateur (`user://`) sous Linux
+ *  (`OS_Unix::get_data_path`). Une recette menée de front y reçoit SON dossier ; là où elle manque, les recettes
+ *  partagent `user://` et se jouent à la suite. */
+const DONNEES_DE_L_UTILISATEUR = process.platform === 'linux' ? 'XDG_DATA_HOME' : null
+
+/** Chaque recette de `recettes` jouée par l'éditeur `binaire` sans écran sur le projet importé `copie`, menées de
+ *  front (`enFileBornee`), une par cœur, là où chacune a ses données d'utilisateur (`DONNEES_DE_L_UTILISATEUR`) ;
+ *  chacune reçoit `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier à
+ *  elle>`, pour qu'aucune ne touche aux sauvegardes de l'utilisateur ni à celles d'une autre, et s'arrête à
+ *  `ECHEANCE_MS`. Sa sortie s'imprime à sa fin, d'un bloc ; rend les erreurs de toutes. */
+async function jouerLesRecettes(binaire, copie, recettes) {
+  const erreurs = await enFileBornee(recettes.map((recette, i) => async (signal) => {
+    const donnees = join(copie, 'donnees', String(i))
+    mkdirSync(donnees, { recursive: true })
+    const arret = AbortSignal.any([signal, AbortSignal.timeout(ECHEANCE_MS)])
+    const { lignes, echec } = await lancerSansTenirLeFil(
+      binaire, ['--headless', '--path', copie, '--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(donnees, 'stockage.json')}`],
+      DONNEES_DE_L_UTILISATEUR ? { [DONNEES_DE_L_UTILISATEUR]: donnees } : {},
+      (tuer) => arret.addEventListener('abort', tuer, { once: true }),
+    )
+    console.log(`[godot] recette autonome : ${recette}\n${lignes.join('\n')}`)
+    return [...erreursDe(lignes), ...echec]
+  }), { deFront: DONNEES_DE_L_UTILISATEUR ? availableParallelism() : 1 })
+  return erreurs.flat()
+}
+
 /** Le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json` du projet `projet`, que lit `projet/scripts/dessin.gd`. */
 function deposerLesDessins(projet, figerLesDessins) {
   writeFileSync(join(projet, 'art', 'dessins.json'), JSON.stringify(figerLesDessins()))
@@ -452,11 +482,9 @@ async function surUneCopie(binaire, figerLesDessins, faire) {
  *  repos (`figerLeRepos`) sous `recettes/vues/repos.json`, les échantillons de l'atelier figés (`figerLeDecor`) sous
  *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
  *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
- *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes ; chaque recette reçoit
- *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier de la copie>`,
- *  pour qu'aucune ne touche aux sauvegardes de l'utilisateur. */
+ *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes (`jouerLesRecettes`). */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
-  return surUneCopie(binaire, figerLesDessins, (copie) => {
+  return surUneCopie(binaire, figerLesDessins, async (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
     writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
     const modeles = listage(DOSSIER_DES_MODELES)
@@ -473,12 +501,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
     console.log(`[godot] ${VERSION_IMPRIMEE} : projet importé, ${scripts.length} scripts contrôlés (${scripts.join(', ')})`)
     const recettes = scripts.filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
-    for (const recette of recettes) {
-      console.log(`[godot] recette autonome : ${recette}`)
-      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(copie, 'stockage.json')}`])
-      console.log(resultat.lignes.join('\n'))
-      erreurs.push(...resultat.erreurs)
-    }
+    erreurs.push(...await jouerLesRecettes(binaire, copie, recettes))
     if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) autonome(s) exécutée(s)`)
     return erreurs
   })
