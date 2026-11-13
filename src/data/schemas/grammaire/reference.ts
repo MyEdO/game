@@ -263,7 +263,7 @@ export type Somme = z.infer<typeof sommeSchema>;
 
 /** Objet du catalogue doté tel quel, sans emplacement : sa `spec` est la précision de la dotation, pas une
  *  Spécialisation. Membre d'un lot (`lotDeDotationSchema`). */
-const objetDeCatalogueSchema = nommerChamps(z.strictObject({
+export const objetDeCatalogueSchema = nommerChamps(z.strictObject({
   id: idDe('trapping'),
   spec: z.string().optional(),
   count: countSpecSchema.optional(),
