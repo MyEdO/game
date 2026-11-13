@@ -212,7 +212,7 @@ export function makeMarais() {
             { type: 'journal', desc: 'Le noyé voyageait riche : 22 pa, que la tourbe lui pardonne.' },
           ],
           [
-            { type: 'inflictDisease', disease: 'Infection Mineure' },
+            { type: 'inflictDisease', disease: 'infection-mineure' },
             { type: 'journal', desc: 'L’eau morte vous entre par une écorchure. Ça gratte. Ça GRATTE.' },
           ],
         )),
@@ -378,7 +378,7 @@ export function makeVillage() {
           { skill: { id: 'resistance' }, difficulty: 'intermediaire', label: 'Les remontées du puits maudit', stake: { authored: 'Encaisser les miasmes du puits : sinon la Courante Galopante se déclare.' } },
           [{ type: 'journal', desc: 'L’odeur du puits vous plie en deux — mais rien ne s’accroche. Cette eau a TUÉ le village.' }],
           [
-            { type: 'inflictDisease', disease: 'Courante Galopante' },
+            { type: 'inflictDisease', disease: 'courante-galopante' },
             { type: 'journal', desc: 'Les miasmes du puits vous prennent à la gorge. Votre ventre gargouille déjà sinistrement…' },
           ],
         ),

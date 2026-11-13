@@ -21,7 +21,8 @@
 import { RNG, roll, rollDice, fluxDerive } from './dice';
 import { findTableEntry } from './tables';
 import { garanti } from '../lib/garanti';
-import { contexteDeNaissanceDObjet, buildInventory, recomputeLoadout, emptyArmour } from './items';
+import { contexteDeNaissanceDObjet, recomputeLoadout, emptyArmour } from './items';
+import { doterLePorteur } from './bourse';
 import { groupsFor } from './groups';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails, type ItemInstance } from './types';
 import {
@@ -300,7 +301,7 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   apparence?: Omit<NonNullable<Combatant['appearance']>, 'species'>;
   /** Id du héros ; absent = un id neuf de `idNeuf`. */
   id?: string;
-  /** Forge l'id du héros sans `id` et les uids de ses objets (`buildInventory`). #2907 */
+  /** Forge l'id du héros sans `id` et les uids de ses objets (`doterLePorteur`). #2907 */
   idNeuf: FabriqueDId;
 }
 
@@ -413,9 +414,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   });
 
   // 5) Possessions de Classe et de Niveau 1 (LDB 05 l.552, l.572), emplacements résolus par
-  //    `opts.trappingChoices` avant `buildInventory`.
+  //    `opts.trappingChoices` avant `doterLePorteur`.
   const rawTrappings = resolveTrappingChoices(dotationsDuHeros(opts.careerId), opts.trappingChoices ?? {});
-  const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
+  const { items, mentions } = doterLePorteur(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
   const id = opts.id ?? opts.idNeuf('hero');
 
   // Destin / Résilience
@@ -465,6 +466,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     talents,
     skills,
     items,
+    mentions,
     careerSlotChoices: heroSoFar.careerSlotChoices,
     fate: fateBase.fate + split.fate,
     resilience: fateBase.resilience + split.resilience,
@@ -493,6 +495,7 @@ export interface HerosResolu {
   talents: TalentInstance[];
   skills: SkillInstance[];
   items: ItemInstance[];
+  mentions?: Combatant['mentions'];
   careerSlotChoices?: Combatant['careerSlotChoices'];
   fate: number;
   resilience: number;
@@ -530,6 +533,7 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
     weapons: [],
     armour: emptyArmour(),
     items: r.items,
+    ...(r.mentions ? { mentions: r.mentions } : {}),
     skills: r.skills,
     talents: r.talents,
     traits: speciesTraits.length ? speciesTraits : undefined, // Trait racial d'espèce (#572) — Ogre : encombrance/consommation ×2 + Taille

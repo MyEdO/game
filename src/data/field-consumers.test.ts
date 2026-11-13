@@ -232,7 +232,7 @@ describe('DÉRIVATION des cibles de catalogue — entrée par la jointure, sorti
   it('le MÊME def sans chargement typé SORT, avec la raison mesurée', () => {
     expect(deriver(`import a from './data/a.json'; export const n = a.length;`)).toEqual({
       cibles: [],
-      sorties: [{ file: 'a.json', raison: 'aucun chargement typé (cast, annotation ou porte `rangeesDe`)' }],
+      sorties: [{ file: 'a.json', raison: 'aucun chargement typé (cast, annotation ou porte `datasetDe`/`rangeesDe`)' }],
     });
   });
 

@@ -2,9 +2,9 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { messageDeRefusDeSpec, recordDIds, ref, refs, refusDeSpec } from '../grammaire/ref';
-import { charKeySchema, diceSpecSchema, enumNomme, sexeSchema } from '../grammaire/valeurs';
+import { charKeySchema, sexeSchema } from '../grammaire/valeurs';
 import { nommerNoeud } from '../grammaire/meta';
-import { dotationDeCatalogueSchema, dotationDeTexteSchema, talentRefSchema } from '../grammaire/reference';
+import { dotationDeCatalogueSchema, dotationDeTexteSchema, sommeSchema, talentRefSchema } from '../grammaire/reference';
 
 export const file = 'pregens.json';
 export const famille = 'entite';
@@ -42,9 +42,8 @@ const doc = document(
     motivation: z.string().min(1),
     age: entier(1),
     sex: sexeSchema,
-    /** Le dé de la « Richesse de départ » imprimée, en pièces de `monnaie`. */
-    richesse: diceSpecSchema,
-    monnaie: enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' }),
+    /** La « Richesse de départ » imprimée. */
+    richesse: sommeSchema,
   },
   {
     species: { label: 'Espèce', hint: 'Espèce imprimée sur la fiche' },
@@ -61,8 +60,7 @@ const doc = document(
     motivation: { label: 'Motivation' },
     age: { label: 'Âge' },
     sex: { label: 'Sexe', hint: 'Sexe visuel (cosmétique)' },
-    richesse: { label: 'Richesse de départ', hint: 'Le dé imprimé, tiré au recrutement' },
-    monnaie: { label: 'Monnaie de la Richesse de départ' },
+    richesse: { label: 'Richesse de départ', hint: 'La somme imprimée, tirée au recrutement' },
   },
   {
     codex: { keys: ['pregens'] },

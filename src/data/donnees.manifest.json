@@ -442,7 +442,7 @@
           "files": [
             "merchantFamilies.json"
           ],
-          "desc": "Familles de PRÉSENTATION du stock marchand (onglets `ui/MerchantPanel.tsx`) — ordre d'affichage, règle de classement `match` (unit/shield/categorie/fallback) et `columns` de stats à afficher, résolues contre le registre fixe `MERCHANT_COL_RENDERERS`"
+          "desc": "Familles de PRÉSENTATION du stock marchand (onglets `ui/MerchantPanel.tsx`) — ordre d'affichage, règle de classement `match` (unit/shield/categorie/fallback) et `columns` de stats à afficher, ids du vocabulaire `colonnesDuMarchand` (`grammaire/vocabulaires.ts`)"
         }
       ]
     },

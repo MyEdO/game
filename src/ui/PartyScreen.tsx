@@ -14,7 +14,6 @@ import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campa
 import { publishedProjects, campagneDeLEntree } from '../state/projectLibrary';
 import { playerEntryError } from '../noyau/worldMap';
 import { Combatant } from '../engine/types';
-import { formuleDeMonnaie } from '../engine/money';
 import { Coins } from './Coins';
 import { partyCoverage } from '../engine/axes';
 import { CandidateCard, SeatCard, ActionCard, axisDataFor } from './CharCard';
@@ -31,7 +30,7 @@ import { HeroSheet } from './HeroSheet';
 import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
 import { Tabs } from './composites/Tabs';
-import { coreAxisIds, pregens } from '../data';
+import { coreAxisIds, libelleDeLaSomme, pregens } from '../data';
 import { resolveActiveAxes } from '../noyau/worldMap';
 import { listeEt, t } from '../i18n';
 import { Row, Stack } from './Layout';
@@ -631,7 +630,7 @@ export function CandidatePool({
   // L'étal : le noyau rebâtit le pré-tiré engagé et tire sa Richesse au recrutement ; l'étal en montre la formule imprimée.
   const allPregens = useState(() => {
     const idNeuf = fabriqueLocale('vivier');
-    return pregens.map((d) => ({ id: d.id, hero: pretire(idNeuf, d.id), bourse: formuleDeMonnaie(d.richesse, d.monnaie) }));
+    return pregens.map((d) => ({ id: d.id, hero: pretire(idNeuf, d.id), bourse: libelleDeLaSomme(d.richesse) }));
   })[0];
   const [roster, setRoster] = useState(() => chargerLeRoster(stockageDuRoster()));
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');

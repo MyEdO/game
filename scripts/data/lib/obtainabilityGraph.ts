@@ -122,8 +122,8 @@ export function computeObtainability(root: string): ObtainabilityResult {
   // Sorts qu'un CULTE confère, TOUS pools confondus (`gods.json` : miracles / bénédictions / sorts du
   // Chaos). La famille est déjà tranchée par le `castingKind` du Talent au site d'appel — le pool
   // AUTHORÉ du dieu suffit ensuite à dire l'appartenance, sans table champ↔famille à tenir à jour.
-  const godSpellIds = new Map(gods.map((g) => [
-    g.id, new Set([...g.miracles, ...g.blessings, ...(g.chaosSpells ?? [])]),
+  const godSpellIds = new Map<string, Set<string>>(gods.map((g) => [
+    g.id, new Set<string>([...g.miracles, ...g.blessings, ...(g.chaosSpells ?? [])]),
   ]));
 
   const spellVerdicts: SpellVerdict[] = [];

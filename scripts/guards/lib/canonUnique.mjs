@@ -186,9 +186,11 @@ function estCleOuverte(t) {
   return false;
 }
 
-/** @param {ts.TypeNode | undefined} t @returns {boolean} */
+/** `Record<K, …>`, ou le type mappé `{ [M in K]: … }` sans remappage de clé (`as`), à clé `K` FERMÉE.
+ *  @param {ts.TypeNode | undefined} t @returns {boolean} */
 function estRecordACleFermee(t) {
   while (t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && ['Partial', 'Readonly', 'Required'].includes(t.typeName.text) && t.typeArguments?.length === 1) t = t.typeArguments[0];
+  if (t && ts.isMappedTypeNode(t)) return !t.nameType && !!t.typeParameter.constraint && !estCleOuverte(t.typeParameter.constraint);
   if (!t || !ts.isTypeReferenceNode(t) || !ts.isIdentifier(t.typeName) || t.typeName.text !== 'Record' || t.typeArguments?.length !== 2) return false;
   return !estCleOuverte(t.typeArguments[0]);
 }
@@ -197,7 +199,7 @@ function estRecordACleFermee(t) {
  * TABLE TOTALE DÉCLARÉE : l'expression d'une table (un objet littéral, ou le nom qui en tient un)
  * dont le type déclaré — remonté par les parenthèses et `as const` : le type du `satisfies` qui
  * l'enveloppe, sinon l'annotation de la variable, de la propriété ou du paramètre dont elle est la
- * valeur — est, passé `Partial`, `Readonly` et `Required`, un `Record` à clé FERMÉE : toute clé sauf
+ * valeur — est, passé `Partial`, `Readonly` et `Required`, un `Record` ou un type mappé à clé FERMÉE : toute clé sauf
  * `string`, `number`, `symbol`, `any` et `unknown`, et sauf une union ou un gabarit qui en contient
  * une. Ce ne sont pas des membres re-tapés mais les clés d'une table que le COMPILATEUR exige
  * complètes (aucune exhaustivité exigée d'une clé ouverte). Une assertion (`{…} as Record<…>`) ne

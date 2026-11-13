@@ -2,7 +2,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import type { Formula } from '../engine/ops';
 import type { FateSaveSource } from '../engine/fortune';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
-import type { BattleActionMode } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
@@ -90,9 +90,7 @@ export interface BattleState {
    *  ils sont implicites au clic (sol/ennemi) quand `action === null` — cf. `cliquerLaCaseDuCombat`/`cliquerLeCombattant`.
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
    *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
-   *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
-   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleportation` = résolution d'un sort) —
-   *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
+   *  Le TYPE vient de `MODES_ARMABLES` (`src/data/schemas/defs/actions.ts`). */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
   selectedSpellId: string | null;
@@ -259,14 +257,13 @@ export interface CampaignVessel {
   modificateurs?: import('../engine/seaVoyage').ModificateurDuNavire[];
   /** Météos imposées par un événement (op `meteoImposee`), valables en mer comme au départ d'un port. MDG 15 l.248 */
   meteosImposees?: import('../engine/seaVoyage').MeteoImposeeDuNavire[];
-  /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = ravitaillement réputé
-   *  assuré (même décision de périmètre que la Soif, cf. provisions.ts). */
+  /** Eau douce embarquée (litres — tonneau : 145 L, MDG 14 l.242). Absent = eau non suivie, l'accès
+   *  à l'eau suit la règle `penurie-d-eau` (`upkeep.ts`, `hasWater`). */
   waterLitres?: number;
-  /** VIVRES de l'équipage PNJ embarqués (rations de mer de la cale, en jours-homme — MDG 14 l.238/250).
-   *  L'effectif nominal en consomme une/jour à `shipboardSouls().crew` ; à court → facteur de Moral
-   *  `nourriture-insuffisante` (−2d10, MDG 14 l.171). Absent = ravitaillement d'équipage réputé assuré
-   *  (même décision de périmètre que `waterLitres`). #245. */
-  provisions?: number;
+  /** VIVRES de l'équipage PNJ embarqués, en jours-homme par vivre de la cale (`VivresDeCale`), mangés par
+   *  `consumeCrewProvisions` (`seaVoyageFlow.ts`). MDG 14 l.171, l.238, l.245-252. Absent = vivres de
+   *  l'équipage non suivis. #245 */
+  provisions?: import('../engine/provisions').VivresDeCale;
   /** Milles de la DERNIÈRE traversée accomplie — vente à un port PRODUCTEUR : « Si le bateau a
    *  parcouru plus de 100 milles » (MDG 15 l.366). Absent = navire à quai depuis sa mise à l'eau. */
   lastVoyageMilles?: number;
@@ -293,7 +290,7 @@ export interface CampaignVessel {
    *  durée en jours de chacun de ses travaux, tirée à chaque réparation ou Amélioration ; levé à l'appareillage.
    *  MDG 15 l.255 */
   constructeurDEscale?: { competence: number; duree: Formula };
-  /** Prix d'une ration-jour de cale à l'escale (op `rationsDEscale`), en sous de cuivre ; levé à l'appareillage.
+  /** Prix de la ration-jour de vivres frais à l'escale (op `rationsDEscale`), en sous de cuivre ; levé à l'appareillage.
    *  MDG 15 l.262 */
   rationsDEscale?: number;
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,

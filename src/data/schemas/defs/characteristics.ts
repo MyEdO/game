@@ -6,7 +6,7 @@ import { nommerChamps } from '../grammaire/meta';
  * `src/noyau/codex/registry.ts` (`{ label, abr?, nature?, desc?, source? }`, `c.nature === 'roll'`).
  */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import { sourceRefSchema, charKeySchema } from '../grammaire/valeurs';
 
 export const file = 'characteristics.json';
@@ -73,9 +73,3 @@ export const schema = doc.schema;
 export const meta = doc.meta;
 
 export const exposition = doc.exposition;
-/** VUE TS du dataset — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`), la vue
- *  se recompose donc depuis l'enveloppe et les champs déclarés, sans rouvrir aucun nœud. L'`id` y est
- *  RESSERRÉ au catalogue fermé, que `EnveloppeDocument` élargit à `string`. */
-export type CharacteristicsData = (Omit<EnveloppeDocument, 'id'> & { id: z.infer<typeof characteristicIdSchema> } & z.infer<
-    z.ZodObject<typeof champs>
-  >)[];

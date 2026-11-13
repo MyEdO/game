@@ -12,7 +12,8 @@
  * `user-doctrine-regle-laissee-ouverte-tranchee-au-plus-juste`) : les vivres de la cale ne sont pas typés, la cale
  * s'avitaille en nourriture préservée.
  *
- * Entrées : src/data/sea-events.json, src/data/sea-navigation.json. Une rangée nommée absente, comme un
+ * Entrées : src/data/sea-events.json, src/data/sea-navigation.json. Des `vivresDeCale` posés (lot 13a,
+ * `2026-11-12-1652-vivres-de-cale.mjs`) valent cale déjà avitaillée. Une rangée nommée absente, comme un
  * `longsVoyages` absent, n'est pas une anomalie : la migration rejouée après sa suppression sort 0 sans écrire.
  *
  * FORME ASSERTÉE SUR LE RÉSULTAT : une `consequence` hors de la forme attendue ou un document non canonique sont un
@@ -53,7 +54,7 @@ if (!arrets.length) {
   } else if (rangee && !isDeepStrictEqual(rangee.consequence, BONNE_PECHE)) arrets.push('bonne-peche : consequence hors de la forme attendue');
 
   const longs = nav.longsVoyages;
-  if (longs && longs.rationDeCale === undefined) {
+  if (longs && longs.rationDeCale === undefined && longs.vivresDeCale === undefined) {
     Object.assign(longs, structuredClone(VIVRES_DE_CALE), { maison: MAISON_DES_VIVRES });
     gestes++;
   }

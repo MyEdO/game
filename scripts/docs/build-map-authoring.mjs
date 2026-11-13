@@ -93,11 +93,14 @@ function rendu() {
     return cles
   }
 
-  /** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`) — au-delà, on casse bruyamment
+  /** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`), ou d'une feuille d'id NUE
+   *  (`idDe(type, …, { nue: true })` → `string`, `grammaire/ref.ts`) — au-delà, on casse bruyamment
    *  plutôt que d'écrire un type faux dans la doc. */
   function typeZod(init, cle, schema) {
     if (!init) abandon(`clé héritée « ${cle} » de \`${schema}\` : initialiseur Zod absent`)
-    const m = init.getText().match(/^z\.(string|number|boolean)\(\)/)
+    const texte = init.getText()
+    if (/^idDe\([^)]*\{\s*nue:\s*true\s*\}\s*\)/.test(texte)) return 'string'
+    const m = texte.match(/^z\.(string|number|boolean)\(\)/)
     if (!m) abandon(`clé héritée « ${cle} » de \`${schema}\` : type zod non primitif — étendre \`typeZod\` dans ${OUTIL}`)
     return m[1]
   }

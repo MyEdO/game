@@ -53,6 +53,7 @@ import { SCHEMA_DEFS } from './schemas/_registry.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
 import { bumperDataset, memoParVersion } from './versionDataset';
+import type { EntreeVivante } from './datasets';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
 import traumasRawJson from './traumas.json';
@@ -295,7 +296,7 @@ for (const k of DATASET_KEYS) gelerLesEntrees(ARRAYS[k] as unknown[]);
 /** Remplace EN PLACE le contenu d'un dataset (jamais de réassignation du binding) et VERSIONNE
  *  l'écriture — l'identité du tableau ne bougeant pas, la version est le seul témoin qu'un index
  *  mémoïsé (`indexParId`, `data/index.ts`) puisse consulter (#1692). */
-export function setDataset<K extends DatasetKey>(key: K, next: readonly (typeof ARRAYS)[K][number][]): void {
+export function setDataset<K extends DatasetKey>(key: K, next: readonly EntreeVivante<(typeof ARRAYS)[K][number]>[]): void {
   const arr = ARRAYS[key] as unknown[];
   arr.splice(0, arr.length, ...(next as readonly unknown[]));
   gelerLesEntrees(arr);
