@@ -24,10 +24,10 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { idsDe, ref, refMorte, refs, refTypee, type RefTypee } from '../grammaire/ref';
+import { idsDe, ref, refMorte, refs, refTypee } from '../grammaire/ref';
 import { enumNomme, hitLocationSchema } from '../grammaire/valeurs';
-import type { HitLocation } from '../../../engine/localisations';
 import type { IdsParEspace } from '../_ids.generated';
+import { estObjet } from '../../../lib/objet.mjs';
 
 export const file = 'garde-robe.json';
 export const famille = 'entite';
@@ -55,30 +55,36 @@ const LIBELLES_DE_CATEGORIE = {
 export type CategorieDePiece = keyof typeof LIBELLES_DE_CATEGORIE;
 
 /**
- * Clés de CHARGE par `kind` — la déclaration dont `refusDeCharge` (`grammaire/collection-cle.ts`) tire
- * ses DEUX verdicts (requis manquant, clé étrangère). `requises` ⊆ `cles` ; ce qui n'est pas requis est
- * optionnel dans ce `kind`.
+ * Clés de CHARGE par `kind` (`espace.chargeParDiscriminant`) — la déclaration dont `refusDeCharge`
+ * (`grammaire/collection-cle.ts`) tire ses DEUX verdicts au parse (requis manquant, clé étrangère), et
+ * `document()` le type de chaque `kind`.
  */
-const CHARGE_PAR_KIND = {
-  tete: { cles: [], requises: [] },
-  coiffure: { cles: [], requises: [] },
-  tenue: { cles: ['carrieres'], requises: [] },
-  emplacement: { cles: [], requises: [] },
-  piece: { cles: ['categorie', 'emplacement', 'localisations'], requises: ['categorie'] },
-  variante: { cles: ['piece'], requises: ['piece'] },
-  ensemble: { cles: ['habille', 'pieces'], requises: ['habille', 'pieces'] },
-  embleme: { cles: ['svg'], requises: ['svg'] },
-} as const satisfies Record<keyof typeof LIBELLES_DE_KIND, { cles: readonly string[]; requises: readonly string[] }>;
+const chargeParDiscriminant = {
+  tete: [],
+  coiffure: [],
+  tenue: ['carrieres'],
+  emplacement: [],
+  piece: ['categorie', 'emplacement', 'localisations'],
+  variante: ['piece'],
+  ensemble: ['habille', 'pieces'],
+  embleme: ['svg'],
+} as const satisfies Record<Kind, readonly string[]>;
 
-/** CHARGE par valeur du DISCRIMINANT (`espace.chargeParDiscriminant`), dérivée de la table ci-dessus. */
-const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  Object.entries(CHARGE_PAR_KIND).map(([kind, charge]) => [kind, charge.cles as readonly string[]]),
-);
+/** Clés EXIGÉES d'un `kind` qui n'exige pas toute sa charge (`espace.requisesParDiscriminant`) ; le reste de sa charge
+ *  y est optionnel. */
+const requisesParDiscriminant = {
+  tenue: [],
+  piece: ['categorie'],
+} as const satisfies { readonly [K in keyof typeof chargeParDiscriminant]?: readonly (typeof chargeParDiscriminant)[K][number][] };
 
-/** Clés EXIGÉES par valeur du discriminant (`espace.requisesParDiscriminant`), dérivées de la table ci-dessus. */
-const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  Object.entries(CHARGE_PAR_KIND).map(([kind, charge]) => [kind, charge.requises as readonly string[]]),
-);
+/** Une nature de ligne. */
+type Kind = keyof typeof LIBELLES_DE_KIND;
+
+/** Une ligne d'une autre nature qu'une pièce. */
+type HorsPiece = { kind: Exclude<Kind, 'piece'> };
+
+/** L'id d'une ligne lue, pour un message. */
+const idLu = (ligne: unknown): string => String(estObjet(ligne) ? ligne.id : ligne);
 
 /** Ce qui peut précéder la racine d'un document SVG : prologue XML, commentaire, doctype (sous-ensemble interne compris). */
 const PROLOGUE_SVG = /^(?:\s+|<\?xml\b[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE\b[^>[]*(?:\[[\s\S]*?\])?\s*>)*/;
@@ -161,44 +167,49 @@ const doc = document(
   {
     espace: { discriminant: 'kind', chargeParDiscriminant, requisesParDiscriminant },
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        const e = v as Record<string, unknown> & { id: string; kind: keyof typeof CHARGE_PAR_KIND };
-        if (e.kind === 'piece') {
-          const localisations = (e.localisations ?? []) as readonly string[];
-          if (localisations.length && e.categorie !== 'armure')
-            ctx.addIssue({ code: 'custom', path: ['localisations'], message: `garde-robe : la pièce « ${e.id} » n’est pas une armure — elle ne couvre aucune localisation.` });
-          const repetees = localisations.filter((l, i) => localisations.indexOf(l) !== i);
-          if (repetees.length) ctx.addIssue({ code: 'custom', path: ['localisations'], message: `garde-robe : la pièce « ${e.id} » répète ${repetees.join(', ')}.` });
-          if ((e.categorie === 'accessoire') !== (e.emplacement !== undefined))
+      entree
+        .refine((e): e is HorsPiece | { localisations?: undefined } | { categorie: 'armure' } => e.kind !== 'piece' || !Array.isArray(e.localisations) || !e.localisations.length || e.categorie === 'armure', {
+          path: ['localisations'],
+          error: (iss) => `garde-robe : la pièce « ${idLu(iss.input)} » n’est pas une armure — elle ne couvre aucune localisation.`,
+        })
+        .refine(
+          (e): e is HorsPiece | { categorie: 'accessoire'; emplacement: object } | { categorie: Exclude<CategorieDePiece, 'accessoire'>; emplacement?: undefined } =>
+            e.kind !== 'piece' || (e.categorie === 'accessoire') === (e.emplacement !== undefined),
+          {
+            path: ['emplacement'],
+            error: (iss) =>
+              estObjet(iss.input) && iss.input.categorie === 'accessoire'
+                ? `garde-robe : la pièce d’accessoire « ${idLu(iss.input)} » EXIGE son emplacement.`
+                : `garde-robe : la pièce « ${idLu(iss.input)} » n’est pas un accessoire — elle ne porte aucun emplacement.`,
+          },
+        )
+        .superRefine((v, ctx) => {
+          const e = v as Record<string, unknown> & { id: string; kind: Kind };
+          if (e.kind === 'piece') {
+            const localisations = (e.localisations ?? []) as readonly string[];
+            const repetees = localisations.filter((l, i) => localisations.indexOf(l) !== i);
+            if (repetees.length) ctx.addIssue({ code: 'custom', path: ['localisations'], message: `garde-robe : la pièce « ${e.id} » répète ${repetees.join(', ')}.` });
+          }
+          if ((e.kind === 'tete') !== idsDe('raceAppearance').has(e.id))
             ctx.addIssue({
               code: 'custom',
-              path: ['emplacement'],
+              path: ['id'],
               message:
-                e.categorie === 'accessoire'
-                  ? `garde-robe : la pièce d’accessoire « ${e.id} » EXIGE son emplacement.`
-                  : `garde-robe : la pièce « ${e.id} » n’est pas un accessoire — elle ne porte aucun emplacement.`,
+                e.kind === 'tete'
+                  ? `garde-robe : la tête « ${e.id} » porte l’id de sa race de rendu — ${refMorte('raceAppearance', e.id)}`
+                  : `garde-robe : « ${e.id} » (kind « ${e.kind} ») porte l’id d’une race de rendu (raceAppearance.json), que seule une tête porte.`,
             });
-        }
-        if ((e.kind === 'tete') !== idsDe('raceAppearance').has(e.id))
-          ctx.addIssue({
-            code: 'custom',
-            path: ['id'],
-            message:
-              e.kind === 'tete'
-                ? `garde-robe : la tête « ${e.id} » porte l’id de sa race de rendu — ${refMorte('raceAppearance', e.id)}`
-                : `garde-robe : « ${e.id} » (kind « ${e.kind} ») porte l’id d’une race de rendu (raceAppearance.json), que seule une tête porte.`,
-          });
-        if (e.kind === 'embleme' && typeof e.svg === 'string') {
-          const refus = refusDeSvg(e.svg);
-          if (refus) ctx.addIssue({ code: 'custom', path: ['svg'], message: `garde-robe : l’emblème « ${e.id} » ${refus}.` });
-        }
-        if (e.kind === 'ensemble') {
-          const pieces = (e.pieces ?? []) as readonly string[];
-          const doublons = pieces.filter((p, i) => pieces.indexOf(p) !== i);
-          if (doublons.length)
-            ctx.addIssue({ code: 'custom', path: ['pieces'], message: `garde-robe : l’ensemble « ${e.id} » répète ${doublons.join(', ')}.` });
-        }
-      }),
+          if (e.kind === 'embleme' && typeof e.svg === 'string') {
+            const refus = refusDeSvg(e.svg);
+            if (refus) ctx.addIssue({ code: 'custom', path: ['svg'], message: `garde-robe : l’emblème « ${e.id} » ${refus}.` });
+          }
+          if (e.kind === 'ensemble') {
+            const pieces = (e.pieces ?? []) as readonly string[];
+            const doublons = pieces.filter((p, i) => pieces.indexOf(p) !== i);
+            if (doublons.length)
+              ctx.addIssue({ code: 'custom', path: ['pieces'], message: `garde-robe : l’ensemble « ${e.id} » répète ${doublons.join(', ')}.` });
+          }
+        }),
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         const vus = new Map<string, string>();
@@ -226,77 +237,14 @@ export const meta = doc.meta;
 
 export const exposition = doc.exposition;
 
-/** Id d'une tête : la sous-liste `kind=tete` de l'espace `garde-robe.json` (`npm run gen`). */
-export type TeteId = IdsParEspace['garde-robe.json?kind=tete'];
-
-/** Id d'une coiffure : la sous-liste `kind=coiffure` de l'espace `garde-robe.json` (`npm run gen`). */
-export type CoiffureId = IdsParEspace['garde-robe.json?kind=coiffure'];
-
 /** Id d'une tenue : la sous-liste `kind=tenue` de l'espace `garde-robe.json` (`npm run gen`). */
 export type TenueId = IdsParEspace['garde-robe.json?kind=tenue'];
 
 /** Id d'une pièce : la sous-liste `kind=piece` de l'espace `garde-robe.json` (`npm run gen`). */
 export type PieceId = IdsParEspace['garde-robe.json?kind=piece'];
 
-/** Id d'une variante de pièce : la sous-liste `kind=variante` de l'espace `garde-robe.json` (`npm run gen`). */
-export type VarianteId = IdsParEspace['garde-robe.json?kind=variante'];
-
 /** Id d'un emplacement : la sous-liste `kind=emplacement` de l'espace `garde-robe.json` (`npm run gen`). */
 export type EmplacementId = IdsParEspace['garde-robe.json?kind=emplacement'];
 
-/** VUE TS du tronc commun d'une ligne de nature `K`. */
-interface LigneDeNature<K extends string, Id extends string> {
-  id: Id;
-  type: 'garde-robe';
-  kind: K;
-  label: string;
-}
-
-/** VUE TS d'une ligne `piece`. Le type se dérive par `DatasetDe`/`EntreeDe` (`data/datasets.ts`) ; la vue manuscrite reste
- *  parce qu'elle discrimine `GardeRobeEntree` par `kind` avec les ids marqués de chaque nature (`PieceId`), que le dérivé rend `string`. */
-export interface PieceDef extends LigneDeNature<'piece', PieceId> {
-  categorie: CategorieDePiece;
-  emplacement?: { id: EmplacementId };
-  localisations?: HitLocation[];
-}
-
-/** VUE TS d'une ligne `variante`. */
-export interface VarianteDef extends LigneDeNature<'variante', VarianteId> {
-  piece: { id: PieceId };
-}
-
-/** VUE TS d'une ligne `tete`. */
-export type TeteDef = LigneDeNature<'tete', TeteId>;
-
-/** VUE TS d'une ligne `coiffure`. */
-export type CoiffureDef = LigneDeNature<'coiffure', CoiffureId>;
-
-/** VUE TS d'une ligne `tenue`. */
-export interface TenueDeGardeRobe extends LigneDeNature<'tenue', TenueId> {
-  carrieres?: string[];
-}
-
 /** Ce qu'un ensemble habille : un objet ou une tenue. */
-export type HabilleDEnsemble = RefTypee<'trapping'> | { readonly id: TenueId; readonly type: 'tenue' };
-
-/** VUE TS d'une ligne `ensemble`. */
-export interface EnsembleDef extends LigneDeNature<'ensemble', string> {
-  habille: HabilleDEnsemble;
-  pieces: PieceId[];
-}
-
-/** VUE TS d'une ligne `embleme`. */
-export interface EmblemeDef extends LigneDeNature<'embleme', string> {
-  svg: string;
-}
-
-/** VUE TS d'une ligne de la garde-robe. */
-export type GardeRobeEntree =
-  | TeteDef
-  | CoiffureDef
-  | TenueDeGardeRobe
-  | LigneDeNature<'emplacement', string>
-  | PieceDef
-  | EnsembleDef
-  | EmblemeDef
-  | VarianteDef;
+export type HabilleDEnsemble = z.output<typeof habilleSchema>;

@@ -4,6 +4,7 @@
  * (rack d'alvéoles réservées) et les deux gouttières sont DESSINÉES quoi qu'il arrive. Montée pour de
  * vrai (`createRoot`/`act`) sur le VRAI store et de VRAIS héros (`createHero`) — aucun module mocké.
  */
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
@@ -23,7 +24,7 @@ import { visibleFocusables } from '../focus';
 import { nomAccessible } from '../nomsAccessibles.testkit';
 import { sousLayoutJsdom } from '../layoutJsdom.testkit';
 import { hotbar } from '../../state/hotbarBridge';
-import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef, type ActionId } from '../../data/index';
+import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../../data/index';
 import { ActiveModal } from '../ActiveModal';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { actionGate, ACTION_CANDIDATES, REMEDES } from '../../noyau/actionRegistry';
@@ -3474,7 +3475,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3515,7 +3516,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3612,7 +3613,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3661,7 +3662,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       return h;
     };
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-rechargement' as ActionId, label: 'Geste de recharge', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-rechargement'), label: 'Geste de recharge', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'rechargement' }, gate: 'toujours',
       run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };

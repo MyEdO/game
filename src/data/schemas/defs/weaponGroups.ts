@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme, genreDArmeSchema, maniementSchema, matiereDArmureSchema, palierSchema } from '../grammaire/valeurs';
 import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
-import { tableTotale } from '../../../lib/tableTotale';
 import { ref } from '../grammaire/ref';
 
 export const file = 'weaponGroups.json';
@@ -18,13 +17,19 @@ const KINDS = { weapon: 'Groupe d’arme', ammo: 'Munitions', armour: 'Armure', 
 type Kind = keyof typeof KINDS;
 
 /** CHARGE par `kind` (`espace.chargeParDiscriminant`) : seul le `kind` qui la déclare porte une clé. #3076 */
-const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche', 'seuil', 'teinte'] : kind === 'weapon' ? ['combat', 'maniement', 'rendu', 'poudre', 'siege', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
-);
+const chargeParDiscriminant = {
+  weapon: ['combat', 'maniement', 'rendu', 'poudre', 'siege', 'manieAussi'],
+  ammo: ['poudre'],
+  armour: ['material', 'couche', 'seuil', 'teinte'],
+  inventory: [],
+} as const satisfies Record<Kind, readonly string[]>;
 /** Clés EXIGÉES de la charge (`espace.requisesParDiscriminant`). */
-const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche'] : kind === 'weapon' ? ['maniement'] : [],
-);
+const requisesParDiscriminant = {
+  weapon: ['maniement'],
+  ammo: [],
+  armour: ['material', 'couche'],
+  inventory: [],
+} as const satisfies { readonly [K in Kind]: readonly (typeof chargeParDiscriminant)[K][number][] };
 /** Rangs d'un Groupe d'armure UNIQUES parmi les Groupes d'armure : deux couches égales laisseraient l'ordre
  *  d'inventaire trancher l'affichage, deux paliers égaux la matière d'une armure de statbloc. */
 const RANGS_D_ARMURE = ['couche', 'seuil'] as const;

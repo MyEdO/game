@@ -1650,7 +1650,7 @@
     "type": "primitives.manifest",
     "label": "memoByRef/memoByRefDeps/memoByDeps",
     "fichier": "src/noyau/monde/sceneMemo.ts",
-    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé",
+    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé ; `memoByRef` et `memoByRefDeps` oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), un `memoByDeps` nu qui lit un catalogue reçoit cette version en dépendance",
     "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web), et tout calcul qui reprend sa variante précédente",
     "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
   },
@@ -1792,11 +1792,29 @@
   {
     "id": "threeWay",
     "type": "primitives.manifest",
-    "label": "threeWay",
+    "label": "threeWay/threeWayDiff3",
     "fichier": "scripts/git-hooks/three-way.mjs",
-    "concept": "fusion à trois voies d'un texte par `git merge-file`",
-    "perimetre": "pilote de fusion des stocks de sites",
-    "verrou": "merge-stocks.test.mjs"
+    "concept": "fusion à trois voies d'un texte par `git merge-file`, au style ordinaire ou `diff3`",
+    "perimetre": "pilotes de fusion (stocks de sites, imports)",
+    "verrou": "merge-stocks.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "segmentsDeFusion",
+    "type": "primitives.manifest",
+    "label": "segmentsDeFusion/tailleDeMarqueur",
+    "fichier": "scripts/guards/lib/blocsDeFusion.mjs",
+    "concept": "sortie de `git merge-file --diff3` lue en segments (lignes fusionnées, blocs en conflit avec leur base) ; taille de marqueur qu'aucune ligne des textes n'imite",
+    "perimetre": "tout outil qui lit les blocs en conflit d'une fusion",
+    "verrou": "synchroniser.test.mjs, merge-imports.test.mjs"
+  },
+  {
+    "id": "declarationsDImport",
+    "type": "primitives.manifest",
+    "label": "declarationsDImport/unNomParLigne",
+    "fichier": "scripts/guards/lib/declarationsDImport.mjs",
+    "concept": "déclarations `import` et `export … from` de premier niveau d'un module, lues par l'arbre syntaxique : clé, liaisons, réimpression à un nom par ligne",
+    "perimetre": "tout outil qui lit ou réécrit les imports d'un module",
+    "verrou": "merge-imports.test.mjs"
   },
   {
     "id": "litteralJs",
