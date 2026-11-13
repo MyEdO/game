@@ -14,17 +14,11 @@
  */
 import { peripeties } from './index';
 import peripetiesJson from './peripeties.json';
-import { deDeTirageDe } from './rangees';
+import { deDeTirageDe, type RangeeDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 
-export interface Peripetie {
-  id: string;
-  roll: number;
-  label: string;
-  desc: string;
-  kind: 'reposant' | 'narratif' | 'ereintant' | 'attaque';
-}
+export type Peripetie = RangeeDe<typeof tableDesPeripeties>;
 
 export const PERIPETIES = peripeties;
 /** Le dé de la Table des Péripéties, lu à l'appel. */

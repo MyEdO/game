@@ -5,7 +5,7 @@ import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
 import { heightAt, isWalkable, tileAt, wallBetween, type Scene } from './monde/scene';
 import { walkReachableFrom } from './monde/path';
-import { VEHICLES_LIST } from '../engine/travel';
+import { vehicles } from '../data';
 import { estAbsent } from './monde/terrain';
 import { edgeKey } from './monde/facades';
 import { aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene } from './monde/aretes';
@@ -205,7 +205,7 @@ describe('le navire combattant ne tient pas ses propres ponts', () => {
 });
 
 describe('chaque navire à ponts se parcourt d’un bout à l’autre (#3772)', () => {
-  const navires = VEHICLES_LIST.filter((v) => v.ponts).map((v) => v.id);
+  const navires = vehicles.filter((v) => v.ponts).map((v) => v.id);
   /** Le navire `ref` posé au cap `cap` dans un bassin de 30 × 30 cases. */
   const bassin = (ref: string, cap: 'N' | 'E' | 'S' | 'O') => poserLesNavires(buildScene({
     id: 'bassin', label: 'Bassin', size: [30, 30], terrain: 'eau',

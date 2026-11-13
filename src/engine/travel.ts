@@ -37,17 +37,12 @@ import {
 } from './mountTravel';
 import { VehicleData } from './types';
 import { traceLineOf } from './traceLine';
-import vehiclesJson from '../data/vehicles.json';
-import { indexParId, memoParVersion } from '../data/versionDataset';
-import { refLabel } from '../data';
+import { memoParVersion } from '../data/versionDataset';
+import { findVehicleById, refLabel, vehicles } from '../data';
 import { t } from '../i18n';
 
-/** FOYER UNIQUE des véhicules/embarcations (`src/data/vehicles.json`), data-driven (cf. `VehicleData`). */
-export const VEHICLES_LIST = vehiclesJson as VehicleData[];
-const vehicleById = indexParId('vehicles', VEHICLES_LIST);
-
 /** Transports payants RAW (LDB 51 l.180-189) = véhicules dotés d'une facette `travel` (passage payant). */
-export const travelVehicles = memoParVersion('vehicles', (): VehicleData[] => VEHICLES_LIST.filter((v) => v.travel));
+export const travelVehicles = memoParVersion('vehicles', (): VehicleData[] => vehicles.filter((v) => v.travel));
 
 /** Mode de voyage : `'pied'` (Mouvement du groupe), `'monture'` (bêtes possédées, EDOC 7 — règle
  *  optionnelle `voyage-allures`) OU l'`id` d'un véhicule à passage payant (`vehicles.json`). */
@@ -56,7 +51,7 @@ export type TravelMode = 'pied' | 'monture' | string;
 /** Facette `travel` (passage payant) d'un mode ≠ `'pied'` — source UNIQUE des classes/Déplacement.
  *  Renvoie `undefined` si le mode n'est pas un véhicule à passage payant. */
 export function vehicleTravel(mode: TravelMode): NonNullable<VehicleData['travel']> | undefined {
-  return mode === 'pied' ? undefined : vehicleById(mode)?.travel;
+  return mode === 'pied' ? undefined : findVehicleById(mode)?.travel;
 }
 
 /** Libellé d'affichage par mode de voyage — les modes FIXES, plus un libellé par véhicule payant
@@ -88,7 +83,7 @@ export function travelModeIcon(mode: TravelMode): IconId {
   if (mode === 'pied') return 'voyage/a-pied';
   if (mode === 'monture') return 'voyage/en-selle';
   if (mode === 'mer') return 'voyage/ancre';
-  return vehicleById(mode)?.icon ?? 'voyage/diligence';
+  return findVehicleById(mode)?.icon ?? 'voyage/diligence';
 }
 
 /** Défauts paramétrables (surchargés par la carte du monde / la route dans l'éditeur). */
