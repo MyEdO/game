@@ -2568,8 +2568,10 @@ export const gabarits = datasetDe<typeof gabaritsDef>(gabaritsJson);
 export const findGabaritById = indexParId('gabarits', gabarits);
 /** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113, #3111, #3116) : têtes, coiffures, tenues, emplacements, pièces, ensembles, emblèmes, variantes. */
 export const gardeRobe = datasetDe<typeof gardeRobeDef>(gardeRobeJson);
+/** Une ligne de la garde-robe. */
+type EntreeDeGardeRobe = EntreeDe<typeof gardeRobeDef>;
 /** Une ligne de la garde-robe, de nature `K`. */
-export type LigneDeGardeRobe<K extends EntreeDe<typeof gardeRobeDef>['kind'] = EntreeDe<typeof gardeRobeDef>['kind']> = Extract<EntreeDe<typeof gardeRobeDef>, { kind: K }>;
+export type LigneDeGardeRobe<K extends EntreeDeGardeRobe['kind'] = EntreeDeGardeRobe['kind']> = Extract<EntreeDeGardeRobe, { kind: K }>;
 /** Lecteur d'une nature de la garde-robe par id ; une ligne d'une autre nature n'en est pas une. */
 const parNature = <K extends LigneDeGardeRobe['kind']>(kind: K) => {
   const idx = indexParChamp<LigneDeGardeRobe, string>('gardeRobe', gardeRobe, (e) => (e.kind === kind ? e.id : undefined));

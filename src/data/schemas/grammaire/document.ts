@@ -168,16 +168,24 @@ type ExigeesDuCas<Tb, Rq, Cas extends keyof Tb> = Cas extends keyof Rq ? ClesDeL
 /** L'objet `T` à plat. */
 type APlat<T> = { [K in keyof T]: T[K] };
 
+/** Les clés de `T`, absentes. */
+type Absentes<T> = { [K in keyof T]?: never };
+
 /** L'entrée `E` du cas `Cas` : son champ de charge `Ch` à ce cas, ses clés exigées requises, le reste de sa charge
- *  optionnel, la charge des autres cas absente. */
-type BrancheDeCharge<E, Tb, Rq, Ch extends PropertyKey, Cas extends keyof Tb> = APlat<
-  Omit<E, ClesDeCharge<Tb> | Ch> & { [K in Ch]: Cas } & { [K in ExigeesDuCas<Tb, Rq, Cas> & keyof E]-?: Exclude<E[K], undefined> } & {
-    [K in Exclude<ClesDeLaListe<Tb[Cas]>, ExigeesDuCas<Tb, Rq, Cas>> & keyof E]?: E[K];
-  } & { [K in Exclude<ClesDeCharge<Tb>, ClesDeLaListe<Tb[Cas]>>]?: never }
+ *  optionnel, la charge des autres cas absente. Chaque clé est prise à `E` (`Pick`, mappés homomorphes) : elle garde
+ *  la déclaration de son schéma, que lit `scripts/guards/lib/fieldConsumers.mjs`. */
+type BrancheDeCharge<E, Tb, Rq, Ch extends keyof E, Cas extends keyof Tb> = APlat<
+  Omit<E, ClesDeCharge<Tb> | Ch> &
+    Pick<E, Ch> & { [K in Ch]: Cas } &
+    Required<Pick<E, ExigeesDuCas<Tb, Rq, Cas> & keyof E>> &
+    Partial<Pick<E, Exclude<ClesDeLaListe<Tb[Cas]>, ExigeesDuCas<Tb, Rq, Cas>> & keyof E>> &
+    Absentes<Pick<E, Exclude<ClesDeCharge<Tb>, ClesDeLaListe<Tb[Cas]>> & keyof E>>
 >;
 
 /** L'entrée `E` dont le champ de charge `Ch` vaut un cas hors de la table : `refusDeCharge` n'y borne rien. */
-type HorsDeLaTable<E, Tb, Ch extends keyof E> = [Exclude<E[Ch], keyof Tb>] extends [never] ? never : Omit<E, Ch> & { [K in Ch]: Exclude<E[Ch], keyof Tb> };
+type HorsDeLaTable<E, Tb, Ch extends keyof E> = [Exclude<E[Ch], keyof Tb>] extends [never]
+  ? never
+  : Omit<E, Ch> & Pick<E, Ch> & { [K in Ch]: Exclude<E[Ch], keyof Tb> };
 
 /**
  * L'entrée `E` sous la CHARGE PAR DISCRIMINANT de l'espace `S` (`chargeParDiscriminant`, `requisesParDiscriminant`,
