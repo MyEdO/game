@@ -110,7 +110,7 @@ import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
-import { openWorldTest, composeRollLabel, openSequence, freeCons, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
+import { openWorldTest, composeRollLabel, openSequence, freeCons, rollStep, monoStep, tableStep, displayStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, jouerLaJournee, pushStep, type TableStepDef } from './cascade';
@@ -226,8 +226,9 @@ export interface SeaVoyageState {
     days: number; weeks: number; palierId?: string; roll?: number; result?: number; crewDR?: number;
     manannTens?: number; pendingFinalize?: boolean;
   };
-  /** RECETTE (#332) : événement de bord NOMMÉ forcé au PROCHAIN jour (`__wfrp.forceEncounter`) — court-
-   *  circuite le timer 1d10 et le tirage d100/Manann de `resolveSeaDayEvent`, sans autre effet de setup. */
+  /** RECETTE (#332) : événement de bord NOMMÉ d'avance (`__wfrp.forceEncounter`) — le prochain jour bâti pose
+   *  l'étape d'événement quel que soit le compteur (`buildSeaBoardEventStep`), sans tirage ; son applier le
+   *  joue et le consomme. */
   forcedEventId?: string;
 }
 
@@ -285,10 +286,9 @@ function noteEvent(get: Get, set: Set, event: RecapEvent): string {
   return `${event.title} — ${event.text}`;
 }
 
-/** Écrit SEULEMENT au recap du jour (`sea.lines`) — le JOURNAL des appliers de cascade migrés (#295
- *  Lot 1) est désormais écrit par `commitStep` depuis les `consequences` retournées (`freeCons`), pas
- *  par un second canal direct. `tell()` reste le canal des sites HORS applier (narration d'événement de
- *  jour, entretien-survie). */
+/** Écrit SEULEMENT au recap du jour (`sea.lines`) — le JOURNAL d'un applier de cascade est écrit par
+ *  `commitStep` depuis les `consequences` retournées (`freeCons`), pas par un second canal direct (#295
+ *  Lot 1). `tell()` est le canal des sites HORS applier (narration d'événement de jour, entretien-survie). */
 export function noteSeaLine(get: Get, set: Set, lines: string[]): void {
   if (!lines.length) return;
   const plan = get().travelPlan;
@@ -686,6 +686,16 @@ export function buildVoyageCrewStep(get: Get, testTypeId: string, kind: Extract<
   return etapeDEquipage(get, testTypeId, kind, voyageStakeRef(kind), opts);
 }
 
+/** Étape du jour qui se joue même sans titulaire : le Test d'équipage, ou à défaut la même étape (même id,
+ *  même `kind`) portée par le monde, sans jet ni issue, titrée par son enjeu ; son applier joue alors le
+ *  repli sans résultat (`totalDeCrise`, applier `equipage-embuscade`). MDG 14 l.55 */
+function etapeDEquipageOuDuMonde(get: Get, testTypeId: string, kind: Extract<GenreDEtape, VoyageStakeId>, opts: CrewStepOpts = {}): BuiltCascadeStep {
+  return buildVoyageCrewStep(get, testTypeId, kind, opts) ?? displayStep({
+    id: idDansLaSequence(get, kind), kind, worldOwner: true, icon: opts.icon ?? 'voyage/ancre',
+    label: refLabel('stakes', { id: kind }),
+  });
+}
+
 /** Refus NOMMÉ de Forcer le rythme quand personne ne peut tenter son Test (MDG 13 l.97, LDB 09 l.30) ; `null`
  *  sinon. Le geste de départ (`WorldMapView`) et l'étape du jour en dérivent. */
 export function forcePaceRefus(party: Combatant[], competence: RefDesignee): string | null {
@@ -867,20 +877,18 @@ function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
  * Étapes POST-PROGRESSION du jour (crise → embuscade ancrée → phare → orientation → extermination →
  * entretien), calculées APRÈS que `applySeaProgress` ait posé `sea.milesToday` du jour (dépendance de
  * l'embuscade/du phare, #275 Ronde 2 cran 3 Décision 2) — appelée par l'applier `'equipage-progression'`
- * (`insert`) ET par `buildSeaDayCascade` quand AUCUN Test de Progression n'a pu s'ouvrir (aucun PJ
- * apte). L'embuscade SANS équipage (aucun jet de Perception possible) ouvre directement l'abordage
- * EN SURPRISE ici : jamais d'étape de cascade sans jet.
+ * (`insert`) ET par `buildSeaDayCascade` quand AUCUN Test de Progression n'a pu s'ouvrir. Fonction de
+ * construction : elle rend des étapes et n'ouvre rien. La crise et l'embuscade sans titulaire sont des
+ * étapes du monde (`etapeDEquipageOuDuMonde`), que leur applier joue à leur rang, sous le pilote du jour.
  */
-function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
+function buildPostProgressionSteps(get: Get): BuiltCascadeStep[] {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   const worldMap = get().worldMap as WorldMap;
   const route = worldMap?.routes.find((r) => r.id === plan.routeId);
   const out: BuiltCascadeStep[] = [];
-  // 6. CRISE en cours (Poursuite ch.13 l.354 / Tourbillon l.514) : un Test d'équipage par JOUR. Aucun PJ
-  // apte au poste = sous l'effectif minimal (MDG 14 l.55) → la manche se joue quand même au plancher de
-  // Manque de bras (miroir de la Progression sans équipage `buildSeaDayCascade`) : une CRISE ne se drop
-  // JAMAIS faute de titulaire, sinon elle reste posée sans jamais resurgir (soft-lock #383).
+  // 6. CRISE en cours (Poursuite ch.13 l.354 / Tourbillon l.514 ; MDG 14 l.55) : une étape par JOUR, avec ou
+  // sans titulaire, sinon la crise reste posée sans jamais resurgir (soft-lock #383).
   if (sea.crisis) {
     const kind = sea.crisis.kind === 'poursuite' ? 'equipage-poursuite' : 'equipage-tourbillon';
     const testTypeId = sea.crisis.kind === 'poursuite' ? 'progression-poursuite' : 'manoeuvre';
@@ -888,12 +896,10 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
     // Manœuvre tant que non dégagé.
     const entangleDR = findCrewTestTypeById(testTypeId)?.steering ? (sea.entangled?.manDR ?? 0) : 0;
     // Le Test d'Évasion d'un Tourbillon (MDG 13 l.514-537) traverse des eaux dangereuses (LDB 10 l.966).
-    const st = buildVoyageCrewStep(get, testTypeId, kind, {
+    out.push(etapeDEquipageOuDuMonde(get, testTypeId, kind, {
       ...(entangleDR ? { extraDR: entangleDR } : {}),
       ...(kind === 'equipage-tourbillon' ? { contexte: 'perilDesEaux' as const } : {}),
-    });
-    if (st) out.push(st);
-    else resolveSeaCrisisRound(get, set, capToSuccesMinime(UNDERCREW_DR));
+    }));
   }
   // EMPÊTRÉ dans des Débris marins (MDG 13 l.491, #444) : Test étendu de Force pour se dégager —
   // n'arrête PAS la Progression (contrairement à l'Échouage, `sea.stranded`).
@@ -910,11 +916,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   // Perception PUIS abordage (applier `equipage-embuscade`, table `appliers`).
   if (route?.ambush?.scene.id && route.ambush.encounter && !sea.ambushFired) {
     const anchor = Math.max(0, Math.min(1, route.ambush.at ?? 0.5)) * plan.km;
-    if (plan.kmDone + sea.milesToday >= anchor) {
-      const st = buildVoyageCrewStep(get, 'perception', 'equipage-embuscade');
-      if (st) out.push(st);
-      else openAuthoredSeaAmbush(get, set, route, false); // aucun équipage pour tester → surpris directement
-    }
+    if (plan.kmDone + sea.milesToday >= anchor) out.push(etapeDEquipageOuDuMonde(get, 'perception', 'equipage-embuscade'));
   }
   // 4. Phare du port d'arrivée en vue (dernier jour de mer) → Test de Perception VISUEL (MDG 13 l.337).
   const dest = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
@@ -945,11 +947,12 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
 }
 
 /**
- * Construit la CASCADE du jour (#275 Ronde 2 cran 3) : tronc = Forcer le rythme (si demandé) → Affaler
+ * Construit la CASCADE du jour (#275 Ronde 2 cran 3) : en tête, les périls d'auteur de la route
+ * (`buildAuthorPerilSteps`) puis l'événement de bord (`buildSeaBoardEventStep`) ; tronc = Forcer le rythme (si demandé) → Affaler
  * (si vents violents) → Progression — l'applier `'equipage-progression'` (table `appliers`, cran 2a) INSÈRE les
- * étapes post-progression (`buildPostProgressionSteps`) une fois `sea.milesToday` connu. Aucun PJ apte
- * pour la Progression → applique la progression au plancher de Manque de bras (MDG 14 l.55) et bâtit
- * quand même les étapes qui n'en dépendent pas.
+ * étapes post-progression (`buildPostProgressionSteps`) une fois `sea.milesToday` connu. Aucun membre apte
+ * qui tienne un rôle du Test de Progression → applique la progression au plancher de Manque de bras
+ * (MDG 14 l.55) et bâtit quand même les étapes qui n'en dépendent pas. Elle n'ouvre rien.
  */
 function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; log: string[] } {
   const steps: BuiltCascadeStep[] = [];
@@ -971,7 +974,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
     patchSea(get, set, { milesToday: 0 });
     const st = buildStrandedOrEntangledStep(get, 'intermediaire', 'mer-degagement', { penalite: seaStrandingPenalty(get) });
     pousseSi(steps, st);
-    steps.push(...buildPostProgressionSteps(get, set));
+    steps.push(...buildPostProgressionSteps(get));
     return { steps, log: [] };
   }
   // 2. Vents « Affaler les voiles » (ch.13 l.288) : posé AVANT le jet (le d100 ne décide QUE d'un
@@ -1001,7 +1004,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
       tell(get, set, [t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift: windDrift, effet: t(DRIFT_EFFECT_KEY[sens], { miles: Math.abs(credited) }) }) })]);
       patchSea(get, set, { milesToday: credited });
     }
-    steps.push(...buildPostProgressionSteps(get, set));
+    steps.push(...buildPostProgressionSteps(get));
     return { steps, log: [] };
   }
   // FORCER LE RYTHME (MDG 13 l.95-107) : AVANT la Progression — « pour bénéficier du bonus de
@@ -1013,10 +1016,10 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   const progStep = choiceStep ?? buildVoyageCrewStep(get, 'progression', 'equipage-progression');
   if (progStep) steps.push(progStep);
   else {
-    // Aucun PJ apte (LDB 16, État Inconscient) = sous l'effectif minimal : Progression au plancher de
-    // Manque de bras (MDG 14 l.55).
+    // Aucun membre apte (LDB 16, État Inconscient) au rôle du Test (`shipCrew`, rôles épinglés compris) :
+    // Progression au plancher de Manque de bras (MDG 14 l.55).
     tell(get, set, applySeaProgress(get, set, capToSuccesMinime(UNDERCREW_DR)));
-    steps.push(...buildPostProgressionSteps(get, set));
+    steps.push(...buildPostProgressionSteps(get));
   }
   return { steps, log: [] };
 }
@@ -1249,43 +1252,26 @@ function finalizeFastVoyage(get: Get, set: Set): void {
 
 // ── Boucle jour par jour (#275 Ronde 2 cran 3 — pipeline cascade) ───────────────────────────────
 
-/** Événement de bord tous les 1d10 jours (ch.15 l.89) — résolu AVANT la cascade du jour (ne dépend
- *  d'aucune Progression). La `consequence` d'un événement (Test, Test d'équipage,
- *  choix : `runFlow`) peut SURFACER leur propre mini-cascade (`purpose:'test'`) — renvoie `true` si
- *  c'est le cas ; sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`. */
-function resolveSeaDayEvent(get: Get, set: Set): boolean {
-  const plan = get().travelPlan!;
-  const sea = plan.sea!;
-  // Recette (#332) : événement NOMMÉ forcé (`forceEncounter`) — court-circuite le timer + le tirage.
-  if (sea.forcedEventId) {
-    const forced = seaBoardEventById(sea.forcedEventId);
-    patchSea(get, set, { forcedEventId: undefined });
-    if (forced) {
-      // Hors cascade (recette `forceEncounter`) : personne ne journalise pour nous — la ligne rendue
-      // par `resolveBoardEvent` s'écrit ICI, une fois.
-      log(get, set, [resolveBoardEvent(get, set, forced)]);
-      return !!get().pendingCascade;
-    }
-  }
-  const days = sea.daysToEvent - 1;
-  // Jour antérieur à celui de l'événement : rien à tirer, le compteur avance et c'est tout.
-  if (days > 0) { patchSea(get, set, { daysToEvent: days }); return false; }
-  // Jour d'événement : le tirage est un dé de MONDE, donc une ÉTAPE (`buildSeaBoardEventStep`,
-  // poussée dans la cascade du jour juste après les périls d'auteur — l'ordre RAW). Le compteur, lui,
-  // n'avance qu'à la résolution : c'est l'applier qui tire le délai suivant, à la MÊME position RNG.
-  return false;
+/** Décompte d'un jour du compteur d'événement de bord (MDG 15 l.89), seul écrivain du jour, AVANT la
+ *  construction du jour, qui le lit décompté (`buildSeaBoardEventStep`). Le compteur se retire à la résolution
+ *  de l'événement, par l'applier du `kind`, qui tire le délai suivant. */
+function decompterLEvenementDeBord(get: Get, set: Set): void {
+  patchSea(get, set, { daysToEvent: get().travelPlan!.sea!.daysToEvent - 1 });
 }
 
-/** L'ÉVÉNEMENT DE BORD du jour (MDG 15 l.89) quand le compteur y arrive — une étape à TABLE de monde,
+/** L'ÉVÉNEMENT DE BORD du jour (MDG 15 l.89) quand le compteur décompté est à zéro ou en dessous — une étape à TABLE de monde,
  *  dont le `mod` est l'Humeur de Manann (elle DÉCALE le dé, l.85 : c'est bien un modificateur, pas une
- *  autre table). `undefined` les autres jours. */
+ *  autre table). Événement NOMMÉ d'avance (`forcedEventId`) : la même étape, en AFFICHAGE (aucun dé n'est
+ *  tombé, `displayStep`), quel que soit le compteur. `undefined` les autres jours. */
 function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
   const sea = get().travelPlan?.sea;
-  if (!sea || sea.daysToEvent - 1 > 0) return undefined;
+  if (!sea) return undefined;
+  const etape = { id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'voyage/vague', label: t('step.seaBoardEvent') } as const;
+  if (sea.forcedEventId) return displayStep(etape);
+  if (sea.daysToEvent > 0) return undefined;
   const mood = vesselManann(get().vessel);
   return tableStep({
-    id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'voyage/vague',
-    label: t('step.seaBoardEvent'),
+    ...etape,
     table: { tableId: SEA_BOARD_EVENT_TABLE, spec: deDesEvenementsDeBord(), ...(mood.score ? { mod: mood.score } : {}) },
     stake: voyageStakeRef(SEA_BOARD_EVENT_KIND),
   });
@@ -1310,8 +1296,8 @@ const journeeEnVol = (s: Jeu): boolean => [s.pendingCascade, ...s.suspendedCasca
 
 /**
  * Boucle maritime — appelée par `runTravelDays`/`reprendreLeVoyage` (plan `sea`) et la reprise de nuit.
- * UN JOUR = périls d'auteur (inline) → événement de bord (inline, peut surfacer) → la CASCADE du jour
- * (`buildSeaDayCascade`, purpose `travelDay`) → `continueSeaDayAfterCascade` à sa clôture (dénouement
+ * UN JOUR = décompte du compteur d'événement de bord (`decompterLEvenementDeBord`) → la CASCADE du jour (`buildSeaDayCascade`, purpose
+ * `travelDay` : périls d'auteur, événement de bord, Progression…) → `continueSeaDayAfterCascade` à sa clôture (dénouement
  * du jour + halte/arrivée). La cascade EST le point de reprise (`pendingCascade`/`suspendedCascades`,
  * noyau/cascade.ts).
  */
@@ -1329,19 +1315,16 @@ export function runSeaDay(get: Get, set: Set): void {
   // la CLÔTURE du jour précédent, `continueSeaDayAfterCascade` — décision 1 #275 Ronde 2 cran 3, aligné
   // sur le fluvial `tickRiverWindDay`/`finishRiverDay`) — cette ligne l'ANNONCE seulement.
   tell(get, set, [t('sv.weatherOfDay', { weather: seaWeatherLabel(sea.weather), from: sea.windFrom, heading: sea.heading })]);
-  if (resolveSeaDayEvent(get, set)) return;
+  decompterLEvenementDeBord(get, set);
   const { steps, log: lines } = buildSeaDayCascade(get, set);
   for (const l of lines) log(get, set, [l]);
   jouerLesEtapesDuJour(get, set, steps);
 }
 
 /** Joue les étapes du jour qu'un build vient de rendre (`buildSeaDayCascade`, ou le reste du jour
- *  `buildPostProgressionSteps`) — UNE décision immédiat/interactif pour les deux entrées du jour. */
+ *  `buildPostProgressionSteps`) — UNE décision immédiat/interactif pour les deux entrées du jour. Un jour
+ *  sans étape se clôt sur place ; sinon le pilote du jour les joue. */
 function jouerLesEtapesDuJour(get: Get, set: Set, steps: BuiltCascadeStep[]): void {
-  // La construction du jour a pu ouvrir un ABORDAGE en plein vol (crise « caught » / embuscade ancrée
-  // sans équipage à tester → `startChaseBoarding`/`openAuthoredSeaAmbush` posent `interrupted` + combat) :
-  // la traversée s'arrête là (reprise par `reprendreLeVoyage` après le combat), jamais de fin-de-jour en plein combat.
-  if (get().battle || get().travelPlan?.interrupted) return;
   // Journée sans jet : finalisée comme la cascade le ferait à sa clôture, défaite hors combat comprise.
   if (!steps.length) { if (!checkPartyWiped(get, set)) continueSeaDayAfterCascade(get, set); return; }
   // Traversée sous ordres (`voyageCadence.traverseeCommandee`) d'une journée de PURE routine (#275 Ronde 2
@@ -1750,14 +1733,17 @@ function affalerConsequence(get: Get, set: Set, step: CascadeStep): Consequence[
   return [];
 }
 
+/** DR net d'une manche de crise : l'issue du Test d'équipage, ou le plancher de Manque de bras quand l'étape
+ *  n'a pas d'issue (aucun titulaire, `etapeDEquipageOuDuMonde`). MDG 14 l.55 */
+function totalDeCrise(step: CascadeStep): number {
+  return step.result?.sl ?? capToSuccesMinime(UNDERCREW_DR);
+}
+
 /**
  * Cœur d'UNE manche de CRISE (Poursuite ch.13 l.354-370 / Tourbillon ch.13 l.514-528) : dispatche sur
  * `sea.crisis.kind`, applique l'issue et journalise (recap). `total` = DR net de l'équipage —
- * `step.result.sl` quand un Test d'équipage a pu s'ouvrir, le plancher de Manque de bras (MDG 14 l.55,
- * `capToSuccesMinime(UNDERCREW_DR)`) quand AUCUN PJ n'est apte au poste : la manche se joue quand même,
- * comme la Progression sans équipage apte (`buildSeaDayCascade`). Peut ouvrir l'abordage (Poursuite « caught »,
- * `startChaseBoarding` → `interrupted`). SOURCE UNIQUE partagée par les appliers `poursuite`/`tourbillon`
- * ET le repli sans équipage de `buildPostProgressionSteps` — une crise ne se DROP jamais faute de titulaire.
+ * `totalDeCrise` de l'étape. Peut ouvrir l'abordage (Poursuite « caught », `startChaseBoarding` →
+ * `interrupted`) : appelée par les seuls appliers `poursuite`/`tourbillon`, sous le pilote du jour.
  */
 function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
   const plan = get().travelPlan;
@@ -1926,7 +1912,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
  *  `buildPostProgressionSteps`) — utilisé par `resolveSteamSave` quand la cascade `'equipage-progression'` s'est
  *  fermée SANS insérer la suite (Fuite de vapeur suspendue entre-temps). */
 function continueSeaDayFromPostProgression(get: Get, set: Set): void {
-  jouerLesEtapesDuJour(get, set, buildPostProgressionSteps(get, set));
+  jouerLesEtapesDuJour(get, set, buildPostProgressionSteps(get));
 }
 
 /** Ouvre l'embuscade AUTHORÉE d'une route de mer (couture UNIQUE, #212) — même pipeline que l'embuscade
@@ -2108,9 +2094,8 @@ export function navireHostileEnVue(get: Get, set: Set, coque: Combatant, o: Extr
   return [];
 }
 
-/** Interpellation du navire hostile (A5.3 #327) : cascade AUTONOME (patron Ouragan `resolveSeaDayEvent`)
- *  d'une SEULE étape de CHOIX — fuir / combattre, et se soumettre quand il exige de fouiller la cale
- *  (`fouille`). L'applier `merPiratesSommation` reprend `runSeaDay` à la fermeture. Le pillage
+/** Interpellation du navire hostile (A5.3 #327) : séquence d'une SEULE étape de CHOIX — fuir / combattre, et se
+ *  soumettre quand il exige de fouiller la cale (`fouille`) ; sa fermeture rend la main à la pile (`reprendreLaPile`). Le pillage
  *  (`pirate-pillage-pct`) et le tribut à Stromfels sont RAW-mués (MDG 15 l.171-173 décrit l'extorsion sans la
  *  chiffrer) → paramètre maison + choix joueur. */
 function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): void {
@@ -2170,8 +2155,8 @@ export function localisationAleatoire(rng: RNG): ShipCritKey {
 }
 
 /** Applique un événement de bord et REND la ligne qui le raconte (titre + texte verbatim de
- *  `sea-events.json`) — son écriture appartient à l'appelant : conséquence d'étape sous cascade,
- *  `ecrireAuJournal` direct hors cascade. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
+ *  `sea-events.json`) — son écriture appartient à l'appelant : la conséquence de l'étape d'événement de
+ *  bord. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
 function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, roll?: number): string {
   // MDG 15 l.89, l.228
@@ -2527,14 +2512,17 @@ export const INTERRUPTIONS_DE_PERIL = [SEA_PERIL_INTERRUPT] as const;
 export const TABLES = {
   appliers: {
     [SEA_BOARD_EVENT_KIND]: (get, set, step) => {
+      // La rangée tirée, ou à défaut l'événement nommé d'avance (étape d'affichage, `buildSeaBoardEventStep`).
       const tiree = step.table?.result;
-      if (!tiree) return {};
+      const id = tiree?.id ?? get().travelPlan?.sea?.forcedEventId;
+      if (!id) return {};
       const rng = battleRng();
-      const event = seaBoardEventById(tiree.id);
+      const event = seaBoardEventById(id);
       // Le délai du PROCHAIN événement se tire ICI, juste après le dé d'événement, et il est posé AVANT la
       // conséquence : celle-ci peut surfacer sa propre cascade, et une reprise re-déclencherait sinon CE
-      // même tirage.
-      patchSea(get, set, { daysToEvent: rollDaysToNextEvent(rng) });
+      // même tirage. L'événement nommé ne se consomme que s'il a donné l'id : une rangée tirée le laisse au
+      // jour suivant.
+      patchSea(get, set, { daysToEvent: rollDaysToNextEvent(rng), ...(tiree ? {} : { forcedEventId: undefined }) });
       if (!event) return {};
       // UNE ligne par événement, et c'est la CONSÉQUENCE de l'étape (titre + texte VERBATIM de
       // `sea-events.json`, AGENTS.md règle 5) : `commitStep` la journalise ET la garde en `outcome`, donc
@@ -2542,7 +2530,7 @@ export const TABLES = {
       // `CascadeModal`). Même patron que la Météo d'Étape (`travelFlow`, applier `etape-meteo`), qui rend
       // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la
       // RANGÉE (`table.result.lines`) et ne se re-verse pas au journal : une seule voix par étape.
-      return { consequences: freeCons([resolveBoardEvent(get, set, event, tiree.die)]) };
+      return { consequences: freeCons([resolveBoardEvent(get, set, event, tiree?.die)]) };
     },
     /** Forcer le rythme (MDG 13 l.95-107) : pose `paceToday`, le +M du jour se lit ensuite par
      *  `effectiveSeaM`. Étape du TRONC de la cascade du jour (`buildForcePaceStep`, avant Progression) —
@@ -2647,8 +2635,8 @@ export const TABLES = {
         }
       }
       noteSeaLine(get, set, j);
-      if (get().pendingSteamSave) return { consequences: freeCons(j) }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `runSeaDay`)
-      const insert = buildPostProgressionSteps(get, set);
+      if (get().pendingSteamSave) return { consequences: freeCons(j) }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `continueSeaDayFromPostProgression`)
+      const insert = buildPostProgressionSteps(get);
       return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
     },
     /** « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, #443) : Dégâts de coque (`overspeedDamage`)
@@ -2731,12 +2719,12 @@ export const TABLES = {
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },
-    /** Embuscade authorée à ancrage déterministe (#212) : réussite = préparés (pas de Surprise). */
+    /** Embuscade authorée à ancrage déterministe (#212) : réussite = préparés (pas de Surprise) ; une étape
+     *  sans issue (aucune vigie, `etapeDEquipageOuDuMonde`) se lit comme un échec. */
     'equipage-embuscade': (get, set, step) => {
-      if (!step.result) return;
       const plan = get().travelPlan;
       const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan?.routeId);
-      const success = step.result.success;
+      const success = step.result?.success ?? false;
       const j = [success
         ? t('sv.lookoutOk')
         : t('sv.lookoutKo')];
@@ -2757,19 +2745,13 @@ export const TABLES = {
       noteManieurs(get, set, step);
       const j = applySeaProgress(get, set, step.result.sl);
       noteSeaLine(get, set, j);
-      const insert = buildPostProgressionSteps(get, set);
+      const insert = buildPostProgressionSteps(get);
       return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
     },
     /** Manche de Poursuite (ch.13 l.354-370) — issue partagée avec la poursuite terrestre (`engine/pursuit`). */
-    'equipage-poursuite': (get, set, step) => {
-      if (!step.result) return;
-      return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
-    },
+    'equipage-poursuite': (get, set, step) => ({ consequences: freeCons(resolveSeaCrisisRound(get, set, totalDeCrise(step))) }),
     /** Manche d'Évasion du Tourbillon (ch.13 l.514-528) : chaque manche coûte des Dégâts de collision. */
-    'equipage-tourbillon': (get, set, step) => {
-      if (!step.result) return;
-      return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
-    },
+    'equipage-tourbillon': (get, set, step) => ({ consequences: freeCons(resolveSeaCrisisRound(get, set, totalDeCrise(step))) }),
     /** Extermination des nuisibles : MDG 14 l.98-104 ; MDG 15 l.161, l.176 */
     'equipage-extermination': (get, set, step) => {
       if (!step.result) return;
@@ -2870,8 +2852,7 @@ export const TABLES = {
       } else {
         startSeaPursuit(get, set, garanti(get().travelPlan?.sea?.boarding, 'merPiratesSommation', 'navire hostile en vue'));
       }
-      // La reprise du jour à la fermeture de cette cascade (`purpose:'test'` en mer) est portée par
-      // `dispatchCascadeDone` → `runSeaDay` (couture canonique de clôture, jamais un `setTimeout` ad hoc).
+      // La reprise du jour à la fermeture de cette séquence : la pile (`reprendreLaPile`).
       return { consequences: freeCons(j) };
     },
     /** TRIBUT à Stromfels (A5.3 #327) : livrer un marin = perte réelle d'équipage (`applyVesselCrewLoss`) +
@@ -2890,10 +2871,10 @@ export const TABLES = {
       }
       return { consequences: freeCons(j) };
     },
-    /** Désertion (MDG 14 l.192-202, dé de MONDE par `openWorldTest`) : la boucle d100/marin réelle (INCHANGÉE, même seuil,
-     *  mêmes tirages via `battleRng()`) vit ICI — l'étape `merDesertion` n'est que le vecteur de visibilité
-     *  MJ. La FINALISATION de l'accostage (`finalizePortArrival`) est portée par le champ `portArrival` de la
-     *  cascade et jouée à sa clôture par `dispatchCascadeDone` (#387) — plus de `setTimeout` de reprise. */
+    /** Désertion (MDG 14 l.192-202) : l'étape `merDesertion` est le dé de MONDE que `trancherLaRelache` ouvre par
+     *  `openWorldTest` ; l'applier tire les départs par `resolveShoreLeaveDesertion` (`shipCrew.ts`, RNG `battleRng()`).
+     *  L'accostage se finalise chez `trancherLaRelache` quand l'étape se résout sur place, sinon à la clôture du slot :
+     *  champ `portArrival` de la cascade, `dispatchCascadeDone` → `finalizePortArrival` (#387). */
     'merDesertion': (get, set, step) => {
       if (!step.result) return;
       const journal = resolveShoreLeaveDesertion(get, set, battleRng());
