@@ -17,8 +17,9 @@
 // chaque recette lancée avec `--pont=<vivant.mjs>` ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
-// (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), et les
-// planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), les avis
+// de licence de ce qu'il embarque sous `licences/` (`avis.mjs`, #4063 : le moteur, les paquets npm du bundle, les
+// assets du projet ; un avis qui manque fait échouer l'export), et les planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
@@ -30,7 +31,8 @@
 // (`vivant.mjs`), qui partage `empaqueter`. `--bureau --sortie <dossier>` y écrit l'exécutable de bureau de cette
 // plateforme (#3951, `BUREAU`) : sous `noyau/`, le bundle, le point d'entrée embarqué empaqueté en un fichier
 // (`empaqueterLeProcessus`, `embarque.mjs`) et le Node qui joue l'export ; l'export de son préréglage sur son modèle
-// épinglé ; à côté, les modèles en scène ; puis l'exécutable joue une partie sur son noyau embarqué
+// épinglé ; à côté, les modèles en scène et les avis de licence, Node et les paquets npm des deux bundles compris ;
+// puis l'exécutable joue une partie sur son noyau embarqué
 // (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
 // déclarant `const RECETTE_RENDUE := true` (`rendre`) ; la CI le joue (`npm run godot:rendus`). L'import de ce module
 // ne lance rien et ne charge aucun asset.
@@ -46,6 +48,7 @@ import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { chargerAssets } from './asset/charger.mjs'
+import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
 import { API_DU_NAVIGATEUR, PONT, pontDuBundle } from './processus.mjs'
@@ -72,9 +75,9 @@ const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
-  --export            le bundle, l'export Web du projet et ses modèles fabriqués en scène, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
+  --export            le bundle, l'export Web du projet, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --rendus            le projet importé et les recettes rendues jouées en rendu réel sous chacun des deux rendus, Forward+ et compatibilité, par l'éditeur Godot épinglé
-  --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué et ses modèles fabriqués en scène, dans --sortie, puis la partie vivante jouée par l'exécutable
+  --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, puis la partie vivante jouée par l'exécutable
   --ouvrir            les GLB tirés de la Release et le catalogue des dessins déposés, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
@@ -97,7 +100,8 @@ function lireOptions(argv) {
   return { options }
 }
 
-/** Le bundle du pont : son code, écrit dans `sortie` si elle est donnée. */
+/** Le bundle du pont : son code et les ids des modules qu'il porte (`avisDesPaquets`), écrit dans `sortie` si elle est
+ *  donnée. */
 export async function empaqueter(sortie) {
   const entree = entreeDHote('wfrp-pont', ["import '/hotes/godot/pont/entree.ts';"])
   const resultat = await build({
@@ -118,10 +122,16 @@ export async function empaqueter(sortie) {
       reportCompressedSize: false,
     },
   })
+  const { code, moduleIds } = morceauDe(resultat, PONT)
+  return { code, modules: moduleIds }
+}
+
+/** Le morceau `fichier` de `resultat`, la sortie de `vite build`. */
+function morceauDe(resultat, fichier) {
   const [sortieDeRollup] = Array.isArray(resultat) ? resultat : [resultat]
-  const morceau = sortieDeRollup.output.find((o) => o.type === 'chunk' && o.fileName === PONT)
-  if (!morceau) throw new Error(`[pont] ${PONT} absent de la sortie de vite build`)
-  return morceau.code
+  const morceau = sortieDeRollup.output.find((o) => o.type === 'chunk' && o.fileName === fichier)
+  if (!morceau) throw new Error(`[pont] ${fichier} absent de la sortie de vite build`)
+  return morceau
 }
 
 /** Le point d'entrée embarqué du processus du pont (`embarque.mjs`), et le fichier où il s'empaquette à côté du bundle. */
@@ -129,9 +139,9 @@ const EMBARQUE = join(RACINE, 'hotes', 'godot', 'embarque.mjs')
 const PROCESSUS = 'vivant.mjs'
 
 /** Le point d'entrée embarqué empaqueté en un seul fichier, `PROCESSUS`, dans `sortie` : il n'importe que Node. Rend
- *  son chemin. */
+ *  son chemin et les ids des modules qu'il porte (`avisDesPaquets`). */
 export async function empaqueterLeProcessus(sortie) {
-  await build({
+  const resultat = await build({
     root: RACINE,
     configFile: false,
     publicDir: false,
@@ -145,7 +155,7 @@ export async function empaqueterLeProcessus(sortie) {
       rolldownOptions: { output: { entryFileNames: PROCESSUS } },
     },
   })
-  return join(sortie, PROCESSUS)
+  return { chemin: join(sortie, PROCESSUS), modules: morceauDe(resultat, PROCESSUS).moduleIds }
 }
 
 /** Le scénario que l'exécution démarre : le combat des tests du pont (`hotes/godot/pont/tour.hors-store.test.ts`). */
@@ -320,11 +330,13 @@ function modeleDuPreset(cfg) {
 
 /** Le préréglage d'export de bureau de chaque plateforme (`export_presets.cfg`), son modèle d'export en release dans
  *  l'archive des modèles (`platform/linuxbsd/export/export_plugin.cpp`, `platform/windows/export/export_plugin.cpp`,
- *  Godot 4.7-stable), l'exécutable qu'il écrit, et le nom sous lequel il cherche le Node du noyau embarqué
- *  (`projet/scripts/transport_du_processus.gd`). */
+ *  Godot 4.7-stable), l'exécutable qu'il écrit, le nom sous lequel il cherche le Node du noyau embarqué
+ *  (`projet/scripts/transport_du_processus.gd`), et le `LICENSE` de la distribution de Node de la plateforme, relatif
+ *  au dossier de son exécutable (archives `node-v<version>-linux-x64.tar.xz`, `bin/node`, et
+ *  `node-v<version>-win-x64.zip`, `node.exe`, que pose aussi `actions/setup-node`). */
 const BUREAU = {
-  linux: { preset: 'Linux', modele: 'templates/linux_release.x86_64', executable: 'wfrp.x86_64', node: 'node' },
-  win32: { preset: 'Windows Desktop', modele: 'templates/windows_release_x86_64.exe', executable: 'wfrp.exe', node: 'node.exe' },
+  linux: { preset: 'Linux', modele: 'templates/linux_release.x86_64', executable: 'wfrp.x86_64', node: 'node', licenceDeNode: '../LICENSE' },
+  win32: { preset: 'Windows Desktop', modele: 'templates/windows_release_x86_64.exe', executable: 'wfrp.exe', node: 'node.exe', licenceDeNode: 'LICENSE' },
 }
 
 /** Le dossier du noyau embarqué, à côté de l'exécutable de bureau (`projet/scripts/transport_du_processus.gd`). */
@@ -549,10 +561,15 @@ function fabriquer(binaire, copie, modeles) {
   return erreurs
 }
 
+/** Le script du projet qui écrit ce que le moteur rend de ses licences (`avisDeGodot`). */
+const AVIS_DU_MOTEUR = 'res://outils/avis_du_moteur.gd'
+
 /** L'export en release du préréglage `preset` du projet vers `fichier` de `sortie`, sur le modèle `modele` : le
  *  préréglage de la copie le reçoit par `custom_template/release` ; puis, à côté, le dossier des modèles
- *  `DOSSIER_DES_MODELES` déposé, ses scènes fabriquées sur la même copie. */
-function exporter(binaire, { preset, fichier, modele }, sortie, { DOSSIER_DES_MODELES, figerLesDessins }) {
+ *  `DOSSIER_DES_MODELES` déposé, ses scènes fabriquées sur la même copie, et les avis de licence de ce que l'export
+ *  embarque (`deposerLesAvis`) : ceux du moteur, des assets du projet, et `embarques`, ceux de ce que la fabrication
+ *  ajoute à côté. */
+function exporter(binaire, { preset, fichier, modele }, sortie, { DOSSIER_DES_MODELES, figerLesDessins }, embarques) {
   return surUneCopie(binaire, figerLesDessins, (copie) => {
     const presets = join(copie, PRESETS)
     const sections = readFileSync(presets, 'utf8').split(/^(?=\[preset\.\d+\]\r?$)/m)
@@ -562,25 +579,32 @@ function exporter(binaire, { preset, fichier, modele }, sortie, { DOSSIER_DES_MO
     sections[rang] = sections[rang].replace(release, `custom_template/release=${JSON.stringify(modele.split(sep).join('/'))}`)
     writeFileSync(presets, sections.join(''))
     const { erreurs } = godot(binaire, copie, ['--export-release', preset, join(sortie, fichier)])
-    return erreurs.length ? erreurs : deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
+    if (erreurs.length) return erreurs
+    const fabrication = deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
+    if (fabrication.length) return fabrication
+    const moteur = join(copie, 'avis-du-moteur.json')
+    const lancement = godot(binaire, copie, ['--script', AVIS_DU_MOTEUR, '--', moteur])
+    if (lancement.erreurs.length) return lancement.erreurs
+    return deposerLesAvis(sortie, [avisDeGodot(existsSync(moteur) ? JSON.parse(readFileSync(moteur, 'utf8')) : null), ...avisDesAssets(copie), ...embarques])
   })
 }
 
 const octets = (n) => `${n.toLocaleString('fr-FR')} o`
 
-/** Le bundle bâti, mesuré, puis exécuté : 0, ou 1 s'il ne tient pas son contrat. */
+/** Le bundle bâti, mesuré, puis exécuté : son `statut`, 0, ou 1 s'il ne tient pas son contrat, et les ids des modules
+ *  qu'il porte. */
 async function pont(sortie) {
   const debut = performance.now()
-  const code = await empaqueter(sortie)
+  const { code, modules } = await empaqueter(sortie)
   const brut = Buffer.byteLength(code)
   console.log(`[pont] ${PONT} : ${octets(brut)} brut, ${octets(gzipSync(code).length)} gzip, bâti en ${Math.round(performance.now() - debut)} ms${sortie ? `, écrit dans ${sortie}` : ''}`)
   const ecarts = executer(code)
   if (ecarts.length) {
     console.error(`[pont] le bundle exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) ne tient pas son contrat :\n  ${ecarts.join('\n  ')}`)
-    return 1
+    return { statut: 1, modules }
   }
   console.log(`[pont] exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) : demarrer ${SCENARIO}, vue et sauvegardes ok, second demarrer refusé, erreursGlobales vide`)
-  return 0
+  return { statut: 0, modules }
 }
 
 /** Les erreurs de Godot dites, et le code de sortie qu'elles valent. */
@@ -628,19 +652,21 @@ function jouerLExecutable(executable) {
 
 /** L'exécutable de bureau de cette plateforme dans `sortie` (#3951) : sous `NOYAU`, le bundle du pont, le point d'entrée
  *  embarqué (`empaqueterLeProcessus`) et le Node qui joue cet export ; l'export de son préréglage (`BUREAU`) sur son
- *  modèle épinglé, les modèles déposés à côté ; puis la partie vivante jouée par l'exécutable (`jouerLExecutable`).
- *  Son code de sortie : 0, ou 1 à la première étape qui échoue. */
+ *  modèle épinglé, les modèles déposés à côté, et les avis de licence (#4063), ceux des paquets npm des deux bundles et
+ *  de Node compris ; puis la partie vivante jouée par l'exécutable (`jouerLExecutable`). Son code de sortie : 0, ou 1
+ *  à la première étape qui échoue. */
 async function bureau(sortie) {
   const plateforme = BUREAU[process.platform]
   if (!plateforme) throw new Error(`aucun préréglage de bureau pour ${process.platform} (${Object.keys(BUREAU).join(', ')})`)
   const noyau = join(sortie, NOYAU)
   mkdirSync(noyau, { recursive: true })
-  const code = await pont(noyau)
-  if (code) return code
-  await empaqueterLeProcessus(noyau)
+  const bundle = await pont(noyau)
+  if (bundle.statut) return bundle.statut
+  const processus = await empaqueterLeProcessus(noyau)
   cpSync(process.execPath, join(noyau, plateforme.node))
+  const embarques = [...avisDesPaquets([...bundle.modules, ...processus.modules]), avisDeNode(process.execPath, plateforme.licenceDeNode, process.version)]
   const a = await deposerLesAssets()
-  const exporte = verdict(await exporter(await editeur(), { preset: plateforme.preset, fichier: plateforme.executable, modele: await modeleDExport(plateforme.modele) }, sortie, a))
+  const exporte = verdict(await exporter(await editeur(), { preset: plateforme.preset, fichier: plateforme.executable, modele: await modeleDExport(plateforme.modele) }, sortie, a, embarques))
   if (exporte) return exporte
   const joue = verdict(jouerLExecutable(join(sortie, plateforme.executable)))
   if (joue) return joue
@@ -654,7 +680,7 @@ async function principal() {
     console.error(`${erreur}\n${USAGE}`)
     return 2
   }
-  if (options.mode === 'pont') return pont(options.sortie)
+  if (options.mode === 'pont') return (await pont(options.sortie)).statut
   if (options.mode === 'sonde') {
     const a = await deposerLesAssets()
     return verdict(await sonder(await editeur(), a))
@@ -666,11 +692,11 @@ async function principal() {
   }
   if (options.mode === 'bureau') return bureau(options.sortie)
   mkdirSync(options.sortie, { recursive: true })
-  const code = await pont(options.sortie)
-  if (code) return code
+  const bundle = await pont(options.sortie)
+  if (bundle.statut) return bundle.statut
   const a = await deposerLesAssets()
   const modele = await modeleDExport(modeleDuPreset(readFileSync(join(PROJET, PRESETS), 'utf8')))
-  const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a))
+  const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a, avisDesPaquets(bundle.modules)))
   if (sortie) return sortie
   deposerLesPlanches(options.sortie)
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)

@@ -33,14 +33,14 @@ describe('emplacementsDeDotation — énumération canonique (classe PUIS niveau
     });
   });
 
-  it('`estEmplacementDeDotation` : `{choice}`, `{wildcard}`, `{id, qualityChoice}` ; une ref concrète n\'en est pas un', () => {
-    expect([{ choice: [] }, { wildcard: 'arme' }, { id: 'fleuret', qualityChoice: true }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true]);
+  it('`estEmplacementDeDotation` : `{pick, of}`, `{wildcard}`, `{id, qualityChoice}` ; une ref concrète n\'en est pas un', () => {
+    expect([{ pick: 1, of: [] }, { wildcard: 'arme' }, { id: 'fleuret', qualityChoice: true }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true]);
     expect(([{ id: 'dague' }, { text: 'Toges' }, { id: 'cheval', type: 'creature' }, { id: 'charrette', type: 'vehicle' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
   });
 });
 
 describe('resolveTrappingChoices — les choix par adresse', () => {
-  it('contrat positif : branche B d\'un `{choice}`, arme d\'un `{wildcard}`, Atout d\'un `{id, qualityChoice}`', () => {
+  it('contrat positif : branche B d\'un `{pick, of}`, arme d\'un `{wildcard}`, Atout d\'un `{id, qualityChoice}`', () => {
     avecFixture(() => {
       expect(resoudre({ [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 1, [dot([4])]: 'leger' })).toEqual([
         { id: 'fleuret', qualities: [{ id: 'solide', value: 1 }] },
@@ -52,13 +52,13 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
     });
   });
 
-  it('un `{choice}` imbriqué se résout par le chemin de ses branches', () => {
+  it('un `{pick, of}` imbriqué se résout par le chemin de ses branches', () => {
     avecFixture(() => {
       expect(resoudre({ [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague' })[3]).toEqual({ id: 'dague' });
     });
   });
 
-  it('sans choix : `{choice}` et joker restent tels quels, l’Atout prend son défaut (raffine)', () => {
+  it('sans choix : `{pick, of}` et joker restent tels quels, l’Atout prend son défaut (raffine)', () => {
     avecFixture(() => {
       expect(resoudre({})).toEqual([
         DOTATIONS_FIXTURE.classe[0],
@@ -70,9 +70,9 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
     });
   });
 
-  it('une branche choisie dont le `{choice}` imbriqué n’est pas tranché rend ce `{choice}` tel quel', () => {
+  it('une branche choisie dont le `{pick, of}` imbriqué n’est pas tranché rend ce `{pick, of}` tel quel', () => {
     avecFixture(() => {
-      expect(resoudre({ [dot([3])]: 0 })[3]).toEqual({ choice: [{ id: 'dague' }, { wildcard: 'arme' }] });
+      expect(resoudre({ [dot([3])]: 0 })[3]).toEqual({ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] });
     });
   });
 
@@ -91,14 +91,14 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
     });
   });
 
-  it('une valeur hors des branches laisse le `{choice}` tel quel', () => {
+  it('une valeur hors des branches laisse le `{pick, of}` tel quel', () => {
     avecFixture(() => {
       expect(resoudre({ [dot([3])]: 9 })[3]).toEqual(DOTATIONS_FIXTURE.niveau[2]);
     });
   });
 
-  it('trappingRefLabel({choice}) joint les branches par " ou "', () => {
-    expect(trappingRefLabel({ choice: [{ text: 'A' }, { text: 'B' }] })).toBe('A ou B');
+  it('trappingRefLabel({pick, of}) joint les branches par " ou "', () => {
+    expect(trappingRefLabel({ pick: 1, of: [{ text: 'A' }, { text: 'B' }] })).toBe('A ou B');
   });
 
   it('trappingRefLabel affiche « (qualité au choix) » / les Atouts attachés', () => {
@@ -127,7 +127,7 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
 describe('emplacementTranche — le joueur a-t-il tranché ?', () => {
   const emplacement = (adresse: string) => emplacementsDeDotation(dotationsDuHeros(CARRIERE_FIXTURE)).find((e) => e.adresse === adresse)!;
 
-  it('un `{choice}` exige sa branche, et le choix de l\'emplacement que porte cette branche', () => {
+  it('un `{pick, of}` exige sa branche, et le choix de l\'emplacement que porte cette branche', () => {
     avecFixture(() => {
       const e = emplacement(dot([3]));
       expect(emplacementTranche(e, {})).toBe(false);

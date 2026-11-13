@@ -8,7 +8,7 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
 import { z } from 'zod';
 import { caracteristiqueChiffreeSchema, countSpecSchema, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
+import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, parmi, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec, type Parmi } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -250,7 +250,7 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
  *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
  *  texte narratif hors catalogue (+ quantité), dotation de POSSESSION (`dotationDePossessionSchema`,
  *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), somme d'argent (`sommeSchema`), mention par nature
- *  (`dotationDeMentionSchema`), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
+ *  (`dotationDeMentionSchema`), « 1 parmi » (`pick`, `{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
  *  ou joker (`wildcard`). Composé par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`,
  *  sans texte ni mention. Sa `spec` est la PRÉCISION d'un objet, nommée comme telle : `trappings.json` ne
  *  déclare aucun catalogue de Spécialisations. */
@@ -290,30 +290,24 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
-type DotationSansTexte =
+type FormeSansTexte =
   | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true; valeur?: Somme }
   | DotationDePossession
   | Somme
-  | { choice: unknown[] }
   | { wildcard: 'arme' };
+type DotationSansTexte = FormeSansTexte | Parmi<1, FormeSansTexte>;
 type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
+type FormeDeDotation = FormeSansTexte | DotationDeTexte | DotationDeMention;
 
 const jokerDeDotationSchema = nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } });
 
-/** Les branches typées d'une dotation, plus les formes `autres`, dont le `{choice}` se referme sur `soi`. */
-function formesDeDotation<T, A = never>(soi: () => z.ZodType<T>, ...autres: z.ZodType<A>[]) {
-  return z.union([
-    dotationDeCatalogueSchema,
-    ...autres,
-    dotationDePossessionSchema,
-    sommeSchema,
-    marquerProduit(nommerChamps(z.strictObject({ choice: z.array(z.lazy(soi)) }), { choice: { label: "choix" } }), 'formesDeDotation', 'choix'),
-    jokerDeDotationSchema,
-  ], { error: messageDeFormes });
+/** Les branches typées d'une dotation, plus les formes `autres`, et le « 1 parmi » de ces seules formes (`parmi`). */
+function formesDeDotation<A = never>(...autres: z.ZodType<A>[]): z.ZodType<FormeSansTexte | A | Parmi<1, FormeSansTexte | A>> {
+  const formes: z.ZodType<FormeSansTexte | A>[] = [dotationDeCatalogueSchema, ...autres, dotationDePossessionSchema, sommeSchema, jokerDeDotationSchema];
+  return z.union([parmi(formes, z.literal(1)), ...formes], { error: messageDeFormes });
 }
 
 /** Dotation sans texte ni mention : `classes.json`. LDB 05 l.552 ; #4053 */
-export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation(() => dotationSansTexteSchema);
-export const trappingRefSchema: z.ZodType<DotationSansTexte | DotationDeTexte | DotationDeMention> =
-  formesDeDotation<DotationSansTexte | DotationDeTexte | DotationDeMention, DotationDeTexte | DotationDeMention>(() => trappingRefSchema, dotationDeTexteSchema, dotationDeMentionSchema);
+export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation<never>();
+export const trappingRefSchema: z.ZodType<FormeDeDotation | Parmi<1, FormeDeDotation>> = formesDeDotation<DotationDeTexte | DotationDeMention>(dotationDeTexteSchema, dotationDeMentionSchema);
 

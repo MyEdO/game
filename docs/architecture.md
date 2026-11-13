@@ -675,7 +675,8 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             ne porte pas cette déclaration. L'éditeur est épinglé (`npm run godot:sonde`,
                             étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
                             l'export Web et, à côté, chaque modèle en scène que l'éditeur fabrique de son GLB
-                            (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), que
+                            (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), et
+                            sous `licences/` l'avis de licence de chaque œuvre tierce embarquée (`avis.mjs`, #4063), que
                             `recette.mjs --web` joue au navigateur : un tour complet, l'atelier, ou les vues
                             nommées d'une scène (`--parcours cadrages`, `cadrages/`). `recette.mjs --natif` (#3945) joue
                             les mêmes parcours sans export ni navigateur : le jeu lancé sur une copie importée du projet,
@@ -685,7 +686,8 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `combat` et `editeur`, le canari le lot natif entier (`lot-de-recettes.mjs --natif`).
                             `--bureau --sortie <dossier>`
                             (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
-                            embarqué (`noyau/` : Node, le bundle, le point d'entrée) et ses modèles en scène, puis lui
+                            embarqué (`noyau/` : Node, le bundle, le point d'entrée), ses modèles en scène et ses avis
+                            de licence, Node compris, puis lui
                             fait jouer une partie ; le workflow `bureau.yml`, lancé à la main, le fait sous Linux et
                             sous Windows et en garde le dossier en artefact. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
@@ -948,7 +950,7 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
 
 - **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`traverseeCommandee`)
   est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
-  (`runCascadeImmediate`, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
+  (`jouerLaJournee` commandée, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
   `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
   (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
   soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution

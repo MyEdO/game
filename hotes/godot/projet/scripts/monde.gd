@@ -8,7 +8,7 @@
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
 ## (`forces_du_clavier`). Il rend la caméra posée (`camera`), le lieu qu'elle suit (`lieu_suivi`), la case du triangle que le rayon du pointeur touche, hors
-## des cases que le masque du volume retire sauf celles où se tient un corps dessiné (`poser_les_corps`), et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
+## des cases que le masque du volume retire sauf les cases jouables qui s'y voient (`poser_les_cases_jouables`), et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
 ## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
 ## la caméra (`cacher_le_bati`), la météo (`poser_la_meteo`) et le calque de référence de l'éditeur ; tout autre chose
@@ -86,9 +86,9 @@ var _prises: Dictionary = {}
 ## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
 ## occupant (`poser_les_stations`).
 var _stations := {}
-## Les cases (`Vector3i`, leur couche comprise) où se tient un corps que dessine qui instancie le monde
-## (`poser_les_corps`) : le rayon s'y arrête, même retirées.
-var _corps_poses := {}
+## Les cases (`Vector3i`, leur couche comprise) que qui instancie le monde montre jouables
+## (`poser_les_cases_jouables`) : le rayon s'y arrête, même retirées.
+var _cases_jouables := {}
 ## La part de la fenêtre où le monde se voit, que l'interface ne couvre pas ; vide, toute la fenêtre. Le lieu que
 ## regarde la caméra des regards `tactique` et `plateau` se pose en son centre (`_decaler`).
 var cadre := Rect2():
@@ -291,11 +291,14 @@ func poser_les_stations(navires: Dictionary) -> void:
 			_stations[Vector3i(int(s.x), int(s.y), int(s.z))] = Vector2(s.point.x, s.point.y)
 
 
-## Les cases `cases` (`Vector3i`, leur couche comprise) où se tient un corps dessiné, à la place des précédentes.
-func poser_les_corps(cases: Array[Vector3i]) -> void:
-	_corps_poses = {}
+## Les cases `cases` (`Vector3i`, leur couche comprise) que qui instancie le monde montre jouables (un corps dessiné,
+## une plaque de cible), à la place des précédentes : le rayon s'arrête sur chacune même retirée (`_toucher`). De
+## deux cases jouables d'une même colonne, la plus haute retirée, il rend celle qu'il touche la première, celle qui se
+## dessine par-dessus ; la case d'en dessous garde son point sous un regard qui ne retire pas l'autre.
+func poser_les_cases_jouables(cases: Array[Vector3i]) -> void:
+	_cases_jouables = {}
 	for case in cases:
-		_corps_poses[case] = true
+		_cases_jouables[case] = true
 
 
 ## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.
@@ -408,7 +411,7 @@ func sol_sous(lieu: Vector3) -> Variant:
 
 
 ## Ce que le rayon de `origine` à `fin`, de sens unitaire `sens`, touche le premier hors des cases que le masque du
-## volume retire (`VolumeDeScene.retiree`), sauf celles où se tient un corps dessiné (`poser_les_corps`) : lancé entier, puis, touchant une case retirée, repris au-delà
+## volume retire (`VolumeDeScene.retiree`), sauf les cases jouables (`poser_les_cases_jouables`) : lancé entier, puis, touchant une case retirée, repris au-delà
 ## (`MiseEnPage.point_au_dela`) par tronçons bornés (`MiseEnPage.bout_du_troncon`), dont chacun qui ne touche rien
 ## avant `fin` est suivi du prochain, qui recouvre sa fin (`MiseEnPage.point_en_deca`) ; au plus
 ## `LANCERS_DU_RAYON` lancers. Rend `{ case, f, lieu }`, la case du triangle touché et sa couche (`Vector3i(x, y, z)`,
@@ -429,7 +432,7 @@ func _toucher(origine: Vector3, fin: Vector3, sens: Vector3) -> Variant:
 		else:
 			var forme := _corps.shape_owner_get_owner(_corps.shape_find_owner(touche.shape)) as CollisionShape3D
 			var case := Vector3i(forme.get_meta("cases")[touche.face_index])
-			if _corps_poses.has(case) or not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
+			if _cases_jouables.has(case) or not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
 				return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
 			requete.from = MiseEnPage.point_au_dela(touche.position, rayon, volume.metres_par_case)
 		bout = MiseEnPage.bout_du_troncon(requete.from, rayon, depart, longueur, volume.metres_par_case)
@@ -699,7 +702,10 @@ func _zoomer(sens: float) -> void:
 ## chaque sommet d'une case retirée ; l'instance en ombre seule n'est jamais masquée : le retiré ne se voit pas et porte
 ## son ombre (recette `projet/recettes/ombres-du-regard.gd`). Le rayon du pointeur, et celui qui cherche le sol sous un
 ## lieu, traverse une case retirée, puis reprend par tronçons bornés, sans sauter une face sous le biais coplanaire du
-## noyau (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`).
+## noyau (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`), sauf une case jouable qui s'y voit (la case
+## d'un corps dessiné, celle d'une plaque de cible, `Monde.poser_les_cases_jouables`), où il s'arrête : de deux cases
+## jouables d'une même colonne, la plus haute retirée, le clic rend la plus haute, qui se dessine par-dessus (recette
+## `projet/recettes/jouable-sur-couche-retiree.gd`).
 ##
 ## Le shader de monde rend chaque surface vue d'un morceau et d'une nappe de sa texture, `projet/textures/<matiere>.jpg`,
 ## et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une

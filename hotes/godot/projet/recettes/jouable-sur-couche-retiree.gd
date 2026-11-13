@@ -1,10 +1,12 @@
 extends SceneTree
 
-## Une cible sur une couche que le regard retire se clique (#4028, `hotes/godot/pont/CONTRAT.md`, section « Vue »,
-## `voisins`) : sur un plateau (`scripts/plateau.gd`) de deux couches, le rez et un plancher d'étage au-dessus de lui,
-## le masque du retrait ôte la case (0, 0) de l'étage. Sans combattant dessiné sur elle, le rayon qui tombe à la
-## verticale de la case touche le rez dessous ; un combattant que la vue nomme sur elle (`Plateau.montrer`), il touche
-## l'étage (`Monde.poser_les_corps`, `Monde._toucher`) ; la vue qui ne le nomme plus, de nouveau le rez.
+## Une case jouable qui se voit sur une couche que le regard retire se clique (#4028, `hotes/godot/pont/CONTRAT.md`,
+## section « Monde ») : sur un plateau (`scripts/plateau.gd`) de deux couches, le rez et un plancher d'étage au-dessus
+## de lui, le masque du retrait ôte la case (0, 0) de l'étage. Le rayon qui tombe à la verticale de la case touche le rez
+## dessous tant que rien de jouable ne s'y voit ; il touche l'étage sous un combattant que la vue nomme sur elle, ou sous
+## une cible que la vue offre hors de vue à sa case (`casesDesCibles`, plaque sans corps), même au-dessus d'un
+## combattant dessiné au rez (`Plateau._peindre`, `Monde.poser_les_cases_jouables`, `Monde._toucher`). L'étage que le
+## masque ne retire plus, le rayon le touche, quoi que la vue dessine au rez.
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
@@ -28,7 +30,7 @@ func _initialize() -> void:
 
 
 func _recetter() -> void:
-	print("[corps-sur-couche-retiree] version=", Engine.get_version_info().string)
+	print("[jouable-sur-couche-retiree] version=", Engine.get_version_info().string)
 	var plateau: Plateau = (load("res://scenes/Plateau.tscn") as PackedScene).instantiate()
 	root.add_child(plateau)
 	var monde: Monde = plateau.get_node("Monde")
@@ -36,27 +38,43 @@ func _recetter() -> void:
 	var etage := _morceau("sol/1/0/0", 4.0, 1, SOL_DE_L_ETAGE)
 	plateau.poser_le_monde({monde = {metresParCase = METRES_PAR_CASE, hauteurs = HAUTEURS, morceaux = [rez, etage].map(_empreinte)}, toits = [], couronnes = [], meteo = null},
 		{volume = [rez, etage], toits = [], couronnes = []})
-	monde.volume.retirer(_retrait())
+	monde.volume.retirer(_retrait(true))
 	await physics_frame
-	plateau.montrer(_vue([]))
-	_attendu(_case(monde.sol_sous(AU_DESSUS)), BAS, "aucun combattant dessiné sur la case retirée")
-	plateau.montrer(_vue([{id = "cible", nom = "Cible", pb = [10, 10], horsCombat = false, pos = [HAUT.x, HAUT.y, HAUT.z]}]))
+	var cible := {cible = [HAUT.x, HAUT.y, HAUT.z]}
+	plateau.montrer(_vue([], {}))
+	_attendu(_case(monde.sol_sous(AU_DESSUS)), BAS, "rien de jouable sur la case retirée")
+	plateau.montrer(_vue([_combattant("cible", HAUT)], {}))
 	_attendu(_case(monde.sol_sous(AU_DESSUS)), HAUT, "un combattant dessiné sur la case retirée")
-	plateau.montrer(_vue([]))
+	plateau.montrer(_vue([], {}))
 	_attendu(_case(monde.sol_sous(AU_DESSUS)), BAS, "le combattant que la vue ne nomme plus")
+	plateau.montrer(_vue([], cible))
+	_attendu(_case(monde.sol_sous(AU_DESSUS)), HAUT, "une cible offerte hors de vue sur la case retirée")
+	plateau.montrer(_vue([_combattant("heros", BAS)], cible))
+	_attendu(_case(monde.sol_sous(AU_DESSUS)), HAUT, "la cible retirée au-dessus d'un combattant dessiné au rez")
+	monde.volume.retirer(_retrait(false))
+	plateau.montrer(_vue([], {}))
+	_attendu(_case(monde.sol_sous(AU_DESSUS)), HAUT, "l'étage que le masque ne retire plus")
+	plateau.montrer(_vue([_combattant("heros", BAS)], {}))
+	_attendu(_case(monde.sol_sous(AU_DESSUS)), HAUT, "l'étage non retiré au-dessus d'un combattant dessiné au rez")
 	for faute in _fautes:
-		push_error("[corps-sur-couche-retiree] " + faute)
-	print("[corps-sur-couche-retiree] erreurs=", _fautes.size())
+		push_error("[jouable-sur-couche-retiree] " + faute)
+	print("[jouable-sur-couche-retiree] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## La vue d'un combat au regard tactique, sans actif, qui nomme les combattants `voisins` et rien d'autre.
-func _vue(voisins: Array) -> Dictionary:
+## Le combattant `id` que la vue nomme à la case `case`.
+func _combattant(id: String, case: Vector3i) -> Dictionary:
+	return {id = id, nom = id, pb = [10, 10], horsCombat = false, pos = [case.x, case.y, case.z]}
+
+
+## La vue d'un combat au regard tactique, sans actif, qui nomme les combattants `voisins` et offre les cibles
+## `cibles` (par id, la case `[x, y, z]` que `casesDesCibles` leur donne), hors de vue si `voisins` ne les nomme pas.
+func _vue(voisins: Array, cibles: Dictionary) -> Dictionary:
 	return {
-		projection = {combat = {actif = null, voisins = {liste = voisins}, cibles = {liste = []}, apercu = null}, exploration = null},
+		projection = {combat = {actif = null, voisins = {liste = voisins}, cibles = {liste = cibles.keys()}, apercu = null}, exploration = null},
 		plateau = {regard = "tactique", toitsLeves = [], couronnesAbattues = [], aretesDegagees = [], coupesDesNavires = {}, metresParCase = METRES_PAR_CASE},
 		corps = {navires = {}, refus = "aucun corps", combattants = {}, vehicules = {}},
-		marques = {}, zonesQuiDurent = [], cases = [], champ = null,
+		marques = {}, zonesQuiDurent = [], cases = [], champ = null, casesDesCibles = cibles,
 	}
 
 
@@ -78,11 +96,12 @@ func _empreinte(contenu: Dictionary) -> Dictionary:
 	return {cle = contenu.cle, empreinte = contenu.empreinte}
 
 
-## Le masque qui retire la case (0, 0) du sol de l'étage.
-func _retrait() -> Dictionary:
+## Le masque qui retire la case (0, 0) du sol de l'étage si `retiree`, qui ne retire rien sinon.
+func _retrait(retiree: bool) -> Dictionary:
 	var masque := PackedByteArray()
 	masque.resize(LARGEUR * RANGEES)
-	masque[SOL_DE_L_ETAGE * LARGEUR] = 255
+	if retiree:
+		masque[SOL_DE_L_ETAGE * LARGEUR] = 255
 	return {masque = Marshalls.raw_to_base64(masque), largeur = LARGEUR, rangees = RANGEES}
 
 
