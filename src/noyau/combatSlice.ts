@@ -158,8 +158,8 @@ import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
 import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
-import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
-import { clearGrapple } from '../engine/grapple';
+import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeReachRank } from '../engine/engagement';
+import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
 import { groupAdvantage, mirrorPools } from '../engine/advantagePool';
 import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool';
@@ -2089,13 +2089,21 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
   const issues = {
     eviter: () => {
       const p = get().pendingFateSave;
-      if (!p) return;
+      if (p?.source !== 'hit') return; // `fateSaveOptions` : seul un coup s'évite
       const hero = porteurParId(get(), p.heroId);
       set({ pendingFateSave: null });
       if (!hero) return;
+      // LDB 17 l.32 : le porteur rendu à son état d'avant le coup, puis le Point de Destin dépensé.
+      for (const cle of Object.keys(hero)) if (!(cle in p.avantLeCoup)) delete (hero as unknown as Record<string, unknown>)[cle];
+      Object.assign(hero, p.avantLeCoup);
+      // Les liens levés par la mise hors de combat (`clearEngagementOf`), reposés des deux côtés sur les vivants ; un lien
+      // vers un absent ou un hors de combat sort de la liste du héros.
+      for (const [cle, lier] of [['engagedWith', setEngaged], ['contactWith', setContact], ['grapplingWith', setGrapple]] as const) {
+        const vivants = (hero[cle] ?? []).map((id) => porteurParId(get(), id)).filter((o): o is Combatant => !!o && !isOutOfAction(o));
+        if (hero[cle]) hero[cle] = vivants.map((o) => o.id);
+        for (const o of vivants) lier(hero, o);
+      }
       hero.fate = (hero.fate ?? 0) - 1;
-      if (p.restoreWounds != null) hero.wounds.current = p.restoreWounds; // annule tout le coup (restaure les PB)
-      hero.criticalWounds = Math.max(0, (hero.criticalWounds ?? 0) - 1);
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
       journaliser(get, set, [t('cs.fateDodge', { name: hero.label })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });

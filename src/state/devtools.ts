@@ -85,7 +85,7 @@ import {
   armeDeLaGratuite,
   fileDesGratuites,
   refusDeDefenseReactive,
-  choixPiegeLame,
+  proposerLePiegeALame,
   type PlacingZone,
 } from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
@@ -99,7 +99,6 @@ import { setAiTrace } from '../noyau/monde/ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer, applyEffects } from '../noyau/combatEffects';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
-import { pushChoice } from '../noyau/rollSeam';
 import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from '../noyau/monde/spawn';
@@ -2036,7 +2035,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!weapon.uid) weapon.uid = `dev-blade-${attackerId}`; // uid universel requis pour cibler la lame
       if (!parade.uid) parade.uid = `dev-parry-${defenderId}`;
       const pbt: PendingBladeTrap = { defenderId, attackerId, weapon, parryWeaponUid: parade.uid, defSL, roll: 33 };
-      pushChoice(useGame.setState, choixPiegeLame(pbt, defender, attacker, parade));
+      proposerLePiegeALame(useGame.setState, pbt, defender, attacker, parade);
       useGame.setState(touchActors);
       return `✓ Piège-lame : ${defender.label} pare ${attacker.label} (${weapon.label}, +${defSL} DR) → choix Piéger/Critique`;
     },

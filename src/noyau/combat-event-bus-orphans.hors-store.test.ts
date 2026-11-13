@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emitCombatEvent } from './combatEvents';
-import { applyCoupCritiqueSec } from './combatFlow';
+import { applyCoupCritiqueSec, instantaneAvantLeCoup } from './combatFlow';
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -107,7 +107,7 @@ describe('7bis — applyCoupCritiqueSec émet onCrit (Taillade sur Critique oppo
     banc.setState({ battle: { ...b } });
 
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, H, 40, 'double', { attackerId: E.id, weapon: 'Hache de Taillade', weaponObj: taillade() }, log, E);
+    applyCoupCritiqueSec(banc.getState, banc.setState, H, 40, 'double', { attackerId: E.id, weapon: 'Hache de Taillade', weaponObj: taillade() }, log, E, instantaneAvantLeCoup(H));
 
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.hemorragique)).toBe(true); // onCrit émis par le bus → Taillade appliquée

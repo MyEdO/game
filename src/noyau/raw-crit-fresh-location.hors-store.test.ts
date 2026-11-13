@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { evaluateMissile, type CastResult } from '../engine/magic';
-import { applyCoupCritiqueSec } from './combatFlow';
+import { applyCoupCritiqueSec, instantaneAvantLeCoup } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { seedBattleRng } from './battleRng';
@@ -66,11 +66,11 @@ describe('#80 Critique de défense opposée — Localisation = 1d100 frais, déc
     seedBattleRng(7);
     const v1 = mkTarget();
     const log1: string[] = [];
-    applyCoupCritiqueSec(get, set, v1, 11, 'double', {}, log1, undefined);
+    applyCoupCritiqueSec(get, set, v1, 11, 'double', {}, log1, undefined, instantaneAvantLeCoup(v1));
     seedBattleRng(7);
     const v2 = mkTarget();
     const log2: string[] = [];
-    applyCoupCritiqueSec(get, set, v2, 99, 'double', {}, log2, undefined);
+    applyCoupCritiqueSec(get, set, v2, 99, 'double', {}, log2, undefined, instantaneAvantLeCoup(v2));
     expect(v1.criticalWounds).toBe(1); // un Critique a bien été appliqué
     expect(v1.traumas).toEqual(v2.traumas); // jet 11 ≠ 99 → Critique IDENTIQUE : la loc ne dérive plus de l’inversion
     expect(log1).toEqual(log2);
@@ -86,7 +86,7 @@ describe('#43.2 Critique de défense opposée — HÉROS blindé : étape de dé
       selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
     banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, pendingCascade: null, pendingFateSave: null });
-    applyCoupCritiqueSec(banc.getState, banc.setState, h, 11, 'double', {}, [], undefined);
+    applyCoupCritiqueSec(banc.getState, banc.setState, h, 11, 'double', {}, [], undefined, instantaneAvantLeCoup(h));
     const dev = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation')?.deviation;
     expect(dev?.mode).toBe('self'); // suspendu : choix Dévier/Subir
     expect(h.criticalWounds ?? 0).toBe(0); // Critique toujours différé à la résolution (non appliqué à ce stade)
