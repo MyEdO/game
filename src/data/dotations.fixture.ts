@@ -21,14 +21,14 @@ export function avecDotations<T>(careerId: string, dotations: { classe?: ClassDa
 }
 
 /** Artiste (classe Courtisans) : un emplacement de Classe à branche imbriquée, et au Niveau 1 un joker,
- *  un objet, un `{choice}` dont une branche est un `{choice}` à joker, un objet de qualité. */
+ *  un objet, un `{pick, of}` dont une branche est un `{pick, of}` à joker, un objet de qualité. */
 export const CARRIERE_FIXTURE = 'artiste';
 export const DOTATIONS_FIXTURE: { classe: ClassData['trappings']; niveau: CareerLevelData['trappings'] } = {
-  classe: [{ choice: [{ id: 'miroir-a-main' }, { id: 'fleuret', qualityChoice: true }] }],
+  classe: [{ pick: 1, of: [{ id: 'miroir-a-main' }, { id: 'fleuret', qualityChoice: true }] }],
   niveau: [
     { wildcard: 'arme' },
     { id: 'pinceau' },
-    { choice: [{ choice: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] },
+    { pick: 1, of: [{ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] },
     { id: 'fleuret', qualityChoice: true },
   ],
 };

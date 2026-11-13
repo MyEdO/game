@@ -22,6 +22,7 @@
  * vente, jamais un jet interne silencieux. Seul le BRADAGE (`jeterAuPort`) reste synchrone (¼ du prix,
  * aucun Test de Marchandage au RAW, MDG 15 l.399).
  */
+import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
@@ -686,7 +687,7 @@ export const TABLES = {
       // Le Test de Ragot n'a pas de rangée propre : sa ligne se DÉRIVE (`traceLineOf`), jamais ré-imprimée à la main.
       // Né sans jet (LDB 09 l.30 ; #2588 Q1), il n'a ni dé ni cible à tracer : l'échec se dit sans eux.
       const gossip = (issue: string) => freeCons([estJete(jet) ? traceLineOf({
-        who: actor.label, label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
+        who: nomDe(actor), label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
         roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success, issue,
       }) : t('port.gossipSansJet', { name: actor.label, issue })]);
       if (!jet.success) {

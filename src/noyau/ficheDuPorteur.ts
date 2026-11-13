@@ -111,6 +111,21 @@ const sortsConnus = (c: Combatant, priere: boolean): EntreeDeLaFiche[] =>
     return sp && isPrayerFamily(sp.family) === priere ? [{ libelle: sp.label, desc: sp.desc ?? null }] : [];
   });
 
+/** L'en-tête de la fiche : son porteur, ses Blessures, ses États et sa bourse, ce que la carte d'un héros montre. */
+export type EnTeteDeFiche = Pick<FicheDuPorteur, 'id' | 'nom' | 'blessures' | 'etats' | 'bourse'>;
+
+/** Le combattant `c` s'il a une fiche : une coque (navire, engin) n'a pas de profil de personnage. */
+const aUneFiche = (c: Combatant | undefined): c is Combatant => !!c && !isVehicle(c) && !isEngin(c);
+
+/** L'en-tête de la fiche du combattant `c`, lu sur lui. */
+const enTeteDuCombattant = (c: Combatant): EnTeteDeFiche => ({
+  id: c.id,
+  nom: c.label,
+  blessures: [c.wounds.current, c.wounds.max],
+  etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
+  bourse: formatMoney(bourseOf(c)),
+});
+
 /** La fiche du porteur `id` (`porteurParId` : le combattant en combat, le héros du groupe hors combat), `null` sans
  *  lui ou pour une coque (`ficheDuCombattant`). PUR. */
 export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
@@ -118,10 +133,15 @@ export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
   return c ? ficheDuCombattant(c, nomDIndividu(s)) : null;
 }
 
-/** La fiche du combattant `c`, les individus que nomment ses Traits par `nom` ; `null` pour une coque (navire,
- *  engin), qui n'a pas de profil de personnage. PUR. */
+/** L'en-tête de la fiche du porteur `id`, au domaine de `ficheDuPorteur` : `null` sans lui ou pour une coque. PUR. */
+export function enTeteDuPorteur(s: Jeu, id: string): EnTeteDeFiche | null {
+  const c = porteurParId(s, id);
+  return aUneFiche(c) ? enTeteDuCombattant(c) : null;
+}
+
+/** La fiche du combattant `c`, les individus que nomment ses Traits par `nom` ; `null` pour une coque (`aUneFiche`). PUR. */
 export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorteur | null {
-  if (isVehicle(c) || isEngin(c)) return null;
+  if (!aUneFiche(c)) return null;
   const items = c.items ?? [];
   const possessions: PossessionDeLaFiche[] = [];
   for (const it of items) {
@@ -137,17 +157,13 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
   const force = forceDuPorteur(c);
   const source = sourceDuProfil(c);
   return {
-    id: c.id,
-    nom: c.label,
+    ...enTeteDuCombattant(c),
     espece: findSpeciesById(c.species)?.label ?? null,
     carriere: c.career ? careerLabelFor(c) : null,
-    blessures: [c.wounds.current, c.wounds.max],
     destin: c.fate ?? null,
     chance: c.fortune ?? null,
     resilience: c.resilience ?? null,
     determination: c.resolve ?? null,
-    etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
-    bourse: formatMoney(bourseOf(c)),
     mouvement: effectiveMovement(c),
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     armes: c.weapons.map((w) => ({

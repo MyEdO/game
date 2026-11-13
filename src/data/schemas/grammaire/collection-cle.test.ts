@@ -90,7 +90,7 @@ const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
   '.narratif.presetsPnj[].profil.talents[]': 'références de Talents (`talents.json`)',
   '.narratif.presetsPnj[].profil.trappings[]': 'références de Possessions (`trappings.json`)',
   '.narratif.presetsPnj[].profil.trappings[].qualities[]': 'références d’Atouts/Défauts (`qualities.json`)',
-  '.narratif.presetsPnj[].profil.trappings[].choice[]': 'références de Possessions (`trappings.json`)',
+  '.narratif.presetsPnj[].profil.trappings[].of[]': 'références de Possessions (`trappings.json`)',
 };
 
 /** L'élément de liste déclare-t-il un `id` d'IDENTITÉ, à travers enveloppes ET branches d'union (`ouverts`) : une

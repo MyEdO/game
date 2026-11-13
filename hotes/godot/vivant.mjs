@@ -9,4 +9,4 @@ import { empaqueter } from './construire.mjs'
 import { tenirLeTuyau } from './processus.mjs'
 import { servir } from './servir.mjs'
 
-await tenirLeTuyau(await empaqueter(null), await servir({ depot: fileURLToPath(new URL('../..', import.meta.url)) }))
+await tenirLeTuyau((await empaqueter(null)).code, await servir({ depot: fileURLToPath(new URL('../..', import.meta.url)) }))

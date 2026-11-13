@@ -19,6 +19,7 @@
  * Tout est PARAMÉTRABLE par la donnée (carte du monde / route, éditeur) ; les défauts ci-dessous
  * sont les valeurs RAW citées, ou des choix documentés quand le canon est muet.
  */
+import { nomDe } from './nom';
 import type { IconId } from '../data/icons';
 import { Combatant } from './types';
 import type { Possession } from './possession';
@@ -243,7 +244,7 @@ export function forcedMarchTest(c: Combatant, rng: RNG): ForcedMarchResult | nul
   const r = applyForcedMarch(c, tr.success);
   // Test résolu SANS fenêtre (jour de marche) : sa ligne se DÉRIVE (`traceLineOf`).
   const line = traceLineOf({
-    who: c.label, label: t('trv.forcedMarchLabel', { skill }),
+    who: nomDe(c), label: t('trv.forcedMarchLabel', { skill }),
     roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success,
     issue: tr.success ? t('trv.issueHold') : t('trv.issueFail', { n: r.gained, over: r.gained > 1 ? t('trv.fragOverloaded') : '' }),
   });

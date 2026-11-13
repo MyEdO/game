@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as mapSpec from './mapSpec';
 import { buildScene } from './mapSpec';
-import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, provenanceDesNavires } from './planDeNavire';
+import { bumperDataset } from '../data/versionDataset';
+import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, provenanceDesNavires, stationsDuNavire } from './planDeNavire';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
 import { heightAt, isWalkable, tileAt, wallBetween, type Scene } from './monde/scene';
@@ -177,6 +179,41 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
   it('le navire se montre par son modèle : le véhicule de sa fiche à sa taille réelle, au centre de ses ponts', () => {
     expect(naviresDeLaScene(s)).toEqual([{ id: 'c1', vehicule: expect.objectContaining({ definition: 'caraque', taille: 'reelle', cap: 'O', ameliorations: expect.arrayContaining(['embarcation-de-bord']) }), centre: { x: 11.5, y: 4 } }]);
     expect(naviresDeLaScene(bassinDeLaCaraque('N'))).toMatchObject([{ centre: { x: 5, y: 10.5 }, vehicule: { cap: 'N' } }]);
+  });
+});
+
+describe('les ponts d’un navire se compilent une fois par scène (#3975)', () => {
+  /** Les compilations de scène (`buildScene`, espionnée sur son namespace) pendant `f`. */
+  const compilations = (f: () => void): number => {
+    let n = 0;
+    const vrai = mapSpec.buildScene;
+    vi.spyOn(mapSpec as unknown as Record<string, unknown>, 'buildScene', 'get').mockReturnValue((...a: Parameters<typeof vrai>) => (n++, vrai(...a)));
+    f();
+    vi.restoreAllMocks();
+    return n;
+  };
+  /** Tous les lecteurs des ponts posés de `scene`. */
+  const lireLesPonts = (scene: Scene) => {
+    poserLesNavires(scene);
+    provenanceDesNavires(scene);
+    naviresDeLaScene(scene);
+    stationsDuNavire(scene, 'c1', {});
+  };
+
+  it('une scène neuve compile les ponts de son navire ; relue, aucun de leurs lecteurs ne les recompile', () => {
+    const s = bassinDeLaCaraque('O');
+    expect(compilations(() => lireLesPonts(s))).toBeGreaterThan(0);
+    expect(compilations(() => lireLesPonts(s))).toBe(0);
+  });
+
+  it('une écriture au seam des datasets les recompile et repose la scène à la lecture suivante', () => {
+    const s = bassinDeLaCaraque('O');
+    lireLesPonts(s);
+    const posee = poserLesNavires(s);
+    bumperDataset('vehicles');
+    expect(compilations(() => lireLesPonts(s))).toBeGreaterThan(0);
+    expect(poserLesNavires(s)).not.toBe(posee);
+    expect(compilations(() => lireLesPonts(s))).toBe(0);
   });
 });
 

@@ -495,7 +495,7 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
   // LDB 05 l.552, l.572 ; #4053
   it('le héros créé reçoit chaque possession de départ de sa Classe et de son Niveau 1', () => {
     const dotations: { classe: ClassData['trappings']; niveau: CareerLevelData['trappings'] } = {
-      classe: [{ id: 'dague' }, { choice: [{ id: 'capuchon' }, { id: 'masque' }] }],
+      classe: [{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }],
       niveau: [{ id: 'robes', spec: 'en lambeaux' }, { id: 'caissette' }, { id: 'eprouvettes' }, { id: 'alambic' }, { id: 'allumette', count: { roll: { n: 1, sides: 10 } } }],
     };
     avecDotations(CARRIERE_FIXTURE, dotations, () => {

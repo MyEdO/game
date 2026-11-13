@@ -13,7 +13,7 @@ import { paletteDesCouleurs } from './composition';
 import { findCouleurById, findTeinteById, type EmblemeResolu } from '../../../src/noyau/index';
 import { couleursSchema } from '../../../src/data/schemas/grammaire/valeurs';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 
 const { appel } = table();
 const servir = (manifestes: Record<string, unknown>) => servirLesModeles(appel, COMMITES, manifestes);

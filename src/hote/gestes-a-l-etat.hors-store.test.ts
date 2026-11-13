@@ -7,8 +7,8 @@
  * (`proprietaireDeLaFenetre`), en mots à l'hôte texte. Un verbe de jet que son flux ferme se dessine fermé, avec ce qui
  * le ferme (`fermeturesDeLaFenetre`, #2936).
  */
-import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Jeu, type Partie } from '../noyau/index';
+import { describe, it, expect, vi } from 'vitest';
+import { DESIGNATIONS, creerPartie, etatInitialDuJeu, type Designation, type EntreesDeLaPartie, type Jeu, type Partie } from '../noyau/index';
 import { auContact, heroDuDuel } from '../noyau/combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { fenetreADessiner, type ArgumentDuGeste } from './gestes';
@@ -253,5 +253,26 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('une fenêtre nomme les ids d’une désignation sur une seule lecture de l’état (#3975)', () => {
+  it('chaque désignation lue rend son nommage une fois, qui nomme tous ses ids', () => {
+    const lectures = new Map<string, { lues: number; nommes: number }>();
+    for (const [cle, designation] of Object.entries(DESIGNATIONS) as [string, Designation][]) {
+      const nom = designation.nom;
+      vi.spyOn(designation, 'nom').mockImplementation((s) => {
+        const compte = lectures.get(cle) ?? lectures.set(cle, { lues: 0, nommes: 0 }).get(cle)!;
+        compte.lues += 1;
+        const nommer = nom(s);
+        return (id) => {
+          compte.nommes += 1;
+          return nommer(id);
+        };
+      });
+    }
+    auDebutDuRound((etat) => fenetreADessiner(etat));
+    const surUneLecture = [...lectures].filter(([, c]) => c.nommes > c.lues);
+    expect(surUneLecture.length, `lectures : ${JSON.stringify([...lectures])}`).toBeGreaterThan(0);
   });
 });
