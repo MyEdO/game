@@ -355,10 +355,10 @@ describe('Os déplacés par les silhouettes à la construction (#4002 issuecomme
         poses: join(dossier, 'poses.bin'), sortie: dossier, etats });
       expect(groupes).toHaveLength(1);
       expect(groupes[0].etats.map((e: { nom: string }) => e.nom)).toEqual(['a', 'b', 'c']);
-      expect(groupes[0].fichiers).toHaveLength(2);
+      expect(groupes[0].fichiers).toEqual([join(dossier, 'jeu-0.bin'), join(dossier, 'jeu-1.bin')]);
       expect(groupes[0].jeux).toEqual([0, 1, 1]);
-      const lire = (fichier: string) => { const o = readFileSync(fichier); return new Float32Array(o.buffer, o.byteOffset, o.byteLength / 4); };
-      const [sans, avec] = (groupes[0].fichiers as string[]).map(lire);
+      const lire = (nom: string) => { const o = readFileSync(join(dossier, nom)); return new Float32Array(o.buffer, o.byteOffset, o.byteLength / 4); };
+      const sans = lire('jeu-0.bin'), avec = lire('jeu-1.bin');
       expect(Array.from(avec)).toEqual(Array.from(matricesDePeauDuGabarit(f.squelette, f.table, facteurs, { [CARRURE_PLUS]: 1 }, new Float32Array(poses), [false, false])));
       expect(Array.from(sans)).toEqual(Array.from(matricesDePeauDuGabarit(f.squelette, f.table, facteurs, {}, new Float32Array(poses), [false, false])));
       expect(Math.max(...Array.from(avec).map((v, i) => Math.abs(v - sans[i])))).toBeGreaterThan(1e-2);
