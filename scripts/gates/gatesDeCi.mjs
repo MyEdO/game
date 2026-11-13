@@ -60,9 +60,7 @@ export const JOBS_HORS_REJEU_LOCAL = {
   migrations:
     'rejeu EN PLACE des migrations : le jouer sur un arbre de travail réécrit src/data et src/scenes ' +
     'et rend un verdict faux (#1613) — localement, il se joue sur un EXPORT de la tête, ' +
-    '`npm run migrations:replay:head` ; et le banc des étalons (#3935), qui ne compare un étalon que sous ' +
-    'Linux x86-64 avec le Chromium épinglé (`EPINGLE`, hotes/godot/planches.mjs) : hors de cette machine, ' +
-    '`npm run godot:etalons` refuse',
+    '`npm run migrations:replay:head`',
 }
 
 /**

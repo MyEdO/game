@@ -701,8 +701,8 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`
                             la dépose sous `<export>/planches/` (`planches.mjs`). `npm run godot:etalons` exporte le
                             jeu et refuse tout pixel d'écart entre une planche et son étalon, dans le seul Chromium
-                            épinglé (`EPINGLE`, `planches.mjs`) sous Linux x86-64 ; porte de la file de fusion
-                            (#3935, `.claude/rules/ecrans-godot.md`).
+                            épinglé (`EPINGLE`, `planches.mjs`) sous Linux x86-64 ; le canari le joue (#3935,
+                            `.claude/rules/ecrans-godot.md`).
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).
