@@ -503,6 +503,12 @@ const enFile = (partie: Partie, verser: (resultat: ResultatDeLAppel) => Resultat
   envoyer: (intention) => verser(partie.envoyer(intention)),
   lancer: (lancement) => verser(partie.lancer(lancement)),
   reprendre: (jeton) => verser(partie.reprendre(jeton)),
+  abonner: partie.abonner,
+  relever: () => verser(partie.relever()),
+  recevoir: (instantane) => {
+    const { neuve, autreScene, ...resultat } = partie.recevoir(instantane);
+    return { ...verser(resultat), neuve, autreScene };
+  },
   fermer: partie.fermer,
 });
 

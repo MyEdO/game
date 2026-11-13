@@ -422,6 +422,13 @@ export interface EtatDeJeu {
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`lancerLaScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
+  /** Lignes écrites au `journal` depuis l'ouverture de la partie : clé réservée, augmentée par `ecrireAuJournal`
+   *  (`journal.ts`) et par `lancerLaScene` (`entreeEnScene.ts`), jamais remise. Un invité compte par elle ce qu'un
+   *  instantané lui apporte (`Partie.recevoir`). #3009 */
+  lignesAuJournal: number;
+  /** Combats ouverts depuis l'ouverture de la partie : clé réservée, augmentée par `marquerUnCombatOuvert`
+   *  (`idsDuMonde.ts`) et gardée par `lancerLaScene`. L'identité du `battle` courant (`Partie.recevoir`). #3009 */
+  combatsOuverts: number;
   /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
    *  fabrique `ouvrirDialogue` (`noyau/dialogue.ts`), jamais bâtie à la main. */
   dialogue: EtatDialogue | null;
@@ -758,6 +765,8 @@ export function etatInitialDuJeu(): EtatDeJeu {
     clues: {},
     explored: {},
     journal: [],
+    lignesAuJournal: 0,
+    combatsOuverts: 0,
     dialogue: null,
     dialogueHistory: [],
     merchant: null,

@@ -24,6 +24,9 @@ export interface MachinerieDuNoyau {
   // ── Ids du monde ──
   /** Forge un id du monde au compteur de l'état (`idsDuMonde.ts`, #2907). */
   forgerUnId: FabriqueDId;
+  /** Compte un combat qui s'ouvre (`combatsOuverts`, `idsDuMonde.ts`, #3009) : appelée par la seule naissance d'un
+   *  `battle` (`combatSlice.ts`), avant sa pose. */
+  marquerUnCombatOuvert: () => void;
   // ── Horloge ──
   /** Écrivain UNIQUE de l'avance de `gameTime` : pose l'horloge, tire les effets programmés échus
    *  (`fireScheduledEffects`, #668) puis dissipe les effets à durée d'horloge échus (`purgeSurAvanceDHorloge`, #1599). */

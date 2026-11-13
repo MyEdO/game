@@ -441,8 +441,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             machinerie (`machinerieDuNoyau.ts`, #3370) : les écritures que le noyau, l'éditeur ou
                             un test appellent et qu'aucun hôte ne joue, hors de `Intention` et de `VERBES`.
                             `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
-                            n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre` rend `{ issue,
-                            evenements, journal }`. `lancementDeScenario.ts` (#2898) : le lancement d'un
+                            n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre`/`relever`/`recevoir`
+                            rend `{ issue, evenements, journal }` (`recevoir` y joint `neuve` et `autreScene`),
+                            et `abonner` suit chaque écriture. `lancementDeScenario.ts` (#2898) : le lancement d'un
                             scénario de test et sa séquence unique, jouée par la partie et par
                             `state/scenarioFlow.ts`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
                             réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
