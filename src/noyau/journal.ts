@@ -11,7 +11,7 @@ export function creerActionsDuJournal(get: Get, set: SetDesClesReservees) {
     ecrireAuJournal: (msg) => {
       const brutes = Array.isArray(msg) ? msg : [msg];
       const lignes = fixedJetOpen(get()) ? brutes.map(markFixedDie) : brutes;
-      set((s) => ({ journal: [...s.journal.slice(-40), ...lignes] }));
+      set((s) => ({ journal: [...s.journal.slice(-40), ...lignes], lignesAuJournal: s.lignesAuJournal + lignes.length }));
       for (const texte of lignes) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte });
     },
   } satisfies FabriqueDuNoyau;

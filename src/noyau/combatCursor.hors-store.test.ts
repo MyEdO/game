@@ -63,7 +63,7 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
 describe('jouerLeClicDuCombattant / jouerLeClicDeCase — le geste du clic, lu dans l’état au moment du clic', () => {
   let banc: Banc;
   beforeEach(() => { banc = ouvrirLeBanc(); });
-  /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`hote/coop/salon.ts`, `emettreIntentInvite`). */
+  /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`reseau.ts`, `transmettreLesIntentions`). */
   function poser() {
     const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const ally = tousLesHerosDeScenario(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
