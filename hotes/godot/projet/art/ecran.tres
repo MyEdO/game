@@ -1,6 +1,7 @@
-[gd_resource type="Theme" load_steps=7 format=3]
+[gd_resource type="Theme" load_steps=8 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
+[ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
 [ext_resource type="Script" path="res://scripts/cadre.gd" id="2_cadre"]
 [ext_resource type="StyleBox" path="res://art/ombre_de_panneau.tres" id="3_ombre"]
 [ext_resource type="StyleBox" path="res://art/cadre_de_fenetre.tres" id="4_fenetre"]
@@ -32,7 +33,7 @@ Recit/styles/panel = SubResource("Cadre_du_recit")
 Rubrique/base_type = &"Label"
 Rubrique/colors/font_color = Color(0.816, 0.69, 0.42, 1)
 Rubrique/font_sizes/font_size = 17
-Rubrique/fonts/font = ExtResource("1_titres")
+Rubrique/fonts/font = ExtResource("5_rubriques")
 NomDeCarte/base_type = &"Label"
 NomDeCarte/colors/font_color = Color(0.953, 0.902, 0.784, 1)
 NomDeCarte/font_sizes/font_size = 21
@@ -48,10 +49,8 @@ Destination/fonts/font = ExtResource("1_titres")
 Accueil/base_type = &"Label"
 Accueil/colors/font_color = Color(0.725, 0.671, 0.573, 1)
 Accueil/font_sizes/font_size = 14
-Accueil/fonts/font = ExtResource("1_titres")
 Accueil/constants/line_spacing = 0
 Description/base_type = &"Label"
 Description/colors/font_color = Color(0.886, 0.816, 0.659, 1)
-Description/font_sizes/font_size = 20
-Description/fonts/font = ExtResource("1_titres")
+Description/font_sizes/font_size = 17
 Description/constants/line_spacing = 0

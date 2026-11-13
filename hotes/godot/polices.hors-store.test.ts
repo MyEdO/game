@@ -1,7 +1,7 @@
 /**
  * LES POLICES DE L'HÔTE GODOT (#3498) : l'autoload `Police` (`projet/scripts/police.gd`) pose en police par défaut du
- * thème celle de `projet/art/police.tres`, sa base puis ses replis dans l'ordre ; celle des titres
- * (`projet/art/police_des_titres.tres`) a les mêmes replis. Dans chaque chaîne, chaque caractère du catalogue de messages
+ * thème celle de `projet/art/police.tres`, sa base puis ses replis dans l'ordre ; celles des titres
+ * (`projet/art/police_des_titres.tres`) et des rubriques (`projet/art/police_des_rubriques.tres`) ont les mêmes replis. Dans chaque chaîne, chaque caractère du catalogue de messages
  * français (`src/i18n/messages/fr.ts`) a son glyphe dans l'une d'elles, lu dans la table `cmap` du fichier livré ; chaque
  * fichier de `projet/polices/` a l'empreinte que sa provenance déclare.
  */
@@ -58,7 +58,7 @@ function pointsDeCode(police: Buffer): Set<number> {
 
 /** Les fichiers d'une police (`FontVariation`) de `art/`, sa base puis ses replis, dans l'ordre de son fichier. */
 const chaineDe = (police: string) => [...lire(police).toString('utf8').matchAll(/^\[ext_resource type="FontFile" path="([^"]+)"/gm)].map((m) => m[1]);
-const POLICES = ['art/police.tres', 'art/police_des_titres.tres'];
+const POLICES = ['art/police.tres', 'art/police_des_titres.tres', 'art/police_des_rubriques.tres'];
 const chaine = chaineDe('art/police.tres');
 
 const textes: string[] = [];

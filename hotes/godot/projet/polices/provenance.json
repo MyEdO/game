@@ -26,11 +26,17 @@
     "licence": "OFL-1.1 (LICENSE-NotoSansSymbols2.txt)",
     "traitement": "fonttools 4.55.3 : pyftsubset --unicodes=\"U+25A0-27BF\" --layout-features='*' ; métriques verticales (hhea, OS/2 typo et win) calées sur celles de la base, ascendante 1069 et descendante 293 pour 1000 : Godot prend la plus haute de la chaîne pour la hauteur de ligne"
   },
-  "Spectral-Medium.ttf": {
-    "sha256": "a4a54cf09c8d36a4e3b2f9ce36cf070fedbf1abbb0a300a54de368b2daca8e99",
-    "source": "https://github.com/google/fonts/tree/main/ofl/spectral (Spectral-Medium.ttf)",
-    "sha256_source": "f385bc588599c879112272711d4acecc126674009d747a27284f59e93a240e83",
-    "licence": "OFL-1.1 (LICENSE-Spectral.txt)",
-    "traitement": "fonttools 4.55.3 : ascendante (hhea, OS/2 typo et win) portée à 1069 pour 1000, celle des replis Noto : Godot prend la plus haute de la chaîne pour la hauteur de ligne"
+  "GrenzeGotisch-wght.ttf": {
+    "sha256": "701b299d8dc002a2b4bea2ff0f1272c0e4081a2835914354804565c410d0c637",
+    "source": "https://github.com/google/fonts/tree/main/ofl/grenzegotisch (GrenzeGotisch[wght].ttf, police variable, axe wght de 100 à 900)",
+    "licence": "OFL-1.1 (LICENSE-GrenzeGotisch.txt)",
+    "traitement": "aucun : fichier renommé sans crochets ; la graisse se pose par variation_opentype dans art/police_des_titres.tres"
+  },
+  "RubriquesVieuxMonde-Regular.ttf": {
+    "sha256": "90ddd2e0d1ccad3ad71e7204dad316b415845009a022b447518514819f2a2712",
+    "source": "https://github.com/google/fonts/tree/main/ofl/imfellenglishsc (IMFeENsc28P.ttf, IM FELL English SC)",
+    "sha256_source": "102324fb5434bb5da7963533426b0ad44c85bbc9e7755067535c9d11464a176b",
+    "licence": "OFL-1.1 (LICENSE-IMFellEnglishSC.txt)",
+    "traitement": "fonttools 4.55.3 : ascendante (hhea, OS/2 typo et win) portée à 2190 pour 2048, au-dessus de celle des replis Noto (1069 pour 1000) : Godot prend la plus haute de la chaîne pour la hauteur de ligne ; version modifiée, donc renommée (name 1, 3, 4, 6, 16 : Rubriques Vieux Monde) hors du Reserved Font Name « IM FELL English SC » que déclare sa notice (OFL-1.1, condition 3)"
   }
 }
