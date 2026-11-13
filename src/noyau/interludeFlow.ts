@@ -25,7 +25,7 @@ import { refuseSi } from './verrousDeFiche';
 import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
-  brouillonDe, ciblesDActivite, devisDeDepot, poserDansLeBrouillon, optionDApprentissage, optionDEntrainement, refusDActivite,
+  brouillonDe, ciblesDActivite, devisDeDepot, poserDansLeBrouillon, optionDEntrainement, refusDActivite,
   refusDeCommande, refusDeConfirmerLActivite, refusDeRetrait, opsCiblees, viseDuTrait, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type AxeDuBrouillon, type CiblesChoisies, type CompositionDActivite, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
@@ -33,7 +33,7 @@ import { confirmBattleActivity, engagerLaBataille, battlePrepEntries, soutienCou
 import {
   craftTarget, craftSpecOf, metierOf, qualitesDArtisanat, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
-  ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
+  ACTIVITIES, activitiesFor, activityById, learnOptionOf, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
   type ActivityDef, type ActivityResolver, type GenreDeDepot, type ResolverOf,
 } from '../engine/activities';
@@ -526,7 +526,7 @@ function openCatalogActivity(get: Get, set: Set, heroId: string, def: ActivityDe
   } else if (def.resolver === 'learnTalent') {
     // Apprentissage particulier : tuteur tiré, puis jugé. LDB 23 l.66-72
     const talent = findTalentById(opts.talentId ?? '');
-    const xpCost = optionDApprentissage(h, opts.talentId ?? '')?.xpCost;
+    const xpCost = learnOptionOf(h, opts.talentId ?? '')?.xpCost;
     if (!talent || xpCost == null) return ouverteSansCible(def);
     const tutorBrass = toBrass(apprenticeshipTutorCost(xpCost, battleRng()));
     const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutorBrass), 'if.tuteurKo');
