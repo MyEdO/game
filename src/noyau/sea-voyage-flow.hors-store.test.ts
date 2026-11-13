@@ -6,8 +6,10 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf, etapeDEquipage, SEA_BOARD_EVENT_TABLE, type SeaVoyageState,
+  buildOverspeedSteps, engineerOf, etapeDEquipage, SEA_BOARD_EVENT_TABLE, applyVesselCritical, type SeaVoyageState,
 } from './seaVoyageFlow';
+import { rollShipCritical } from '../engine/shipCritical';
+import { SHIP_CRIT_SET } from '../data/shipCriticals';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { effectiveChar } from '../engine/characteristics';
@@ -89,6 +91,18 @@ const seaMap: WorldMap = {
     { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
   routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+};
+
+/** Le port d'appareillage, sa rencontre `enc-kraken`, et la mer dont le péril d'auteur l'ouvre (`startCombat`). */
+function sceneDuKraken(): Scene {
+  const s = emptyScene('scene-test', 10, 10); s.id = 'port-a'; s.label = 'Mer';
+  const enc = buildEncounter({ id: 'enc-kraken', enemies: [{ statblock: { type: 'statblock', label: 'Kraken', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
+  s.entities.push(...enc.entities); s.encounters = [enc.encounter];
+  return s;
+}
+const combatPeril: WorldMap = {
+  ...seaMap,
+  routes: [{ ...seaMap.routes[0], perils: [{ label: 'Kraken', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-kraken' }] }] }],
 };
 
 function freshState() {
@@ -1016,14 +1030,7 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
   });
 
   it('un péril d’auteur `startCombat` INTERROMPT la traversée (comme l’embuscade)', () => {
-    const krakenScene = emptyScene('scene-test', 10, 10); krakenScene.id = 'port-a'; krakenScene.label = 'Mer';
-    const enc = buildEncounter({ id: 'enc-kraken', enemies: [{ statblock: { type: 'statblock', label: 'Kraken', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
-    krakenScene.entities.push(...enc.entities); krakenScene.encounters = [enc.encounter];
-    const combatPeril: WorldMap = {
-      ...seaMap,
-      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Kraken', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-kraken' }] }] }],
-    };
-    set({ scene: krakenScene as never, worldMap: combatPeril } as never);
+    set({ scene: sceneDuKraken(), worldMap: combatPeril } as never);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', combatPeril.routes[0])!;
     set({ travelPlan: plan } as never);
     runSeaDay(get, set);
@@ -3479,6 +3486,123 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       uneJourneeComptee('commande');
       expect(get().travelPlan!.interrupted, 'le voyage reste interrompu').toBe(true);
       expect(get().scene!.id).toBe('ilot');
+    });
+  });
+
+  for (const geste of ['Suivant', 'Tout résoudre'] as const) it(`péril d’auteur [transition] en jour par jour, par « ${geste} », scène d’arrivée sans carte d’entrée ni rencontre : le jour tronqué se dénoue au même geste (#4075)`, () => {
+    const scene = (id: string) => { const s = emptyScene('scene-test', 2, 2); s.id = id; s.label = id; return s; };
+    const vessel = get().vessel;
+    get().chargerLeProjet({ scenes: [scene('port-a'), scene('port-b'), scene('ilot')], entryId: 'port-a', worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], perils: [{ label: 'Écueil', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'ilot' } }] }] }] }, projet: null });
+    set({ vessel } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 5 } } } as never);
+    runSeaDay(get, set);
+    expect([get().pendingCascade?.purpose, etapeAuSlot()], 'prémisse : le péril tient le slot, en tête du jour').toEqual(['travelDay', 'perilDeScene']);
+    if (geste === 'Suivant') unPas(); else { get().jetLancer('cascade'); banc.reprendreTout(); }
+    expect(get().scene!.id, 'prémisse : la transition mène à la scène d’arrivée').toBe('ilot');
+    expect(get().travelPlan?.interrupted, 'le plan est interrompu').toBe(true);
+    expect(get().pendingCascade?.purpose, 'au slot, l’entretien du soir que le dénouement du jour ouvre').toBe('seaScorbut');
+    expect(pile(), 'la pile est vide : le jour tronqué s’est dénoué au même geste').toEqual([]);
+    expect(get().travelPlan!.sea!.daysAtSea, 'aucune journée comptée sous l’entretien').toBe(0);
+    jusquAuSlotLibre();
+    uneJourneeComptee('jourParJour');
+    expect(get().travelPlan!.interrupted, 'le voyage reste interrompu').toBe(true);
+  });
+
+  for (const geste of ['Suivant', 'Tout résoudre'] as const) it(`péril d’auteur [startCombat] en tête du jour tenu au slot, par « ${geste} » : le jour attend sous le combat ; après la victoire, il reprend chez son pilote et se dénoue une fois (#4075)`, () => {
+    set({ scene: sceneDuKraken(), worldMap: combatPeril } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', combatPeril.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 5 } } } as never);
+    runSeaDay(get, set);
+    expect([get().pendingCascade?.purpose, get().pendingCascade?.cursor, etapeAuSlot()], 'prémisse : le péril tient le slot, en tête du jour').toEqual(['travelDay', 0, 'perilDeScene']);
+    if (geste === 'Suivant') unPas(); else { get().jetLancer('cascade'); banc.reprendreTout(); }
+    expect(get().battle, 'le combat d’auteur est ouvert').toBeTruthy();
+    expect(get().pendingCascade, 'le slot est libre pour le combat').toBeNull();
+    expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor, c.participants.length]), 'le jour attend en pile, fini').toEqual([['travelDay', 1, 1]]);
+    expect(get().travelPlan!.sea!.daysAtSea, 'aucune journée comptée sous le combat').toBe(0);
+    expect(get().pendingRest, 'aucune halte sous le combat').toBeNull();
+    const battle = get().battle!;
+    for (const c of battle.combatants) if (c.kind === 'ennemi') c.dead = true;
+    set({ battle: { ...battle } });
+    checkBattleOver(get, set);
+    get().fenetreFermer('victoire');
+    banc.reprendreTout();
+    expect(get().battle, 'la victoire ferme le combat').toBeNull();
+    expect(get().suspendedCascades, 'le jour a quitté la pile').toEqual([]);
+    expect(get().pendingCascade?.purpose, 'au slot, l’entretien du soir que le dénouement du jour ouvre').toBe('seaScorbut');
+    expect(get().travelPlan!.sea!.daysAtSea, 'aucune journée comptée sous l’entretien').toBe(0);
+    expect(jusquAuSlotLibre().vues, 'l’entretien du soir, seul').toEqual(['seaScorbut']);
+    uneJourneeComptee(geste);
+  });
+
+  describe('péril d’auteur à maladie en jour par jour, le jour tenu au slot : la carte de maladie se montre (#4075)', () => {
+    const MALADIE = 'blessure-purulente';
+    const titreDeMaladie = t('eff.titreDeMaladie', { disease: MALADIE });
+    const scene = (id: string) => { const s = emptyScene('scene-test', 2, 2); s.id = id; s.label = id; return s; };
+    /** Le jour de mer au slot, son péril d'auteur en tête. */
+    const jourAuSlot = (effects: NonNullable<WorldMap['routes'][number]['perils']>[number]['effects']) => {
+      const vessel = get().vessel;
+      get().chargerLeProjet({ scenes: [scene('port-a'), scene('port-b'), scene('ilot')], entryId: 'port-a', worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], perils: [{ label: 'Fièvre', chancePct: 100, effects }] }] }, projet: null });
+      set({ vessel } as never); // lancerLaScene remet le vessel de campagne — repose-le
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jourParJour' })!;
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 5 } } } as never);
+      runSeaDay(get, set);
+      expect([get().pendingCascade?.purpose, etapeAuSlot()], 'prémisse : le péril tient le slot, en tête du jour').toEqual(['travelDay', 'perilDeScene']);
+      expect(get().pendingCascade!.participants.length, 'prémisse : le péril est en MILIEU de jour').toBeGreaterThan(1);
+    };
+    const porteurs = () => get().party.filter((h) => (h.diseases ?? []).some((d) => d.id === MALADIE));
+    const cartesVivantes = () => [get().pendingCascade, ...get().suspendedCascades].filter((c) => c?.title === titreDeMaladie);
+    /** La carte au curseur du slot, le jour en pile derrière son péril ; fermée, plus aucune carte vivante. */
+    const laCarteSeMontreUneFois = (cas: string) => {
+      const carte = get().pendingCascade;
+      expect([carte?.purpose, carte?.title, carte?.cursor], `la carte de maladie est au curseur du slot (${cas})`).toEqual(['affichage', titreDeMaladie, 0]);
+      expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), `le jour attend en pile derrière son péril (${cas})`).toEqual([['travelDay', 1]]);
+      expect(get().travelPlan!.sea!.daysAtSea, `aucune journée comptée sous la carte (${cas})`).toBe(0);
+      expect(porteurs(), `prémisse (${cas}) : la maladie est contractée`).toHaveLength(1);
+      unPas();
+      expect(cartesVivantes(), `la carte fermée ne revient pas (${cas})`).toEqual([]);
+      jusquAuSlotLibre();
+      expect(cartesVivantes(), `la carte se montre une fois (${cas})`).toEqual([]);
+      uneJourneeComptee(cas);
+    };
+
+    for (const geste of ['Suivant', 'Tout résoudre'] as const) it(`[inflictDisease], par « ${geste} » : la carte tient le slot, une fois, puis le jour reprend chez son pilote et se dénoue une fois`, () => {
+      jourAuSlot([{ type: 'inflictDisease', disease: MALADIE }]);
+      if (geste === 'Suivant') unPas(); else { get().jetLancer('cascade'); banc.reprendreTout(); }
+      laCarteSeMontreUneFois(geste);
+    });
+
+    it('[inflictDisease, transition], par « Suivant » : la carte se montre dans la scène d’arrivée, une fois, puis le jour tronqué se dénoue une fois', () => {
+      jourAuSlot([{ type: 'inflictDisease', disease: MALADIE }, { type: 'transition', scene: { id: 'ilot' } }]);
+      unPas();
+      expect(get().scene!.id, 'prémisse : la transition mène à la scène d’arrivée').toBe('ilot');
+      expect(get().travelPlan?.interrupted, 'prémisse : le plan est interrompu').toBe(true);
+      const carte = get().pendingCascade;
+      expect([carte?.purpose, carte?.title, carte?.cursor], 'la carte de maladie est au curseur du slot, dans la scène d’arrivée').toEqual(['affichage', titreDeMaladie, 0]);
+      const jour = get().suspendedCascades.map((c) => [c.purpose, c.cursor === c.participants.length]);
+      expect(jour, 'le jour tronqué attend en pile, fini').toEqual([['travelDay', true]]);
+      expect(get().travelPlan!.sea!.daysAtSea, 'aucune journée comptée sous la carte').toBe(0);
+      unPas();
+      expect(cartesVivantes(), 'la carte fermée ne revient pas').toEqual([]);
+      jusquAuSlotLibre();
+      uneJourneeComptee('transition');
+      expect(get().scene!.id).toBe('ilot');
+    });
+
+    it('la bande du coup à l’équipage (`applyVesselCritical`) émise sous le jour tenu au slot rejoint le jour, elle n’ouvre pas sa séquence', () => {
+      jourAuSlot([{ type: 'inflictDisease', disease: MALADIE }]);
+      const jour = get().pendingCascade!;
+      expect(jour.piloteImmediat, 'prémisse : le jour est tenu au slot par son pilote à contexte').toBeDefined();
+      set({ party: get().party.map((h) => ({ ...h, shipStation: 'greement' })) } as never);
+      expect(get().travelPlan!.vehicle, 'prémisse : la coque du voyage').toBeDefined();
+      seedBattleRng(1);
+      const crit = rollShipCritical('greement', makeRNG(1), 10, SHIP_CRIT_SET);
+      expect(crit.crewHit?.test, 'prémisse : le Critique porte un coup à l’équipage, à Test').toBeDefined();
+      applyVesselCritical(get, set, crit);
+      const slot = get().pendingCascade!;
+      expect(slot.purpose, 'le jour tient toujours le slot').toBe('travelDay');
+      expect(slot.participants.slice(jour.participants.length).map((x) => x.id.startsWith('mer-equipage-touche')), 'la bande est ajoutée au jour').toEqual([true]);
+      expect(pile(), 'aucune séquence parquée').toEqual([]);
     });
   });
 });

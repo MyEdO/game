@@ -1117,6 +1117,7 @@ export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, che
     case 'test': walkFlow(flow.reussite, visit, [...chemin, 'reussite']); walkFlow(flow.echec, visit, [...chemin, 'echec']); break;
     case 'choix': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
     case 'effet': break;
+    default: flow satisfies never;
   }
 }
 
@@ -1154,6 +1155,7 @@ export function executerFlow<E, R>(flow: Flow<E>, hote: HoteDeFlow<E, R>): R {
       case 'si': pas = hote.avantDecision?.(noeud, reste) ?? (evalCondition(noeud.condition, hote.conditions()) ? noeud.alors : noeud.sinon); break;
       case 'test': pas = hote.avantDecision?.(noeud, reste) ?? hote.test(noeud, reste); break;
       case 'choix': pas = hote.avantDecision?.(noeud, reste) ?? hote.choix(noeud, reste); break;
+      default: return noeud satisfies never;
     }
     if (pas && 'arret' in pas) return pas.arret;
     if (pas) pile.unshift(pas);

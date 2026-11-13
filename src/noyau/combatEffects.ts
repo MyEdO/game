@@ -74,7 +74,7 @@ import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
 import { combatDistance } from './monde/footprint';
-import { type CascadeApplier, pushStep, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
+import { type CascadeApplier, pushStep, sequenceDuPiloteAContexteHorsCombat, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
 import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
@@ -122,6 +122,8 @@ import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
  *    ne doit pas la faire parquer une seconde fois par sa propre révélation ;
  *  - slot libre EN COMBAT : `'combat'`, la séquence de l'arène (inchangé) ;
  *  - sinon : le `site` déclaré par l'appelant (l'entretien quotidien a le sien), à défaut `'affichage'`.
+ * Lu tel quel par les lecteurs dont l'étape doit être JOUÉE par la séquence en vol. `pushReveal`, lui, ouvre
+ * le `site` sous la séquence d'un pilote à contexte hors combat tenue au slot (`sequenceDuPiloteAContexteHorsCombat`).
  */
 export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => (s: Jeu): PendingCascade['purpose'] =>
   own ? site : (s.pendingCascade?.purpose ?? (s.battle ? 'combat' : site));
@@ -129,13 +131,18 @@ export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => 
 /** Empile une révélation en étape d'AFFICHAGE de cascade (`pushStep` : append à la séquence d'accueil,
  *  sinon elle l'ouvre). `purpose` = la séquence du SITE d'émission quand il en a une naturelle ;
  *  `own` = la révélation ne rejoint AUCUNE séquence en vol, elle ouvre la sienne (celle en vol est
- *  parquée puis reprise). ÉMETTEUR UNIQUE de toute révélation. */
+ *  parquée puis reprise). Sous la séquence d'un pilote à contexte hors combat tenue au slot
+ *  (`sequenceDuPiloteAContexteHorsCombat`, #4075), la révélation ouvre aussi la sienne : le pilote repris
+ *  franchirait l'affichage sans fenêtre, alors qu'il la montre quand il joue l'étape lui-même (slot libre).
+ *  ÉMETTEUR UNIQUE de toute révélation. */
 export function pushReveal(
   set: SetFn,
   entry: RevealEntry,
   opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean },
 ): void {
-  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table }), revealPurpose(opts?.purpose ?? 'affichage', !!opts?.own));
+  const site = opts?.purpose ?? 'affichage';
+  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table }),
+    (s) => (sequenceDuPiloteAContexteHorsCombat(s) ? site : revealPurpose(site, !!opts?.own)(s)));
 }
 
 /** Vide la file de lignes de journal différées (`pendingLogQueue`) → événements de combat. SOURCE

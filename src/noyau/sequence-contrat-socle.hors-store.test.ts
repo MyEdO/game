@@ -2,8 +2,8 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { openSequence, displayStep, monoStep } from './rollSeam';
-import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, dropSceneEntrySteps, setClotureDeCascade } from './cascade';
+import { openSequence, displayStep, monoStep, choiceStep } from './rollSeam';
+import { startCascade, advanceCascade, resolveRemainingCascade, runCascadeImmediate, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, dropSceneEntrySteps, setClotureDeCascade } from './cascade';
 import { runFlow, pushReveal } from './combatEffects';
 import { dispatchCascadeDone } from './combatSlice';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -70,17 +70,22 @@ const reveler = (s: SetFn, own: boolean): void => pushReveal(s, { kind: 'effet',
 const quitterLaPile = (g: Parameters<typeof suspendActiveCascade>[0], s: SetFn): void => { suspendActiveCascade(g, s); dropSceneEntrySteps(g, s); };
 
 let apples = 0;
-beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: () => { apples++; return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
+/** Les étapes jouées par les appliers `KIND_INERTE`, `KIND_OUVRE_FLOW` et `KIND_OUVRE_FLOW_PUIS_QUITTE`, dans l'ordre (ids). */
+let joues: string[] = [];
+/** Le `purpose` du slot vu par l'applier `KIND_REVELE` juste après son émission : la séquence d'accueil de la révélation. */
+let slotsSousRevelation: (string | undefined)[] = [];
+beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: (_g, _s, st) => { apples++; joues.push(st.id); return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
   apples++;
   // Ce que fait `lancerLeCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE
   // contexte. La garde lit `get().battle` — inutile de monter un combat complet pour la mesurer.
   setter({ battle: COMBAT });
   return {};
-}, [KIND_JET]: () => ({}), [KIND_OUVRE_FLOW]: (g, s) => {
+}, [KIND_JET]: () => ({}), [KIND_OUVRE_FLOW]: (g, s, st) => {
   apples++;
+  joues.push(st.id);
   runFlow(g, s, flowOuvert);
   return {};
-}, [KIND_REVELE]: (_g, s) => { apples++; reveler(s, false); return {}; },
+}, [KIND_REVELE]: (g, s) => { apples++; reveler(s, false); slotsSousRevelation.push(g().pendingCascade?.purpose); return {}; },
 [KIND_REVELE_A_PART]: (_g, s) => { apples++; reveler(s, true); return {}; },
 [KIND_OUVRE_FLOW_PUIS_REVELE]: (g, s) => { apples++; runFlow(g, s, flowOuvert); reveler(s, true); return {}; },
 [KIND_OUVRE_FLOW_PUIS_COMBAT]: (g, s) => {
@@ -90,7 +95,7 @@ beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_
   suspendActiveCascade(g, s);
   s({ battle: COMBAT });
   return {};
-}, [KIND_OUVRE_FLOW_PUIS_QUITTE]: (g, s) => { apples++; runFlow(g, s, flowOuvert); quitterLaPile(g, s); return {}; },
+}, [KIND_OUVRE_FLOW_PUIS_QUITTE]: (g, s, st) => { apples++; joues.push(st.id); runFlow(g, s, flowOuvert); quitterLaPile(g, s); return {}; },
 [KIND_QUITTE]: (g, s) => { apples++; quitterLaPile(g, s); return {}; },
 [KIND_PILOTE_IMBRIQUE]: (g, s) => {
   apples++;
@@ -117,6 +122,8 @@ function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
 
 beforeEach(() => {
   apples = 0;
+  joues = [];
+  slotsSousRevelation = [];
   ratesVus = [];
   seedBattleRng(7);
   const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
@@ -199,6 +206,17 @@ function groupe(): void {
   const automate = { ...b, aiControlled: true, characteristics: { ...b.characteristics, force: 4, agilite: 60 } };
   set({ party: [meneur, automate], flags: {}, pendingTest: null, pendingExtendedTest: null, pendingForceDoor: null } as never);
 }
+/** Le Sorcier, Langue (Magick) à 10 avances au moins, tenu par le siège local ou conduit par l'IA. */
+function sorcier(aiControlled: boolean): ReturnType<typeof herosDeScenario> {
+  const w = herosDeScenario(idsDeTest, 'sorcier');
+  const langue = w.skills.find((s) => s.id === 'langue');
+  if (langue) langue.advances = Math.max(langue.advances, 10);
+  else w.skills.push({ id: 'langue', spec: 'magick', advances: 10 } as never);
+  w.aiControlled = aiControlled;
+  return w;
+}
+/** Le Flow qui fait incanter `w` : l'applier qui le joue ouvre l'hôte d'incantation (lanceur tenu) ou le joue d'office (IA). */
+const incanter = (w: { id: string }): Flow => ({ kind: 'effet', effet: { type: 'castSpell', casterId: w.id, spellId: 'armure-aethyrique', mode: 'jet' } });
 
 describe('#4006 — la sortie d’hôte d’un Test de scène reprend la séquence qu’il a parquée', () => {
   /** Une séquence TENUE AU SLOT dont la 1ʳᵉ étape ouvre `flow` : validée, son applier la parque derrière l'hôte. */
@@ -273,13 +291,9 @@ describe('#4006 — la sortie d’hôte d’un Test de scène reprend la séquen
   const SEMIS_INCANTATION_SANS_SUITE = 7;
   /** Le Sorcier, tenu par le siège local, incante sous la séquence parquée : l'hôte d'incantation tient le slot. */
   function parquerSousLIncantation(): void {
-    const w = herosDeScenario(idsDeTest, 'sorcier');
-    const langue = w.skills.find((s) => s.id === 'langue');
-    if (langue) langue.advances = Math.max(langue.advances, 10);
-    else w.skills.push({ id: 'langue', spec: 'magick', advances: 10 } as never);
-    w.aiControlled = false;
+    const w = sorcier(false);
     set({ party: [get().party[0], w] });
-    parquerSous({ kind: 'effet', effet: { type: 'castSpell', casterId: w.id, spellId: 'armure-aethyrique', mode: 'jet' } });
+    parquerSous(incanter(w));
     expect(get().pendingCast, 'prémisse : la fenêtre d’incantation vit').not.toBeNull();
     const hote = get().pendingCascade!;
     expect(hote.participants[hote.cursor].jet, 'prémisse : l’hôte d’incantation tient le slot').toBe('incantation');
@@ -506,5 +520,140 @@ describe('#4006 — le pilote immédiat à contexte parque au rang ce que son ap
     expect(continuations, 'l’appelant n’a pas enchaîné sa continuation').toBe(0);
     expect(apples, 'la 2ᵉ étape est jouée une fois').toBe(2);
     expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
+  });
+
+  describe('lancé dans la suite d’une sortie d’hôte : ce que l’applier ouvre passe avant la journée, puis la séquence parquée d’avant reprend à son curseur', () => {
+    /** Le slot et la pile : `[titre, curseur]`, ou `null` pour un slot libre. */
+    const slotEtPile = () => {
+      const s = get();
+      return { slot: s.pendingCascade ? [s.pendingCascade.title, s.pendingCascade.cursor] : null, pile: s.suspendedCascades.map((c) => [c.title, c.cursor]) };
+    };
+    /** `Parquée` jouée jusqu'à son curseur 1, parquée sous l'`Hôte` qui tient le slot ; puis la sortie de l'hôte, dont la
+     *  suite lance la journée. Rend le retour du pilote et le slot et la pile vus en fin de suite. */
+    function sortieDontLaSuitePilote(premierKind: GenreDeCascade) {
+      const meneur = get().party[0];
+      startCascade(get, set, { title: 'Parquée', purpose: 'affichage', steps: [
+        displayStep({ id: 'p1', kind: KIND_INERTE, actorId: meneur.id, label: fixtureText('Jouée') })!,
+        displayStep({ id: 'p2', kind: KIND_INERTE, actorId: meneur.id, label: fixtureText('Reste') })!,
+      ] });
+      get().jetValider('cascade');
+      startCascade(get, set, { title: 'Hôte', purpose: 'test', steps: [displayStep({ id: 'h1', kind: KIND_INERTE, actorId: meneur.id, label: fixtureText('Hôte') })!] });
+      expect(slotEtPile(), 'prémisse : l’hôte tient le slot, la séquence parquée attend à son curseur').toEqual({ slot: ['Hôte', 0], pile: [['Parquée', 1]] });
+      let retour: ReturnType<typeof openSequence>;
+      let finDeSuite: ReturnType<typeof slotEtPile> | undefined;
+      // Le `Get` du banc lui-même : la garde de réentrance de la sortie est keyée par son identité (`cascade.ts › enSortieDHote`).
+      sortirDeLHote(banc.getState, set, {}, () => {
+        retour = piloter(premierKind);
+        finDeSuite = slotEtPile();
+        joues.push('suite-fin');
+      });
+      return { retour: retour!, finDeSuite: finDeSuite! };
+    }
+    /** Les gestes qui closent ce que l'applier a ouvert, puis la fin : la séquence parquée d'avant au slot, à son curseur ;
+     *  validée, slot et pile vides. */
+    function laParqueeReprend(dejaJoues: string[]): void {
+      expect(slotEtPile(), 'la séquence parquée d’avant revient au slot, à son curseur').toEqual({ slot: ['Parquée', 1], pile: [] });
+      expect(joues, 'ordre des étapes jouées').toEqual(dejaJoues);
+      get().jetValider('cascade');
+      expect(joues, 'la séquence parquée d’avant joue sa suite, une fois').toEqual([...dejaJoues, 'p2']);
+      expect(slotEtPile(), 'slot et pile vides').toEqual({ slot: null, pile: [] });
+    }
+    const SEMIS_INCANTATION_SANS_SUITE = 7;
+    /** Le Sorcier rejoint le groupe, derrière le Meneur et l'Automate. */
+    const rejoint = (w: ReturnType<typeof sorcier>) => { set({ party: [...get().party, w] }); return w; };
+    const CAS: { cas: string; kind: GenreDeCascade; flow: () => Flow; ouverte: string; slotOuvert: () => unknown; clore: () => void }[] = [
+      { cas: 'l’applier ouvre un Test', kind: KIND_OUVRE_FLOW, flow: () => testDeForce, ouverte: 'test', slotOuvert: () => get().pendingCascade?.purpose, clore: jouerLeTestDeForce },
+      { cas: 'l’applier ouvre un Test puis le parque, slot libre', kind: KIND_OUVRE_FLOW_PUIS_QUITTE, flow: () => testDeForce, ouverte: 'test', slotOuvert: () => get().pendingCascade?.purpose, clore: jouerLeTestDeForce },
+      { cas: 'l’applier ouvre l’incantation d’un lanceur tenu, validée', kind: KIND_OUVRE_FLOW, flow: () => incanter(rejoint(sorcier(false))), ouverte: 'incantation', slotOuvert: () => get().pendingCascade?.participants[get().pendingCascade!.cursor].jet, clore: () => {
+        seedBattleRng(SEMIS_INCANTATION_SANS_SUITE);
+        get().jetLancer('incantation');
+        const r = get().pendingCast!.result!;
+        expect(r.cast && !r.isCritical && !r.isFumble, 'prémisse : le sort est lancé, sans conséquence appendue').toBe(true);
+        get().jetValider('incantation');
+        expect(get().pendingCast).toBeNull();
+      } },
+      { cas: 'l’applier ouvre l’incantation d’un lanceur tenu, renoncée', kind: KIND_OUVRE_FLOW, flow: () => incanter(rejoint(sorcier(false))), ouverte: 'incantation', slotOuvert: () => get().pendingCascade?.participants[get().pendingCascade!.cursor].jet, clore: () => {
+        get().jetAnnuler('incantation');
+        expect(get().pendingCast).toBeNull();
+      } },
+    ];
+    for (const { cas, kind, flow, ouverte, slotOuvert, clore } of CAS) it(`${cas} : l’ouverte, puis la journée dénouée une fois, puis la séquence parquée d’avant`, () => {
+      flowOuvert = flow();
+      const { retour, finDeSuite } = sortieDontLaSuitePilote(kind);
+      expect(retour, 'rien n’est rendu').toBeUndefined();
+      expect(finDeSuite.pile, 'en fin de suite, la journée parquée au-dessus de la séquence d’avant').toEqual([['Parquée', 1], ['Journée', 1]]);
+      expect(slotOuvert(), 'ce que l’applier a ouvert tient le slot').toBe(ouverte);
+      expect(slotEtPile(), 'la sortie ne reprend rien par-dessus l’ouverte').toEqual(finDeSuite);
+      expect(denouements, 'aucun dénouement avant la clôture de l’ouverte').toEqual([]);
+      clore();
+      expect(denouements, 'la journée dénouée une fois').toEqual(['Journée']);
+      laParqueeReprend(['p1', 'j1', 'suite-fin', 'j2']);
+    });
+
+    it('l’applier joue d’office l’incantation d’un lanceur IA : la journée est rendue finie à l’appelant, la sortie externe reprend la séquence parquée d’avant', () => {
+      flowOuvert = incanter(rejoint(sorcier(true)));
+      const { retour, finDeSuite } = sortieDontLaSuitePilote(KIND_OUVRE_FLOW);
+      expect(retour?.map((s) => s.id), 'la journée est rendue résolue à l’appelant').toEqual(['j1', 'j2']);
+      expect(finDeSuite, 'en fin de suite, la sortie imbriquée de l’incantation n’a rien repris').toEqual({ slot: null, pile: [['Parquée', 1]] });
+      expect(denouements, 'aucun dénouement par la clôture : il revient à l’appelant').toEqual([]);
+      laParqueeReprend(['p1', 'j1', 'j2', 'suite-fin']);
+    });
+  });
+});
+
+describe('#4075 — borne : au slot, une séquence hors du prédicat `sequenceDuPiloteAContexteHorsCombat` dont la dernière étape suspend se dénoue au même geste', () => {
+  beforeEach(groupe);
+  /** La dernière étape : un choix sans défaut (le pilote s'y arrête, `cascade.ts › piloteImmediat`) dont l'applier quitte la scène. */
+  const choixQuiQuitte = () => choiceStep({ id: 'q', kind: KIND_QUITTE, actorId: get().party[1].id, label: fixtureText('Quitte'), options: [{ key: 'a', label: fixtureText('A') }] })!;
+  const MONTAGES: { cas: string; poser: () => void; reprise: unknown }[] = [
+    { cas: 'séquence sans pilote', reprise: undefined, poser: () => startCascade(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiQuitte()] }) },
+    { cas: 'pilote sans contexte', reprise: { sansContexte: true }, poser: () => { runCascadeImmediate(get, set, [choixQuiQuitte()]); } },
+    { cas: 'pilote à contexte, en combat', reprise: {}, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiQuitte()] }); } },
+  ];
+  for (const [geste, jouer] of [['Suivant', advanceCascade], ['Tout résoudre', resolveRemainingCascade]] as const) for (const { cas, poser, reprise } of MONTAGES) {
+    it(`${cas}, par « ${geste} » : la séquence finie est rendue à l’appelant, la pile est vide`, () => {
+      poser();
+      const tenue = get().pendingCascade!;
+      expect([tenue.cursor, tenue.participants.length, tenue.piloteImmediat], `prémisse (${cas}) : le choix tient le slot`).toEqual([0, 1, reprise]);
+      get().jetRegler('cascade', 'choix', 'a', 'q');
+      const done = jouer(get, set);
+      expect(apples, `prémisse (${cas}) : l’étape est jouée une fois`).toBe(1);
+      expect(done?.participants.map((s) => s.id), `la séquence finie est rendue pour son dénouement (${cas})`).toEqual(['q']);
+      expect(get().suspendedCascades, `la pile est vide (${cas})`).toEqual([]);
+    });
+  }
+});
+
+describe('#4075 — borne : une révélation émise sous une séquence au slot hors du prédicat `sequenceDuPiloteAContexteHorsCombat` la rejoint', () => {
+  beforeEach(groupe);
+  /** La dernière étape : un choix sans défaut (le pilote s'y arrête, `cascade.ts › piloteImmediat`) dont l'applier émet une révélation. */
+  const choixQuiRevele = () => choiceStep({ id: 'q', kind: KIND_REVELE, actorId: get().party[1].id, label: fixtureText('Révèle'), options: [{ key: 'a', label: fixtureText('A') }] })!;
+  const MONTAGES: { cas: string; poser: () => void; reprise: unknown }[] = [
+    { cas: 'séquence sans pilote', reprise: undefined, poser: () => startCascade(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] }) },
+    { cas: 'pilote sans contexte', reprise: { sansContexte: true }, poser: () => { runCascadeImmediate(get, set, [choixQuiRevele()]); } },
+    { cas: 'pilote à contexte, en combat', reprise: {}, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] }); } },
+  ];
+  for (const { cas, poser, reprise } of MONTAGES) {
+    it(`${cas}, par « Suivant » : la révélation rejoint la séquence, elle n’ouvre pas la sienne`, () => {
+      poser();
+      const tenue = get().pendingCascade!;
+      expect([tenue.cursor, tenue.participants.length, tenue.piloteImmediat], `prémisse (${cas}) : le choix tient le slot`).toEqual([0, 1, reprise]);
+      get().jetRegler('cascade', 'choix', 'a', 'q');
+      advanceCascade(get, set);
+      expect(apples, `prémisse (${cas}) : l’étape est jouée une fois`).toBe(1);
+      expect(slotsSousRevelation, `la séquence tient toujours le slot après l’émission (${cas})`).toEqual([tenue.purpose]);
+      expect(get().pendingCascade?.purpose, `aucune séquence d’affichage au slot (${cas})`).not.toBe('affichage');
+      expect(get().suspendedCascades, `aucune séquence parquée (${cas})`).toEqual([]);
+    });
+  }
+  it('pilote à contexte, hors combat, par « Suivant » : la révélation ouvre la sienne, la séquence attend en pile, finie', () => {
+    openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] });
+    expect(get().pendingCascade?.piloteImmediat, 'prémisse : le choix tient le slot, sous son pilote à contexte').toEqual({});
+    get().jetRegler('cascade', 'choix', 'a', 'q');
+    advanceCascade(get, set);
+    expect(slotsSousRevelation, 'la révélation tient le slot dès son émission').toEqual(['affichage']);
+    const slot = get().pendingCascade;
+    expect([slot?.purpose, slot?.participants.map((x) => x.label)], 'la révélation tient le slot, seule').toEqual(['affichage', ['Révélation']]);
+    expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), 'la séquence attend en pile, finie').toEqual([['travelDay', 1]]);
   });
 });
