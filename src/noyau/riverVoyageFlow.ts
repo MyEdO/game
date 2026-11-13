@@ -61,7 +61,19 @@ import {
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { jouerLaJournee, type CascadeApplier } from './cascade';
 import { checkPartyWiped } from './partyWipe';
-import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
+import {
+  composeRollLabel,
+  freeCons,
+  monoStep,
+  choiceStep,
+  displayStep,
+  refusePorte,
+  surfaceOf,
+  pousseSi,
+  openWorldTest,
+  type Consequence,
+  type BandLigne,
+} from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';

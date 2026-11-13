@@ -17,7 +17,16 @@ import { caracDuCombattant, type Referent } from '../engine/formule';
 import { profilNavalDe } from '../engine/coque';
 import { humanizeFormula } from './codex/humanize';
 import { spoilCargoByEnc, valeurDeLaCargaison } from '../engine/cargo';
-import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, spoilCargoByPct, type ModificateurDuNavire } from '../engine/seaVoyage';
+import {
+  addManann,
+  applyManannFactor,
+  cargoBasePrice,
+  meteosActives,
+  modificateursActifs,
+  rollRandomCargo,
+  spoilCargoByPct,
+  type ModificateurDuNavire,
+} from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
 import { isRation, LITRES_PAR_TONNEAU, rationsDeCale, type VivresDeCale } from '../engine/provisions';
@@ -28,7 +37,22 @@ import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { dataLabel, findCrewRoleById, findCrewTestTypeById, refLabel } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
-import { applyVesselCritical, combattreEnMer, coqueDuNavireDeCampagne, entrerDansLeTourbillon, etapeDEquipage, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, reparationTemporaireDuNavire, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
+import {
+  applyVesselCritical,
+  combattreEnMer,
+  coqueDuNavireDeCampagne,
+  entrerDansLeTourbillon,
+  etapeDEquipage,
+  heurterLePeril,
+  localisationAleatoire,
+  navireHostileEnVue,
+  noteSeaLine,
+  persistHullWounds,
+  reparationTemporaireDuNavire,
+  setVesselHull,
+  vesselManann,
+  voyageShip,
+} from './seaVoyageFlow';
 import { findSeaHazard } from '../engine/seaPerils';
 import { applyLeafOps, OPS_DIFFEREES, scheduleDelayedOps } from './combatEffects';
 import { startCascade } from './cascade';

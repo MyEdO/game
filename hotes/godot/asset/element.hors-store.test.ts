@@ -4,9 +4,28 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseDeTest, elementSchema3, GLB_AU_POSTE, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbANoeuds, glbDElement, vehiculeDeTest } from './modeles.testkit.ts';
+import {
+  baseDeTest,
+  elementSchema3,
+  GLB_AU_POSTE,
+  GLB_DE_BASE,
+  GLB_D_ELEMENT,
+  GLB_SANS_BASE,
+  glbANoeuds,
+  glbDElement,
+  vehiculeDeTest,
+} from './modeles.testkit.ts';
 import { empreinte } from './empreinte.ts';
-import { CATEGORIES_D_ELEMENT, emplacementsNonOfferts, estSansBase, REGLES_DES_CATEGORIES, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
+import {
+  CATEGORIES_D_ELEMENT,
+  emplacementsNonOfferts,
+  estSansBase,
+  REGLES_DES_CATEGORIES,
+  validerElement,
+  type BaseDUnElement,
+  type CategorieDElement,
+  type CodeDEcartDElement,
+} from './element.ts';
 import { ecrireGlb, lireGlb } from './glb.ts';
 
 const BASE: BaseDUnElement = {

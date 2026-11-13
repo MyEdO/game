@@ -1,6 +1,17 @@
 import { useGame } from '../state/store';
 import { avecSigne, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
-import { emplacementDArmure, emplacementDeCape, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isUnarmed, setADeuxMains, paNette, type ArmourLayer } from '../engine/items';
+import {
+  emplacementDArmure,
+  emplacementDeCape,
+  itemLabel,
+  weaponHands,
+  compatibleAmmo,
+  loadoutLabel,
+  isUnarmed,
+  setADeuxMains,
+  paNette,
+  type ArmourLayer,
+} from '../engine/items';
 import { penaliteDeMainSecondaire } from '../engine/combat';
 import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';

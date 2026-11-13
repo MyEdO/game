@@ -21,7 +21,18 @@ import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, qualities, type TrappingData } from '../data';
+import {
+  trappingsInstanciables,
+  talents,
+  levelsForCareer,
+  skills,
+  specPoolOf,
+  specCatalogOf,
+  refLabel,
+  findCareerById,
+  qualities,
+  type TrappingData,
+} from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars, refKey } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';

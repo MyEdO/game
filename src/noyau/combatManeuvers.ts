@@ -21,7 +21,16 @@ import { nomDe } from '../engine/nom';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
-import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL, baseTestModLines, weaponSkillId, GRAPPLE_TEST_CTX } from '../engine/combat';
+import {
+  combatValue,
+  combatBaseValue,
+  defenseValue,
+  defenseBaseValue,
+  DEFENSE_LABEL,
+  baseTestModLines,
+  weaponSkillId,
+  GRAPPLE_TEST_CTX,
+} from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, evaluateTest, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe } from '../engine/characteristics';

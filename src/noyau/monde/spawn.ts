@@ -2,11 +2,43 @@
  * Construction de Combattants depuis le bestiaire (réf.) ou un statblock
  * personnalisé d'une scène. Sert au combat tactique.
  */
-import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../../engine/types';
+import {
+  Combatant,
+  Characteristics,
+  type Weapon,
+  CHAR_KEYS,
+  BodyShape,
+  SkillInstance,
+  TalentInstance,
+  type AuthoredShipPoste,
+  type NavalTraitRef,
+} from '../../engine/types';
 import { skillCharacteristicById } from '../../engine/character';
-import { isOptionalNote, resoudreTrait, traitsDuPorteur, type PorteurDeTraits, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import {
+  isOptionalNote,
+  resoudreTrait,
+  traitsDuPorteur,
+  type PorteurDeTraits,
+  type TraitInstance,
+  type TraitList,
+  type TraitsDesignes,
+  type OptionalEntry,
+  type OptionalSwap,
+} from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
+import {
+  findCreatureById,
+  byId,
+  findTalentById,
+  tailleDuProfil,
+  findVehicleById,
+  findTrappingById,
+  specPoolOf,
+  CreatureData,
+  type SkillData,
+  type SkillRef,
+  type TalentRef,
+} from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
@@ -19,7 +51,16 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
+import {
+  apparencesObjetsDe,
+  contexteDeNaissanceDObjet,
+  deciderApparencesDesArmes,
+  equipConflicts,
+  hydratePoste,
+  loadWeapon,
+  objetsDeLInventaire,
+  recomputeLoadout,
+} from '../../engine/items';
 import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
 import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';

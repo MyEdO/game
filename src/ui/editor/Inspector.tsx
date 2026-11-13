@@ -52,13 +52,87 @@ import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../noyau/monde/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../data/sons/musique';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, libelleDAuteur, MERCHANT_ARCHETYPES } from '../../data';
-import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, patchZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
+import {
+  findCreatureById,
+  creatureLabel,
+  lightLevels,
+  lightTones,
+  findPropById,
+  matieresCouvrantes,
+  matieresDe,
+  structureAppearances,
+  siegeEngines,
+  libelleDAuteur,
+  MERCHANT_ARCHETYPES,
+} from '../../data';
+import {
+  renameActionAuthoree,
+  toitureEffective,
+  TypeNonNomme,
+  changePropRef,
+  deleteSel,
+  renameEntry,
+  renameEffectZone,
+  addMember,
+  removeMember,
+  patchMember,
+  setEffectZoneArea,
+  clearEffectZoneCarve,
+  setPosteCrew,
+  setPosteSide,
+  setPosteEngine,
+  editEntity,
+  editEntityCombat,
+  patchWall,
+  setNorthDeg,
+  setSceneFlags,
+  removeSceneFlag,
+  setSceneScalaires,
+  setSceneLabel,
+  renameScene,
+  editEntry,
+  addStation,
+  patchStation,
+  removeStation,
+  setSceneMusic,
+  setStartMessageTexte,
+  patchStartMessage,
+  setReliefDefault,
+  patchSceneRoofDefaults,
+  setSceneRest,
+  patchTrigger,
+  patchRestZone,
+  patchZone,
+  replaceEffectZone,
+  patchArchitectureBody,
+  poseToitureDuCorps,
+  addRoofExclusion,
+  patchRoofExclusion,
+  removeRoofExclusion,
+  patchArchitectureStorey,
+  patchArchitecturePart,
+  patchFacadeSection,
+  setFacadeSectionZ,
+  patchBuildingMass,
+  addFacadeFeature,
+  patchFacadeFeature,
+  removeFacadeFeature,
+  BORNES_D_OUVERTURE,
+} from '../../noyau/sceneEdit';
 import { ciblesDAncreDeBataille } from '../../noyau/massBattleFlow';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
 import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
-import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
+import {
+  entityKindSchema,
+  facadeFeatureKindSchema,
+  faceDAreteSchema,
+  roofProfileSchema,
+  sceneEffectZoneSchema,
+  sceneSchema,
+  sceneWeatherSchema,
+  type ReliefDefaults,
+} from '../../data/schemas/defs-scenes/scene';
 
 import { ApparencesObjetsField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';

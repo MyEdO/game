@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { navalPorts, findNavalPortById } from './index';
 import { CARGO_ENTRIES, marchandisesDe } from '../engine/cargo';
+import { schema as navalPortsSchema } from './schemas/defs/naval-ports';
 
 describe('naval-ports.json — catalogue de l’Index des ports (#217)', () => {
   it('charge et porte au moins les entrées connues', () => {
@@ -89,5 +90,13 @@ describe('naval-ports.json — catalogue de l’Index des ports (#217)', () => {
       expect(p.source.book).toBe('mer-des-griffes');
       expect(typeof p.source.page).toBe('number');
     }
+  });
+});
+
+describe('naval-ports.json — chantier naval spécialisé (#4052, MDG 12 l.230)', () => {
+  it('le champ exige une citation : un simple booléen est refusé', () => {
+    const salzenmund = findNavalPortById('salzenmund')!;
+    expect(navalPortsSchema.safeParse([{ ...salzenmund, chantierNavalSpecialise: { book: 'mer-des-griffes', page: 24, note: 'MDG 03 l.196' } }]).error).toBeUndefined();
+    expect(navalPortsSchema.safeParse([{ ...salzenmund, chantierNavalSpecialise: true }]).error?.issues.map((i) => i.path)).toEqual([[0, 'chantierNavalSpecialise']]);
   });
 });

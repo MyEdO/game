@@ -10,7 +10,22 @@
  * defenseModifiers — et ne s'applique qu'aux jets d'arme qui IMPLIQUENT la main blessée (jamais un charMod
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
-import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Difficulty, UpkeepDeferTest, Weapon, effectRef, locationLabel, type BodyShape, type ModFamille, type Main } from './types';
+import {
+  Combatant,
+  CharKey,
+  CHAR_LABELS,
+  HitLocation,
+  ItemInstance,
+  Trauma,
+  Difficulty,
+  UpkeepDeferTest,
+  Weapon,
+  effectRef,
+  locationLabel,
+  type BodyShape,
+  type ModFamille,
+  type Main,
+} from './types';
 import { RNG } from './dice';
 import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';

@@ -22,7 +22,43 @@ import { CLASSES as CLASSES_COUNTS } from './check-atlas-counts.mjs'
 import { CLASSES as CLASSES_IMPLEMENTE } from './build-implemente.mjs'
 import { CLASSES as CLASSES_ENTITE } from './check-entity-in-chapter.mjs'
 import { CLASSES as CLASSES_CROISSANCE } from '../migrations/lib/croissance.mjs'
-import { refRe, refFolioRe, allAbbrAlternation, span, refNums, isRangeSuffix, bookOf, chapterFile, BOOKS, booksDe, cataloguesDe, classeDePage, CLASSES_DE_PAGE, coeursDe, coeurDe, coeursDuRegistre, entitesDe, estHorsRegle, horsRegleDe, livreDuDossier, livreDuSigle, livreExtraitDe, livresDeCatalogue, livresDeCoeur, motifHorsRegle, niveauDeSectionDe, niveauxDeSectionDe, pagesDeLAtlas, plagesDEntites, RAWDOC_AUTHOR_META, RAWDOC_META_GENERATED, sigleDe, siglesDeCoeur, teneurDe, teneursDe } from './_lib.mjs'
+import {
+  refRe,
+  refFolioRe,
+  allAbbrAlternation,
+  span,
+  refNums,
+  isRangeSuffix,
+  bookOf,
+  chapterFile,
+  BOOKS,
+  booksDe,
+  cataloguesDe,
+  classeDePage,
+  CLASSES_DE_PAGE,
+  coeursDe,
+  coeurDe,
+  coeursDuRegistre,
+  entitesDe,
+  estHorsRegle,
+  horsRegleDe,
+  livreDuDossier,
+  livreDuSigle,
+  livreExtraitDe,
+  livresDeCatalogue,
+  livresDeCoeur,
+  motifHorsRegle,
+  niveauDeSectionDe,
+  niveauxDeSectionDe,
+  pagesDeLAtlas,
+  plagesDEntites,
+  RAWDOC_AUTHOR_META,
+  RAWDOC_META_GENERATED,
+  sigleDe,
+  siglesDeCoeur,
+  teneurDe,
+  teneursDe,
+} from './_lib.mjs'
 import booksData from '../../src/data/books.json' with { type: 'json' }
 import { GENERATORS, ciblesLitterales } from '../docs/lib/cibles-generees.mjs'
 

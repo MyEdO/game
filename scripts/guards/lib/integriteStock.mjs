@@ -248,7 +248,6 @@ export const DOTATIONS_TEXTES = [
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["repurgateur-4","trappings.text","","9c32e00a2adf045f056431c753382f2fcf20846d1343779804aaa762ee752278"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["sorcier-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["spirite-2","trappings.text","","d075ed966fac698679eb95c4bbf86852c62af650c7d7e849b6550f6a346e8404"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["spirite-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["umbramancien-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
 ];

@@ -1,5 +1,19 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { evaluateTest, maxForcedRoll, bestForcedRoll, rollTest, evaluateCombinedTest, slTier, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure, SL_IMPRESSIVE, SL_ASTOUNDING, assistBonus } from './tests';
+import {
+  evaluateTest,
+  maxForcedRoll,
+  bestForcedRoll,
+  rollTest,
+  evaluateCombinedTest,
+  slTier,
+  isImpressiveSuccess,
+  isImpressiveFailure,
+  isAstoundingSuccess,
+  isAstoundingFailure,
+  SL_IMPRESSIVE,
+  SL_ASTOUNDING,
+  assistBonus,
+} from './tests';
 import { getTestPolicy, type TestPolicy } from './testPolicy';
 import type { RNG } from './dice';
 import { setRule, resetRule } from './policy';

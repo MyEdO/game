@@ -8,7 +8,19 @@ import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { cheminsDeLEcrivain, preempterLesDerives } from '../docs/lib/ecrivain-derives.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
-import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead, TIMEOUT_DU_HOOK_MS } from '../guards/lib/gitPorte.mjs'
+import {
+  ceQuEmporteLIndex,
+  ceQuiChange,
+  depotDe,
+  estAncetre,
+  fusionnesEnCours,
+  parentsDe,
+  racineDe,
+  refusDeGit,
+  shaDe,
+  shaPrecedentDeHead,
+  TIMEOUT_DU_HOOK_MS,
+} from '../guards/lib/gitPorte.mjs'
 import { journaliserLeHook } from './journal.mjs'
 import { jouerLesMiroirs } from './miroirs-d-agents.mjs'
 import { attendreLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, ligneDeDemande } from './reconstruction.mjs'

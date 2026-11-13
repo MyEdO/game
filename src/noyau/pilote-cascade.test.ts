@@ -7,7 +7,15 @@
  * `scripts/guards/lib/piloteCascadeStock.mjs` porte les copies restantes et ne fait que décroître.
  */
 import { beforeAll, describe, it, expect } from 'vitest';
-import { EXEMPTIONS, bouclesPilotes, corpusMesure, regenerations, sitesDeBoucles, sitesPiloteCascade, type ExemptionPilote } from '../../scripts/guards/lib/piloteCascadeAudit';
+import {
+  EXEMPTIONS,
+  bouclesPilotes,
+  corpusMesure,
+  regenerations,
+  sitesDeBoucles,
+  sitesPiloteCascade,
+  type ExemptionPilote,
+} from '../../scripts/guards/lib/piloteCascadeAudit';
 import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';

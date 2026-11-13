@@ -8,15 +8,42 @@ import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppe
 import type { PlayerText } from '../i18n/playerText';
 import { listeEt, t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
-import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
+import {
+  dansLaSousListe,
+  espaceDe,
+  idsDe,
+  idsDeLaSousListe,
+  lireLEspace,
+  porteLeMarqueur,
+  type FeuilleDId,
+  type RefASpecialisation,
+  type RefDesignee,
+  type RefTypee,
+  type TypeEntite,
+} from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
-import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
+import {
+  CATEGORIE_CODEX_DU_FICHIER,
+  CLES_CODEX,
+  DATASET_DE_LA_CATEGORIE,
+  DATASET_DE_L_ESPACE,
+  type CleCodex,
+  type CleDeDataset,
+  type DatasetDeCategorie,
+} from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDeMention, DotationDePossession, Somme } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema, type specsSourceSchema } from './schemas/grammaire/valeurs';
+import {
+  natureDeMentionSchema,
+  symptomSeveritySchema,
+  type NatureDeMention,
+  type harvestRaritySchema,
+  type harvestDangerSchema,
+  type specsSourceSchema,
+} from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
@@ -60,6 +87,7 @@ import type * as speciesDef from './schemas/defs/species';
 import type { Avancement } from './schemas/grammaire/avancement';
 import type * as disponibiliteDef from './schemas/defs/disponibilite';
 import type * as navalPortsDef from './schemas/defs/naval-ports';
+import type * as navalTraitsDef from './schemas/defs/naval-traits';
 import type * as lieuxServicesDef from './schemas/defs/lieux-services';
 import type * as shipStationsDef from './schemas/defs/ship-stations';
 import type * as crewRolesDef from './schemas/defs/crew-roles';
@@ -224,10 +252,21 @@ import landCargoJson from './land-cargo.json';
 import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, Difficulty, type StakeForm } from '../engine/types';
 import type { MutationData } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from './schemas/defs/maladies';
-import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
+// type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
+import type {
+  PowerEstimateRow,
+  MightModifierRow,
+  WarMachineRow,
+  StructureRow as MassBattleStructureRow,
+  HazardRow,
+} from '../engine/massBattle';
 import { type DiceSpec, formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
-import { sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+// runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+import {
+  sizeFromProfile,
+  sizeFromTalents,
+} from '../engine/size';
 import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type * as seaNavigationDef from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
@@ -2153,54 +2192,19 @@ export type ShipSize = 'minuscule' | 'tres-petite' | 'petite' | 'moyenne' | 'gra
  *  palier (`null` = bande OUVERTE au-delà — le dernier élément du tableau, triés par longueur croissante) ;
  *  `value` = CO (coût), Enc (poids) ou jours (durée de pose) selon le champ porteur ; `maison` = réf nue du tarif au-delà de la
  *  dernière borne chiffrée par le livre porté sur la bande concernée. */
-export interface InstallBand { maxLengthM: number | null; value: number; maison?: string }
+export type InstallBand = Exclude<InstallBareme, 'modele'>['bands'][number];
 /** Coût / Poids d'INSTALLATION d'une Amélioration navale (MDG 12, lignes « Coût : / Poids : » de chaque
  *  Amélioration, l.195-364 ; MSRC 12 l.1-140) — VERBATIM structuré par paliers de LONGUEUR. `per: '5m'` =
  *  « par tranche de 5 m de Taille » (Blindage, Lissage) ; `per: 'unite'` = « par cabine » (Cabine de luxe) ;
  *  `'modele'` = ceux du modèle embarqué (Embarcation de bord). `weightEnc` absent = aucun poids (Lissage).
  *  Donnée consommée par le chantier construction/réparation navale (lot systèmes) — aucune valeur codée en
  *  dur. */
-export type InstallBareme = { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
-export interface NavalInstall {
-  installation: InstallBareme;
-  weightEnc?: InstallBareme;
-  /** Durée de la pose (jours) par palier de longueur ; absente : `reparation.joursDePose`. MDG 12 l.230 ; MDG 12 l.293 */
-  jours?: InstallBareme;
-}
-export interface NavalTraitData {
-  /** id STABLE (slug) — la clé d'appariement avec `ship.traits`/`Combatant.upgrades` (`NavalTraitRef.id`). */
-  id: string;
-  type: 'naval-traits';
-  /** Libellé VERBATIM de BASE (sans Indice) — affichage seul, résolu par `findNavalTrait(id)?.label`. */
-  label: string;
-  kind: 'trait' | 'amelioration';
-  source?: SourceRef;
-  /** Emplacement SECONDAIRE (#563) — même Trait/Amélioration à cheval prose⇄bloc Coût/Poids ailleurs
-   *  (ex. Murs blindés : prose MSRC 66, bloc Coût/Poids MSRC 65). Accessors `allLocations`/
-   *  `sourceBooks` (`src/data/sourceRefs.ts`). */
-  alsoIn?: SecondaryRef[];
-  desc: string;
-  /** Coût/Poids d'installation (Améliorations seulement) — cf. `NavalInstall`. */
-  install?: NavalInstall;
-  /** Prend un Indice (le libellé authoré peut être « Renforcé 2 ») — l'effet `passive` est répété par niveau. */
-  ranked?: boolean;
-  /** Effet mécanique en `OpPassive[]` (langue unique) — lu par `navalPassiveOps` puis filtré par effet
-   *  (`ap`/`moveMod`/`skillDRBonus`), répété ×Indice si `ranked`. MÊME éditeur `GameOpEditor` que les traits. */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Bélier (MDG 12 l.221) : bonus de COLLISION (géométrie proue/frontale) — sous-système navire hors
-   *  vocabulaire combattant (≠ `ap` qui mitige TOUT) → injecté dans `resolveCollision` via `belierRam`. */
-  ram?: { ic: number; ap: number };
-  /** Couvert de pont GRADUÉ (`DeckCoverClass`) offert par l'Amélioration à ses postes — Sabord/Murs blindés
-   *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Consommé au tir
-   *  par `couvertDuPoste`. Sous-système navire, hors vocabulaire combattant. */
-  deckCover?: import('../engine/types').DeckCoverClass;
-  /** Modificateur (points) au Test de Navigation POUR DIRIGER le bateau — Bouteur +20 (MSRC 12 l.66),
-   *  Gréement de course −10 (l.137). Sous-système manœuvre, converti en DR d'équipage par `navalNavTestDR`. */
-  navTestMod?: number;
-  /** #221 : même champ `maison` que `TraumaFiche` (`src/data/schemas/defs/traumas.ts:32`). */
-  maison?: string;
-}
-export const NAVAL_TRAITS = navalTraitsJson as NavalTraitData[];
+export type InstallBareme = NavalInstall['installation'];
+/** Pose d'une Amélioration : barèmes d'installation, de poids et de durée, exigence de chantier (`install`). */
+export type NavalInstall = NonNullable<NavalTraitData['install']>;
+/** Trait naval ou Amélioration (`naval-traits.json`), keyé par id STABLE (`NavalTraitRef.id`). */
+export type NavalTraitData = EntreeDe<typeof navalTraitsDef>;
+export const NAVAL_TRAITS = datasetDe<typeof navalTraitsDef>(navalTraitsJson);
 const traitNavalParId = indexParId('navalTraits', NAVAL_TRAITS);
 /** Entrée du catalogue pour une réf par id STABLE (`NavalTraitRef.id`) — l'Indice vit dans `NavalTraitRef.value`,
  *  PAS dans la clé (jamais un parsing de libellé « Renforcé 2 »). PUR. */

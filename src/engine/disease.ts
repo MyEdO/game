@@ -35,7 +35,17 @@ import { spellOps, type FlowTestNode } from './flowCore';
 // source/lookup que `engine/combat.hitLocation`, lue à l'appel.
 const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(tablesDeLocalisation.personnage.shapes.humanoide, roll(1, 100, rng)).loc;
 import { rollTest } from './tests';
-import { maladies, tablesDeLocalisation, diseaseLabel, findSymptomById, symptomLabel, conditionLabel, SYMPTOM_SEVERITIES, memoParVersion, type SymptomCapabilities } from '../data';
+import {
+  maladies,
+  tablesDeLocalisation,
+  diseaseLabel,
+  findSymptomById,
+  symptomLabel,
+  conditionLabel,
+  SYMPTOM_SEVERITIES,
+  memoParVersion,
+  type SymptomCapabilities,
+} from '../data';
 import type { GameOp, OpPassive, PassiveMod } from './ops';
 import type { PsychTrait } from './psychology';
 import { traitOctroye } from './psych/opsPsy';
