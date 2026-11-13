@@ -288,6 +288,14 @@ function rendu() {
    régénèrent par \`npm run stocks:regen\`, un seul par
    \`npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>\`, jamais par \`docs:build\`.`,
     },
+    {
+      module: 'scripts/git-hooks/merge-imports.mjs',
+      texte: (module) =>
+        `Le pilote de fusion des imports (${listeCode(pilotesDe(module))}), déclaré par
+   \`.gitattributes\` pour les modules de code et servi par \`${module}\` : un bloc en conflit fait
+   seulement de déclarations \`import\` / \`export\` se fusionne par ensemble ; sans lui, deux
+   chantiers qui ajoutent chacun un import au même endroit rouvrent un conflit à la fusion locale.`,
+    },
   ].map((f) => ({ ...f, porte: f.porte ?? clePiloteDe(f.module) }))
   for (const c of CONFIGS) {
     if (!FAMILLES_POSTINSTALL.some((f) => f.porte(c))) {
