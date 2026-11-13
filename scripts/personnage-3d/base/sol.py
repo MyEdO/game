@@ -140,12 +140,17 @@ def empiler(peaux, noms):
     return numpy.vstack([x for x, _ in parts]), numpy.vstack([w for _, w in parts]), cles, d
 
 
-def ecarts_des_os(matrices, parent, deplacements):
-    """Par échantillon de `matrices` de peau (échantillons, os, 4, 4) et par os b, la hauteur de e_b = ΔJ_b − R_b D_b
+def rotations_de_peau(matrices):
+    """La rotation de chaque matrice de peau de `matrices` (…, 4, 4), normalisée comme dans `fleches` : (…, 3, 3)."""
+    return matrices[..., :3, :3] / numpy.linalg.norm(matrices[..., :3, :3], axis=-2, keepdims=True)
+
+
+def tetes_deplacees(matrices, parent, deplacements):
+    """Par échantillon de `matrices` de peau (échantillons, os, 4, 4) et par os b, ΔJ_b, le déplacement de sa tête posée
     sous la silhouette à os de têtes déplacées `deplacements` (os, 3), repère monde au repos, `parent` l'indice du parent
     de chaque os (-1 pour une racine) : ΔJ_b = ΔJ_p + R_p (D_b − D_p), ΔJ d'une racine D_b, R la rotation de la matrice
-    de peau, normalisée comme dans `fleches` (docstring du module, #4002) : (échantillons, os)."""
-    rotations = matrices[:, :, :3, :3] / numpy.linalg.norm(matrices[:, :, :3, :3], axis=2, keepdims=True)
+    de peau (`rotations_de_peau`, docstring du module, #4002) : (échantillons, os, 3)."""
+    rotations = rotations_de_peau(matrices)
     profondeurs = numpy.zeros(len(parent), dtype=int)
     for b in range(len(parent)):
         a = parent[b]
@@ -156,7 +161,15 @@ def ecarts_des_os(matrices, parent, deplacements):
     for b in numpy.argsort(profondeurs, kind='stable'):
         p = parent[b]
         joints[:, b] = deplacements[b] if p < 0 else joints[:, p] + rotations[:, p] @ (deplacements[b] - deplacements[p])
-    return joints[:, :, 2] - numpy.einsum('nbj,bj->nb', rotations[:, :, 2, :], deplacements)
+    return joints
+
+
+def ecarts_des_os(matrices, parent, deplacements):
+    """Par échantillon de `matrices` de peau (échantillons, os, 4, 4) et par os b, la hauteur de e_b = ΔJ_b − R_b D_b
+    sous la silhouette à os de têtes déplacées `deplacements` (os, 3) (`tetes_deplacees`, `rotations_de_peau`) :
+    (échantillons, os)."""
+    return (tetes_deplacees(matrices, parent, deplacements)[:, :, 2]
+            - numpy.einsum('nbj,bj->nb', rotations_de_peau(matrices)[:, :, 2, :], deplacements))
 
 
 def ecarts_des_portees(matrices, parent, portees):
