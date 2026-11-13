@@ -5,10 +5,10 @@
 // (`wfrpPlancheMontree`), et comparée pixel à pixel à son étalon `etalons/<nom>.png`. Avant toute capture, le navigateur
 // lancé et la plateforme passent l'épingle (`refusDuNavigateur` : `Chrome/<EPINGLE.chrome>` sous Linux x86-64), sinon
 // le banc sort en 1. Un étalon qu'aucune planche de l'export ne porte, un pixel d'écart, un étalon absent ou d'une autre
-// taille, ou une erreur de la page, sort en 1. Le rapport (`--rapport <dossier>`) garde le rendu de chaque planche, sa
-// capture avec le monde, et une page qui les range près de leur étalon, l'écart en surimpression ; il dit de chaque
-// étalon s'il est celui que l'utilisateur a validé (`valides.json` : son empreinte). Le rapport, le journal et le code de
-// sortie suivent l'ordre des noms.
+// taille, ou une erreur de la page, dont une méthode du pont que la planche ne sert pas, sort en 1. Le rapport
+// (`--rapport <dossier>`) garde le rendu de chaque planche, sa capture avec le monde, et une page qui les range près de
+// leur étalon, l'écart en surimpression ; il dit de chaque étalon s'il est celui que l'utilisateur a validé
+// (`valides.json` : son empreinte). Le rapport, le journal et le code de sortie suivent l'ordre des noms.
 //
 //   npm run godot:etalons                                                     l'export, puis le banc qui compare
 //   node hotes/godot/etalons.mjs --web <export> [--rapport <dossier>] [--planche <nom>]...
@@ -105,7 +105,7 @@ async function comparer() {
   }
   /** La ligne du rapport de la planche `nom` et les erreurs de ses pages ; l'étalon posé avec `--poser`. */
   const juger = async (nom) => {
-    const { titre, demarrer } = JSON.parse(readFileSync(join(planches, `${nom}.json`), 'utf8'))
+    const { titre, reponses: { demarrer } } = JSON.parse(readFileSync(join(planches, `${nom}.json`), 'utf8'))
     const chemin = join(DOSSIER_DES_ETALONS, `${nom}.png`)
     const erreurs = []
     const rendu = await capturer(nom, null, erreurs)

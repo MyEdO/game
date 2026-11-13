@@ -2,7 +2,7 @@
 
 export const EPINGLE: Readonly<{ playwright: string; chrome: string }>;
 
-export function deposerLesPlanches(sortie: string, planches: { nom: string; parametres: { scenario: string }; monde: unknown }[]): void;
+export function deposerLesPlanches(sortie: string, planches: { nom: string; parametres: { scenario: string }; communes: unknown }[]): void;
 
 export function refusDuNavigateur(navigateur: string, machine: { plateforme: string; architecture: string }): string | null;
 

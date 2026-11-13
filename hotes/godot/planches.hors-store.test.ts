@@ -1,7 +1,8 @@
 /**
  * LES PLANCHES ET LEURS ÉTALONS (#3935, `planches.mjs`) : `deposerLesPlanches` écrit chaque planche sous
- * `<sortie>/planches/<nom>.json`, sans son monde, et le monde de chaque scénario sous `<sortie>/planches/mondes/`, celles
- * d'un dépôt précédent retirées ; deux mondes pour un scénario sont refusés. `refusDuNavigateur` ne laisse passer que
+ * `<sortie>/planches/<nom>.json`, sans ses réponses communes, et celles de chaque scénario sous
+ * `<sortie>/planches/communes/`, celles d'un dépôt précédent retirées ; deux jeux de réponses communes pour un scénario
+ * sont refusés. `refusDuNavigateur` ne laisse passer que
  * le `Chrome/<version>` d'`EPINGLE` sous Linux x86-64, et nomme sinon ce qu'il a lu, ce qu'il attend et la commande
  * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte.
  */
@@ -15,25 +16,25 @@ import { deposerLesPlanches, EPINGLE, etalonsSansPlanche, refusDuNavigateur } fr
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
 
-const planche = (nom: string, scenario: string, monde: unknown) => ({ nom, titre: nom, parametres: { scenario }, demarrer: { ok: true }, monde, retrait: null, aretes: null });
+const planche = (nom: string, scenario: string, communes: unknown) => ({ nom, titre: nom, parametres: { scenario }, reponses: { demarrer: { ok: true } }, communes });
 const LINUX = { plateforme: 'linux', architecture: 'x64' };
 
 describe('deposerLesPlanches', () => {
-  it('écrit les planches sans leur monde, un monde par scénario, et retire celles d’avant', () => {
+  it('écrit les planches sans leurs réponses communes, celles de chaque scénario une fois, et retire celles d’avant', () => {
     const sortie = join(racine, 'export');
     mkdirSync(join(sortie, 'planches'), { recursive: true });
     writeFileSync(join(sortie, 'planches', 'ancienne.json'), '{}');
     deposerLesPlanches(sortie, [planche('a', 'dome', { m: 1 }), planche('b', 'dome', { m: 1 }), planche('c', 'magie', { m: 2 })]);
-    expect(listerDossier(join(sortie, 'planches'))).toEqual(['a.json', 'b.json', 'c.json', 'mondes']);
-    expect(listerDossier(join(sortie, 'planches', 'mondes'))).toEqual(['dome.json', 'magie.json']);
-    expect(JSON.parse(readFileSync(join(sortie, 'planches', 'a.json'), 'utf8'))).toEqual({ nom: 'a', titre: 'a', parametres: { scenario: 'dome' }, demarrer: { ok: true }, retrait: null, aretes: null });
-    expect(JSON.parse(readFileSync(join(sortie, 'planches', 'mondes', 'magie.json'), 'utf8'))).toEqual({ m: 2 });
+    expect(listerDossier(join(sortie, 'planches'))).toEqual(['a.json', 'b.json', 'c.json', 'communes']);
+    expect(listerDossier(join(sortie, 'planches', 'communes'))).toEqual(['dome.json', 'magie.json']);
+    expect(JSON.parse(readFileSync(join(sortie, 'planches', 'a.json'), 'utf8'))).toEqual({ nom: 'a', titre: 'a', parametres: { scenario: 'dome' }, reponses: { demarrer: { ok: true } } });
+    expect(JSON.parse(readFileSync(join(sortie, 'planches', 'communes', 'magie.json'), 'utf8'))).toEqual({ m: 2 });
   });
 
-  it('refuse deux mondes pour un scénario', () => {
-    const sortie = join(racine, 'deux-mondes');
-    expect(() => deposerLesPlanches(sortie, [planche('a', 'dome', { m: 1 }), planche('b', 'dome', { m: 2 })])).toThrow('b : le monde de dome n’est pas celui de ses autres planches');
-    expect(existsSync(join(sortie, 'planches', 'mondes', 'dome.json'))).toBe(false);
+  it('refuse deux jeux de réponses communes pour un scénario', () => {
+    const sortie = join(racine, 'deux-communes');
+    expect(() => deposerLesPlanches(sortie, [planche('a', 'dome', { m: 1 }), planche('b', 'dome', { m: 2 })])).toThrow('b : les réponses communes de dome ne sont pas celles de ses autres planches');
+    expect(existsSync(join(sortie, 'planches', 'communes', 'dome.json'))).toBe(false);
   });
 });
 
