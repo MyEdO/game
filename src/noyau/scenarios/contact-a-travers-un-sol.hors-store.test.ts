@@ -5,11 +5,13 @@ import { testScenarios } from '../../scenes/test-scenarios/index';
 import { distanceDeCombat, distanceDeContact, footprintChebyshev, footprintN } from '../monde/footprint';
 import { placeCombatant, positionPosee } from '../monde/spawn';
 import { STEP_MAX_M } from '../monde/relief';
-import { aiAvailableFreeAttack, attackEnv, attackPlan } from '../combatFlow';
+import { advanceTurn, aiAvailableFreeAttack, attackEnv, attackPlan, buildAiInput } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
 import { hoverTargeting } from '../targeting';
 import { effectifAuContact } from '../combat/surnombre';
-import { ligneDeRegle } from '../../engine/reglesChiffrees';
+import { ligneDeRegle, refDeRegle } from '../../engine/reglesChiffrees';
+import { ligneDe } from '../../engine/modLine.testkit';
+import { isInanimate } from '../../engine/structures';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { Pt } from '../monde/path';
 
@@ -167,6 +169,52 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(E.pos!.plafond).toBeDefined();
     poser(E, { x: 0, y: 0, z: 0 });
     expect('plafond' in E.pos!).toBe(false);
+  });
+});
+
+describe('#4090 — embuscade-fluviale : le Surnombre ne compte que des Personnages (LDB 14 l.110)', () => {
+  /** Les coques rendues à la bataille (la « Barque des pirates », camp ennemi, et la barge des héros), un héros H
+   *  au contact de la barque et d'un Pirate E, et, sur demande, un second Pirate D au contact de H ; c'est au tour
+   *  de E, piloté par l'IA. */
+  function abordage(second?: 'ennemi') {
+    const { H, E, T: D, poser } = duel('embuscade-fluviale', 'enc-fluvial', second);
+    const coques = banc.getState().battle!.combatants.filter((c) => isInanimate(c));
+    for (const c of coques) delete c.dead;
+    const B = coques.find((c) => c.kind === 'ennemi')!;
+    poser(H, { x: 13, y: 6, z: 0 });
+    poser(E, { x: 12, y: 6, z: 0 });
+    if (D) poser(D, { x: 12, y: 7, z: 0 });
+    E.aiControlled = true;
+    banc.setState({ battle: { ...banc.getState().battle!, order: [H.id, E.id], turn: 0 }, pendingDefense: null });
+    return { H, E, B };
+  }
+  /** La mêlée réelle de E sur H : la fin du tour de H rend la main à l'IA, dont l'attaque ouvre la défense de H. */
+  const attaqueDeE = (H: Combatant, E: Combatant) => {
+    advanceTurn(banc.getState, banc.setState);
+    banc.avancer(2000);
+    const def = banc.getState().pendingDefense;
+    expect(def?.attackerId).toBe(E.id);
+    expect(def?.defenderId).toBe(H.id);
+    return ligneDe(def!.env, refDeRegle('superiorite-numerique'));
+  };
+
+  it('au contact de la barque et d’un seul Pirate, le héros n’est pas en infériorité : la mêlée du Pirate est sans Surnombre', () => {
+    const { H, E, B } = abordage();
+    expect(distanceDeContact(B, H), 'la barque touche le héros').toBe(1);
+    expect(distanceDeContact(E, H)).toBe(1);
+    expect(effectifAuContact(banc.getState().battle!, H, 'ennemi')).toBe(1);
+    expect(attaqueDeE(H, E)).toBeUndefined();
+  });
+
+  it('un second Pirate au contact donne le Surnombre à la même mêlée', () => {
+    const { H, E } = abordage('ennemi');
+    expect(effectifAuContact(banc.getState().battle!, H, 'ennemi')).toBe(2);
+    expect(attaqueDeE(H, E)).toEqual(ligneDeRegle('superiorite-numerique', 'deux-contre-un'));
+  });
+
+  it('l’escouade que l’IA reçoit du jeu porte la barque', () => {
+    const { E, B } = abordage();
+    expect(buildAiInput(E, banc.getState).squad).toContain(B);
   });
 });
 

@@ -1,7 +1,7 @@
 /**
  * LOT 4 — CONTEXTE D'ESCOUADE & COORDINATION (déterministe, sans dé). Trois comportements émergents :
  *  (a) FEU CONCENTRÉ — l'IA converge sur la cible que ses alliés ENCADRENT (surnombre RAW : meilleure
- *      proba de toucher → plus de dégâts attendus). Parité du décompte avec `combatFlow.ts:428` vérifiée.
+ *      proba de toucher → plus de dégâts attendus). Une coque de l'escouade n'y compte pas (LDB 14 l.110).
  *  (b) ÉVITEMENT du DANGER — entre deux cases d'approche équidistantes, l'IA choisit la MOINS exposée à
  *      la menace des héros (danger-map).
  *  (c) `squad` OPTIONNEL — sans escouade, l'action est STRICTEMENT identique au Lot 3.
@@ -10,10 +10,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput } from './ai';
-import { outnumberMod } from '../../engine/combat';
 import { emptyScene } from './scene';
 import type { Combatant, Weapon } from '../../engine/types';
-import { ligneDeRegle } from '../../engine/reglesChiffrees';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
@@ -68,12 +66,14 @@ describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
     expect(tidOf(a)).toBe('alone'); // tie-break par id (≠ « flanked ») → l'escouade est bien la cause de (a)
   });
 
-  it('parité du DÉCOMPTE avec combatFlow.ts:428 : 1 allié adjacent + l’attaquant = 2c1 → +20 (et 2 alliés → +40)', () => {
-    // L'IA réutilise `outnumberMod(adj + 1)` où `adj` = alliés à distanceDeContact ≤ 1 (MÊME filtre que la
-    // résolution combatFlow.ts:428, qui inclut l'attaquant). On vérifie ici la fonction partagée.
-    expect(outnumberMod(1 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'deux-contre-un')); // 1 allié + attaquant
-    expect(outnumberMod(2 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'trois-contre-un')); // 2 alliés + attaquant
-    expect(outnumberMod(0 + 1)).toBeNull(); // attaquant seul → pas de surnombre
+  it('la Barque des pirates au contact d’une cible n’encadre pas : l’IA départage comme sans escouade (LDB 14 l.110)', () => {
+    const e = mk('e', 'ennemi', { x: 10, y: 10 }, { weapons: [MELEE] });
+    const flanked = mk('flanked', 'heros', { x: 11, y: 10 });
+    const alone = mk('alone', 'heros', { x: 9, y: 10 });
+    const barque = mk('barque', 'ennemi', { x: 12, y: 10 }, { label: 'Barque des pirates', bodyShape: 'vehicule', weapons: [] });
+    const a = chooseEnemyAction(input(e, [flanked, alone], { squad: [barque] }));
+    expect(a.kind).toBe('melee');
+    expect(tidOf(a)).toBe('alone');
   });
 });
 

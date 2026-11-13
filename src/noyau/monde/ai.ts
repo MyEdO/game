@@ -18,8 +18,7 @@
  * `positionValue`).
  *
  * Lot 4 — CONTEXTE D'ESCOUADE (`squad` en entrée, OPTIONNEL : absent → comportement Lot 3 inchangé) :
- * FEU CONCENTRÉ via le surnombre RAW (`outnumberEnvMelee` réutilise `outnumberMod`/LDB 14 avec le MÊME
- * décompte que la résolution `combatFlow.ts:428` → l'IA converge sur une cible que ses alliés encadrent),
+ * FEU CONCENTRÉ via le Surnombre (`outnumberEnvMelee` : `outnumberMod` et `effectifAuContactParmi`, LDB 14 l.110),
  * ÉVITEMENT du DANGER (`dangerAt` : danger-map des héros, l'ennemi fuit les cases exposées) et COHÉSION
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
@@ -29,6 +28,7 @@ import { positionPosee } from './spawn';
 import { reachable, flyReachable, manhattan, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
 import { chebyshev } from '../../engine/grid';
 import { footprintChebyshev, footprintN, distanceDeContact } from './footprint';
+import { effectifAuContactParmi } from '../combat/surnombre';
 import { makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../../engine/combat';
@@ -142,8 +142,8 @@ export interface EnemyTurnInput {
    *  l.91). ABSENT = aucun bonus de flanc (graceful : tests purs / scène sans orientation). */
   facing?: Record<string, Dir8>;
   /** ESCOUADE (Lot 4) : les ALLIÉS de l'ennemi encore en action et posés (l'ennemi lui-même EXCLU),
-   *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (surnombre RAW en
-   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution, `effectifAuContact`, `noyau/combat/surnombre.ts`) et
+   *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (`effectifAuContactParmi`,
+   *  LDB 14 l.110) et
    *  à la COHÉSION légère (ne pas s'isoler / ne pas bloquer l'allié). ABSENT = comportement Lot 3 STRICTEMENT
    *  inchangé (le golden et les fixtures sans escouade restent identiques). */
   squad?: Combatant[];
@@ -753,16 +753,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   };
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
-  /** FEU CONCENTRÉ via SURNOMBRE (RAW, LDB 14) — MÊME `outnumberMod` et MÊME décompte que la résolution
-   *  (`effectifAuContact`, `src/noyau/combat/surnombre.ts`) : N = (alliés de l'escouade à `distanceDeContact ≤ 1` de la cible) + 1
-   *  (l'attaquant lui-même, qui SERA au contact en frappant). Renvoie le `ModLine` du bonus de toucher
-   *  (+20 à 2c1, +40 à 3+c1) sous forme d'`env` injecté DANS `expectedDamage` (mêlée UNIQUEMENT — le
-   *  surnombre RAW est mêlée-only, cf. combatFlow:425 qui ne sert que `attackEnv` de mêlée). Aucun
-   *  modificateur inventé : on réutilise la fonction du moteur. Squad vide → null (pas d'env). */
+  /** FEU CONCENTRÉ : le Surnombre (LDB 14 l.110) de la résolution de mêlée, `outnumberMod` sur
+   *  `effectifAuContactParmi` de l'escouade, plus l'attaquant, qui sera au contact en frappant. Injecté dans
+   *  l'`env` de mêlée d'`expectedDamage`. Escouade vide → aucun `env`. */
   const outnumberEnvMelee = (target: Combatant): ModLine[] | undefined => {
     if (squad.length === 0) return undefined;
-    const adj = squad.filter((c) => c.pos && distanceDeContact(c, target) <= 1).length;
-    const onm = outnumberMod(adj + 1); // +1 = l'attaquant courant (parité avec `effectifAuContact`)
+    const onm = outnumberMod(effectifAuContactParmi(squad, target, enemy.kind) + 1);
     return onm ? [onm] : undefined;
   };
 
