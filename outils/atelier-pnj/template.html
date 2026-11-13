@@ -235,7 +235,7 @@ dialog .actions{margin-top:10px}dialog .hint{margin-top:8px}
           <label class="narrow"><span class="lbl">Talents</span><select id="fTalMode"><option value="un">1 par niveau</option><option value="tous">Tous</option></select></label>
         </div>
         <div id="nextCars"></div>
-        <p class="addcar"><button type="button" class="sm" id="bAddCar">+ Carrière suivante</button></p>
+        <p class="addcar"><button type="button" class="sm" id="bAddCar">+ Carrière suivante</button> <label class="check"><input type="checkbox" id="fRaceLib"> Ignorer les restrictions de race</label></p>
         <div class="row">
           <label><span class="lbl">Renfort</span><select id="fHero"><option value="">Aucun</option><option value="chef">Chef d'unité</option><option value="mineur">Héros mineur</option><option value="majeur">Héros majeur</option></select></label>
           <label class="narrow"><span class="lbl">Rôle de bête</span><select id="fBeast"><option value="">Aucun</option><option value="predateur">Prédateur</option><option value="proie">Proie</option></select></label>
@@ -385,7 +385,7 @@ const FAMS={},famOf=c=>c&&c.fam?c.f+'|'+c.fam:null;
 const crById={aucun:{id:'aucun',l:'Aucun',t:'',f:'',n:0,ch:Array(12).fill(null),tr:[],op:[],sk:[],ta:[],it:[],src:null}};DB.cr.forEach(c=>{crById[c.id]=c;const k=famOf(c);if(k)(FAMS[k]=FAMS[k]||[]).push(c)});
 Object.values(FAMS).forEach(L=>L.sort((a,b)=>(a.nv??0)-(b.nv??0)||a.src[1]-b.src[1]));
 const nvLab=(n,L)=>{const at=L.filter(c=>(c.nv??null)===n);return n==null?'Sans niveau':at.length===1?n+'. '+at[0].l:'Niveau '+n};
-let CAROPT='',rebuild=null;
+let rebuild=null;
 const cars=st=>[{id:st.career,n:st.level},...(st.next||[])].map(x=>({c:carById[x.id],n:x.n})).filter(x=>x.c),curCar=st=>cars(st).pop()||null;
 const lvOpts=(c,sel)=>[1,2,3,4].map(n=>opt(String(n),c&&!c.tpl?n+'. '+c.lv[n-1].l:String(n),n===sel)).join('');
 const CARCB={info:v=>v&&'car:'+v,ginfo:n=>{const id=Object.keys(DB.cls).find(k=>DB.cls[k]===n);return id&&'cls:'+id}};
@@ -515,6 +515,12 @@ function rollApp(st){const sp=appSp(st);if(!sp)return '';const y=rollTable(DB.ey
 const nameGroup=(origin,model)=>{const o=SPC[origin];return o?o.rc:(STD[model]||{}).rc||(crById[model]||{}).rc};
 const modelFor=id=>{const o=SPC[id];return o&&(RACE[o.rc]||{}).m||'aucun'};
 const origins=model=>DB.species.filter(x=>model==='aucun'||(RACE[x.rc]||{}).m===model);
+/* Carrières de la race : LDB 05 l.310-312 ; « Ignorer les restrictions de race » : l.314. Profils standard et création façon PJ seulement. */
+let RACELIB=false;try{RACELIB=localStorage.getItem('pnj-race-libre')==='1'}catch(e){}
+const raceCols=st=>{const o=SPC[st.origin],L=o?[o]:STD[st.model]?origins(st.model):[];return L.length?[...new Set(L.map(x=>x.rr))]:null};
+const carOk=st=>{const r=RACELIB?null:raceCols(st);return c=>!r||r.some(k=>c.rr.includes(k))};
+function carOpts(st,keep){const ok=carOk(st),cg={};DB.careers.filter(c=>ok(c)||c.id===keep).forEach(c=>(cg[c.cls]=cg[c.cls]||[]).push(c));
+  return Object.keys(cg).sort((a,b)=>coll.compare(DB.cls[a]||a,DB.cls[b]||b)).map(k=>'<optgroup label="'+esc(DB.cls[k]||human(k))+'">'+cg[k].sort((a,b)=>coll.compare(a.l,b.l)).map(c=>opt(c.id,c.l+(ok(c)?'':' (hors race)'))).join('')+'</optgroup>').join('')}
 function randTalent(st){for(let g=0;g<200;g++){const r=roll(1,100),id=(DB.rt.find(([,v])=>r<=v)||DB.rt[DB.rt.length-1])[0];if(DB.talents[id]&&!st.ta.some(t=>t.id===id))return id}return null}
 function speciesTalents(st,o){
   const add=(id,spec)=>{if(!id||!DB.talents[id]||st.ta.some(t=>taKey(t)===taKey({id,spec})))return null;st.ta.push({id,spec:spec||null,n:1});return id};
@@ -760,7 +766,7 @@ function withS(st,f){const keep=S;S=st;try{return f()}finally{S=keep}}
 /* ---------- éditeur ---------- */
 function opt(v,l,sel){return '<option value="'+esc(v)+'"'+(sel?' selected':'')+'>'+esc(l)+'</option>'}
 function drawNext(){const el=$('nextCars');
-  el.innerHTML=S.next.map((x,i)=>'<div class="row"><label><span class="lbl">Carrière suivante</span><select data-pc="'+i+'">'+CAROPT+'</select></label><label class="lvl"><span class="lbl">Niveau</span><select data-pn="'+i+'">'+lvOpts(carById[x.id],x.n)+'</select></label><button type="button" class="sm pcx" data-px="'+i+'">Retirer</button></div>').join('');
+  el.innerHTML=S.next.map((x,i)=>'<div class="row"><label><span class="lbl">Carrière suivante</span><select data-pc="'+i+'">'+carOpts(S,x.id)+'</select></label><label class="lvl"><span class="lbl">Niveau</span><select data-pn="'+i+'">'+lvOpts(carById[x.id],x.n)+'</select></label><button type="button" class="sm pcx" data-px="'+i+'">Retirer</button></div>').join('');
   el.querySelectorAll('[data-pc]').forEach(sel=>{const i=+sel.dataset.pc;sel.value=S.next[i].id;sel.addEventListener('change',()=>{S.next[i]={id:sel.value,n:S.next[i].n};rebuild()});comboSelect(sel,'Carrière suivante',CARCB)});
   el.querySelectorAll('[data-pn]').forEach(sel=>{const i=+sel.dataset.pn;sel.addEventListener('change',()=>{S.next[i].n=+sel.value;rebuild()});comboSelect(sel,'Niveau de la carrière suivante',{info:v=>'lv:'+S.next[i].id+':'+v})});
   el.querySelectorAll('[data-px]').forEach(b=>b.addEventListener('click',()=>{S.next.splice(+b.dataset.px,1);rebuild()}))}
@@ -770,7 +776,8 @@ function syncForm(){drawNext();
    if(L){const nvs=[...new Set(L.map(c=>c.nv??null))],at=L.filter(c=>(c.nv??null)===(m.nv??null));
      $('fNv').innerHTML=nvs.map(n=>opt(String(n),nvLab(n,L),n===(m.nv??null))).join('');$('lNv').hidden=nvs.length<2;
      $('fVar').innerHTML=at.map(c=>opt(c.id,c.l,c.id===m.id)).join('');$('lVar').hidden=at.length<2}}
-  {const pj=!!S.origin;$('fOrigin').value=S.origin||'';$('lOrigin').hidden=!pj;$('lModel').hidden=pj;document.querySelectorAll('.seg [data-mode]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.mode==='pj')===pj)))}$('fCareer').value=S.career;$('fLevel').innerHTML=lvOpts(carById[S.career],S.level);$('fTalMode').value=S.talMode;$('fHero').value=S.hero||'';$('fBeast').value=S.beast||'';$('fTalMode').disabled=!!(carById[S.career]&&carById[S.career].tpl);
+  {const pj=!!S.origin;$('fOrigin').value=S.origin||'';$('lOrigin').hidden=!pj;$('lModel').hidden=pj;document.querySelectorAll('.seg [data-mode]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.mode==='pj')===pj)))}
+  $('fCareer').innerHTML=opt('','Aucune')+'<optgroup label="Modèles de carrière ('+NOF+')">'+TPL.map(c=>opt(c.id,c.l)).join('')+'</optgroup>'+carOpts(S,S.career);$('fCareer').value=S.career;$('fLevel').innerHTML=lvOpts(carById[S.career],S.level);$('fTalMode').value=S.talMode;$('fHero').value=S.hero||'';$('fBeast').value=S.beast||'';$('fTalMode').disabled=!!(carById[S.career]&&carById[S.career].tpl);
   {const h=HERO[S.hero],b=BEAST[S.beast],c=carById[S.career],p=[];
    {const og=SPC[S.origin];if(og)p.push(['Façon PJ, '+og.l,[['Caractéristiques','celles de l\'espèce + 2d10'],['Compétences','3 d\'espèce à +5 et 3 à +3'],['Talents','ceux de l\'espèce, avec ses choix et ses Talents aléatoires'],['Ensuite','la carrière s\'ajoute']]])}
    cars(S).forEach(({c,n:N})=>{const A=5*N,lvs=c.tpl?[c.lv[0]]:c.lv.slice(0,N),u=a=>[...new Map(a.map(x=>[x[0],x])).values()];
@@ -956,9 +963,6 @@ function fillMenus(){
   const G={},mai=c=>MAISON.includes(c.src&&c.src[0]),add=(c,o)=>{const g=(mai(c)?DB.books[c.src[0]]+' — ':'')+c.f;(G[g]=G[g]||{m:mai(c),L:[]}).L.push([c,o])};
   DB.cr.forEach(c=>{if(!STD[c.id]&&!c.fam)add(c,opt(c.id,c.l+(c.t?' — '+c.t:'')))});Object.entries(FAMS).forEach(([k,L])=>add(L[0],opt('fam:'+k,L[0].fam)));
   $('fModel').innerHTML=opt('aucun','Aucun (à partir de rien)')+'<optgroup label="Profils PNJ standard">'+std+'</optgroup>'+Object.keys(G).sort((a,b)=>G[a].m-G[b].m).map(g=>'<optgroup label="'+esc(g)+'">'+G[g].L.sort(([a],[b])=>G[g].m?a.src[1]-b.src[1]:coll.compare(a.l,b.l)).map(x=>x[1]).join('')+'</optgroup>').join('');
-  const cg={};DB.careers.forEach(c=>(cg[c.cls]=cg[c.cls]||[]).push(c));
-  CAROPT=Object.keys(cg).sort((a,b)=>coll.compare(DB.cls[a]||a,DB.cls[b]||b)).map(k=>'<optgroup label="'+esc(DB.cls[k]||human(k))+'">'+cg[k].sort((a,b)=>coll.compare(a.l,b.l)).map(c=>opt(c.id,c.l)).join('')+'</optgroup>').join('');
-  $('fCareer').innerHTML=opt('','Aucune')+'<optgroup label="Modèles de carrière ('+NOF+')">'+TPL.map(c=>opt(c.id,c.l)).join('')+'</optgroup>'+CAROPT;
   $('fOrigin').innerHTML=DB.species.map(x=>opt(x.id,x.l)).join('');
   $('fNoms').innerHTML=Object.keys(DB.names).map(k=>opt(k,RACE[k]?RACE[k].w[0]:human(k))).join('');
   const all=(src,g)=>Object.entries(src).map(([id,d])=>[id,d.l,g?g(d):'']).sort(byLabel);
@@ -1075,7 +1079,8 @@ function wire(){
   const keepFields=()=>({origin:S.origin?$('fOrigin').value:'',hero:$('fHero').value,beast:$('fBeast').value,ds:S.ds,app:S.app,purse:S.purse,nom:S.nom,nomAuto:S.nomAuto,genre:S.genre,noms:S.noms,desc:S.exemple?'':S.desc,notes:S.notes,notesOn:S.notesOn,model:modelVal(),career:$('fCareer').value,next:S.next,level:$('fLevel').value,talMode:$('fTalMode').value});
   ['fModel','fOrigin','fCareer','fLevel','fTalMode','fHero','fBeast'].forEach(id=>$(id).addEventListener('change',()=>{const k=keepFields();if(id==='fModel'){k.noms=null;const m=crById[k.model];if(m&&m.n){k.nom=m.l;k.nomAuto=true}else reName(k)}if(id==='fOrigin'){k.model='aucun';k.noms=null;reName(k)}S=build(k);syncForm()}));
   rebuild=()=>{S=build(keepFields());syncForm()};
-  $('bAddCar').addEventListener('click',()=>{const c=(curCar(S)||{}).c;S.next.push({id:(c&&DB.careers.find(x=>x.cls===c.cls&&x.id!==c.id)||DB.careers[0]).id,n:1});rebuild()});
+  $('bAddCar').addEventListener('click',()=>{const c=(curCar(S)||{}).c,ok=carOk(S);S.next.push({id:(c&&DB.careers.find(x=>x.cls===c.cls&&x.id!==c.id&&ok(x))||DB.careers.find(ok)).id,n:1});rebuild()});
+  $('fRaceLib').checked=RACELIB;$('fRaceLib').addEventListener('change',e=>{RACELIB=e.target.checked;try{localStorage.setItem('pnj-race-libre',RACELIB?'1':'0')}catch(err){}syncForm()});
   $('fNom').addEventListener('input',e=>{S.nom=e.target.value;S.nomAuto=false;render()});
   $('fSous').addEventListener('input',e=>{S.sous=e.target.value;render()});
   $('fDesc').addEventListener('input',e=>{S.desc=e.target.value;S.exemple=false;render()});
@@ -1157,14 +1162,14 @@ function randomNpc(){
   const L=LOCK;
   const model=L.Model?S.model:pick(['humain','humain','humain','humain','nain','halfling','elfe-haut-et-sylvain']);
   const genre=L.Genre?S.genre:pick(['m','f']);
-  const cur=carById[S.career];
+  const ol=origins(model),origin=S.origin&&ol.length?(L.Model&&ol.some(x=>x.id===S.origin)?S.origin:pick(ol).id):'';
+  const cur=carById[S.career],pool=DB.careers.filter(carOk({origin,model:origin?'aucun':model}));
   let career;
   if(L.Career&&cur)career=cur.id;
-  else if(L.Class&&cur)career=pick(cur.tpl?TPL:DB.careers.filter(c=>c.cls===cur.cls)).id;
-  else career=pick(DB.careers).id;
+  else if(L.Class&&cur){const P=pool.filter(c=>c.cls===cur.cls);career=pick(cur.tpl?TPL:P.length?P:DB.careers.filter(c=>c.cls===cur.cls)).id}
+  else career=pick(pool).id;
   const level=L.Level?S.level:pick([1,1,2,2,3,4]);
   const nom=S.nom,keepAuto=S.nomAuto;
-  const ol=origins(model),origin=S.origin&&ol.length?(L.Model&&ol.some(x=>x.id===S.origin)?S.origin:pick(ol).id):'';
   const noms=L.Model?S.noms:nameGroup(origin,model);
   S=build({origin,model:origin?'aucun':model,genre,career,level,next:L.Career?S.next:[],noms,talMode:S.talMode,ds:S.ds,desc:'',app:S.app,purse:S.purse,hero:S.hero,beast:S.beast});
   if(!L.Nom){S.nom=randomName(noms,genre);S.nomAuto=true}else{S.nom=nom;S.nomAuto=keepAuto}rollProfile(S);syncForm();

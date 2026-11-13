@@ -28,7 +28,7 @@ out.crl={};cr.forEach(c=>out.crl[c.id]=c.label);
 const veh=lm('vehicles');
 const it=x=>x.wildcard?{t:(x.wildcard.charAt(0).toUpperCase()+x.wildcard.slice(1).replace(/-/g,' '))+' au choix'}:x.choice?it(x.choice[0]):x.text?{t:x.text}:x.label?{t:x.label}:x.type==='creature'?{c:x.id}:x.type==='vehicle'?{t:veh[x.id]||x.id}:{i:x.id};
 const cl=R('careerLevels');
-out.careers=R('careers').map(c=>({id:c.id,l:c.label,cls:c.class,d:c.desc||undefined,o:SRC(c),
+out.careers=R('careers').map(c=>({id:c.id,l:c.label,cls:c.class,rr:Object.keys(c.rand).filter(k=>c.rand[k]!=null),d:c.desc||undefined,o:SRC(c),
  lv:cl.filter(x=>x.career===c.id).sort((a,b)=>a.level-b.level).map(x=>({l:x.label,st:x.status,ch:(x.characteristics||[]).map(ci),
   sk:(x.skills||[]).map(s=>[s.id,s.spec||null]),ta:(x.talents||[]).map(s=>[s.id,s.spec||null]),tr:(x.trappings||[]).map(it)}))}));
 out.wg=lm('weaponGroups');out.gods={};R('gods').forEach(g=>{if((g.blessings||[]).length||(g.miracles||[]).length)out.gods[g.id]={l:g.label,b:g.blessings||[]}});out.cls={};out.clt={};out.cld={};R('classes').forEach(c=>{out.cls[c.id]=c.label;out.cld[c.id]={d:c.desc||'',o:SRC(c)};out.clt[c.id]=(c.trappings||[]).map(it)});
@@ -41,7 +41,7 @@ out.cr=cr.map(c=>({id:c.id,l:c.label,t:c.title||'',f:c.folder,n:c.named?1:0,dd:c
 const sp=R('spells');out.spells={};sp.forEach(s=>out.spells[s.id]={l:s.label,d:s.desc||'',o:SRC(s),n:s.cn,e:s.ecole,f:s.family,t:s.subType||undefined,r:s.range||undefined,g:s.target||undefined,u:s.duration||undefined});
 {const d=R('details');out.det={age:d.age,taille:d.taille};const T=f=>R(f).map(x=>({r:x.rand,rb:x.randByRace,c:x.color}));out.eyes=T('eyes');out.hairs=T('hairs')}
 out.mut={};R('mutations').forEach(m=>out.mut[m.id]={l:m.label,...PM(m),d:m.desc||'',k:m.kind,o:SRC(m)});
-out.species=R('species').map(x=>({id:x.id,l:x.label,rc:x.refChar,mv:x.movement,bc:CH.map(c=>x.baseChar[c]),sk:(x.skills||[]).map(k=>[k.id,k.spec||null]),ta:x.talents||[],o:SRC(x)}));
+out.species=R('species').map(x=>({id:x.id,l:x.label,rc:x.refChar,rr:x.refCareer,mv:x.movement,bc:CH.map(c=>x.baseChar[c]),sk:(x.skills||[]).map(k=>[k.id,k.spec||null]),ta:x.talents||[],o:SRC(x)}));
 out.rt=R('talents').filter(t=>t.rand!=null).map(t=>[t.id,t.rand]).sort((a,b)=>a[1]-b[1]);
 out.names={};R('names').forEach(n=>out.names[n.id]={m:n.maleFirstNames,f:n.femaleFirstNames,s:n.lastNames,x:n.lastNameSuffixes});
 out.books={};R('books').forEach(b=>out.books[b.id]=b.abbr||b.short||b.label);

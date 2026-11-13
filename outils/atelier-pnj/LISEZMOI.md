@@ -22,6 +22,10 @@ Les profils du *Guide fan v4.5* et les créatures du *Bestiaire non officiel* ab
 
 Un PNJ part de sa carrière de départ (`S.career`, `S.level`) et peut enchaîner des carrières suivantes (`S.next`, ordre chronologique) ; la dernière est la carrière actuelle (`curCar`). Les Augmentations sont un total par Caractéristique et par Compétence : chaque carrière au niveau N garantit 5×N (LDB 07 l.124-131), on retient le maximum. Talents et possessions de chaque niveau parcouru s'ajoutent. Statut, bourse et marques « De carrière » suivent la carrière actuelle (LDB 07 l.27, l.144). Un modèle de carrière (NOF) ne peut être que la carrière de départ.
 
+## Restrictions de race (2026-11-13)
+
+Comme la création de personnage du jeu (`careersForSpecies`), les menus de carrière et le tirage au hasard ne proposent que les carrières ouvertes à la race (colonnes du Tableau des Classes et Carrières, `careers.json` `rand`, LDB 05 l.310-312), pour les profils standard et la création façon PJ ; les autres profils du bestiaire restent libres. Un profil standard à plusieurs espèces (Humain, Elfe) ouvre l'union de leurs colonnes. La case « Ignorer les restrictions de race » (LDB 05 l.314), décochée par défaut, est retenue par le navigateur (`pnj-race-libre`). Une carrière déjà choisie hors de la race reste affichée, marquée « (hors race) ».
+
 ## Mes PNJ (2026-11-07)
 
 Les PNJ gardés vivent dans le `localStorage` du navigateur (`pnj-saved`). Une sauvegarde exportée est un fichier `{"format":"atelier-des-pnj","version":1,"pnj":[…]}` ; l'import ne garde que les entrées lisibles (`isNpc`) et remplace celles du même nom. Le champ `renc` (rencontre, séance) n'existe que sur les PNJ gardés : la liste le range et le regroupe, ouvrir un PNJ ne le copie pas dans le formulaire, et le garder à nouveau depuis l'atelier conserve sa rencontre. Un export dont tous les PNJ partagent une rencontre porte son nom.
