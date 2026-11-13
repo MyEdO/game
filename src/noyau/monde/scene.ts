@@ -662,7 +662,9 @@ export function climbAt(scene: Pick<Scene, 'walls'>, x: number, y: number, side:
 
 /** Segment ESCALADABLE sur l'arête CANONIQUE (cardinale) séparant deux cases adjacentes `a`/`b`, ou
  *  undefined (non adjacentes cardinales, ou pas de grimpe posée). Réutilise `edgeOf` (arête canonique
- *  partagée avec `wallBetween`). PUR. */
+ *  partagée avec `wallBetween`). La paroi se pose à la couche du PIED, la plus basse des deux cases :
+ *  `(a, b)` et `(b, a)` lisent le même segment, la montée et la descente voient la même arête (LDB 15
+ *  l.57). PUR. */
 export function climbEdgeBetween(
   scene: Pick<Scene, 'walls'>,
   a: { x: number; y: number; z?: number },
@@ -670,7 +672,7 @@ export function climbEdgeBetween(
 ): WallSeg | undefined {
   const e = edgeOf(a.x, a.y, b.x, b.y);
   if (!e) return undefined;
-  return climbAt(scene, e.x, e.y, e.side, a.z ?? 0);
+  return climbAt(scene, e.x, e.y, e.side, Math.min(a.z ?? 0, b.z ?? 0));
 }
 
 /** Clé de flag d'état d'une porte (`scene.flags`) — `true` = OUVERTE, `false` = FERMÉE (override runtime
@@ -904,6 +906,40 @@ export function wallBetween(scene: Scene, ax: number, ay: number, bx: number, by
  *  divergent sur une Structure déclarée `occulte: false` : elle barre le pas sans couper la vue. */
 export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: number, by: number, z = 0): boolean {
   return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
+}
+
+/** Un mur d'arête (`Scene.walls`) est-il franchi par la ligne `from`→`to` ? Bloque la vue
+ *  (« pas à travers les murs ») et le contact (`distanceDeContact`). Le test PAR ARÊTE est injectable
+ *  (`edgeBlocks`) : le défaut interroge l'OPACITÉ de l'arête (`areteOcculte` sur l'index d'arêtes
+ *  `noyau/monde/wallIndex`, O(1) par pas) — jamais sa franchissabilité : une Ligne de Vue n'a pas à savoir si
+ *  l'on PASSE, et une herse à barreaux se regarde à travers sans s'ouvrir. La vision injecte un prédicat dont
+ *  le verdict est déjà CUIT (Set d'arêtes de l'`Occ`, même verdict). Les diagonales ne croisent pas d'arête
+ *  cardinale. */
+export function wallOnSight(scene: Scene, from: Pt, to: Pt, z = 0, edgeBlocks?: (ax: number, ay: number, bx: number, by: number) => boolean): boolean {
+  if (!scene.walls?.length) return false;
+  const blk = edgeBlocks ?? ((ax, ay, bx, by) => areteOcculteEntre(scene, ax, ay, bx, by, z));
+  // Supercover de `from` à `to`, extrémités incluses, parcouru EN PLACE : ce chemin est le plus chaud du
+  // brouillard — un rayon par case vue, une case par pas — et n'a besoin d'aucun tableau ni point
+  // intermédiaire matérialisé.
+  const steps = chebyshev(to, from);
+  let ax = from.x, ay = from.y;
+  for (let i = 1; i <= steps; i++) {
+    const bx = Math.round(from.x + ((to.x - from.x) * i) / steps);
+    const by = Math.round(from.y + ((to.y - from.y) * i) / steps);
+    const px = ax, py = ay;
+    ax = bx; ay = by;
+    if (px !== bx && py !== by) {
+      // Pas DIAGONAL : le rayon franchit le coin partagé. Bloqué si les DEUX contournements
+      // orthogonaux du coin (via (bx,py) et via (px,by)) sont murés — un mur droit bloque, mais
+      // on peut « jeter un œil » au-delà de l'EXTRÉMITÉ d'un mur (un seul côté muré).
+      const blocked1 = blk(px, py, bx, py) || blk(bx, py, bx, by);
+      const blocked2 = blk(px, py, px, by) || blk(px, by, bx, by);
+      if (blocked1 && blocked2) return true;
+    } else if (blk(px, py, bx, by)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Tuiles de PASSERELLE marchables de la couche AU-DESSUS de l'arête (`seg.z + 1`) — la case

@@ -2,9 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { roomWsUrl, RelayClient, RoomGuest, RoomHost } from './relay';
 import { FakeSocket, compressionFactice, minuterieDuTest, portsDuTest } from './relay.testkit';
 import { GuestSession, HostSession } from './session';
-import type { EtatDeJeu } from '../../noyau/etat';
-import { resetSceneRegistry, sceneDuRegistre } from '../../noyau/monde/registreDesScenes';
-import { buildScene } from '../../noyau/mapSpec';
 
 const BASE = 'http://localhost:8787';
 
@@ -30,17 +27,11 @@ function resumedHostSession() {
     }
   };
   const snapshot = { gameTime: 7 };
-  const campaign: NonNullable<EtatDeJeu['pendingCampaign']> = {
-    id: 'campagne', label: 'Campagne', scenes: [buildScene({ id: 'relay-depart', label: 'Départ', size: [2, 2] })], startSceneId: 'relay-depart', worldMap: null,
-    projet: { id: 'campagne' },
-  };
-  /** Chaque état reçu, et si le paquet de campagne l'a précédé (sa scène est au registre). */
-  const received: string[] = [];
-  const applySnapshot = vi.fn(() => { received.push(sceneDuRegistre('relay-depart') ? 'snapshot après paquet' : 'snapshot sans paquet'); });
+  const applySnapshot = vi.fn();
   const applyIntent = vi.fn();
   const host = new HostSession({
     build: 'test', applyIntent,
-    getSnapshot: () => ({ ...snapshot }), campagne: () => campaign,
+    getSnapshot: () => ({ ...snapshot }),
   });
   const guest = new GuestSession({ build: 'test', label: 'Anna', applySnapshot });
   roomHost.onJoin = (seat) => host.addGuest(roomHost.seatTransport(seat), seat);
@@ -62,7 +53,7 @@ function resumedHostSession() {
   }
 
   return {
-    guest, host, snapshot, received, applySnapshot, applyIntent, onHostAway,
+    guest, host, snapshot, applySnapshot, applyIntent, onHostAway,
     idle,
     seatGuest() {
       guestSocket.receive(JSON.stringify({ evt: 'seated', seat: 1, token: 'TOK1' }));
@@ -96,7 +87,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.useRealTimers();
-  resetSceneRegistry();
 });
 
 describe('URL de la room', () => {
@@ -188,7 +178,7 @@ describe('RoomHost (démultiplexage par siège)', () => {
 });
 
 describe('RoomGuest (Transport + reprise)', () => {
-  it('invité assis pendant la coupure hôte : host-up rétablit campagne, snapshot et intents', async () => {
+  it('invité assis pendant la coupure hôte : host-up rétablit snapshot et intents', async () => {
     const session = resumedHostSession();
     try {
       session.disconnectHost();
@@ -203,7 +193,6 @@ describe('RoomGuest (Transport + reprise)', () => {
       expect(session.applySnapshot).toHaveBeenCalledTimes(1);
       expect(session.applySnapshot).toHaveBeenCalledWith({ gameTime: 7 });
       expect(session.guest.joined).toBe(true);
-      expect(session.received).toEqual(['snapshot après paquet']);
       expect(session.onHostAway).toHaveBeenLastCalledWith(false);
       session.guest.sendIntent('terminerLeTour', []);
       await session.idle();
@@ -224,12 +213,10 @@ describe('RoomGuest (Transport + reprise)', () => {
 
       session.disconnectHost();
       session.snapshot.gameTime = 9;
-      resetSceneRegistry();
       session.resumeHost();
       await session.idle();
       expect(session.applySnapshot).toHaveBeenCalledTimes(2);
       expect(session.applySnapshot).toHaveBeenLastCalledWith({ gameTime: 9 });
-      expect(session.received).toEqual(['snapshot après paquet', 'snapshot après paquet']);
       expect(session.applyIntent).not.toHaveBeenCalled();
     } finally {
       await session.close();

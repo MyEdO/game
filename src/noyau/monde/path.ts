@@ -296,28 +296,71 @@ export function climbTraverseFor(traits: Combatant['traits']): TraverseCapabilit
  * cases occupées par `env.blocked`. Retourne une map clé→distance.
  */
 export function reachable(scene: Scene, start: Pt, range: number, env: MoveEnv): Map<string, number> {
-  const { blocked, foot = 1, noStop, swim, traverse } = env;
   const edges = wallEdges(scene);
   const dist = new Map<string, number>();
   const sz = pz(start);
   dist.set(key(start.x, start.y, sz), 0);
   let frontier: Pt[] = [{ x: start.x, y: start.y, z: sz }];
-  for (let step = 0; step < range; step++) {
+  for (let step = 0; step < range && frontier.length; step++) {
     const next: Pt[] = [];
-    for (const p of frontier) {
-      for (const n of neighborsOf(scene, p, edges, swim, traverse)) {
-        const nz = pz(n);
-        const k = key(n.x, n.y, nz);
-        if (dist.has(k)) continue;
-        if (!footFits(scene, n.x, n.y, nz, foot, blocked, swim)) continue; // l'empreinte entière doit tenir (LDB 15 l.12)
-        dist.set(k, step + 1);
-        next.push(n); // franchie pour l'expansion même si interdite à l'arrêt (`noStop`)
-      }
+    for (const p of frontier) for (const [k, n] of pasDeMarche(scene, p, edges, env, dist)) {
+      dist.set(k, step + 1);
+      next.push(n); // franchie pour l'expansion même si interdite à l'arrêt (`noStop`)
     }
     frontier = next;
   }
-  if (noStop?.size) for (const k of noStop) dist.delete(k); // traversées, jamais des destinations
+  if (env.noStop?.size) for (const k of env.noStop) dist.delete(k); // traversées, jamais des destinations
   return dist;
+}
+
+/** Le PAS commun des marches (`reachable`, `distancesDeMarcheVers`) : les voisins de `p` (`neighborsOf`) absents de
+ *  `vus` où l'empreinte entière du mover tient (`footFits`, LDB 15 l.12), avec leur clé. */
+function pasDeMarche(scene: Scene, p: Pt, edges: Set<string>, env: MoveEnv, vus: ReadonlyMap<string, number>): [string, Pt][] {
+  const { blocked, foot = 1, swim, traverse } = env;
+  const out: [string, Pt][] = [];
+  for (const n of neighborsOf(scene, p, edges, swim, traverse)) {
+    const k = key(n.x, n.y, pz(n));
+    if (!vus.has(k) && footFits(scene, n.x, n.y, pz(n), foot, blocked, swim)) out.push([k, n]);
+  }
+  return out;
+}
+
+/** Distances de marche jusqu'au plus proche des `buts`, sous `env` : `vers(clé)`, ou undefined hors de portée. */
+export interface DistancesDeMarche {
+  vers(k: string): number | undefined;
+}
+
+/** Distances de marche de toute case au plus proche des `buts` sous `env` : UN parcours en largeur parti de tous les buts
+ *  à la fois (l'arête marchable est symétrique, `walkComponentsUncached` : la distance d'une case OÙ L'EMPREINTE TIENT aux
+ *  buts est celle des buts à elle ; un départ où elle ne tient pas, que `reachable` pose à 0, n'est jamais atteint :
+ *  sa distance est 1 + celle du plus proche de ses voisins de pas). Un but où l'empreinte ne tient pas, ou interdit à
+ *  l'arrêt (`env.noStop`), n'en est pas un. Borné par la demande : le parcours n'avance que jusqu'à la case demandée, et une case hors de la composante des buts l'épuise.
+ *  `env.noStop` : traversées, jamais rendues. PUR. */
+export function distancesDeMarcheVers(scene: Scene, buts: Pt[], env: MoveEnv): DistancesDeMarche {
+  const { blocked, foot = 1, noStop, swim } = env;
+  const edges = wallEdges(scene);
+  const dist = new Map<string, number>();
+  const file: Pt[] = [];
+  for (const b of buts) {
+    const k = key(b.x, b.y, pz(b));
+    if (dist.has(k) || noStop?.has(k) || !footFits(scene, b.x, b.y, pz(b), foot, blocked, swim)) continue;
+    dist.set(k, 0);
+    file.push(b);
+  }
+  let tete = 0;
+  return {
+    vers(k) {
+      while (!dist.has(k) && tete < file.length) {
+        const p = file[tete++];
+        const d = dist.get(key(p.x, p.y, pz(p)))! + 1;
+        for (const [nk, n] of pasDeMarche(scene, p, edges, env, dist)) {
+          dist.set(nk, d);
+          file.push(n);
+        }
+      }
+      return noStop?.has(k) ? undefined : dist.get(k);
+    },
+  };
 }
 
 /**

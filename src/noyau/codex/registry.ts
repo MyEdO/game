@@ -17,7 +17,7 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -58,7 +58,7 @@ import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS, obsessionsDie } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
-import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable } from '../../engine/tables';
+import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable, type PorteurDeDe } from '../../engine/tables';
 import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisfire';
 import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
@@ -1123,15 +1123,15 @@ export function optionBody(o: { label: string; desc: string }): string {
   return sansPuce.replace(new RegExp(`^\\*\\*${echappe}\\s*:\\*\\*\\s*`), '');
 }
 
-/** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
-function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], category: string, libelle: (id: string) => string) {
+/** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette, au dé que porte `porteurDuDe`. */
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], porteurDuDe: PorteurDeDe, category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
-    sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+    sub: tr('codex.fiche.plages', { length: t.entries.length, die: porteurDuDe.die }),
     sections: sections({
       title: tr('codex.fiche.tirages'), layout: 'list',
       rows: t.entries.map((r) => {
         const label = libelle(r.id);
-        return { t: 'ref', category, id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(t), r.min, r.max) } as CodexRow;
+        return { t: 'ref', category, id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(porteurDuDe), r.min, r.max) } as CodexRow;
       }),
     }),
   });
@@ -2668,23 +2668,23 @@ const CODEX_SPECS = {
   },
   talentsAleatoires: {
     label: 'codex.fiche.talentsAleatoires', group: 'tables',
-    build: () => talentsAleatoires.map((t) => ficheDeTableDeRefs(t, 'talents', (id) => talentRefLabel({ id }))),
+    build: () => talentsAleatoires.map((t) => ficheDeTableDeRefs(t, t, 'talents', (id) => talentRefLabel({ id }))),
   },
   carrieresAleatoires: {
     label: 'codex.fiche.carrieresAleatoires', group: 'tables',
-    build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, 'careers', (id) => refLabel('careers', { id }))),
+    build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, porteurDuDeDeCarrieres(t), 'careers', (id) => refLabel('careers', { id }))),
   },
   especesAleatoires: {
     label: 'codex.fiche.especesAleatoires', group: 'tables',
-    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('races', { id }))),
+    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, t, 'races', (id) => refLabel('races', { id }))),
   },
   cargaisonsAleatoires: {
     label: 'codex.fiche.cargaisonsAleatoires', group: 'tables',
-    build: () => cargaisonsAleatoires.map((t) => ficheDeTableDeRefs(t, 'cargoes', (id) => refLabel('cargoes', { id }))),
+    build: () => cargaisonsAleatoires.map((t) => ficheDeTableDeRefs(t, t, 'cargoes', (id) => refLabel('cargoes', { id }))),
   },
   mutationNature: {
     label: 'codex.fiche.mutationNature', group: 'tables',
-    build: () => mutationNature.map((t) => ficheDeTableDeRefs(t, 'mutationTables', (id) => refLabel('mutationTables', { id }))),
+    build: () => mutationNature.map((t) => ficheDeTableDeRefs(t, t, 'mutationTables', (id) => refLabel('mutationTables', { id }))),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

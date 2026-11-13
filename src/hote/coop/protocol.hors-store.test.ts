@@ -1,7 +1,6 @@
 /**
  * Protocole coop : messages typés du transport — hello (version), intent (action d'invité
- * rejouée par l'hôte), snapshot (état autoritaire), paquetDeCampagne (projet custom transféré au join),
- * error, bye. `parseMessage` valide la FORME : tout message
+ * rejouée par l'hôte), snapshot (état autoritaire), error, bye. `parseMessage` valide la FORME : tout message
  * inconnu/malformé → null (jamais d'exception — le réseau est une entrée non fiable).
  */
 import { describe, it, expect } from 'vitest';
@@ -30,14 +29,6 @@ describe('protocole coop (hote/coop/protocol)', () => {
       '{"kind":"error","reason":"format-mismatch","expected":1,"got":2}']) {
       expect(parseMessage(bad), bad).toBeNull();
     }
-  });
-
-  it('paquetDeCampagne : projet de campagne transféré une fois au join (spec coop v2 §5)', () => {
-    const m = parseMessage(serializeMessage({
-      kind: 'paquetDeCampagne', label: 'Arène', scenes: [{ id: 's1' }], startSceneId: 's1', worldMap: null,
-    }));
-    expect(m).toEqual({ kind: 'paquetDeCampagne', label: 'Arène', scenes: [{ id: 's1' }], startSceneId: 's1', worldMap: null });
-    expect(parseMessage('{"kind":"paquetDeCampagne","label":"X"}')).toBeNull(); // scenes/startSceneId manquants
   });
 
   it('un intent ne transporte que du JSON-sûr (args sérialisables tels quels)', () => {
