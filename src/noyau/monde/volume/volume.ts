@@ -20,10 +20,14 @@ import {
   type SceneDuVolume,
   type SceneEntity,
   type WallSeg,
+  CHAMPS_DES_COURONNES,
+  CHAMPS_DES_TOITS,
+  type SceneDesCouronnes,
+  type SceneDesToits,
 } from '../scene';
 import { entityBlockedAt } from '../sceneRules';
 import { versionDesDatasets } from '../../../data/versionDataset';
-import { terrainOverlayProp, terrainsAvecGlyphe } from '../terrain';
+import { terrainAbsent, terrainOverlayProp, terrainsAvecGlyphe } from '../terrain';
 import { garanti } from '../../../lib/garanti';
 import { tableTotale } from '../../../lib/tableTotale';
 import { facesDuDessus } from './pente';
@@ -47,7 +51,7 @@ import { centreDeLaCarte, coplanarRanks, faceGeometry, faceQuadsOriented, facesG
 import { buildRoofs, nappeKey } from './toits';
 import { spaceCellKey } from './architectureVisibility';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../../planDeNavire';
-import { memoByDeps, memoByRef } from '../sceneMemo';
+import { memoByDeps, memoByRef, memoByRefDeps } from '../sceneMemo';
 import { mapLights } from '../vision';
 import type { Face } from './types';
 import type { MaterialRef } from '../../../data/materials.types';
@@ -238,7 +242,7 @@ export function empreinteDesDecors(scene: Scene): string {
 
 /** Les faces `listees` triangulées ensemble (`facesGeometry`, le rang coplanaire sur toute la liste), chacune avec sa
  *  géométrie. */
-function triangulees<F extends FaceListee>(scene: SceneDuVolume, listees: readonly F[]): (F & { geom: FaceGeom })[] {
+function triangulees<F extends FaceListee>(scene: Pick<Scene, 'metresPerTile'>, listees: readonly F[]): (F & { geom: FaceGeom })[] {
   const geoms = facesGeometry(listees.map((f) => f.face), sceneMetresPerTile(scene), faceDepthM);
   return listees.map((f, i) => ({ ...f, geom: geoms[i] }));
 }
@@ -249,7 +253,7 @@ type FaceRangee = FaceListee & { geom: FaceGeom; surLaCarte: { x: number; y: num
 /** Les faces `faces` déjà triangulées et rangées (`FaceRangee`), orientées (`trianglesOrientes`) et colorées depuis la
  *  donnée, chacune à la variance de teinte de sa case, rangée à sa case `surLaCarte`, les triangles d'une même matière à la
  *  suite. */
-function emballer(scene: SceneDuVolume, faces: readonly FaceRangee[]): GeometrieDuMonde {
+function emballer(scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, faces: readonly FaceRangee[]): GeometrieDuMonde {
   const centre = centreDeLaCarte(scene.dimensions, sceneMetresPerTile(scene));
   const parMatiere = new Map<string, Provenance & { matiere: string; faces: number[] }>();
   faces.forEach(({ face, navire, flottaison, luminaire }, i) => {
@@ -294,7 +298,7 @@ function empreinteDe({ positions, normales, couleurs, cases, surfaces, rangee }:
 }
 
 /** La case `(x, y)` de la carte de `scene` la plus proche de `cell`, à la couche `z` de `cell`. */
-const caseBornee = (scene: SceneDuVolume, { x, y, z }: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
+const caseBornee = (scene: Pick<Scene, 'dimensions'>, { x, y, z }: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
   const { w, h } = scene.dimensions;
   return { x: Math.min(Math.max(x, 0), w - 1), y: Math.min(Math.max(y, 0), h - 1), z };
 };
@@ -380,8 +384,7 @@ function parArete(walls: readonly WallSeg[]): Map<string, WallSeg[]> {
 
 /** Les cases `(x, y, z)` de `scene` dont le sol est à refaire depuis `avant` : dans toutes les couches, celles à
  *  `RAYON_DU_SOL` au plus d'une case dont la tuile, la hauteur, le crénelage, un segment de `walls` (même objet, sinon
- *  même contenu), le blocage par une entité ou l'effondrement diffère ; et celles dont les montants diffèrent par
- *  contenu. */
+ *  même contenu) ou le blocage par une entité diffère ; et celles dont les montants diffèrent par contenu. */
 function solARefaire(avant: EtatDuVolume, scene: Readonly<SceneDuVolume>, montants: EtatDuVolume['montants'], bloquees: ReadonlySet<string>): (x: number, y: number, z: number) => boolean {
   const { w, h } = scene.dimensions;
   const a = avant.scene;
@@ -391,8 +394,7 @@ function solARefaire(avant: EtatDuVolume, scene: Readonly<SceneDuVolume>, montan
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const change = (couche !== a.layers[i] && (tileAt(a, x, y, z) !== tileAt(scene, x, y, z) || heightAt(a, x, y, z) !== heightAt(scene, x, y, z) || crenellatedAt(a, x, y, z) !== crenellatedAt(scene, x, y, z)))
-          || bloquees.has(spaceCellKey(x, y, z)) !== avant.bloquees.has(spaceCellKey(x, y, z))
-          || tileCollapsed(a, x, y, z) !== tileCollapsed(scene, x, y, z);
+          || bloquees.has(spaceCellKey(x, y, z)) !== avant.bloquees.has(spaceCellKey(x, y, z));
         if (change) touchees.push([x, y]);
       }
   });
@@ -430,8 +432,29 @@ const memesFaces = (a: readonly FaceDuMorceau[], b: readonly FaceDuMorceau[]): b
       && f.rangs.length === g.rangs.length && f.rangs.every((r, j) => r === g.rangs[j]);
   });
 
-/** Le volume du monde de `scene` (`volumeDuMonde`) et l'état d'où le suivant se reprend, calculé depuis `precedent` :
- *  `null`, ou un état d'un autre cadre (`memeCadre`), refait tout ; sinon, seul ce que la différence touche se refait.
+/** Les couches de `scene` vues par son volume, retenues par couches de la scène, tuiles effondrées
+ *  (`tuilesEffondreesSignature`) et version des datasets (`terrainAbsent` lit les terrains). */
+const couchesRetenues = memoByRefDeps<SceneDuVolume['layers'], SceneDuVolume['layers']>();
+
+/** Les couches de `scene` vues par son volume : une tuile d'étage effondrée (`tileCollapsed`) y est absente
+ *  (`terrainAbsent`), comme une case où rien n'est bâti, et garde sa crénelure ; sans tuile effondrée, les couches mêmes
+ *  de la scène, et chaque couche sans tuile effondrée elle-même. */
+const couchesDuVolume = (scene: Readonly<SceneDuVolume>): SceneDuVolume['layers'] => {
+  const signature = tuilesEffondreesSignature(scene);
+  if (!signature) return scene.layers;
+  const { w } = scene.dimensions;
+  return couchesRetenues(scene.layers, [signature], () => scene.layers.map((couche) => {
+    const effondrees = couche.z > 0 ? couche.tiles.flatMap((_, i) => (tileCollapsed(scene, i % w, Math.floor(i / w), couche.z) ? [i] : [])) : [];
+    if (!effondrees.length) return couche;
+    const tiles = [...couche.tiles];
+    for (const i of effondrees) tiles[i] = terrainAbsent();
+    return { ...couche, tiles };
+  }));
+};
+
+/** Le volume du monde de `entree` (`volumeDuMonde`), ses couches vues par lui (`couchesDuVolume`), et l'état d'où le
+ *  suivant se reprend, calculé depuis `precedent` : `null`, ou un état d'un autre cadre (`memeCadre`), refait tout ;
+ *  sinon, seul ce que la différence touche se refait.
  *  Le sol de chaque case de chaque couche (`floorFaces`), à refaire selon `solARefaire` ; la mer de la flottaison de
  *  chaque navire (`MER`, à la hauteur 0, à la place du sol de la scène hors de ses ponts) ; les crêtes des zones
  *  crénelées (`cretesDePerimetre`), reprises à contenu égal ; le décor que son terrain pose sur chaque case
@@ -441,7 +464,8 @@ const memesFaces = (a: readonly FaceDuMorceau[], b: readonly FaceDuMorceau[]): b
  *  la plus haute couche ; un morceau aux mêmes faces (`memesFaces`) est repris, les autres se triangulent. Le sol et
  *  les crêtes d'une case que les ponts d'un navire posent portent ce navire (`provenanceDesNavires`) ; ses décors,
  *  non ; les décors d'entité qui éclairent (`mapLights`) portent `luminaire`. `precedent` n'est jamais modifié. PUR. */
-export function volumeDepuis(scene: Readonly<SceneDuVolume>, precedent: EtatDuVolume | null): { volume: VolumeDuMonde; etat: EtatDuVolume } {
+export function volumeDepuis(entree: Readonly<SceneDuVolume>, precedent: EtatDuVolume | null): { volume: VolumeDuMonde; etat: EtatDuVolume } {
+  const scene: Readonly<SceneDuVolume> = { ...entree, layers: couchesDuVolume(entree) };
   const mpt = sceneMetresPerTile(scene);
   const { w, h } = scene.dimensions;
   const provenance = provenanceDesNavires(scene);
@@ -546,7 +570,7 @@ const projectionDuVolume = (scene: Scene): SceneDuVolume => tableTotale(CHAMPS_D
 const volumeRetenu = memoByDeps<{ volume: VolumeDuMonde; etat: EtatDuVolume }>();
 
 /** Le volume du monde de `scene`, de toutes ses couches, en morceaux (`volumeDepuis`), repris du dernier calculé.
- *  Mémoïsé par scène. PUR. */
+ *  Mémoïsé par scène et version des datasets (`memoByRef`). PUR. */
 export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   const version = versionDesDatasets();
   const deps = [version, ...CHAMPS_DU_VOLUME.map((c) => (c === 'flags' ? tuilesEffondreesSignature(scene) : scene[c]))];
@@ -577,21 +601,29 @@ export function retraitDuMonde(scene: Scene, activeZ?: number, couvercle?: Reado
   return { masque: enBase64(octetsDuRetrait(scene, activeZ, couvercle)), largeur: scene.dimensions.w, rangees: 2 * scene.layers.length * scene.dimensions.h };
 }
 
+/** Les dernières nappes de toit calculées, par la version des datasets (`versionDesDatasets`) et les champs de la
+ *  scène qu'elles lisent (`CHAMPS_DES_TOITS`). */
+const toitsRetenus = memoByDeps<NappeDuMonde[]>();
+
 /** Les nappes de toit de `scene`, une par masse de bâtiment (`nappeKey`), chacune de ses pans et de ses pignons, et son
- *  empreinte. Mémoïsées par scène. PUR. */
+ *  empreinte. Mémoïsées par scène et version des datasets (`memoByRef`), puis retenues sur leurs entrées
+ *  (`toitsRetenus`). PUR. */
 export const toitsDuMonde = memoByRef((scene: Scene): NappeDuMonde[] => {
+  const vue: SceneDesToits = scene;
+  return toitsRetenus([versionDesDatasets(), ...CHAMPS_DES_TOITS.map((c) => vue[c])], () => {
   const parNappe = new Map<string, FaceListee[]>();
-  for (const el of buildRoofs(scene)) {
+  for (const el of buildRoofs(vue)) {
     const cle = nappeKey(el.bodyId!, el.sectionId!);
     const faces = parNappe.get(cle) ?? parNappe.set(cle, []).get(cle)!;
     for (const face of el.faces) faces.push({ face, cell: el.cell });
   }
-  return [...parNappe].map(([cle, listees]) => nappe(scene, cle, listees));
+  return [...parNappe].map(([cle, listees]) => nappe(vue, cle, listees));
+  });
 });
 
 /** La nappe `cle` des faces `listees` de `scene`, triangulées ensemble (`triangulees`), chacune rangée à la case de la
  *  carte la plus proche de la sienne (`caseBornee`), et son empreinte. */
-const nappe = (scene: Scene, cle: string, listees: readonly FaceListee[]): NappeDuMonde => {
+const nappe = (scene: Pick<Scene, 'dimensions' | 'metresPerTile'>, cle: string, listees: readonly FaceListee[]): NappeDuMonde => {
   const geometrie = emballer(scene, triangulees(scene, listees).map((f) => ({ ...f, surLaCarte: caseBornee(scene, f.cell) })));
   return { cle, empreinte: empreinteDe(geometrie), ...geometrie };
 };
@@ -607,17 +639,25 @@ export function toutesLesNappes(scene: Scene): string[] {
   return [...new Set(buildRoofs(scene).map((el) => nappeKey(el.bodyId!, el.sectionId!)))];
 }
 
+/** Les dernières couronnes calculées, par la version des datasets (`versionDesDatasets`) et les champs de la scène
+ *  qu'elles lisent (`CHAMPS_DES_COURONNES`). */
+const couronnesRetenues = memoByDeps<NappeDuMonde[]>();
+
 /** Les couronnes crénelées des murs fortifiés de `scene` hors des ponts de ses navires (`aretesHorsDesNavires`), de
  *  toutes ses couches (`crownFaces`, apparence à `parapet`), une par arête, nommée par sa clé (`edgeKey`), posée au
  *  sommet de la face pleine du mur dressé à son pied (`piedDeLArete`, `wallHeightM`, sinon un étage) : l'hôte cache
- *  celles qui tombent avec leur mur (`couronnesAbattues`), chacune avec son empreinte. Mémoïsées par scène. PUR. */
+ *  celles qui tombent avec leur mur (`couronnesAbattues`), chacune avec son empreinte. Mémoïsées par scène et version des
+ *  datasets (`memoByRef`), puis retenues sur leurs entrées (`couronnesRetenues`). PUR. */
 export const couronnesDuMonde = memoByRef((scene: Scene): NappeDuMonde[] => {
-  const facades = facadeEdges(scene);
-  return aretesHorsDesNavires(scene).flatMap((seg) => {
+  const vue: SceneDesCouronnes = scene;
+  return couronnesRetenues([versionDesDatasets(), ...CHAMPS_DES_COURONNES.map((c) => vue[c])], () => {
+  const facades = facadeEdges(vue);
+  return aretesHorsDesNavires(vue).flatMap((seg) => {
     const app = edgeAppearance(facades.get(edgeKey(seg)), seg);
     if (!app.parapet) return [];
     const [a, b] = wallEnds(seg);
-    const faces = crownFaces(app, a, b, piedDeLArete(scene, seg) + (app.wallHeightM ?? WALL_H_M));
-    return [nappe(scene, edgeKey(seg), faces.map((face) => ({ face, cell: { x: seg.x, y: seg.y, z: seg.z ?? 0 } })))];
+    const faces = crownFaces(app, a, b, piedDeLArete(vue, seg) + (app.wallHeightM ?? WALL_H_M));
+    return [nappe(vue, edgeKey(seg), faces.map((face) => ({ face, cell: { x: seg.x, y: seg.y, z: seg.z ?? 0 } })))];
+  });
   });
 });

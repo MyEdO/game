@@ -43,6 +43,7 @@ import {
   BuildingMass,
   RoofDefaults,
   ZoneArea,
+  type SceneDesToits,
 } from './monde/scene';
 import { aretesA } from './monde/wallIndex';
 import { memoByRef } from './monde/sceneMemo';
@@ -1725,7 +1726,7 @@ export function putLayer(scene: Scene, z: number, tiles: Terrain[], height?: num
  *  `z>0` sur le PLANCHER RÉEL (terrain non-vide, PAS `isWalkable` — un décor multi-cases ne change pas
  *  la structure) : un étage est BÂTI par construction, y compris au-dessus d'une cour (galerie en
  *  anneau), mesuré sur La Diligence (#825ter). */
-export function realFloorAt(scene: Scene): (z: number) => ReadonlySet<string> {
+export function realFloorAt(scene: Pick<Scene, 'dimensions' | 'effectZones' | 'layers' | 'walls'>): (z: number) => ReadonlySet<string> {
   const layerZs = new Set(scene.layers.map((l) => l.z));
   const { w, h } = scene.dimensions;
   const cache = new Map<number, Set<string>>();
@@ -1768,7 +1769,7 @@ export function roofExclusionsByZ(body: ArchitectureBody): Map<number, Set<strin
  * rendus tels que le corps les porte — absents, ils restent des CHOIX du socle : le profil se lit sur
  * la PORTÉE, la pente se dérive.
  */
-export function toitureEffective(scene: Scene, body: ArchitectureBody): {
+export function toitureEffective(scene: Pick<Scene, 'roofDefaults'>, body: ArchitectureBody): {
   material: SceneRoofDefaults['material'];
   riseMaxStoreys: number;
   penteReference: number;
@@ -1931,7 +1932,7 @@ function enclosedHolesOf(sheet: ReadonlySet<string>, w: number, h: number): Set<
  *  trou n'est une trémie que s'il y a un plancher à trouer, et au dernier étage l'ouverture au-dessus
  *  d'une case est le CIEL. Indexée par l'étage de DÉBOUCHÉ, jamais par celui de la marche : c'est la
  *  seule nappe qu'une volée puisse ouvrir. */
-export function flightOpeningsAt(scene: Scene, z: number): ReadonlySet<string> {
+export function flightOpeningsAt(scene: Pick<Scene, 'dimensions' | 'layers'>, z: number): ReadonlySet<string> {
   const storeyZs = new Set(scene.layers.map((l) => l.z));
   if (!storeyZs.has(z) || !storeyZs.has(z - 1)) return new Set<string>();
   return stairFlightCells(scene, z - 1, z);
@@ -2057,7 +2058,7 @@ export function rectCoverOf(cells: ReadonlySet<string>): ArchitectureRect[] {
 /** Portée maximale d'un PIGNON en CASES pour cette scène — `ROOF_GABLE_SPAN_MAX_M` ramenée à
  *  l'échelle de la grille, plancher à 1 case (une scène à très grosses cases garde le pignon sur une
  *  case de portée plutôt que sur aucune). */
-export function gableSpanMaxTiles(scene: Scene): number {
+export function gableSpanMaxTiles(scene: Pick<Scene, 'metresPerTile'>): number {
   return Math.max(1, Math.floor(ROOF_GABLE_SPAN_MAX_M / sceneMetresPerTile(scene)));
 }
 
@@ -2091,7 +2092,7 @@ export function gableSpanMaxTiles(scene: Scene): number {
  *  `body.roofDefaults` — un profil et une pente AUTHORÉS passent avant la lecture de portée, croupe
  *  comprise ; faîtage TOUJOURS explicite pour ne jamais tomber sur le fail-fast
  *  « emprise carrée ». */
-export function deriveArchitectureMasses(scene: Scene): ArchitectureBody[] {
+export function deriveArchitectureMasses(scene: SceneDesToits): ArchitectureBody[] {
   const floorAt = realFloorAt(scene);
   const layerZs = [...new Set(scene.layers.map((l) => l.z))].sort((a, b) => b - a);
   const { w, h } = scene.dimensions;
@@ -2264,11 +2265,11 @@ export function deriveArchitectureMasses(scene: Scene): ArchitectureBody[] {
  *  ajouter un étage fait suivre la toiture sans qu'aucune mutation n'ait à le savoir. Les masses
  *  AUTHORÉES (sans `derived`) traversent telles quelles — elles sont l'intention de l'auteur.
  *
- *  Mémoïsée par le patron canonique `memoByRef` (mesuré : 19 ms de dérivation pour 12 corps sur
- *  64×64×3, soit 34 % du coût de `buildRoofs`, et trois builders la lisent). */
-const derivedArchitecture = memoByRef((scene: Scene) => deriveArchitectureMasses(scene));
+ *  Mémoïsée par scène et version des datasets (`memoByRef`, la dérivation lit les terrains : `estAbsent`) (mesuré :
+ *  19 ms de dérivation pour 12 corps sur 64×64×3, soit 34 % du coût de `buildRoofs`, et trois builders la lisent). */
+const derivedArchitecture = memoByRef(deriveArchitectureMasses);
 
-export function effectiveArchitecture(scene: Scene): readonly ArchitectureBody[] {
+export function effectiveArchitecture(scene: SceneDesToits): readonly ArchitectureBody[] {
   if (!scene.architecture?.length) return scene.architecture ?? [];
   return derivedArchitecture(scene);
 }
