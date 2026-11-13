@@ -214,7 +214,7 @@ function rendu() {
   // ne mord que sur le zéro absolu, jamais sur une entité manquante.
   const CANAUX_ROOTS = [DATA_ROOT, ...RESOLVER_ROOTS]
   const CANAUX = mesurerCanaux(
-    CANAUX_ROOTS.flatMap((r) => fichiersSources(r, ['.ts'])).filter((f) => /^\s*(passive|effects|capabilities|combat)\??:|interface\s+\w*(Capabilities|CombatFeature)\b/m.test(readFileSync(f, 'utf8'))),
+    CANAUX_ROOTS.flatMap((r) => fichiersSources(r, ['.ts'])).filter((f) => /^\s*(passive|effects|capabilities|combat)\??:|(interface|type)\s+\w*(Capabilities|CombatFeature)\b|const\s+\w*(Capabilities|combatFeature)Schema\b/m.test(readFileSync(f, 'utf8'))),
   )
   if (!CANAUX.entites.length || !CANAUX.typesDrapeaux.length) {
     console.error(`${TOOL} — aucun canal mesuré sous ${CANAUX_ROOTS.join(', ')} (les champs \`passive\`/\`effects\`/\`capabilities\` ont changé de forme).`)
