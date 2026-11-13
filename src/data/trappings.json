@@ -4479,6 +4479,29 @@
     }
   },
   {
+    "id": "mortier-universitaire",
+    "type": "trappings",
+    "label": "Mortier",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2104) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2104"
+    }
+  },
+  {
     "id": "biere-pinte",
     "type": "trappings",
     "label": "Bière, pinte",
@@ -6916,6 +6939,167 @@
     }
   },
   {
+    "id": "licence-magique",
+    "type": "trappings",
+    "label": "Licence magique",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2460) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 92,
+      "note": "LDB 08 l.2460"
+    }
+  },
+  {
+    "id": "lettre-de-nomination",
+    "type": "trappings",
+    "label": "Lettre de nomination",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1380) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 74,
+      "note": "LDB 08 l.1380"
+    }
+  },
+  {
+    "id": "ordres-de-mission",
+    "type": "trappings",
+    "label": "Ordres de mission",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1380) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 74,
+      "note": "LDB 08 l.1380"
+    }
+  },
+  {
+    "id": "bon-de-commande",
+    "type": "trappings",
+    "label": "Bon de commande",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2051) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 85,
+      "note": "LDB 08 l.2051"
+    }
+  },
+  {
+    "id": "diplome",
+    "type": "trappings",
+    "label": "Diplôme",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2094) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2094"
+    }
+  },
+  {
+    "id": "lettre-d-engagement",
+    "type": "trappings",
+    "label": "Lettre d'engagement",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2289) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 89,
+      "note": "LDB 08 l.2289"
+    }
+  },
+  {
+    "id": "contrat-de-mercenaire",
+    "type": "trappings",
+    "label": "Contrat de mercenaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.900) : Encombrement posé sur le repère Licence de Guilde, Enc 0 (LDB 68 l.11).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 35,
+      "note": "ADE II 02 l.900"
+    }
+  },
+  {
     "id": "atelier",
     "type": "trappings",
     "label": "Atelier",
@@ -7457,6 +7641,32 @@
       "book": "vents-de-la-magie",
       "page": 50,
       "note": "VDM 03 l.659"
+    }
+  },
+  {
+    "id": "laboratoire-alchimique",
+    "type": "trappings",
+    "label": "Laboratoire alchimique",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
+    "enc": null,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 100,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 160,
+      "note": "VDM 12 l.356"
     }
   },
   {

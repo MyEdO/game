@@ -767,7 +767,7 @@ export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silve
 export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);
 
 /** La nature d'une mention (`DotationDeMention`), son libellé de rubrique. #4053 */
-export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
+export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', bete: 'Bêtes', vehicule: 'Véhicules', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
 export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
 
 /** Montant PARTIEL authoré (coût d'un choix, mise minimale, octroi) — mêmes 3 dénominations, chacune
