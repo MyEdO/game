@@ -15,7 +15,7 @@
  * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
  * targeting.ts, combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
-import type { BattleActionMode } from './actionRegistry';
+import type { IdDeModeDeCiblage } from '../data/schemas/defs/actions';
 import type { Get, Set } from './flowTypes';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { Combatant } from '../engine/types';
@@ -125,9 +125,6 @@ export interface TilePreview {
  * par défaut « les combattants dont l'affordance est 'ok' » — un mode ne le surcharge que s'il a une
  * liste propre (soin, surincantation…). Tout est PUR (lit l'état) sauf les commit (mutent via set).
  */
-/** L'id d'un mode de ciblage : un mode armé de la barre (`BattleActionMode`), l'attaque par défaut, ou une fenêtre qui
- *  détient le ciblage (`detenteurDuCiblage`). */
-export type IdDeModeDeCiblage = BattleActionMode | 'attaque' | 'surincantation' | 'frappeMortelle' | 'deuxArmes' | 'poseDeLaZone';
 
 export interface TargetingMode {
   id: IdDeModeDeCiblage;
@@ -787,23 +784,23 @@ function placingCommitCombatant(get: Get, _set: Set, _active: Combatant, id: str
 
 /** Mode ATTAQUE (mode neutre) — exporté pour son IDENTITÉ, comme `CAST_MODE` : les anneaux de cibles du
  *  mode neutre se peignent quand c'est LUI qui tient le ciblage (`gameIso/stage/highlightLayer`). */
-export const ATTACK_MODE: TargetingMode = { id: 'attaque', affordance: attackAffordance, commitCombatant: attackClickCommit };
+export const ATTACK_MODE = { id: 'attaque', affordance: attackAffordance, commitCombatant: attackClickCommit } satisfies TargetingMode;
 /** Mode INCANTATION — exporté parce que son IDENTITÉ est ce que `battle.action` porte quand le geste
  *  est armé : tout consommateur qui demande « le mode incantation est-il armé ? » compare à CE mode
  *  (`CAST_MODE.id`). L'entrée du registre d'actions qui l'arme (`armed`) est libre de son propre id. */
-export const CAST_MODE: TargetingMode = {
+export const CAST_MODE = {
   id: 'incantation', affordance: castAffordance, commitCombatant: castClickCommit, commitTile: castCommitTile,
-};
-const BATTERY_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const BATTERY_MODE = {
   id: 'bordee', label: 'Bordée', consigne: 'consigne.bordee', affordance: batteryAffordance,
   commitCombatant: (get, _set, active, id) => { get().ouvrirLaBordee(active.id, id); },
-};
-const HEAL_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const HEAL_MODE = {
   id: 'soins', affordance: healAffordance, anneauCandidats: 'ami',
   candidates: (get, active) => soignablesAPortee(get, active).filter((c) => modesDOuverture(c, active).length > 0),
   // L'acte d'ouverture et son refus vivent dans `ouvrirLaGuerison` ; la modale bascule l'acte (`jetRegler('soins', 'mode')`).
   commitCombatant: (get, _set, _active, id) => get().ouvrirLaGuerison(id),
-};
+} satisfies TargetingMode;
 /** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la
  *  console). Prédicat PARTAGÉ par l'élection locale et par le commit — une seule mesure. */
 const dispelParametreADemander = (get: Get, id: string): boolean => dispellableOnCarrier(get, id).length > 1;
@@ -819,7 +816,7 @@ const dispelParametreADemander = (get: Get, id: string): boolean => dispellableO
  * porteur élu vit hors instantané (`coop.instantaneDeLaCoop`), et seul le COMMIT `dissiperLeSort`
  * voyage. Sans cette déclaration, l'intent d'un invité faisait naître le panneau chez L'HÔTE.
  */
-const DISPEL_MODE: TargetingMode = {
+const DISPEL_MODE = {
   id: 'dissipation', affordance: dispelAffordance,
   candidates: (get) => (get().battle?.combatants ?? []).filter((c) => dispellableOnCarrier(get, c.id).length > 0),
   electionLocale: dispelParametreADemander,
@@ -829,8 +826,8 @@ const DISPEL_MODE: TargetingMode = {
     if (dispelParametreADemander(get, id)) { get().designerLeSupport(id); return; }
     get().dissiperLeSort(active.id, porte[0].spellId, porte[0].casterId);
   },
-};
-const OVERCAST_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const OVERCAST_MODE = {
   id: 'surincantation', label: 'Surincantation', consigne: 'consigne.surincantation', affordance: overcastAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
@@ -842,8 +839,8 @@ const OVERCAST_MODE: TargetingMode = {
     return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
   },
   commitCombatant: (get, _set, _active, id) => { get().jetRegler('incantation', 'ciblesSupplementaires', ciblesBasculees(get().pendingCast?.extraTargetIds, id)); },
-};
-const CLEAVE_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const CLEAVE_MODE = {
   id: 'frappeMortelle', label: 'Frappe Mortelle', consigne: 'consigne.frappeMortelle', affordance: cleaveAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
@@ -853,8 +850,8 @@ const CLEAVE_MODE: TargetingMode = {
     return battle && pc && atk ? cleaveTargets(battle, atk, pc.hitIds) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperEnBalayage(id); },
-};
-const DUAL_MODE: TargetingMode = {
+} satisfies TargetingMode;
+const DUAL_MODE = {
   id: 'deuxArmes', label: 'Des deux armes', consigne: 'consigne.deuxArmes', affordance: dualAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
@@ -865,16 +862,16 @@ const DUAL_MODE: TargetingMode = {
     return battle && atk && off ? dualStrikeTargets(battle, atk, off) : [];
   },
   commitCombatant: (get, _set, _active, id) => { get().frapperDeLaSecondeArme(id); },
-};
-const TELEPORT_MODE: TileTargetingMode = {
+} satisfies TargetingMode;
+const TELEPORT_MODE = {
   id: 'teleportation', label: 'Téléportation', consigne: 'consigne.teleportation',
   tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
   commitTile: teleportCommitTile,
   tilePreview: (_get, active, pt) => (active.pos ? { target: pt, path: [active.pos, pt], label: 'Téléporter' } : null),
-};
+} satisfies TileTargetingMode;
 /** POUSSÉE d'un engin de siège (ADE II 8 l.258, Lot 2 #156) : case-cible parmi `battle.reachable`
  *  (posé par `pousserLEngin`), MÊME gabarit que TELEPORT_MODE. */
-const PUSH_MODE: TileTargetingMode = {
+const PUSH_MODE = {
   id: 'poussee',
   tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
   commitTile: pushCommitTile,
@@ -883,35 +880,38 @@ const PUSH_MODE: TileTargetingMode = {
     const cost = get().battle?.reachable.get(tileKey(pt.x, pt.y, pt.z)) ?? 0;
     return { target: pt, path: [active.pos, pt], cost, label: `Pousser (${cost})` };
   },
-};
+} satisfies TileTargetingMode;
 /** Pose libre d'un gabarit de zone (sort de ZdE après jet OU pilonnage indirect de siège). */
-const PLACING_MODE: TileTargetingMode = {
+const PLACING_MODE = {
   id: 'poseDeLaZone', label: 'Pose de la zone', consigne: 'consigne.poseDeLaZone',
   tileValidAt: (get, _active, pt) => { const pz = placingZoneOf(get()); return !!pz && placedZoneValidAt(get, pz, pt); },
   commitTile: (get, set, _active, pt) => commitPlacedZone(get, set, pt),
   commitCombatant: placingCommitCombatant,
   tilePreview: (_get, _active, pt) => ({ target: pt, label: 'Poser la zone' }),
-};
+} satisfies TileTargetingMode;
 
 /** Catalogue des modes-CASE (#198) — SOURCE UNIQUE pour la garde exhaustive (test qui les itère et
  *  vérifie un aperçu non-vide sur une tuile valide) et pour tout consommateur générique (aperçu au
  *  survol, adressabilité DOM des cases valides). */
 export const TILE_MODES: readonly TileTargetingMode[] = [TELEPORT_MODE, PUSH_MODE, PLACING_MODE];
 
-/** Catalogue de TOUS les modes — source unique d'ÉNUMÉRATION (parité avec le `mode` des entrées du
- *  registre des actions, libellé de phase d'un interlude). L'aiguilleur ci-dessous garde SA priorité :
- *  ce tableau ne décide de rien, il rend les modes énumérables à l'exécution. */
-export const TARGETING_MODES: readonly TargetingMode[] = [
-  ATTACK_MODE, CAST_MODE, BATTERY_MODE, HEAL_MODE, DISPEL_MODE, OVERCAST_MODE, CLEAVE_MODE, DUAL_MODE, TELEPORT_MODE, PUSH_MODE, PLACING_MODE,
-];
+/** Chaque mode, par son id (`MODES_DE_CIBLAGE`) : un id sans mode, ou un mode rangé sous un autre id, ne compile pas.
+ *  L'aiguilleur ci-dessous garde SA priorité : cette table ne décide de rien. */
+const MODE_PAR_ID: { readonly [M in IdDeModeDeCiblage]: TargetingMode & { readonly id: M } } = {
+  attaque: ATTACK_MODE, incantation: CAST_MODE, bordee: BATTERY_MODE, soins: HEAL_MODE, dissipation: DISPEL_MODE,
+  surincantation: OVERCAST_MODE, frappeMortelle: CLEAVE_MODE, deuxArmes: DUAL_MODE, teleportation: TELEPORT_MODE,
+  poussee: PUSH_MODE, poseDeLaZone: PLACING_MODE,
+};
+
+/** Catalogue de TOUS les modes, énumérables à l'exécution (libellé de phase d'un interlude). */
+export const TARGETING_MODES: readonly TargetingMode[] = Object.values(MODE_PAR_ID);
 
 /** Nom d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans bandeau). */
-export const targetingModeLabel = (modeId: IdDeModeDeCiblage): string | undefined =>
-  TARGETING_MODES.find((m) => m.id === modeId)?.label;
+export const targetingModeLabel = (modeId: IdDeModeDeCiblage): string | undefined => MODE_PAR_ID[modeId].label;
 
 /** Consigne d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans consigne). */
 export const targetingModeConsigne = (modeId: IdDeModeDeCiblage): PlayerText | undefined => {
-  const cle = TARGETING_MODES.find((m) => m.id === modeId)?.consigne;
+  const cle = MODE_PAR_ID[modeId].consigne;
   return cle ? t(cle) : undefined;
 };
 

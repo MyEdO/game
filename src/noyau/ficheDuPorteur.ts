@@ -26,8 +26,8 @@ import { resolveQualities } from '../engine/qualities/dispatch';
 import { traitLisible } from '../engine/traits/dispatch';
 import { formatMoney } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
-import { careerLabelFor, charAbr, findCreatureById, findSpeciesById, findSpellById, findTalentById, findTraitById, qualityRefLabel, skillInstanceLabel, sourceRefLabel, talentConcrete } from '../data';
-import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import { careerLabelFor, charAbr, findCreatureById, findSpeciesById, findSpellById, findTalentById, findTraitById, mentionsParNature, qualityRefLabel, skillInstanceLabel, sourceRefLabel, talentConcrete } from '../data';
+import type { NatureDeMention, SourceRef } from '../data/schemas/grammaire/valeurs';
 
 /** Une Caractéristique : son abréviation, son nom, sa valeur effective (`effectiveChar`). */
 export interface CaracteristiqueDeLaFiche { cle: CharKey; abrege: string; libelle: string; valeur: number }
@@ -59,6 +59,10 @@ export interface EntreeDeLaFiche { libelle: string; desc: string | null }
  *  même nom, équipées de même, rangées au même endroit et sans argent, se comptent ensemble. */
 export interface PossessionDeLaFiche { uid: string; libelle: string; equipee: boolean; nombre: number; argent: string | null; contenant: string | null }
 
+/** Les mentions d'une nature (`mentionsParNature`) : sa nature, son libellé de rubrique, et chacune, son libellé et son
+ *  nombre. */
+export interface MentionsDeLaFiche { nature: NatureDeMention; titre: string; mentions: { libelle: string; nombre: number }[] }
+
 /** La fiche d'un porteur. */
 export interface FicheDuPorteur {
   id: string;
@@ -86,6 +90,8 @@ export interface FicheDuPorteur {
   sorts: EntreeDeLaFiche[];
   prieres: EntreeDeLaFiche[];
   possessions: PossessionDeLaFiche[];
+  /** Ses mentions (`Combatant.mentions`), par nature. */
+  mentions: MentionsDeLaFiche[];
   /** La source du profil dont le porteur est l'instance (`sourceRefLabel`), `null` sans profil sourcé (un héros, un
    *  statbloc d'auteur). */
   source: string | null;
@@ -162,6 +168,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
     sorts: sortsConnus(c, false),
     prieres: sortsConnus(c, true),
     possessions,
+    mentions: mentionsParNature(c.mentions ?? []).map(({ nature, titre, mentions }) => ({ nature, titre, mentions: mentions.map((m) => ({ libelle: m.label, nombre: m.nombre })) })),
     source: source ? sourceRefLabel(source) : null,
   };
 }

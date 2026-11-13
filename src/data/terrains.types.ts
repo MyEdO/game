@@ -6,9 +6,9 @@
  * plein) dans la MÊME entrée : le terrain reste hors du dataset des matières (#1686) et porte le
  * sien.
  *
- * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/terrains.ts`) : le handle de la fabrique
- * scelle ses nœuds (`z.infer` vaut `unknown`), aucun type n'est dérivé du schéma — la vue TS est
- * déclarée ici, comme `materials.types.ts`.
+ * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/terrains.ts`). Le type se dérive par
+ * `DatasetDe`/`EntreeDe` (`data/datasets.ts`) ; la vue manuscrite reste parce que `TerrainDef` n'est
+ * pas assignable au dérivé : `opaque`/`built` y sont `boolean`, le schéma n'admet que le littéral `true`.
  */
 import type { DetailRecipe } from './materials.types';
 

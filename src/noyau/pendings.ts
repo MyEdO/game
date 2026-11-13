@@ -2101,8 +2101,8 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  est exigée EN AMONT, au paramètre, et le cast de sortie n'a plus rien à blanchir. Restent murés par
    *  le lint les deux voies de CONTENEUR (`Object.assign` sur une étape, `x as CascadeStep`).
    *
-   *  `PlayerText` n'a que trois origines (`i18n.t`, `data.dataLabel`/`data.refLabel`,
-   *  `rollSeam.composeRollLabel`) — un littéral ne s'y pose plus, et le stock d'avant est ÉTEINT : le
+   *  `PlayerText` ne sort que de ses minteurs (leur liste : en-tête de `i18n/playerText.ts`) — un
+   *  littéral ne s'y pose plus, et le stock d'avant est ÉTEINT : le
    *  fossile qui le gelait est mort, son cliquet reste en tripwire (`player-text-ratchet.test.ts`). */
   label?: PlayerText;
   /** Genre de l'étape : clé de la table `appliers` (`GenreDEtape`), ou genre que l'hôte ou le jet traite
@@ -2388,8 +2388,9 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  `attackerId` (attaques gratuites restantes puis avance) au lieu du `resumeSuspendedAI` générique. */
   maneuverResume?: { attackerId: string };
   /** Séquence PARQUÉE par le pilote IMMÉDIAT (`cascade.runCascadeImmediate`) sur un choix sans défaut,
-   *  ou derrière un combat ouvert en plein vol : le choix validé ou le combat clos, la suite reprend par ce
-   *  même pilote (`cascade.avanceUnPas`), jamais en fenêtre, avec le CONTEXTE de son lancement
+   *  ou derrière ce que l'applier d'une étape a ouvert (séquence ou combat) : le choix validé, ou ce qui
+   *  a été ouvert clos, la suite reprend par ce même pilote (`cascade.avanceUnPas`,
+   *  `cascade.resumeSuspendedCascade`), jamais en fenêtre, avec le CONTEXTE de son lancement
    *  (`ReprisePilote`). */
   piloteImmediat?: ReprisePilote;
   /** ACCOSTAGE à finaliser À LA CLÔTURE (MDG 15 l.245) : une cascade dont la fermeture doit résoudre

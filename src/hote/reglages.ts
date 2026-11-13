@@ -3,7 +3,7 @@
  * (`engine/policy.ts`) en zones, chaque entrée rendue par la forme de son contrôle (`kind`), et le geste qui en règle
  * une, persisté dans le `Stockage` de l'hôte (`hote/preferences.ts`, `hote/reglesMaison.ts`).
  */
-import { initialNet, OPTIONAL_RULES, PREFERENCES, preferenceDef, refusDesSurcharges, reglesMaisonMutables, nommerLesRetraits, ruleOverrides, type Jeu as Partie, type OptionalRule, type Preference, type PrefValue, type RuleValue } from '../noyau/index';
+import { initialNet, OPTIONAL_RULES, PREFERENCES, preferenceDef, reglesMaisonMutables, valeurConforme, nommerLesRetraits, ruleOverrides, type Jeu as Partie, type OptionalRule, type Preference, type PrefValue, type RuleValue } from '../noyau/index';
 import { t } from '../i18n';
 import type { Stockage } from '../lib/stockage';
 import { ligne, SANS_BORNE, type Bouton, type Element, type Entite, type Ligne } from './elements';
@@ -104,11 +104,11 @@ export function jouerUnReglage(stockage: Stockage | null, etat: Pick<Partie, 'ba
   if (geste.type !== 'regle' && geste.type !== 'retablir') return refuser('validation', 'type, `preference`, `regle` ou `retablir`');
   const regle = OPTIONAL_RULES.find((r) => r.id === id);
   if (!regle || args.length !== (geste.type === 'regle' ? 2 : 1)) return refuser('validation', t('houseRules.refus.inconnue', { id }));
-  const [refus] = geste.type === 'regle' ? refusDesSurcharges({ [regle.id]: valeur }) : [];
-  if (refus) return refuser('validation', refus.raison);
+  const conforme = valeurConforme(regle, valeur);
+  if (geste.type === 'regle' && !conforme) return refuser('validation', t('houseRules.refus.valeur', { valeur: JSON.stringify(valeur), id: regle.id }));
   const jeu = etat ?? { battle: null, net: initialNet() };
   const verrou = reglesMaisonMutables(jeu);
   if (!verrou.mutable) return refuser('regle', verrou.reason);
-  if (geste.type === 'regle') reglerUneRegleMaison(stockage, jeu, regle.id, valeur as RuleValue);
-  else remettreUneRegleMaison(stockage, jeu, regle.id);
+  if (geste.type === 'retablir') remettreUneRegleMaison(stockage, jeu, regle.id);
+  else if (conforme) reglerUneRegleMaison(stockage, jeu, regle.id, valeur);
 }

@@ -11,7 +11,7 @@ import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
-import { trousDeLEnjeu, type StakeRef } from '../../index';
+import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
@@ -22,6 +22,7 @@ import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, R
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
+import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
  *  liste construite à la main n'en a aucun. */
@@ -204,6 +205,21 @@ function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.Refineme
   } else if (!varianteAdmise(type, 'groupe')) {
     ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise pas un Groupe : voir ses « cibles » (psychology.json).` });
   }
+}
+
+/** Un vivre posé dans la cale du navire est l'un des vivres de `sea-navigation.json` `longsVoyages.vivresDeCale`.
+ *  MDG 14 l.245-252 */
+function refuserLeVivreHorsCale(id: string, path: PropertyKey[], ctx: z.RefinementCtx): void {
+  if (!(VIVRES_DE_CALE.vivres as readonly string[]).includes(id)) {
+    ctx.addIssue({ code: 'custom', path, message: `« ${id} » n'est pas un vivre de la cale (sea-navigation.json, longsVoyages.vivresDeCale : ${VIVRES_DE_CALE.vivres.join(', ')}).` });
+  }
+}
+
+/** Un vivre posé par `setVessel`/`adjustVessel` : le vivre et ses rations (jours-homme) vont ensemble. MDG 14 l.245-252 */
+export function refuserLeVivreDuNavire(o: { vivre?: { id: string }; provisions?: number }, ctx: z.RefinementCtx): void {
+  if (o.vivre && o.provisions == null) ctx.addIssue({ code: 'custom', path: ['provisions'], message: `« provisions » manque : le vivre « ${o.vivre.id} » reçoit un nombre de rations (jours-homme).` });
+  if (!o.vivre && o.provisions != null) ctx.addIssue({ code: 'custom', path: ['vivre'], message: `« vivre » manque : les ${o.provisions} rations visent un vivre de la cale.` });
+  if (o.vivre) refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx);
 }
 
 /** Le SUJET d'un jet : ce qu'il teste, Compétence ou Caractéristique (LDB 12 l.7, l.131). */
@@ -499,7 +515,7 @@ const DECLARATIONS_D_OPS = {
   rationsDEscale: nommerChamps(z.strictObject({
     op: z.literal('rationsDEscale'),
     montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de cale" } }),
+  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de vivres frais" } }),
   /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
    *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
   marcheDuPort: z.union([
@@ -517,18 +533,22 @@ const DECLARATIONS_D_OPS = {
         : undefined;
     },
   }),
-  /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations de mer (`rations`) OU tonneaux
-   *  d'eau (`eauTonneaux`), exclusifs. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
+  /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations (`rations`) OU tonneaux
+   *  d'eau (`eauTonneaux`), exclusifs ; `jours` et `rations` nomment leur vivre de la cale (`vivre`).
+   *  MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242, l.245-252 */
   provisions: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema }), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
     nommerChamps(z.strictObject({ op: z.literal('provisions'), gateesPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, gateesPct: { label: "part gâtée (%)" } }),
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema }), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
     nommerChamps(z.strictObject({ op: z.literal('provisions'), eauTonneaux: formulaSchema }), { op: { label: "opération"  }, eauTonneaux: { label: "tonneaux d’eau" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
-      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown };
-      return [v.jours, v.gateesPct, v.rations, v.eauTonneaux].filter((x) => x !== undefined).length !== 1
-        ? 'Provisions EXCLUSIVES : « jours » (vivres gagnés), « gateesPct » (part gâtée), « rations » (rations de mer) OU « eauTonneaux » (tonneaux d’eau) — exactement un des quatre.'
+      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown; vivre?: unknown };
+      if ([v.jours, v.gateesPct, v.rations, v.eauTonneaux].filter((x) => x !== undefined).length !== 1) {
+        return 'Provisions EXCLUSIVES : « jours » (vivres gagnés), « gateesPct » (part gâtée), « rations » (rations d’un vivre) OU « eauTonneaux » (tonneaux d’eau) — exactement un des quatre.';
+      }
+      return (v.jours !== undefined || v.rations !== undefined) && v.vivre === undefined
+        ? 'Provisions : « jours » et « rations » nomment leur « vivre » (un vivre de la cale, sea-navigation.json longsVoyages.vivresDeCale).'
         : undefined;
     },
   }),
@@ -632,13 +652,10 @@ const DECLARATIONS_D_OPS = {
     nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationHours: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationHours: { label: 'durée en heures', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
     nommerChamps(z.strictObject({ op: z.literal('deitySkillMod'), pick: deitySkillPickSchema, mod: z.number(), durationDays: formulaSchema }), { op: { label: "opération" }, pick: { label: "Compétences frappées" }, mod: { label: "modificateur" }, durationDays: { label: 'durée en jours', texte: { regime: "technique", usage: "formule mécanique résolue par la grammaire" } } }),
   ], { error: () => MESSAGE_DUREE_DE_DIVINITE }),
-  /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). `testType` : id de
-   *  `crew-test-types.json`, document `config` dont les ids vivent sous `types[]` — hors de l'INDEX
-   *  DES IDS (`IDS_PAR_ESPACE`, `scripts/gen-espaces.mts`) ; clé étrangère tenue par
-   *  `scripts/guards/lib/gameOpRefFk.mjs` pour les sous-listes à ids des documents `config`. */
+  /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). */
   skillDRBonus: z.union([
     nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), skill: refOuSpec('skill'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, skill: { label: "Compétence" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: z.string(), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: ref('crewTestType'), bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { skill?: unknown; testType?: unknown; bonus?: unknown };
@@ -980,7 +997,7 @@ export const hasConditionSchema = z.discriminatedUnion('what', [
 const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" } });
 const compareSubjectSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, field: actorFieldSchema }), { who: { label: "acteur"  }, field: { label: "champ"  } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, condition: idDe('etat') }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
   charRefSchema,
 ]);
 /** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
@@ -995,7 +1012,7 @@ const compareValueSchema = z.union([
     field: actorFieldSchema,
     factor: z.number().optional(),
   }), { who: { label: "acteur"  }, field: { label: "champ"  }, factor: { label: "facteur" } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string(), factor: z.number().optional() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} }, factor: { label: "facteur" } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, condition: idDe('etat'), factor: z.number().optional() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} }, factor: { label: "facteur" } }),
   nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
@@ -1059,7 +1076,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       variante('État du porteur (comparaison)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.compare')),
       variante('Marge (DR)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.slThreshold')),
       variante('Localisation touchée', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.location')),
-      variante('Type d’attaque', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.attackKind')),
+      variante('Type d’attaque', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: attackKindSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.attackKind')),
       variante('Cause d’effarouchement', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('startleCause'), is: startleCauseSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }), 'conditionDe', 'condition.startleCause')),
       variante('Blessures infligées', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.woundsDealt')),
       variante('Écart d’Avantage (engagés)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageGap'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.engagedAdvantageGap')),
@@ -1105,6 +1122,8 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
 }).superRefine(({ key }, ctx) => {
   const trous = trousDeLEnjeu(key);
   const cle = `${key.dataset}/${key.kind}${key.entryId ? `/${key.entryId}` : ''}`;
+  if (key.entryCategory !== undefined && !categorieDEntreeAPool(key.entryCategory))
+    ctx.addIssue({ code: 'custom', path: ['key', 'entryCategory'], message: `la catégorie d’entrée « ${key.entryCategory} » de l’enjeu « ${cle} » n’a aucun pool` });
   if (!trous) ctx.addIssue({ code: 'custom', path: ['key'], message: `aucune entrée d’enjeu « ${cle} »` });
   else if (trous.length) ctx.addIssue({ code: 'custom', path: ['key'], message: `l’entrée d’enjeu « ${cle} » a des trous que seul le moteur remplit (${trous.join(', ')}) : un document ne peut pas la viser` });
 }), { key: { label: "clé" } });
@@ -1717,7 +1736,7 @@ function construire(regimes: Regimes) {
     trigger: effectTriggerSchema,
     on: effectTargetingSchema,
     flow: flow,
-    condition: z.string().optional(),
+    condition: idDe('etat').optional(),
     attackType: genreDArmeSchema.optional(),
     coupCritique: z.boolean().optional(),
     optional: z.boolean().optional(),

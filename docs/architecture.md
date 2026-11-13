@@ -950,7 +950,7 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
 
 - **Cadence COMMANDÉE désactivée hors mode local** — `src/noyau/voyageCadence.ts` (`traverseeCommandee`)
   est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
-  (`runCascadeImmediate`, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
+  (`jouerLaJournee` commandée, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
   `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
   (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
   soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution

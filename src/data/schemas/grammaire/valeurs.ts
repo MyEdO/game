@@ -11,7 +11,7 @@ import type { FormuleSansTirage } from '../../../engine/ops';
 import type { RegleOptionnelleId } from '../../../engine/policy';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
-import { parseStatus } from '../../../engine/money';
+import { parseStatus, type Money } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
@@ -410,7 +410,7 @@ export type GenreDeFragment = (typeof GENRES_DE_FRAGMENT)[number];
 export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GENRES_DE_FRAGMENT) {
   return marquerProduit(nommerChamps(z
     .strictObject({
-      book: z.string().min(1),
+      book: idDe('book', undefined, { nue: true }),
       /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
        *  le prédicat de sa maison (`estGraphieDeChapitre`, `src/data/source/decoupe.ts`) : des
        *  chiffres, deux au minimum, et un numéro de chapitre — `00` désigne l'index. La largeur JUSTE
@@ -556,9 +556,8 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
 );
 
 /**
- * `RuleValue` (`src/engine/policy.ts`) — valeur effective d'une règle optionnelle du registre
- * `OPTIONAL_RULES` (`src/engine/policy.ts`, lue par `rule(id)`). Union fermée retapée, même raison que
- * `combatFeatureSchema` ci-dessus : le type n'a pas de contrepartie runtime à dériver.
+ * Valeur d'une règle optionnelle du registre `OPTIONAL_RULES` (`src/engine/policy.ts`) SANS sa règle, dont
+ * `RuleValue` dérive ; la valeur d'UNE règle, que rend `rule(id)`, est `ValeurDeRegle[id]` (`_ids.generated.ts`).
  */
 export const ruleValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 
@@ -763,6 +762,13 @@ export const weaponDamageSpecSchema = z.union([
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
  *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
+
+/** La pièce d'une somme (`keyof Money`), ses libellés au pluriel. LDB 57 */
+export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);
+
+/** La nature d'une mention (`DotationDeMention`), son libellé de rubrique. #4053 */
+export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
+export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
 
 /** Montant PARTIEL authoré (coût d'un choix, mise minimale, octroi) — mêmes 3 dénominations, chacune
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
