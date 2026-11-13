@@ -2,7 +2,6 @@
 // réveille pas le fil Claude abonné à la PR destinataire ; un commentaire du workflow le réveille. Le facteur
 // relaie donc chaque commentaire de coordination par un commentaire de `github-actions[bot]` sur la ou les PR
 // destinataires (`.github/workflows/facteur.yml`).
-import { appendFileSync } from 'node:fs'
 import { text } from 'node:stream/consumers'
 import { DEPOT, appelGhRunner, pagesRest, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 
@@ -87,16 +86,16 @@ export function distribuer({ evenement, appel }) {
   return { poses, refus, raison }
 }
 
-/** La sortie du step `relais` de `facteur.yml` : `pose=oui` si ce run a posé un relais. PURE. #4068 */
+/** La sortie standard du script, que `facteur.yml` verse dans `GITHUB_OUTPUT` : `pose=oui` si ce run a posé un relais. PURE. #4068 */
 export const sortieDuStep = ({ poses }) => (poses.length > 0 ? 'pose=oui\n' : '')
 
 if (import.meta.main) {
   try {
     const evenement = JSON.parse(await text(process.stdin))
     const { poses, refus, raison } = distribuer({ evenement, appel: appelGhRunner({ cwd: process.cwd() }) })
-    if (process.env.GITHUB_OUTPUT && sortieDuStep({ poses })) appendFileSync(process.env.GITHUB_OUTPUT, sortieDuStep({ poses }))
-    if (!poses.length && !refus.length) console.log(`Aucun relais : ${raison}.`)
-    for (const numero of poses) console.log(`Relais posé sur #${numero} (${raison}).`)
+    process.stdout.write(sortieDuStep({ poses }))
+    if (!poses.length && !refus.length) console.error(`Aucun relais : ${raison}.`)
+    for (const numero of poses) console.error(`Relais posé sur #${numero} (${raison}).`)
     for (const r of refus) console.error(`Relais refusé sur #${r.numero} : ${r.raison}`)
     if (refus.length) process.exitCode = 1
   } catch (e) { console.error(e.message); process.exitCode = 1 }

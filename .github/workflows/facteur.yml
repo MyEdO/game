@@ -27,7 +27,7 @@ jobs:
         id: relais
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/ops/facteur.mjs < "$GITHUB_EVENT_PATH"
+        run: node scripts/ops/facteur.mjs < "$GITHUB_EVENT_PATH" >> "$GITHUB_OUTPUT"
       - name: Se nommer en rougissant
         if: ${{ !cancelled() && (failure() || steps.relais.outputs.pose == 'oui') }}
         env:
