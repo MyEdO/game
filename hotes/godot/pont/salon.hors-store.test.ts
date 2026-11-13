@@ -93,6 +93,7 @@ describe('le pont héberge un salon', () => {
     await vi.advanceTimersByTimeAsync(0);
     suiteDe(appel('nouvelles'));
     expect(textes(zonesDe(appel))).toEqual([t('ecran.salon.code', { code: 'ABC234' }), `Hôte${t('party.slot.you')}`]);
+    expect(gestes(zonesDe(appel)), 'l’ouverture finie offre de nouveau « Fermer »').toEqual(['quitter', 'fermer']);
     const ws = FakeSocket.last!;
     await asseoirAnna(ws);
     suiteDe(appel('nouvelles'));
@@ -161,7 +162,7 @@ describe('S3 — aucune levée du réseau hors appel ne se perd', () => {
     expect(textes(z)).toEqual([t('coop.hote.erreur')]);
     expect(z['salon.etat'][0].ton).toBe('echec');
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [{ message: 'socket', source: 'reseau' }] });
-    expect(gestes(z)).toEqual(['heberger', 'rejoindre']);
+    expect(gestes(z)).toEqual(['heberger', 'rejoindre', 'fermer']);
     appel('salon', { type: 'heberger', args: ['Hôte'] });
     await vi.advanceTimersByTimeAsync(0);
     suiteDe(appel('nouvelles'));
@@ -217,7 +218,7 @@ describe('S5 — quitter, sans socket ouverte ni minuterie restante', () => {
   it('`{ salon: \'quitter\' }` en session', async () => {
     const { appel, ws } = await enSession();
     await asseoirAnna(ws);
-    expect(gestes(zones(appel('salon', { salon: 'quitter' })))).toEqual(['heberger', 'rejoindre']);
+    expect(gestes(zones(appel('salon', { salon: 'quitter' })))).toEqual(['heberger', 'rejoindre', 'fermer']);
     expect(ws.closedWith).not.toBeNull();
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -229,7 +230,7 @@ describe('S5 — quitter, sans socket ouverte ni minuterie restante', () => {
     const apres = zones(appel('salon', { salon: 'quitter' }));
     await vi.advanceTimersByTimeAsync(0);
     expect(textes(zonesDe(appel))).toEqual([]);
-    expect(gestes(apres)).toEqual(['heberger', 'rejoindre']);
+    expect(gestes(apres)).toEqual(['heberger', 'rejoindre', 'fermer']);
     repondre(await roomOuverte());
     await vi.advanceTimersByTimeAsync(0);
     expect(FakeSocket.instances).toHaveLength(0);
@@ -255,7 +256,7 @@ describe('S5 — quitter, sans socket ouverte ni minuterie restante', () => {
     ws.open();
     ws.dropFromServer(4404, 'room inconnue');
     expect(textesDuJournal(suiteDe(appel('nouvelles')).journal)).toEqual([t('coop.hote.lienPerdu')]);
-    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre']);
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre', 'fermer']);
     expect(vi.getTimerCount()).toBe(0);
   });
 });
@@ -294,5 +295,26 @@ describe('S6 — les refus n’écrivent ni l’état ni l’ouverture', () => {
     suiteDe(appel('nouvelles'));
     expect(erreurDe(appel('salon', mj0)).categorie).toBe('validation');
     expect(appel('nouvelles'), 'le choix périmé a écrit l’état').toEqual(RIEN);
+  });
+});
+
+describe('S7 — une `Suite` d’un geste de jeu dit la fin d’une ouverture avant la relève', () => {
+  it('un hébergement raté, puis `regarder` : `nouvelles` `{ rien: true }`, `salon` offre de nouveau les formulaires', async () => {
+    const appel = ouvert(reseau({ socket: () => { throw new Error('socket'); } }));
+    expect(gestes(zones(appel('salon', { type: 'heberger', args: ['Hôte'] })))).toEqual(['quitter']);
+    await vi.advanceTimersByTimeAsync(0);
+    suiteDe(appel('regarder', { regard: 'tactique' }));
+    expect(appel('nouvelles')).toEqual(RIEN);
+    expect(gestes(zonesDe(appel))).toEqual(['heberger', 'rejoindre', 'fermer']);
+    expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [{ message: 'socket', source: 'reseau' }] });
+  });
+
+  it('un hébergement réussi, puis `regarder` : `nouvelles` `{ rien: true }`, `salon.etat` dit la room et le siège de l’hôte', async () => {
+    const appel = ouvert();
+    appel('salon', { type: 'heberger', args: ['Hôte'] });
+    await vi.advanceTimersByTimeAsync(0);
+    suiteDe(appel('regarder', { regard: 'tactique' }));
+    expect(appel('nouvelles')).toEqual(RIEN);
+    expect(textes(zonesDe(appel))).toEqual([t('ecran.salon.code', { code: 'ABC234' }), `Hôte${t('party.slot.you')}`]);
   });
 });

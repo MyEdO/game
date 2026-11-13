@@ -25,7 +25,8 @@ export interface ZonesDuSalon {
   'salon.etat': Ligne[];
   /** hors session et sans ouverture en cours, « Héberger » (`verbe` `heberger`, champ `nom`) et « Rejoindre »
    *  (`verbe` `rejoindre`, champs `code`, `nom`), chacun refusé avec sa raison ; sinon « Quitter le salon », dont le
-   *  `jeu` est `{ salon: 'quitter' }`. */
+   *  `jeu` est `{ salon: 'quitter' }` ; puis, hors d'une ouverture en cours, « Fermer », dont le `jeu`
+   *  `{ salon: false }` ferme le panneau que `{ salon: true }` ouvre. */
   'salon.gestes': (Formulaire | Bouton)[];
   /** une rangée par attribution de siège offerte (`siegesOfferts`, surface du noyau), une valeur par siège, pressée
    *  quand il la tient déjà, dont le `jeu` est l'intention du noyau qui l'attribue. */
@@ -61,7 +62,7 @@ export function zonesDuSalon(etat: Pick<Partie, 'net' | 'party'> | null, ouvertu
     : 'enCours' in ouverture ? [ligne('ouverture', t(ouverture.enCours === 'heberger' ? 'ecran.salon.enCours.heberger' : 'ecran.salon.enCours.rejoindre'))]
     : [ligne('ouverture', ouverture.echec, 'echec')];
   const sansReseau = reseau ? null : t('ecran.salon.refus.sansReseau');
-  const gestes: (Formulaire | Bouton)[] = enSession || enCours
+  const ouvrirOuQuitter: (Formulaire | Bouton)[] = enSession || enCours
     ? [{ type: 'bouton', id: 'quitter', libelle: t('ecran.salon.quitter'), jeu: { salon: 'quitter' }, presse: false, focus: false, refus: null }]
     : [
       formulaire('heberger', t('coop.hote.bouton'), sansReseau ?? (etat === null ? t('ecran.salon.refus.sansPartie') : null), [champ('heberger', 'nom', t('coop.name.label'))]),
@@ -70,6 +71,9 @@ export function zonesDuSalon(etat: Pick<Partie, 'net' | 'party'> | null, ouvertu
         champ('rejoindre', 'nom', t('coop.name.label')),
       ]),
     ];
+  const gestes: (Formulaire | Bouton)[] = enCours
+    ? ouvrirOuQuitter
+    : [...ouvrirOuQuitter, { type: 'bouton', id: 'fermer', libelle: t('ecran.salon.fermer'), jeu: { salon: false }, presse: false, focus: false, refus: null }];
   return {
     'salon.etat': etatDuSalon,
     'salon.gestes': gestes,
@@ -86,8 +90,9 @@ export type GesteDuSalon = { sorte: 'heberger'; nom: string } | { sorte: 'rejoin
 
 /** Lit l'entrée `entree` comme un geste que les zones `zones` (celles d'avant le geste) offrent : le formulaire dont le
  *  `verbe` est son `type`, ses `args` une chaîne par champ, ou le bouton ou la valeur de choix dont le `jeu` est
- *  `entree`. Lève l'erreur de validation d'un geste que les zones n'offrent pas ou que la lecture ne connaît pas,
- *  ou d'arguments mal formés, et l'erreur de règle du refus d'un formulaire offert. */
+ *  `entree`. Lève l'erreur de validation d'un geste que les zones n'offrent pas ou que la lecture ne connaît pas
+ *  (`{ salon: <booléen> }`, qui ouvre ou ferme le panneau de l'hôte), ou d'arguments mal formés, et l'erreur de règle
+ *  du refus d'un formulaire offert. */
 export function lireUnGesteDuSalon(zones: ZonesDuSalon, entree: unknown): GesteDuSalon {
   const refuser = (categorie: 'validation' | 'regle', raison: string): never => {
     throw new ErreurDeGeste(categorie, `salon : ${raison}`);
@@ -104,7 +109,7 @@ export function lireUnGesteDuSalon(zones: ZonesDuSalon, entree: unknown): GesteD
   const cle = jsonCanonique(entree);
   const jeu: Jeu | undefined = boutons.find((b) => jsonCanonique(b.jeu) === cle)?.jeu;
   if (jeu === undefined) return refuser('validation', `geste non offert : ${JSON.stringify(entree)}`);
-  if ('salon' in jeu) return { sorte: 'quitter' };
+  if ('salon' in jeu && jeu.salon === 'quitter') return { sorte: 'quitter' };
   if ('type' in jeu) return { sorte: 'siege', intention: jeu };
   return refuser('validation', `geste non lu : ${JSON.stringify(entree)}`);
 }

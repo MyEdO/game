@@ -24,11 +24,14 @@ const invite = (lien: Partial<Partie['net']>) => partie({ mode: 'invite', mySeat
 const refusDesFormulaires = (z: ZonesDuSalon) => Object.fromEntries(z['salon.gestes'].flatMap((g) => (g.type === 'formulaire' ? [[g.verbe, g.refus]] : [])));
 const textes = (z: ZonesDuSalon) => z['salon.etat'].map((l) => l.texte);
 const quitter = [{ type: 'bouton', id: 'quitter', libelle: t('ecran.salon.quitter'), jeu: { salon: 'quitter' }, presse: false, focus: false, refus: null }];
+const fermer = { type: 'bouton', id: 'fermer', libelle: t('ecran.salon.fermer'), jeu: { salon: false }, presse: false, focus: false, refus: null };
+const ids = (z: ZonesDuSalon) => z['salon.gestes'].map((g) => g.id);
 
 describe('zonesDuSalon — par état (Z4)', () => {
   it('sans partie ni réseau : les deux formulaires, refusés', () => {
     const z = zonesDuSalon(null, null, false);
     expect(refusDesFormulaires(z)).toEqual({ heberger: t('ecran.salon.refus.sansReseau'), rejoindre: t('ecran.salon.refus.sansReseau') });
+    expect(ids(z)).toEqual(['heberger', 'rejoindre', 'fermer']);
     expect(z['salon.etat']).toEqual([]);
     expect(z['salon.sieges']).toEqual([]);
   });
@@ -36,16 +39,18 @@ describe('zonesDuSalon — par état (Z4)', () => {
   it('sans partie, avec réseau : rejoindre offert, héberger refusé ; les champs de chaque verbe', () => {
     const z = zonesDuSalon(null, null, true);
     expect(refusDesFormulaires(z)).toEqual({ heberger: t('ecran.salon.refus.sansPartie'), rejoindre: null });
-    expect(z['salon.gestes'].map((g) => (g.type === 'formulaire' ? g.champs.map((c) => c.nom) : []))).toEqual([['nom'], ['code', 'nom']]);
+    expect(z['salon.gestes'].map((g) => (g.type === 'formulaire' ? g.champs.map((c) => c.nom) : []))).toEqual([['nom'], ['code', 'nom'], []]);
+    expect(z['salon.gestes'][2]).toEqual(fermer);
   });
 
   it('partie locale : héberger offert, rejoindre refusé', () => {
     const z = zonesDuSalon(partie({}), null, true);
     expect(refusDesFormulaires(z)).toEqual({ heberger: null, rejoindre: t('ecran.salon.refus.partieOuverte') });
+    expect(ids(z)).toEqual(['heberger', 'rejoindre', 'fermer']);
     expect(z['salon.sieges']).toEqual([]);
   });
 
-  it('ouverture en cours : le bouton « Quitter le salon » seul, la ligne de l’ouverture', () => {
+  it('ouverture en cours : le bouton « Quitter le salon » seul, sans « Fermer », la ligne de l’ouverture', () => {
     for (const [enCours, cle] of [['heberger', 'ecran.salon.enCours.heberger'], ['rejoindre', 'ecran.salon.enCours.rejoindre']] as const) {
       const z = zonesDuSalon(enCours === 'heberger' ? partie({}) : null, { enCours }, true);
       expect(z['salon.gestes']).toEqual(quitter);
@@ -58,19 +63,20 @@ describe('zonesDuSalon — par état (Z4)', () => {
     const z = zonesDuSalon(partie({}), echec, true);
     expect(z['salon.etat']).toEqual([{ type: 'ligne', id: 'ouverture', ton: 'echec', texte: echec.echec, detail: null }]);
     expect(refusDesFormulaires(z)).toEqual({ heberger: null, rejoindre: t('ecran.salon.refus.partieOuverte') });
+    expect(ids(z)).toEqual(['heberger', 'rejoindre', 'fermer']);
   });
 
-  it('hôte : le code, les sièges et leur présence, une rangée par offre du noyau, « Quitter le salon »', () => {
+  it('hôte : le code, les sièges et leur présence, une rangée par offre du noyau, « Quitter le salon », « Fermer »', () => {
     const z = zonesDuSalon(hote, null, true);
     expect(textes(z)).toEqual([t('ecran.salon.code', { code: 'ABC234' }), `Hôte${t('party.slot.you')}`, `Anna${t('ecran.salon.absent')}`]);
     expect(z['salon.etat'].map((l) => l.ton)).toEqual(['neutre', 'neutre', 'alerte']);
-    expect(z['salon.gestes']).toEqual(quitter);
+    expect(z['salon.gestes']).toEqual([...quitter, fermer]);
     const offres = siegesOfferts(hote);
     expect(z['salon.sieges'].map((c) => [c.id, c.libelle, c.refus])).toEqual(offres.map((o) => [o.id, o.nom, null]));
     expect(z['salon.sieges'].map((c) => c.valeurs.map((b) => [b.libelle, b.jeu, b.presse, b.refus]))).toEqual(offres.map((o) => o.choix.map((c) => [c.nom, c.intention, c.tenu, null])));
   });
 
-  it('invité : le code, les sièges, chacun des trois états du lien, aucune rangée', () => {
+  it('invité : le code, les sièges, chacun des trois états du lien, aucune rangée, « Quitter le salon », « Fermer »', () => {
     for (const [lien, cle, ton] of [
       [{}, 'coop.invite.attente.defaut', 'neutre'],
       [{ connection: 'reconnexion' }, 'coop.invite.attente.reconnexion', 'alerte'],
@@ -79,7 +85,7 @@ describe('zonesDuSalon — par état (Z4)', () => {
       const z = zonesDuSalon(invite(lien), null, true);
       expect(textes(z)).toEqual([t('ecran.salon.code', { code: 'ABC234' }), 'Hôte', `Anna${t('party.slot.you')}`, t(cle)]);
       expect(z['salon.etat'][z['salon.etat'].length - 1].ton).toBe(ton);
-      expect(z['salon.gestes']).toEqual(quitter);
+      expect(z['salon.gestes']).toEqual([...quitter, fermer]);
       expect(z['salon.sieges']).toEqual([]);
     }
   });
@@ -119,7 +125,7 @@ describe('lireUnGesteDuSalon — un geste que les zones d’avant offrent (S-D3)
           expect(lireUnGesteDuSalon(z, { type: 'rejoindre', args: ['ABC234', 'Anna'] }), cas).toEqual({ sorte: 'rejoindre', code: 'ABC234', nom: 'Anna' });
           sortes.add('rejoindre');
         }
-        if (g.type === 'bouton') {
+        if (g.type === 'bouton' && g.id === 'quitter') {
           expect(lireUnGesteDuSalon(z, JSON.parse(JSON.stringify(g.jeu))), cas).toEqual({ sorte: 'quitter' });
           sortes.add('quitter');
         }
@@ -144,6 +150,16 @@ describe('lireUnGesteDuSalon — un geste que les zones d’avant offrent (S-D3)
     expect(lireUnGesteDuSalon(zHote, mj)).toEqual({ sorte: 'siege', intention: mj });
     expect(refus(zLocale, mj)?.[0], 'rôle MJ après la fin de la session').toBe('validation');
     expect(refus(zHote, { ...mj, siege: 0 })?.[0], 'une clé de plus').toBe('validation');
+  });
+
+  it('L2 : validation, pour « Fermer » offert, qui ouvre et ferme le panneau de l’hôte ; `{ salon: \'quitter\' }` lu « quitter »', () => {
+    for (const [cas, etat, ouverture, reseau] of etats) {
+      const z = zonesDuSalon(etat, ouverture, reseau);
+      if (ouverture === null || !('enCours' in ouverture)) expect(z['salon.gestes'], cas).toContainEqual(fermer);
+      expect(refus(z, { salon: false })?.[0], cas).toBe('validation');
+      expect(refus(z, { salon: true })?.[0], cas).toBe('validation');
+    }
+    expect(lireUnGesteDuSalon(zHote, { salon: 'quitter' })).toEqual({ sorte: 'quitter' });
   });
 
   it('L2 : validation, pour des arguments mal formés et une entrée qui n’est pas un objet', () => {

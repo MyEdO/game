@@ -1449,7 +1449,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * par le réseau, `quitter`) ferme sa partie sans rien sauvegarder ni garder de point de reprise, et repose les
      * réglages du joueur. Ce que le réseau change ensuite se lit par `nouvelles` ; Godot relit `salon` après
      * chaque `Suite`. Un message illisible du réseau est ignoré sans être dit. Refusé (`validation`) sur un geste que
-     * les zones n'offrent pas ou des arguments mal formés ; refusé (`regle`) avec le refus du formulaire offert (sans
+     * les zones n'offrent pas ou que la lecture ne connaît pas (`{ salon: <booléen> }`, qui ouvre ou ferme le panneau
+     * de l'hôte), ou des arguments mal formés ; refusé (`regle`) avec le refus du formulaire offert (sans
      * réseau, sans partie). Un refus n'écrit ni l'état ni l'ouverture.
      */
     salon(json) {
@@ -1509,8 +1510,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * dont la raison de sa fin, ajoutées dans l'ordre des fins ; sinon une `Suite` quand la partie ouverte a quelque
      * chose à dire depuis la précédente : un résultat à sa file, ce que le réseau a écrit hors appel (relevé), une
      * écriture de son état sans événement ni ligne (une présence), l'ouverture du salon posée ; sinon
-     * `{ rien: true }`, et sans partie ouverte. Godot l'appelle sur sa minuterie
-     * tant qu'un salon est ouvert ou s'ouvre, et après chaque geste de `salon`.
+     * `{ rien: true }`, et sans partie ouverte. Godot l'appelle sur la minuterie du panneau du salon, tant que les
+     * zones de `salon` offrent « Quitter le salon », et après chaque geste de `salon`.
      */
     nouvelles(json) {
       entreeDe('nouvelles', json, []);

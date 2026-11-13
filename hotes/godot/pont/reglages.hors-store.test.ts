@@ -108,12 +108,13 @@ describe('l’accueil par le pont', () => {
   it('ses entrées, « Reprendre » refusé tant qu’aucun emplacement ne porte de sauvegarde, puis « Options »', () => {
     const { pont, appel } = table();
     expect(accueil(appel).map((b) => [b.id, b.jeu, b.refus])).toEqual([
-      ['jouer', { accueil: 'jouer' }, null], ['reprendre', { accueil: 'reprendre' }, t('ecran.accueil.reprendre.aucune')], ['combat', { accueil: 'combat' }, null],
+      ['jouer', { accueil: 'jouer' }, null], ['reprendre', { accueil: 'reprendre' }, t('ecran.accueil.reprendre.aucune')],
+      ['salon', { accueil: 'salon' }, null], ['combat', { accueil: 'combat' }, null],
       ['atelier', { accueil: 'atelier' }, null], ['editeur', { accueil: 'editeur' }, null], ['reglages', { reglages: true }, null],
     ]);
     ouvert = pont;
     const s = appel('ouvrir', { graine: 7 }) as unknown as { vue: { zones: { 'groupe.pretires': Entite[]; 'partie.gestes': Bouton[] } } };
-    expect(s.vue.zones['partie.gestes'].map((b) => b.id)).toEqual(['sauvegardes', 'reglages', 'quitter']);
+    expect(s.vue.zones['partie.gestes'].map((b) => b.id)).toEqual(['sauvegardes', 'reglages', 'salon', 'quitter']);
     appel('sauvegarder', { sauvegarder: 1 });
     appel('quitter');
     expect(accueil(appel).find((b) => b.id === 'reprendre')!.refus, 'une sauvegarde à reprendre').toBeNull();
