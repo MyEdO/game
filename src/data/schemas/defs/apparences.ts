@@ -16,7 +16,7 @@
 import { document } from '../grammaire/document';
 import { porteLeMarqueur, ref, refs } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
-import { maniementSchema, type Maniement } from '../grammaire/valeurs';
+import { maniementSchema } from '../grammaire/valeurs';
 
 export const file = 'apparences.json';
 export const famille = 'entite';
@@ -94,14 +94,3 @@ export const meta = doc.meta;
 
 export const exposition = doc.exposition;
 
-/** VUE TS d'une entrée — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`). */
-export interface ApparenceData {
-  id: string;
-  type: 'apparences';
-  label: string;
-  forme?: { id: string };
-  especes?: string[];
-  classes?: string[];
-  qualites?: string[];
-  maniement?: Maniement;
-}

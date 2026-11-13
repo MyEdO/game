@@ -32,6 +32,7 @@ import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
+import { VOCABULAIRES } from '../data/schemas/grammaire/vocabulaires';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -42,7 +43,7 @@ type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']
  *  — jamais des trappings. */
 const FAMILIES: { key: string; label: string }[] = merchantFamilies.map((f) => ({ key: f.id, label: f.label }));
 const FAMILY_COLS: Record<string, { label: string; get: (id: string) => string; emph?: boolean }[]> = Object.fromEntries(
-  merchantFamilies.map((f) => [f.id, f.columns.map((c, i) => ({ ...MERCHANT_COL_RENDERERS[c], emph: i === 0 ? true : undefined }))]),
+  merchantFamilies.map((f) => [f.id, f.columns.map((c, i) => ({ label: VOCABULAIRES.colonnesDuMarchand[c], get: MERCHANT_COL_RENDERERS[c].get, emph: i === 0 ? true : undefined }))]),
 );
 
 const TREND_CLASS: Record<string, string> = { up: 'cmp-up', down: 'cmp-down', same: '' };

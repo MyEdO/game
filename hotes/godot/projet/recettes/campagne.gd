@@ -50,32 +50,52 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## « Options » pressé à l'accueil, le panneau des réglages montre les préférences : « Oui » des dés fixés pressé, le
-## pont dit la préférence réglée et le bus de la musique prend le volume que le pont lui donne ; « Non » la remet, et
-## « Fermer » rend l'accueil.
+## « Options » pressé à l'accueil, le panneau des réglages montre les préférences : la boîte à nombre du volume de la
+## musique posée à 0.25 et son formulaire joué, le pont dit la préférence réglée et le bus de la musique prend ce
+## volume, puis celui d'avant de même ; « Oui » des dés fixés pressé, le pont dit la préférence réglée ; « Non » la
+## remet, et « Fermer » rend l'accueil.
 func _regler_a_l_accueil() -> bool:
 	if not await _attendre(func() -> bool: return _au_menu(), "l'accueil avant les réglages"):
 		return false
 	_cliquer(_texte("Options"))
 	if not await _attendre(func() -> bool: return _publie("bouton/preference/des-fixes/true") != null, "le panneau des réglages"):
 		return false
-	var musique := AudioServer.get_bus_index("musique")
-	var avant := AudioServer.get_bus_volume_linear(musique)
-	_pont.appeler("reglages", {type = "preference", args = ["volume-musique", 0.25]})
+	var avant := AudioServer.get_bus_volume_linear(AudioServer.get_bus_index("musique"))
+	if not await _regler_la_musique(avant, 0.25) or not await _regler_la_musique(0.25, avant):
+		return false
 	_cliquer(_publie("bouton/preference/des-fixes/true"))
 	if not await _attendre(func() -> bool: return _pont.appeler("preferences").preferences["des-fixes"] == true, "les dés fixés réglés au panneau"):
 		return false
-	if not is_equal_approx(AudioServer.get_bus_volume_linear(musique), 0.25):
-		_fautes.append("le bus de la musique à %s après un réglage du panneau, 0.25 attendu" % AudioServer.get_bus_volume_linear(musique))
-	_pont.appeler("reglages", {type = "preference", args = ["volume-musique", avant]})
 	_cliquer(_publie("bouton/preference/des-fixes/false"))
 	if not await _attendre(func() -> bool: return _pont.appeler("preferences").preferences["des-fixes"] == false, "les dés fixés remis au panneau"):
 		return false
 	_cliquer(_publie("bouton/fermer"))
 	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _au_menu(), "l'accueil après « Fermer »"):
 		return false
-	print("[campagne] réglages : les dés fixés réglés puis remis au panneau, le bus de la musique reposé")
+	print("[campagne] réglages : le volume de la musique réglé au formulaire puis remis, le bus de la musique à sa suite ; les dés fixés réglés puis remis")
 	return true
+
+
+## La boîte à nombre du volume de la musique, montrée à `de`, posée à `a`, puis son formulaire joué : si le pont dit la
+## préférence à `a` et si le bus de la musique prend ce volume.
+func _regler_la_musique(de: float, a: float) -> bool:
+	var formulaire: Variant = _publie("formulaire/preference/volume-musique")
+	if formulaire == null:
+		_fautes.append("le formulaire du volume de la musique n'est pas à l'écran")
+		return false
+	if not await _attendre(func() -> bool: return _boite_de_la_musique() != null and is_equal_approx(_boite_de_la_musique().value, de), "la boîte à nombre du volume de la musique à %s" % de):
+		return false
+	_boite_de_la_musique().value = a
+	_cliquer(formulaire)
+	return await _attendre(func() -> bool: return is_equal_approx(_pont.appeler("preferences").preferences["volume-musique"], a) and is_equal_approx(AudioServer.get_bus_volume_linear(AudioServer.get_bus_index("musique")), a), "le volume de la musique et son bus à %s après le formulaire" % a)
+
+
+## La boîte à nombre de la saisie du volume de la musique, `null` hors de l'écran.
+func _boite_de_la_musique() -> SpinBox:
+	for boite in current_scene.find_children("*", "SpinBox", true, false):
+		if boite.get_children().any(func(n: Node) -> bool: return n is Saisie and n.get("_element").get("id") == "preference/volume-musique/valeur"):
+			return boite as SpinBox
+	return null
 
 
 ## « Jouer » pressé à l'accueil, `nombre` pré-tirés recrutés à leur bouton, puis la campagne `campagne` lancée : si sa

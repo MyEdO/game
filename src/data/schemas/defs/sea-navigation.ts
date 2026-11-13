@@ -139,7 +139,7 @@ const champs = {
     sansVoguerDeNuitDiviseur: z.number(),
     progressionPctParDR: z.number(),
     source: sourceRefSchema,
-    rationDeCale: ref('trapping'),
+    vivresDeCale: z.array(ref('trapping')).min(1),
     tonneauDeCale: ref('trapping'),
     maison: maisonSchema,
   }), {
@@ -147,7 +147,7 @@ const champs = {
     sansVoguerDeNuitDiviseur: { label: 'Diviseur sans navigation de nuit' },
     progressionPctParDR: { label: 'Progression par DR (%)' },
     source: { label: 'Source' },
-    rationDeCale: { label: 'Ration-jour achetée pour la cale', texte: { regime: 'technique' } },
+    vivresDeCale: { label: 'Vivres de la cale, dans l’ordre où l’équipage les mange', texte: { regime: 'technique' } },
     tonneauDeCale: { label: 'Tonneau d’eau acheté pour la cale', texte: { regime: 'technique' } },
     maison: { label: 'Arbitrage maison' },
   }),

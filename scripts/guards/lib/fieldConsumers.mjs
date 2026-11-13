@@ -16,7 +16,9 @@
 //   (2) ET la propriété est PROPRE à `T` — déclarée dans le SOUS-ARBRE de la déclaration de `T`, ou
 //       dans le shape d'un schéma dont `T` INFÈRE son corps (`type SourceRef =
 //       z.infer<typeof sourceRefSchema>` : le `typeof` de la déclaration donne le SYMBOLE du
-//       schéma, comparé au SYMBOLE du `const` qui porte le shape — deux symboles, jamais deux noms)
+//       schéma, comparé au SYMBOLE du `const` qui porte le shape — deux symboles, jamais deux noms),
+//       ou dans le MODULE d'un def dont `T` dérive son entrée (`type StakeEntry = EntreeDe<typeof
+//       stakesDef>`, porte `datasetDe` : le `typeof` d'un import d'espace de noms donne le module)
 //       — OU le PORTEUR est un `T` : son type DÉCLARÉ (celui de son symbole à SA déclaration, le
 //       narrowing du site ignoré) porte la déclaration de `T`, ou l'annotation de sa déclaration
 //       RÉFÉRENCE `T` (`Extract<T, …>`, `T[]`, `Record<string, T>` — références résolues par
@@ -120,6 +122,25 @@ function schemasInferes(checker, decl) {
         }
       }
       if (s) out.add(s)
+    }
+    n.forEachChild(visit)
+  }
+  visit(decl.type)
+  return out
+}
+
+/** Fichiers des MODULES de def dont la déclaration de la cible DÉRIVE son entrée : les `typeof d` d'un
+ *  import d'espace de noms que porte le nœud de type d'un alias (`type StakeEntry = EntreeDe<typeof
+ *  stakesDef>`, `src/data/datasets.ts`). Vide pour une `interface`/`class`. */
+function modulesDerives(checker, decl) {
+  const out = new Set()
+  if (!ts.isTypeAliasDeclaration(decl) || !decl.type) return out
+  const visit = (n) => {
+    if (ts.isTypeQueryNode(n) && ts.isIdentifier(n.exprName)) {
+      const s = checker.getSymbolAtLocation(n.exprName)
+      const module = s && s.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(s) : undefined
+      const d = module && module.flags & SymbolFlags.ValueModule ? module.declarations?.[0]?.resolve() : undefined
+      if (d && ts.isSourceFile(d)) out.add(norm(d.fileName))
     }
     n.forEachChild(visit)
   }
@@ -289,7 +310,8 @@ function porteurDe(ctx, site) {
 
 /** La cible résolue : déclaration du type à son `home`, et par champ ses déclarations de propriété
  *  (toutes, héritage compris) et celles qui lui sont PROPRES — sous-arbre de la déclaration, ou
- *  shape d'un schéma dont la cible infère son corps (identité par SYMBOLE des deux côtés). */
+ *  shape d'un schéma dont la cible infère son corps (identité par SYMBOLE des deux côtés), ou module du
+ *  def dont elle dérive son entrée. */
 function cibleDe(ctx, type, home, fields) {
   const cle = `${home}#${type}`
   let cible = ctx.cibles.get(cle)
@@ -301,12 +323,13 @@ function cibleDe(ctx, type, home, fields) {
   if (!decl) throw new Error(`fieldConsumers : type \`${type}\` introuvable dans ${home} — cible non résoluble`)
   const declare = checker.getDeclaredTypeOfSymbol(checker.getSymbolAtLocation(decl.name))
   const schemas = schemasInferes(checker, decl)
+  const modules = modulesDerives(checker, decl)
   const toutes = new Map()
   const propres = new Map()
   for (const f of fields) {
     const a = declarationsDeProp(checker, declare, f)
     toutes.set(f, a)
-    propres.set(f, new Set([...a].filter((d) => dansSousArbre(d, decl) || schemas.has(constDuShape(checker, d)))))
+    propres.set(f, new Set([...a].filter((d) => dansSousArbre(d, decl) || schemas.has(constDuShape(checker, d)) || modules.has(norm(d.getSourceFile().fileName)))))
   }
   cible = { decl, toutes, propres }
   ctx.cibles.set(cle, cible)

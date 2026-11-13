@@ -16,6 +16,7 @@ import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { itemFromTrappingById } from '../engine/items';
+import type { VivresDeCale } from '../engine/provisions';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
 import { byId, maladies, species } from '../data';
@@ -1083,23 +1084,55 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     expect(get().vessel!.waterLitres).toBe(1000 - 8 * 3 * 7);
   });
 
-  it('#245 — l’équipage mange les vivres de cale ; à court → facteur de Moral « nourriture-insuffisante »', () => {
-    // 15 PNJ × 7 jours = 105 rations requises. Vivres de cale 50 < 105 → disette.
-    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: 50 } });
+  const FRAIS = 'nourriture-courses-journee', PRESERVEE = 'ration-nourriture-preservee', BISCUITS = 'ration-biscuits-de-mer';
+  const cale = (v: Record<string, number>) => v as VivresDeCale;
+
+  it('#245 — l’équipage mange les vivres de cale ; à court → facteur de Moral « nourriture-insuffisante » (MDG 14 l.171)', () => {
+    // 15 PNJ × 7 jours = 105 rations requises. Vivres de cale 20 + 20 + 10 = 50 < 105 → disette.
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [FRAIS]: 20, [PRESERVEE]: 20, [BISCUITS]: 10 }) } });
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toBe(0); // épuisés
-    expect(v.morale.factors).toContain('nourriture-insuffisante'); // pèsera au recalcul hebdomadaire (MDG 14 l.171)
+    expect(v.provisions).toEqual({ [FRAIS]: 0, [PRESERVEE]: 0, [BISCUITS]: 0 });
+    expect(v.morale.factors).toContain('nourriture-insuffisante');
   });
 
-  it('#245 — vivres de cale suffisants → aucun facteur de disette, stock décrémenté', () => {
-    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: 200, morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-insuffisante'] } } });
+  it('#245 — l’équipage mange le frais, puis la nourriture préservée, puis les biscuits de mer (MDG 14 l.238, l.263)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [BISCUITS]: 70, [PRESERVEE]: 100, [FRAIS]: 30 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-insuffisante'] } } });
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.provisions).toBe(200 - 15 * 7); // 105 consommés
-    expect(v.morale.factors).not.toContain('nourriture-insuffisante'); // réapprovisionné → facteur retiré
+    // 15 PNJ × 7 jours = 105 : les 30 frais, puis 75 des 100 préservées ; les biscuits restent entiers.
+    expect(v.provisions).toEqual({ [FRAIS]: 0, [PRESERVEE]: 25, [BISCUITS]: 70 });
+    expect(v.morale.factors).not.toContain('nourriture-insuffisante');
+  });
+
+  // 15 PNJ × 7 jours = 105 rations ; le dernier jour de la traversée (15 rations) fait la nourriture du recalcul.
+  it('#1652 — dernier jour couvert par les seuls biscuits de mer → facteur « nourriture-biscuits-de-mer » (MDG 14 l.166)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [PRESERVEE]: 50, [BISCUITS]: 100 }) } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    const v = get().vessel!;
+    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 45 });
+    expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
+  });
+
+  it('#1652 — dernier jour mêlé (nourriture préservée puis biscuits) → aucun facteur de nourriture (MDG 14 l.166)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [PRESERVEE]: 100, [BISCUITS]: 70 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    const v = get().vessel!;
+    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 65 });
+    expect(v.morale.factors).toEqual([]);
+  });
+
+  it('#1652 — jour court sur des biscuits → « nourriture-insuffisante » seul, les deux facteurs s’excluent (MDG 14 l.166, l.171)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [BISCUITS]: 100 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    const v = get().vessel!;
+    expect(v.provisions).toEqual({ [BISCUITS]: 0 });
+    expect(v.morale.factors).toEqual(['nourriture-insuffisante']);
   });
 
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {

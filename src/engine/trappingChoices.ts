@@ -123,5 +123,5 @@ function resoudre(ref: TrappingRef, e: EmplacementDeDotation | undefined, choice
     const id = idChoisi(e, choices);
     return id ? { id } : ref;
   }
-  return { id: e.ref.id, spec: e.ref.spec, count: e.ref.count, qualities: [fabricationAtoutQuality(idChoisi(e, choices) ?? DEFAULT_FABRICATION_ATOUT)] };
+  return { id: e.ref.id, spec: e.ref.spec, count: e.ref.count, ...(e.ref.valeur ? { valeur: e.ref.valeur } : {}), qualities: [fabricationAtoutQuality(idChoisi(e, choices) ?? DEFAULT_FABRICATION_ATOUT)] };
 }

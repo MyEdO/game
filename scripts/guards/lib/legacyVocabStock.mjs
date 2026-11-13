@@ -35,13 +35,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-08-23",
   },
   {
-    fichier: "src/engine/provisions.ts",
-    motif: "rétro-compat",
-    ancre: "de cale (le port avitaille les deux). Absent = seuls les héros comptent (rétro-compat). */",
-    lot: "L4",
-    date: "2026-08-23",
-  },
-  {
     fichier: "src/engine/trauma.ts",
     motif: "legacy",
     ancre: "Omis (tests/legacy) ⇒ pas de décompte (séquelle permanente jusqu'à traitement explicite). */",

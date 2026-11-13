@@ -252,7 +252,8 @@ interface LigneDeNature<K extends string, Id extends string> {
   label: string;
 }
 
-/** VUE TS d'une ligne `piece` — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`). */
+/** VUE TS d'une ligne `piece`. Le type se dérive par `DatasetDe`/`EntreeDe` (`data/datasets.ts`) ; la vue manuscrite reste
+ *  parce qu'elle discrimine `GardeRobeEntree` par `kind` avec les ids marqués de chaque nature (`PieceId`), que le dérivé rend `string`. */
 export interface PieceDef extends LigneDeNature<'piece', PieceId> {
   categorie: CategorieDePiece;
   emplacement?: { id: EmplacementId };

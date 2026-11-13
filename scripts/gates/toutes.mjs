@@ -449,7 +449,7 @@ export const ECRIT_LU = {
         'par temporaire exclusif puis renommage (`ecrireTexteAtomique`) : un lecteur concurrent voit l’absent, l’ancien ou ' +
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
-        '`types` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
+        '`godot` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
         'qu’après l’écriture ; le lint lit des modules, la suite du noyau n’en lit que les provenances',
       'src/scenes/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
@@ -481,7 +481,7 @@ export const ECRIT_LU = {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs) : `recupererModeles` n’y écrit ' +
         'un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis renommage ; ' +
-        '`godot:rendus` suit `godot:sonde` dans le job `types` de ci.yml, la même lane, une SÉRIE : il ne lui reste rien ' +
+        '`godot:rendus` suit `godot:sonde` dans le job `godot` de ci.yml, la même lane, une SÉRIE : il ne lui reste rien ' +
         'à écrire, et la gate lectrice du dossier, `personnage-3d:tests`, les suit toutes deux',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],

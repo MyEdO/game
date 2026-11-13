@@ -457,8 +457,8 @@ describe('#1262 V4 M2 — le murage du CHOIX DE GROUPE est TUEUR', () => {
 
 /**
  * LA MARQUE DU TEXTE JOUEUR (#1318 V8a₀) — troisième marque sous le MÊME verrou : `PlayerText`
- * (`src/i18n/playerText.ts`) n'a que trois minteurs (`i18n.t`, `data.dataLabel`/`data.refLabel`,
- * `rollSeam.composeRollLabel`), donc la seule autre fabrique est le cast. Les CINQ formes du patron
+ * (`src/i18n/playerText.ts`) n'a que les minteurs que son en-tête nomme, donc la seule autre fabrique
+ * est le cast. Les CINQ formes du patron
  * sont rejouées ici sur la config RÉELLE : sans elles, ajouter un nom au sélecteur serait une
  * déclaration, pas un murage.
  *

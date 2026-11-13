@@ -44,6 +44,8 @@ export interface MoraleFactor {
   /** Choix de paie mis en AVANT au Conseil de bord (action principale de la modale) — donnée MAISON,
    *  comme `wageMul` : le tableau MDG 14 ne hiérarchise pas les lignes « La paie … ». */
   recommendedPay?: boolean;
+  /** Le seul vivre que l'équipage mange quand ce facteur s'applique. MDG 14 l.166 */
+  vivreSeul?: { id: string };
 }
 
 /** Bande d'effet du Moral (EFFETS DU MORAL, MDG 14). */
@@ -109,6 +111,16 @@ export function recalcMorale(current: number, activeFactorIds: string[], rng: RN
  *  tableau LIVE (édition Codex visible en direct), jamais sur un index figé au chargement. */
 export function findMoraleFactor(id: string): MoraleFactor | undefined {
   return MORALE_FACTORS.find((f) => f.id === id);
+}
+
+/** Le facteur de Moral d'une nourriture faite du seul vivre `vivre` (`vivreSeul`), s'il en est un. MDG 14 l.166 */
+export function facteurDuVivreSeul(vivre: string): MoraleFactor | undefined {
+  return MORALE_FACTORS.find((f) => f.vivreSeul?.id === vivre);
+}
+
+/** Les ids des facteurs de Moral d'une nourriture faite d'un seul vivre (`vivreSeul`). MDG 14 l.166 */
+export function facteursDeVivreSeul(): string[] {
+  return MORALE_FACTORS.filter((f) => f.vivreSeul).map((f) => f.id);
 }
 
 /** Un CHOIX de paie du Conseil de bord : le facteur de Moral + son multiplicateur de solde. */
