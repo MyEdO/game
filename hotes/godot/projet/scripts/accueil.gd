@@ -6,13 +6,15 @@ extends CenterContainer
 
 ## @contrat Écran publié
 ## L'entrée de l'application est un menu (`scenes/Accueil.tscn`, `run/main_scene`) qui montre la zone `accueil.gestes`
-## de la méthode `accueil` : « Jouer » ouvre une partie au groupe (`ouvrir`, `PontDuNoyau.au_groupe`), « Reprendre »
-## montre les sauvegardes à charger (`sauvegardes`, `PontDuNoyau.reprise`), « Combat » démarre un scénario de test,
-## « Atelier » et « Éditeur » ouvrent leur scène, « Options » ouvre le panneau des réglages (`reglages`).
+## de la méthode `accueil` : « Jouer » ouvre une partie au groupe (`ouvrir`), « Reprendre » montre les sauvegardes à
+## charger (`sauvegardes`), « Jouer en ligne » montre le panneau du salon sans partie (`salon`), chacune au combat, qui
+## suit l'entrée de l'accueil (`PontDuNoyau.entree`) ; « Combat » démarre un scénario de test, « Atelier » et « Éditeur »
+## ouvrent leur scène, « Options » ouvre le panneau des réglages (`reglages`).
 
 ## La scène de chaque entrée de l'accueil (`EntreeDeLAccueil`).
 const SCENES := {
-	jouer = "res://scenes/Combat.tscn", reprendre = "res://scenes/Combat.tscn", combat = "res://scenes/Combat.tscn",
+	jouer = "res://scenes/Combat.tscn", reprendre = "res://scenes/Combat.tscn", salon = "res://scenes/Combat.tscn",
+	combat = "res://scenes/Combat.tscn",
 	atelier = "res://scenes/Atelier.tscn", editeur = "res://scenes/Editeur.tscn",
 }
 
@@ -45,8 +47,7 @@ func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("reglages"):
 		_reglages.ouvrir()
 		return
-	_pont.au_groupe = jeu.accueil == "jouer"
-	_pont.reprise = jeu.accueil == "reprendre"
+	_pont.entree = jeu.accueil
 	get_tree().change_scene_to_file(SCENES[jeu.accueil])
 
 
