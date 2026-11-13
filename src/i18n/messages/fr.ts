@@ -1866,6 +1866,7 @@ export const fr = {
   'saut.aucuneSurface': 'Saut refusé : rien ne recevrait une chute dans ce gouffre.',
   'marche.horsDePas': 'Pas refusé : le groupe marche d’une case voisine à la suivante.',
   'marche.aucunChemin': 'Marche refusée : aucun chemin du groupe ne mène à ({x},{y}).',
+  'marche.aucunCheminALEtage': 'Marche refusée : aucun chemin du groupe ne mène à ({x},{y}) à l’étage {z}.',
   'marche.autreEtage': 'Pas refusé : cette case voisine est à l’étage {z}, le pas la vise à cet étage.',
   'porte.refus.ouverte': 'Porte refusée : cet accès est déjà ouvert, le groupe le franchit en marchant.',
   'porte.refus.inconnue': 'Porte refusée : aucun accès « {id} » à portée.',
