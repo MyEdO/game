@@ -8,6 +8,8 @@
  */
 import { RNG } from './dice';
 import { t } from '../i18n';
+import type { PlayerText } from '../i18n/playerText';
+import { nomDe } from './nom';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason, type VainqueurOppose, reverseRoll } from './tests';
 import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
@@ -1224,7 +1226,7 @@ function combineOpposed(
       attackerDetail: atkLine,
       defenderDetail: defLine,
       parryWeapon: usedParry,
-      log: `${attacker.label} rate son attaque ; ${defender.label} gagne +1 Avantage.`,
+      log: t('touche.rateEtAvantage', { attaquant: nomDe(attacker), cible: nomDe(defender) }),
     };
   }
   if (opp.winner === 'egalite') {
@@ -1240,7 +1242,7 @@ function combineOpposed(
       attackerDetail: atkLine,
       defenderDetail: defLine,
       parryWeapon: usedParry,
-      log: `Échange neutre : ni ${attacker.label} ni ${defender.label} ne prend l'avantage.`,
+      log: t('touche.echangeNeutre', { attaquant: nomDe(attacker), cible: nomDe(defender) }),
     };
   }
   const critical = atk.isDouble && atk.success;
@@ -1317,7 +1319,7 @@ function passiveOutcome(
     critical: false,
     advantageTo: null,
     defenderDefeated: false,
-    log: `${attacker.label} manque ${defender.label}.`,
+    log: t('touche.manque', { attaquant: nomDe(attacker), cible: nomDe(defender) }),
   };
   const res = applyHit(attacker, defender, weapon, atkBd, dr, atk.isDouble && atk.success, tirage, location, dmgProxy, 0, withhold);
   if (kind === 'melee' && res.hit && (attacker.swarm || sizeGap(dmgProxy?.size ?? attacker.size, defender.size) >= 1)) res.cleave = true; // LDB 85 l.362/253 ; LDB 14 l.183
@@ -1457,7 +1459,7 @@ export function resolveRanged(
   const atkVal = combatValue(attacker, 'distance', weapon);
   const rangeM = porteeDeTir(attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandModifier(distanceTiles, rangeM, metresPerTile) == null)
-    return { hit: false, attackerRoll: 0, netSL: 0, critical: false, advantageTo: null, defenderDefeated: false, log: `${attacker.label} : cible hors de portée.` };
+    return { hit: false, attackerRoll: 0, netSL: 0, critical: false, advantageTo: null, defenderDefeated: false, log: t('touche.horsDePortee', { attaquant: nomDe(attacker) }) };
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile });
   let atk: TestResult = { ...rollTest(atkVal, 'intermediaire', rng, combineMods(mods)), base: combatBaseValue(attacker, 'distance', weapon) }; // LDB 12 l.160
   if (isHelplessTarget(defender)) atk = helplessTest(atk, 'distance'); // auto-succès, Dégâts à bout portant (LDB 16 l.113)
@@ -1554,7 +1556,7 @@ export function resolveStrayRangedHit(
  */
 export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number, tirage: TirageDeLocalisation, withhold = false, dmgProxy?: AttackOptions['dmgProxy']): AttackResult {
   // Arbitrage A6 du 2026-10-13 (#1765, commentaire 6142721431).
-  if (!atkBd.success) return { hit: false, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, critical: false, advantageTo: null, defenderDefeated: false, log: `${attacker.label} manque ${defender.label}.` };
+  if (!atkBd.success) return { hit: false, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, critical: false, advantageTo: null, defenderDefeated: false, log: t('touche.manque', { attaquant: nomDe(attacker), cible: nomDe(defender) }) };
   return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), tirage, undefined, dmgProxy, 0, withhold);
 }
 
@@ -1679,8 +1681,10 @@ export function profilDuCoup(weapon: Weapon, retenu: boolean): Weapon {
 
 /** Les termes d'une ligne de touche que l'application ne change pas. MDG 13 l.605, l.614. */
 export interface ToucheDuJournal {
-  attaquant: string;
-  cible: string;
+  /** Le nom de l'attaquant au jet (`nomDe`). */
+  attaquant: PlayerText;
+  /** Le nom de la cible au jet (`nomDe`). */
+  cible: PlayerText;
   forme?: BodyShape;
   /** Libellé de la mitigation (`BE+PA`, ou le BE multiplié d'une Structure, AA 10 l.98). */
   mitigation: string;
@@ -1698,18 +1702,17 @@ export function phraseDeTouche(
   critique: boolean,
   relance: boolean,
 ): string {
-  const tete = touche.sort ? `${touche.attaquant} lance ${touche.sort} sur ${touche.cible}` : `${touche.attaquant} touche ${touche.cible}`;
+  const tete = touche.sort ? t('touche.teteDuSort', { attaquant: touche.attaquant, sort: touche.sort, cible: touche.cible }) : t('touche.tete', { attaquant: touche.attaquant, cible: touche.cible });
   if (touche.coque) {
     return t('touche.sansEffetCoque', { tete, raison: t(touche.coque === 'petites-armes' ? 'touche.coquePetitesArmes' : 'touche.coqueTropPetit') });
   }
   const nomme = res.location ? locationLabel(res.location, touche.forme) : '';
-  const lieu = nomme ? ` (${relance ? t('touche.nouvelleLocalisation', { lieu: nomme }) : nomme})` : '';
-  const marque = critique ? ' — CRITIQUE !' : '';
-  const close = (phrase: string): string => (/[!?…]$/.test(phrase) ? phrase : `${phrase}.`);
-  if (res.sansPrise || res.degatsTransferes) return close(`${tete}${lieu}${marque}`);
+  const localisee = nomme ? t('touche.localisee', { tete, lieu: relance ? t('touche.nouvelleLocalisation', { lieu: nomme }) : nomme }) : tete;
   const damage = res.damage ?? 0;
   const blessures = res.woundsLost ?? 0;
-  return close(`${tete}${lieu} : ${damage} dégâts − ${damage - blessures} (${touche.mitigation}) = ${blessures} Blessures${marque}`);
+  const phrase = res.sansPrise || res.degatsTransferes ? localisee : t('touche.chiffree', { tete: localisee, degats: damage, absorbes: damage - blessures, mitigation: touche.mitigation, blessures });
+  const marquee = critique ? t('touche.critique', { phrase }) : phrase;
+  return /[!?…]$/.test(marquee) ? marquee : `${marquee}.`;
 }
 
 /** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
@@ -1750,7 +1753,7 @@ function applyHit(
     return {
       hit: true, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, location: loc,
       damage: 0, woundsLost: 0, critical: isCritical, ...(withholding ? { retenu: true as const } : {}), sansPrise: 'ethere', advantageTo: 'attaquant', defenderDefeated: false,
-      log: `${attacker.label} touche ${defender.label}… mais le coup passe au travers (Éthéré — seules les attaques magiques la blessent).`,
+      log: t('touche.ethere', { attaquant: nomDe(attacker), cible: nomDe(defender) }),
     };
   }
   // Charge montée (LDB 14 l.183) : DÉGÂTS calculés avec la Force (Bonus) et la Taille de la MONTURE.
@@ -1794,12 +1797,12 @@ function applyHit(
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);
   const beBase = bonus(effectiveChar(defender, 'endurance'));
   const mitLabel = beMult > 1
-    ? `BE ${beBase} × ${beMult} (Taille ${SIZE_LABEL[effectiveSize(structureTaille(defender))]} contre ${SIZE_LABEL[effectiveSize(attacker.size)]}) = ${beBase * beMult}, +PA`
+    ? t('touche.mitigationStructure', { be: beBase, mult: beMult, taille: SIZE_LABEL[effectiveSize(structureTaille(defender))], tailleAttaquant: SIZE_LABEL[effectiveSize(attacker.size)], total: beBase * beMult })
     : 'BE+PA';
   const newWounds = defender.wounds.current - woundsLost;
   const defeated = newWounds <= 0;
   const touche: ToucheDuJournal = {
-    attaquant: attacker.label, cible: defender.label, forme: defender.bodyShape, mitigation: mitLabel,
+    attaquant: nomDe(attacker), cible: nomDe(defender), forme: defender.bodyShape, mitigation: mitLabel,
     ...(hullBlocked ? { coque: hullAdj.blocked === 'petites-armes' ? 'petites-armes' as const : 'taille' as const } : {}),
   };
   // LDB 18 l.53, l.55 ; AA 07 l.25, l.32 ; #1595 c.6226467544.

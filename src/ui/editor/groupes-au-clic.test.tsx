@@ -39,7 +39,7 @@ afterEach(() => {
 const GROUPES = [...idsDe('groupe')];
 const DECLARABLES = idsDeLaSousListe('groupe', DECLARABLE_PAR_UN_PORTEUR);
 /** Jokers et relatifs par la FORME de la donnée, jamais par la sous-liste qu'on éprouve. */
-const RELATIFS = groups.filter((g) => g.relatif).map((g) => g.id);
+const RELATIFS: string[] = groups.filter((g) => g.relatif).map((g) => g.id);
 const APPARTENANCE = GROUPES.filter((id) => !RELATIFS.includes(id));
 const JOKER = groups.find((g) => g.matchesAll)?.id;
 const [RELATIF] = RELATIFS;

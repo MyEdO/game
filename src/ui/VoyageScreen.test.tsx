@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { CampaignVessel } from '../noyau/etat';
+import type { VivresDeCale } from '../engine/provisions';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';
@@ -30,7 +31,7 @@ const vessel = (): CampaignVessel => ({
   vehicleId: 'cogue', label: 'Le Cormoran',
   morale: { score: 62, lastMoraleWeek: 0, factors: [] },
   wounds: { current: 8, max: 20 },
-  provisions: 9,
+  provisions: { 'ration-biscuits-de-mer': 5, 'ration-nourriture-preservee': 4 } as VivresDeCale,
   cargo: [{ uid: 'lot-1', cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
 });
 
@@ -64,8 +65,9 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
   });
 
   it('tuiles MER : vent, coque, moral, provisions, cale', () => {
-    const keys = voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0).map((t) => t.key);
-    expect(keys).toEqual(expect.arrayContaining(['vent', 'coque', 'moral', 'provisions', 'cale']));
+    const tiles = voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0);
+    expect(tiles.map((t) => t.key)).toEqual(expect.arrayContaining(['vent', 'coque', 'moral', 'provisions', 'cale']));
+    expect(tiles.find((t) => t.key === 'provisions')?.value).toBe('9 j-homme');
     const coque = voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0).find((t) => t.key === 'coque')!;
     expect(coque.value).toBe('8 / 20');
     expect(coque.gauge).toBeDefined();
