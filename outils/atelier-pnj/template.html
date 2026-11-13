@@ -9,6 +9,7 @@
   --bg:#ecebe6; --panel:#f8f7f3; --ink:#24211d; --muted:#6b645b; --line:#d6d1c7;
   --accent:#7d2318; --accent-ink:#fff8f0; --field:#ffffff; --focus:#b5651d;
   --paper:#f3e9d2; --paper-edge:#c9b48a; --paper-ink:#2a2018; --paper-red:#7a1f14; --paper-rule:#b49a6c;
+  --or:#e0ab1e; --argent:#6f7880; --cuivre:#b0501a;
   --f-display:"IM Fell English SC", "Iowan Old Style", Georgia, serif;
   --f-book:"IM Fell DW Pica", "Iowan Old Style", Georgia, serif;
   --f-ui:"Alegreya Sans", "Segoe UI", system-ui, sans-serif;
@@ -55,6 +56,7 @@ button.ghost:hover{color:var(--accent)}
 .seg button{border:0;border-radius:5px;background:transparent;color:var(--muted);font-weight:600;padding:5px 12px;white-space:normal}
 .seg button:hover{color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.pieces{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle}.piece{display:inline-grid;place-items:center;flex:none;min-width:2em;height:2em;padding:0 .45em;border-radius:999px;font-size:13px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}.piece.p0{background:var(--or);color:#2a1d00}.piece.p1{background:var(--argent);color:#fff}.piece.p2{background:var(--cuivre);color:#fff}.purse .piece{min-width:1.7em;height:1.7em;padding:0 .25em;font-size:11px}
 .inl{display:flex;gap:6px}.purse label{display:flex;align-items:center;gap:4px;flex:1 1 0;min-width:0;color:var(--muted);font-size:13px}.purse label input{flex:1 1 auto;width:0;min-width:0;text-align:center}.inl input{flex:1 1 auto;min-width:0}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .toolbar .hint{margin:0}
@@ -292,7 +294,7 @@ dialog .actions{margin-top:10px}dialog .hint{margin-top:8px}
         <h2>Possessions</h2>
         <div class="list" id="lIt"></div>
         <div class="add"><input id="aIt" data-pick autocomplete="off" placeholder="Ajouter un objet, de la liste ou libre…"><button type="button" id="bIt">Ajouter</button></div>
-        <div class="row"><div class="fld"><span class="lbl">Bourse<span class="check"><input type="checkbox" id="fPurse"><label for="fPurse">dans l'encadré</label></span></span><span class="inl purse"><label><input id="fPurseCO" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Couronnes d'or">CO</label><label><input id="fPursePA" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Pistoles d'argent">pa</label><label><input id="fPurseS" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Sous de cuivre">s</label><button type="button" class="sm" id="bPurse" title="Tirer selon le Statut de la carrière">Tirer</button></span></div></div>
+        <div class="row"><div class="fld"><span class="lbl">Bourse<span class="check"><input type="checkbox" id="fPurse"><label for="fPurse">dans l'encadré</label></span></span><span class="inl purse"><label><input id="fPurseCO" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Couronnes d'or"><span class="piece p0" title="Couronnes d'or" aria-hidden="true">CO</span></label><label><input id="fPursePA" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Pistoles d'argent"><span class="piece p1" title="Pistoles d'argent" aria-hidden="true">pa</span></label><label><input id="fPurseS" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Sous de cuivre"><span class="piece p2" title="Sous de cuivre" aria-hidden="true">s</span></label><button type="button" class="sm" id="bPurse" title="Tirer selon le Statut de la carrière">Tirer</button></span></div></div>
       </div>
 
       <div class="card" data-tab="talents">
@@ -422,7 +424,11 @@ function taLabel(t){const d=DB.talents[t.id];const l=d?d.l:human(t.id);let sp=''
 function argLabel(a,d){if(a==null||a==='')return'';if(d&&d.s[a])return d.s[a];if(DB.items[a])return DB.items[a].l;if(/[A-ZÀ-Ý ]/.test(a))return a;return human(a)}
 function trLabel(t){const d=DB.traits[t.id];let s=(t.n?t.n+' ':'')+(d?d.l:human(t.id))+(isMaison(d)?' (maison)':'');const a=argLabel(t.arg,d);if(a)s+=' ('+a+')';if(t.v!=null&&t.v!=='')s+=(d&&d.a?' +':' ')+t.v;if(t.r)s+=' ('+t.r+')';return s}
 function itLabel(x){if(x.t)return x.t;if(x.c)return DB.crl[x.c]||human(x.c);const d=DB.items[x.i];return d?d.l:human(x.i)}
-function priceTxt(p){if(!p)return'';const a=[];if(p[0])a.push(p[0]+' CO');if(p[1])a.push(p[1]+' pa');if(p[2])a.push(p[2]+' s');return a.join(' ')}
+const MONNAIES=[['CO','couronne d\'or','couronnes d\'or'],['pa','pistole d\'argent','pistoles d\'argent'],['s','sou de cuivre','sous de cuivre']];
+function priceTxt(p){if(!p)return'';return MONNAIES.flatMap(([a],i)=>p[i]?[p[i]+' '+a]:[]).join(' ')}
+const monnaieNom=(n,i)=>n+' '+MONNAIES[i][n>1?2:1];
+const pieceHtml=(n,i)=>'<span class="piece p'+i+'" title="'+esc(monnaieNom(n,i))+'">'+n+'</span>';
+function piecesHtml(p){if(!p||!p.some(Boolean))return'';const L=MONNAIES.flatMap((m,i)=>p[i]?[i]:[]);return '<span class="pieces" role="img" aria-label="'+esc(L.map(i=>monnaieNom(p[i],i)).join(', '))+'">'+L.map(i=>pieceHtml(p[i],i)).join('')+'</span>'}
 function itTip(x){
   if(x.c){const c=crById[x.c];return c?(c.t||c.l)+' (créature du bestiaire)':''}
   const d=x.i&&DB.items[x.i];if(!d)return'';
@@ -649,7 +655,7 @@ function infoOf(key){const i=key.indexOf(':'),k=key.slice(0,i),id=key.slice(i+1)
   else if(k==='tr'&&(d=DB.traits[id])){rows=[['Attaque',d.a?'Oui':''],['Indice',d.iv?'Oui':''],['Profil',pmTxt(d)],['Précisions',specs(d)]];txt=d.d}
   else if(k==='mu'&&(d=DB.mut[id])){rows=[['Type',d.k==='mentale'?'Mutation mentale':'Mutation physique'],['Profil',pmTxt(d)]];txt=d.d}
   else if(k==='q'&&(d=DB.q[id])){rows=[['Type',d.p==='defaut'?'Défaut':'Atout']];txt=d.d}
-  else if(k==='it'&&(d=DB.items[id])){rows=[['Catégorie',KIND[d.k]||'Objet'],['Groupe',d.st?(DB.wg[d.st]||human(d.st)):''],['Dégâts',dmgTxt(d)],['Allonge',d.re||''],['Portée',rngTxt(d)],['Points d\'Armure',d.pa!=null?String(d.pa):''],['Localisations',d.lo||''],['Atouts et défauts',qTxt(d)],['Encombrement',d.e!=null?String(d.e):''],['Disponibilité',d.av||''],['Prix',priceTxt(d.pr)]];txt=[d.ds||''].concat((d.q||[]).map(([q])=>DB.q[q]?'**'+DB.q[q].l+' :** '+cut(DB.q[q].d,0):'')).filter(Boolean).join('\n\n')}
+  else if(k==='it'&&(d=DB.items[id])){rows=[['Catégorie',KIND[d.k]||'Objet'],['Groupe',d.st?(DB.wg[d.st]||human(d.st)):''],['Dégâts',dmgTxt(d)],['Allonge',d.re||''],['Portée',rngTxt(d)],['Points d\'Armure',d.pa!=null?String(d.pa):''],['Localisations',d.lo||''],['Atouts et défauts',qTxt(d)],['Encombrement',d.e!=null?String(d.e):''],['Disponibilité',d.av||''],['Prix',(h=>h&&{h})(piecesHtml(d.pr))]];txt=[d.ds||''].concat((d.q||[]).map(([q])=>DB.q[q]?'**'+DB.q[q].l+' :** '+cut(DB.q[q].d,0):'')).filter(Boolean).join('\n\n')}
   if(!d)return null;
   return {rows:rows.filter(r=>r[1]),txt:String(txt||'').trim(),src:(d.vo!==undefined?(d.vo?'Source VO : '+d.vo:'Source VO inconnue')+', via ':'')+srcTxt(d.o)}}
 const paras=s=>s.split(/\n\s*\n/).filter(p=>p.trim()).map(p=>'<p>'+md(p)+'</p>').join('');
@@ -659,7 +665,7 @@ const chRef=i=>[ABR[i],'ch:'+i],skRef=([id,spec])=>[skLabel({id,spec}),'sk:'+id]
 const lvRows=l=>[['Caractéristiques',l.ch.map(c=>chRef(c+1))],['Compétences',l.sk.map(skRef)],['Talents',l.ta.map(taRef)],['Possessions',l.tr.map(itRef)]].filter(r=>r[1].length);
 const heroRows=h=>[['Caractéristiques',h.pm.flatMap((v,i)=>v?[['+'+v+' '+ABR[i+1],'ch:'+(i+1)]]:[])],['Traits',(h.arme?[['Arme +'+h.arme,'tr:arme'],['Armure +'+h.armure,'tr:armure']]:[]).concat((h.tr||[]).map(trRef))],['Talents',(h.ta||[]).map(x=>taRef([x]))]].filter(r=>r[1].length);
 const beastRows=b=>[['Compétences',[[(b.sk[1]?'Corps à corps (Bagarre)':'Perception')+' +20','sk:'+b.sk[0]]]],['Talents',[[DB.talents[b.ta].l+' au maximum','ta:'+b.ta]]]];
-const ddv=v=>Array.isArray(v)?v.map(([l,k])=>k&&infoOf(k)?'<span class="tp" data-tip="'+esc(l)+'" data-info="'+esc(k)+'" tabindex="0">'+esc(l)+'</span>':esc(l)).join(', '):esc(v);
+const ddv=v=>v.h?v.h:Array.isArray(v)?v.map(([l,k])=>k&&infoOf(k)?'<span class="tp" data-tip="'+esc(l)+'" data-info="'+esc(k)+'" tabindex="0">'+esc(l)+'</span>':esc(l)).join(', '):esc(v);
 function spellMeta(d,asRows){const p=[];
   if(d.n!=null)p.push('NI : '+d.n);
   const r=d.r;if(r){p.push('Portée : '+(r.kind==='distance'?vTxt(r.value,UNIT[r.unit]||r.unit):r.kind==='touch'?'Contact':r.kind==='self'?'Personnelle':(r.text||'Spéciale')))}
@@ -789,7 +795,7 @@ function syncForm(){drawNext();
    $('heroHint').innerHTML=p.map(([l,rows,k])=>'<div><b'+(k?' class="tp" data-tip="'+esc(l)+'" data-info="'+k+'" tabindex="0"':'')+'>'+esc(l)+'</b><dl>'+rows.map(([k,v])=>'<dt>'+esc(k)+'</dt><dd>'+ddv(v)+'</dd>').join('')+'</dl></div>').join('')+(src.length?'<p class="src">'+esc(src.join(' · '))+'</p>':'');$('heroHint').hidden=!p.length}
   $('fBAuto').checked=S.bAuto;
   $('fPurse').checked=!!S.purse;setPurse();
-  {const s=statusOf(S),c=(curCar(S)||{}).c;$('bPurse').disabled=!s&&!(c&&c.money);$('bPurse').title=!s&&c&&c.money?'Modèle '+c.l+' : '+c.money[0]+'d10 '+({s:'sous de cuivre',pa:'pistoles d\'argent',CO:'couronnes d\'or'})[c.money[1]]+' ('+NOF+').':s?'Statut '+s.t+' '+s.n+' : '+(s.t==='Bronze'?2*s.n+'d10 sous de cuivre':s.t==='Argent'?s.n+'d10 pistoles d\'argent':s.n+' couronne'+(s.n>1?'s':'')+' d\'or')+', la richesse initiale du Livre de base (LDB 05 l.574-583).':'Sans carrière, pas de Statut : saisissez la somme à la main.'}
+  {const s=statusOf(S),c=(curCar(S)||{}).c;$('bPurse').disabled=!s&&!(c&&c.money);$('bPurse').title=!s&&c&&c.money?'Modèle '+c.l+' : '+c.money[0]+'d10 '+MONNAIES.find(m=>m[0]===c.money[1])[2]+' ('+NOF+').':s?'Statut '+s.t+' '+s.n+' : '+(s.t==='Bronze'?2*s.n+'d10 sous de cuivre':s.t==='Argent'?s.n+'d10 pistoles d\'argent':s.n+' couronne'+(s.n>1?'s':'')+' d\'or')+', la richesse initiale du Livre de base (LDB 05 l.574-583).':'Sans carrière, pas de Statut : saisissez la somme à la main.'}
   $('fNotes').value=S.notes;$('fNotesOn').checked=S.notesOn;$('fApp').checked=!!S.app;$('fAppV').value=S.appV||'';$('bApp').disabled=!appSp(S);
   {const m=crById[S.model];let d=m&&m.dd?m.dd.replace(/\*/g,''):'';const el=$('mDesc');el.textContent=d.length>260?d.slice(0,250).replace(/\s+\S*$/,'')+'…':d;el.title=d.length>260?d:'';
    el.hidden=!d}
