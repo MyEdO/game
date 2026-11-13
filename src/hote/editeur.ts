@@ -1753,19 +1753,14 @@ const inspecteurDeLaCarte = (s: SessionDEdition): (Choix | Ligne | Bouton | Form
     return formulaireDuPorteur(s, porteur, porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee);
   });
 
-/** L'inspecteur du porteur singulier d'un document qui en a un propre, par sorte : de la scène, `inspecteurDeScene` ;
- *  de la carte du monde, `inspecteurDeLaCarte`. */
-const INSPECTEURS_DES_SINGULIERS: { readonly [S in SorteDePorteur]?: (s: SessionDEdition) => (Choix | Ligne | Bouton | Formulaire)[] } = {
-  scene: inspecteurDeScene,
-  carte: inspecteurDeLaCarte,
-};
-
 /** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, d'un
  *  autre porteur de formulaire du projet (`inspecteurDeLaLogique`), d'un ouvrage d'architecture ou de l'arête
- *  sélectionnée ; sans elle, celui du porteur singulier du document ouvert (`porteurDeLaSel`), le sien propre
- *  (`INSPECTEURS_DES_SINGULIERS`), sinon son formulaire tiré du schéma (`formulaireDuPorteur`), puis, quand sa sorte se
- *  retire par la table (la carte du monde), le bouton qui le retire du projet, refusé avec sa raison
- *  (`refusDeRetrait`) ; rien sans lui. */
+ *  sélectionnée ; sans elle, celui du porteur singulier du document ouvert (`porteurDeLaSel`), le sien propre quand
+ *  sa sorte en a un (`propres` : de la scène, `inspecteurDeScene` ; de la carte du monde, `inspecteurDeLaCarte`), sinon
+ *  son formulaire tiré du schéma (`formulaireDuPorteur`), puis, quand sa sorte se retire par la table (la carte du
+ *  monde), le bouton qui le retire du projet, refusé avec sa raison (`refusDeRetrait`) ; rien sans lui. Chaque
+ *  inspecteur propre s'appelle par son nom dans la table : la fermeture d'appels de la garde #841 le suit depuis
+ *  `editer`. */
 export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const ent = entiteDeLaSelection(scene, s.sel);
@@ -1783,7 +1778,8 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   if (!porteur || !donnee) return [];
   const retrait = ECRITURES_DES_PORTEURS[porteur.sorte].retirer
     ? [bouton(`${porteur.sorte}/retirer`, t('ecran.editeur.singulier.retirer'), { geste: 'supprimer' }, false, refusDeRetrait(s))] : [];
-  return [...(INSPECTEURS_DES_SINGULIERS[porteur.sorte]?.(s) ?? formulaireDuPorteur(s, porteur, donnee)), ...retrait];
+  const propres: { readonly [S in SorteDePorteur]?: () => (Choix | Ligne | Bouton | Formulaire)[] } = { scene: () => inspecteurDeScene(s), carte: () => inspecteurDeLaCarte(s) };
+  return [...(propres[porteur.sorte]?.() ?? formulaireDuPorteur(s, porteur, donnee)), ...retrait];
 }
 
 /** Les pas des réglettes de la grille, en cases, de l'échelle, en mètres par case, et du nord, en degrés. */

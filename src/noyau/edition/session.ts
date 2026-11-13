@@ -392,12 +392,12 @@ export interface SessionDEdition {
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou sans sélection le porteur singulier du
- *  document ouvert qui se nomme (`GESTES_DES_SINGULIERS`, la scène) (`nom` absent : l'entité
+ *  document ouvert qui se nomme (`gestesDuSingulier`, la scène) (`nom` absent : l'entité
  *  reprend le nom de sa fiche ; le déclencheur, le dialogue et la rencontre y prennent leur identifiant, par la table de leur
  *  sorte, `renommer`) ;
  *  changer l'identifiant de la zone d'effet sélectionnée, de l'élément `element` de la sous-collection à clé du porteur
  *  sélectionné (l'action d'un décor, le nœud d'un dialogue, par la table, `renommerElement`), ou sans sélection du
- *  porteur singulier du document ouvert qui s'identifie (`GESTES_DES_SINGULIERS`, la scène) ; éditer une autre scène du projet, en ajouter une vide, dupliquer
+ *  porteur singulier du document ouvert qui s'identifie (`gestesDuSingulier`, la scène) ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; poser une troupe de `nombre` copies du personnage sélectionné (`poserUneTroupe`,
  *  `nombre` entre `BORNES_DE_LA_TROUPE`) ; supprimer la sélection, par la table de sa sorte s'il y a lieu (`projetSansLePorteur`),
@@ -685,7 +685,7 @@ type PointeurDuDocument = { readonly [G in 'appui' | 'glisse' | 'relache']: (s: 
  *  l'outil navire pose le navire à la case pointée, celui de l'exclusion de toiture ouvre son rectangle, celui de la
  *  sélection sur la poignée de la sélection la saisit ; le relâché de l'exclusion la pose ; sinon le pointeur de la
  *  scène (`appuyer`, `glisser`, `relacher`). */
-const POINTEUR_DE_LA_SCENE: PointeurDuDocument = {
+const pointeurDeLaScene = (): PointeurDuDocument => ({
   appui: (s, point) => {
     const scene = sceneEditee(s);
     const calque = calqueDeLaCouche(s);
@@ -714,21 +714,15 @@ const POINTEUR_DE_LA_SCENE: PointeurDuDocument = {
     }
     return porter(s, relacher(scene, contexte(s), s.geste, point));
   },
-};
+});
 
 /** Le pointeur sur le plan de la carte du monde (`appuyerSurLaCarte`, `glisserSurLaCarte`, `relacherSurLaCarte`), les
  *  lieux neufs liés à la première scène du projet. */
-const POINTEUR_DE_LA_CARTE: PointeurDuDocument = {
+const pointeurDeLaCarte = (): PointeurDuDocument => ({
   appui: (s, point) => porterSurLaCarte(s, appuyerSurLaCarte(carteEditee(s), projetEdite(s).scenes, s.outil.mode, point)),
   glisse: (s, point) => porterSurLaCarte(s, glisserSurLaCarte(carteEditee(s), s.geste, point)),
   relache: (s, point) => porterSurLaCarte(s, relacherSurLaCarte(carteEditee(s), s.geste, point)),
-};
-
-/** Le pointeur de chaque document qui a un plan : la scène et la carte du monde ; le narratif n'en a pas. */
-const POINTEURS_DES_DOCUMENTS: { readonly [K in SorteDeDocument]?: PointeurDuDocument } = {
-  scene: POINTEUR_DE_LA_SCENE,
-  carte: POINTEUR_DE_LA_CARTE,
-};
+});
 
 /** Le plan du lieu ouvert de la session `s` (`SessionDEdition.planDuLieu`) : son lieu, la sélection, au projet, et son
  *  point d'intérêt désigné, s'il est à ce lieu ; `undefined` s'il n'est pas ouvert ou que la sélection ne désigne aucun
@@ -751,32 +745,35 @@ function porterSurLePlanDuLieu(s: SessionDEdition, effet: EffetSurLePlanDuLieu):
 
 /** Le pointeur sur le plan du lieu ouvert (`appuyerSurLePlanDuLieu`, `glisserSurLePlanDuLieu`), les points neufs menant
  *  à la première scène du projet ; le relâché finit le geste. */
-const POINTEUR_DU_PLAN_DU_LIEU: PointeurDuDocument = {
+const pointeurDuPlanDuLieu = (): PointeurDuDocument => ({
   appui: (s, point) => porterSurLePlanDuLieu(s, appuyerSurLePlanDuLieu(carteEditee(s), planDuLieuOuvert(s)!.lieu.id, projetEdite(s).scenes, s.outil.mode, point)),
   glisse: (s, point) => porterSurLePlanDuLieu(s, glisserSurLePlanDuLieu(carteEditee(s), planDuLieuOuvert(s)!.lieu.id, s.geste, point)),
   relache: (s) => ({ ...s, geste: null }),
+});
+
+/** Le pointeur de la session `s` : celui du plan du lieu ouvert (`planDuLieuOuvert`, `pointeurDuPlanDuLieu`), sinon
+ *  celui du plan de son document ouvert, par document (la scène, `pointeurDeLaScene` ; la carte du monde,
+ *  `pointeurDeLaCarte`), aucun sans plan. Chaque pointeur s'appelle par son nom dans la table : la fermeture d'appels
+ *  de la garde #841 le suit depuis `editer`. */
+const pointeurDeLaSession = (s: SessionDEdition): PointeurDuDocument | undefined => {
+  if (planDuLieuOuvert(s)) return pointeurDuPlanDuLieu();
+  const pointeurs: { readonly [K in SorteDeDocument]?: () => PointeurDuDocument } = { scene: () => pointeurDeLaScene(), carte: () => pointeurDeLaCarte() };
+  return pointeurs[s.document]?.();
 };
 
-/** Le pointeur de la session `s` : celui du plan du lieu ouvert (`planDuLieuOuvert`), sinon celui du plan de son
- *  document ouvert (`POINTEURS_DES_DOCUMENTS`), aucun sans plan. */
-const pointeurDeLaSession = (s: SessionDEdition): PointeurDuDocument | undefined =>
-  (planDuLieuOuvert(s) ? POINTEUR_DU_PLAN_DU_LIEU : POINTEURS_DES_DOCUMENTS[s.document]);
-
-/** Ce que le porteur singulier d'un document fait sans sélection, par sorte, quand il le fait : se nommer `nom` (non
- *  vide), prendre l'identifiant `id`. La scène se nomme (`setSceneLabel`) et s'identifie (`sceneRenommee`) ; la carte du
- *  monde se nomme à son formulaire (`label`). */
-const GESTES_DES_SINGULIERS: { readonly [S in SorteDePorteur]?: { nommer: (s: SessionDEdition, nom: string) => SessionDEdition; identifier: (s: SessionDEdition, id: string) => SessionDEdition } } = {
-  scene: {
-    nommer: (s, nom) => ecrire(s, setSceneLabel(sceneEditee(s), nom)),
-    identifier: (s, id) => sceneRenommee(s, sceneEditee(s), id),
-  },
-};
-
-/** Les gestes du porteur singulier du document ouvert de la session `s` (`GESTES_DES_SINGULIERS`), sans eux s'il n'en a
- *  pas. */
+/** Les gestes du porteur singulier du document ouvert de la session `s`, par sorte, quand il les fait, sans eux s'il
+ *  n'en a pas : se nommer `nom` (non vide), prendre l'identifiant `id`. La scène se nomme (`setSceneLabel`) et
+ *  s'identifie (`sceneRenommee`) ; la carte du monde se nomme à son formulaire (`label`). La table vit dans la fonction :
+ *  la fermeture d'appels de la garde #841 suit ses gestes depuis `editer`. */
 const gestesDuSingulier = (s: SessionDEdition) => {
+  const gestes: { readonly [S in SorteDePorteur]?: { nommer: (nom: string) => SessionDEdition; identifier: (id: string) => SessionDEdition } } = {
+    scene: {
+      nommer: (nom) => ecrire(s, setSceneLabel(sceneEditee(s), nom)),
+      identifier: (id) => sceneRenommee(s, sceneEditee(s), id),
+    },
+  };
   const singulier = porteurDeLaSel(null, s.document, idDeLaSceneEditee(s));
-  return singulier && GESTES_DES_SINGULIERS[singulier.sorte];
+  return singulier && gestes[singulier.sorte];
 };
 
 /** La session `s` telle quelle si son document ouvert est au projet de son présent ; sinon, remise à zéro
@@ -1014,7 +1011,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       if (s.sel?.type === 'architectureBody') return ecrireSurLaSelection(s, patchArchitectureBody(scene, s.sel.id, { label: g.nom?.trim() || undefined }), (sc) => sc.architecture);
       if (s.sel === null) {
         const singulier = gestesDuSingulier(s);
-        return singulier && g.nom?.trim() ? singulier.nommer(s, g.nom.trim()) : s;
+        return singulier && g.nom?.trim() ? singulier.nommer(g.nom.trim()) : s;
       }
       if (g.nom === undefined) return s;
       if (s.sel.type === 'entry') {
@@ -1086,7 +1083,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         const renomme = porteur && renommer ? renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.element, g.id) : projetEdite(s);
         return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, s.sel);
       }
-      if (s.sel === null) return gestesDuSingulier(s)?.identifier(s, g.id) ?? s;
+      if (s.sel === null) return gestesDuSingulier(s)?.identifier(g.id) ?? s;
       if (s.sel?.type !== 'effectZone') return s;
       const renommee = renameEffectZone(scene, s.sel.id, g.id);
       return renommee === scene ? s : ecrire(s, renommee, { type: 'effectZone', id: g.id.trim() });
