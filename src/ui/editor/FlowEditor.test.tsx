@@ -5,6 +5,7 @@ import { FlowEditor } from './FlowEditor';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
@@ -15,7 +16,7 @@ beforeAll(() => {
 });
 afterEach(demonterRacines);
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: emptyNarratif() };
 const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
   kind: 'test',
   test: { skill: { id: skill }, ...(vsGroups ? { vsGroups } : {}) },

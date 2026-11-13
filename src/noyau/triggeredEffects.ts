@@ -12,7 +12,7 @@
 import { nomDe } from '../engine/nom';
 import { type Combatant, type Weapon, type HitLocation, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
@@ -26,6 +26,7 @@ import {
   EMPTY_FLOW,
   reecrireFlow,
   reecrireLesOps,
+  type TriggeredEffect,
 } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { weaponIdentity } from '../engine/items';
@@ -101,7 +102,7 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
     for (const k in out) { if (out[k] === ARG_TEMPLATE) out[k] = arg; else if (out[k] === INDICE_TEMPLATE) out[k] = value; }
     return out as unknown as GameOp;
   };
-  const visit = (f: Flow): Flow => {
+  const visit = (f: TriggeredEffect['flow']): TriggeredEffect['flow'] => {
     if (f.kind === 'test') {
       // Nœud Flow `test` dont la difficulté vient de l'arg d'instance (Venin, `LDB 85 l.423`) : on
       // substitue `test.difficulty` (mêmes sémantique/gate que l'ancienne op `test.argDifficulty`).

@@ -22,10 +22,8 @@ import {
   walkFlow,
   type Condition,
   type EffectOp,
-  type EffectTrigger,
   type Flow,
   type FlowTestNode,
-  type TriggeredEffect,
 } from '../../../engine/flowCore';
 import {
   acteDeDeverrouillageSchema,
@@ -1054,7 +1052,7 @@ const compareSubjectSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, condition: idDe('etat') }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
   charRefSchema,
 ]);
-/** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
+/** `CompareSubject & { factor?: number }` (`engine/flowCore.ts`) — un `z.intersection` d'un
  *  `z.union` de `strictObject` NE FONCTIONNE PAS avec zod (chaque branche strict rejette les clés des
  *  autres, cf. `domains.ts` avant ce rewire : `z.intersection(compareSubjectSchema, …)` échouait sur
  *  `etats.json` #14 « inondation » — `{who,characteristic:'endurance',factor:0.5}` — vérifié en isolation). La forme
@@ -1087,7 +1085,7 @@ const conditionDeTalentSchema = refOuSpec('talent', {
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
-/** `Condition` (`engine/flowCore.ts:112`) — algèbre CLOSE, récursive via `all`/`any`/`not`, où une Condition
+/** `Condition` (`engine/flowCore.ts`) — algèbre CLOSE, récursive via `all`/`any`/`not`, où une Condition
  *  RÉSERVÉE hors des `admises` de la famille est refusée nommément. Mémoïsée par ses `admises` ; chaque branche est
  *  un produit de la fabrique, de même classe d'une famille à l'autre. */
 function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition> {
@@ -1160,7 +1158,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
 export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
-/** `FlowTest` (`engine/flowCore.ts:335`) — jet différé (→ modale), tout le métier hors branches. */
+/** `FlowTest` (`engine/flowCore.ts`) — jet différé (→ modale), tout le métier hors branches. */
 /** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
  *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
@@ -1384,7 +1382,7 @@ function kindDEmbranchement(flow: Flow<unknown>): string | null {
 }
 
 /**
- * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:559`) — jet ALÉATOIRE interactif dont l'issue
+ * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts`) — jet ALÉATOIRE interactif dont l'issue
  * choisit la branche `reussite` ou `echec`. Le nœud ne dépend PAS du type de la feuille `effet` de ses
  * branches : seul le schéma de BRANCHE change (`arbreDeFlow`, composé par `flowSchema` mécanique et
  * `sceneFlowSchema`, `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré
@@ -1434,17 +1432,42 @@ export const effectOnSchema = enumNomme({
   empoigne: 'la victime empoignée (absorbée)',
 });
 
-/** `EffectTargeting` (`engine/flowCore.ts:632`). */
+/** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
+ *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
+ *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
+ *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
+ *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
+ *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
+ *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
+ *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
+ *  par tout effet « happe le plus proche petit ennemi engagé ». */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
   nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
   nommerChamps(z.strictObject({ pick: z.literal('engages'), sizeAtMost: z.literal('soi').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 
-/** DÉCLENCHEUR d'un `TriggeredEffect` (`EffectTrigger`, `engine/flowCore.ts`). Le `satisfies` garde
- *  l'exhaustivité de COMPILATION que le Record d'affichage tenait : un trigger ajouté à l'union sans
- *  son libellé ici ne compile pas. La taxonomie du recensement d'événements de combat
- *  (`src/combat-event-emission-coverage.test.ts`) en dérive. */
+/** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
+ *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une
+ *  touche réussie (du porteur ou de l'arme) ; `onWoundLoss` : quand le porteur PERD des PB ;
+ *  `onRoundStart` : au début de son Round ; `onStartled` : magie / bruit fort ; `onKill` : adversaire
+ *  mis hors de combat ; `onGainCondition` : le porteur vient de GAGNER un État (filtré par `condition` —
+ *  Mâchoires d'acier : « chaque fois que vous gagnez un État Sonné »).
+ *  `onWoundLoss` se produit pour TOUTE perte de PB (mêlée OU distance) ; le TYPE d'attaque voyage dans le
+ *  contexte (`attackType`) et un effet peut s'y restreindre via son champ `attackType`.
+ *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
+ *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
+ *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
+ *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
+ *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
+ *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
+ *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de
+ *  Round, après l'entretien), `onTurnStart`/`onTurnEnd` (début/fin du tour du porteur).
+ *  Cycle de l'HORLOGE de campagne (émis par `noyau/clockHooks`, au franchissement de jour de
+ *  `runDailyUpkeep`) : `onDayStart` — une fois par JOUR calendaire franchi, rattrapage compris (trois
+ *  jours sautés = trois émissions) ; `onWake` — au RÉVEIL, c'est-à-dire le jour d'une nuit JOUÉE
+ *  (`lastNightDay`) seulement : une avance d'horloge de 24 h sans sommeil ne l'émet pas.
+ *  La taxonomie du recensement d'événements de combat (`src/combat-event-emission-coverage.test.ts`) en dérive. */
 export const effectTriggerSchema = enumNomme({
   onHit: 'À la touche',
   onCrit: 'Sur un Critique',
@@ -1465,8 +1488,13 @@ export const effectTriggerSchema = enumNomme({
   onAttackResolved: 'Après une attaque résolue',
   onCastResolved: 'Après une incantation résolue',
   onMiscast: 'Sur une Imparfaite',
+  /** Le PORTEUR vient d'ÉCHOUER un Test (n'importe lequel : combat, scène, entretien) — `ctx.margin` = le
+   *  DR de l'échec (négatif). Les paliers de gravité s'expriment en DONNÉE via la Condition `slThreshold`
+   *  (jamais de bande codée en dur au moteur) : Crampes abdominales (MSRC 16 l.152-158) réagissent à
+   *  `slThreshold(≤-2)`/`(≤-4)`/`(≤-6)`. Émis par `fireOwnTestFailed` (noyau/triggeredEffects), qui garde
+   *  la RÉ-ENTRANCE (un Test résolu PENDANT le traitement ne ré-émet jamais). */
   onOwnTestFailed: 'En échouant à un Test',
-} satisfies Record<EffectTrigger, string>);
+});
 
 
 /** `StageOutcome` (`src/engine/activities.ts:82-84`) — effet de portée Étape (Activités + Rencontres
@@ -1708,7 +1736,7 @@ function refuserLaGratuiteNonTerminale(flow: Flow<EffectOp>, ctx: z.RefinementCt
   });
 }
 
-/** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
+/** `Flow<E>` (`engine/flowCore.ts`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
  *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
   const flow: z.ZodType<Flow<E>> = z.lazy(() =>
@@ -1727,6 +1755,30 @@ export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condi
     ]),
   );
   return flow;
+}
+
+/** Effet DÉCLENCHÉ authoré (`TriggeredEffect`, `engine/flowCore.ts`) : un Flow d'ops appliqué à `on` quand
+ *  `trigger` se produit, porté indifféremment par un Trait, un Atout, un talent, un État… Même vocabulaire
+ *  que les sorts (`runPureFlowLines`/`applyOps`), jamais un handler en dur. */
+function effetDeclencheSur(flow: z.ZodType<Flow<EffectOp>>) {
+  return marquerProduit(nommerChamps(z.strictObject({
+    trigger: effectTriggerSchema,
+    on: effectTargetingSchema,
+    flow: flow,
+    /** Filtre du déclencheur `onGainCondition` : ne réagit que si l'État GAGNÉ a cet `id` (Mâchoires
+     *  d'acier : `condition:'sonne'`). Absent = réagit à n'importe quel État gagné. Inerte pour les
+     *  autres triggers. */
+    condition: idDe('etat').optional(),
+    /** Filtre par TYPE d'attaque (`onHit`/`onWoundLoss`) : ne réagit que si la touche/perte provient d'une
+     *  attaque de ce type (`melee`/`distance`). Absent = tout type (LDB 85 l.310). Lu via `ctx.attackType`. */
+    attackType: genreDArmeSchema.optional(),
+    /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
+    coupCritique: z.boolean().optional(),
+    /** Effet OPT-IN (LDB 10 l.251-255) : le porteur CHOISIT de le déclencher. Héros en cadence MANUELLE →
+     *  proposé (étape de CHOIX de fin de Round, skippable) ; IA / cadence auto → JAMAIS exercé (ni décision
+     *  silencieuse ni jet caché). */
+    optional: z.boolean().optional(),
+  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 }
 
 function construire(regimes: Regimes) {
@@ -1759,7 +1811,7 @@ function construire(regimes: Regimes) {
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `effet` par
-   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
+   *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 5 valeurs de
    *  l'interface TS : `'party'`/`'hero'`/`'navire'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
    *  ciblage `'soi'`/`'victime'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
@@ -1784,17 +1836,7 @@ function construire(regimes: Regimes) {
   // seulement : `withArg` (`noyau/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
   const flow = arbreDeFlow(effectOp, condition, ouReserve(z.number(), INDICE_TEMPLATE));
 
-  /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:635`). `optional` (Contrôle de la Frénésie…)
-   *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
-  const triggeredEffect = marquerProduit(nommerChamps(z.strictObject({
-    trigger: effectTriggerSchema,
-    on: effectTargetingSchema,
-    flow: flow,
-    condition: idDe('etat').optional(),
-    attackType: genreDArmeSchema.optional(),
-    coupCritique: z.boolean().optional(),
-    optional: z.boolean().optional(),
-  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
+  const triggeredEffect = effetDeclencheSur(flow);
 
   /** Entrée d100 d'une table de voyage (`TravelTableEntry`, `src/engine/travelTables.ts`), partagée par
    *  `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
@@ -1950,7 +1992,7 @@ export function executeesDe(op: z.ZodType<GameOp> = gameOpSchema): z.ZodArray<z.
 }
 export const effectOpSchema = FERMEE.effectOp;
 export const flowSchema: z.ZodType<Flow<EffectOp>> = FERMEE.flow;
-export const triggeredEffectSchema: z.ZodType<TriggeredEffect<EffectOp>> = FERMEE.triggeredEffect;
+export const triggeredEffectSchema: ReturnType<typeof effetDeclencheSur> = FERMEE.triggeredEffect;
 export const travelTableEntrySchema = FERMEE.travelTableEntry;
 export const shipCrewHitSchema = FERMEE.shipCrewHit;
 export const shipCritEntrySchema = FERMEE.shipCritEntry;

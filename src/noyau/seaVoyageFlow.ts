@@ -88,6 +88,7 @@ import {
   steamBreakdownTriggered,
   shipSizeOfLength,
   propulsionDuNavire,
+  milieuDuVoyage,
   STEAM_SKILL,
   type PropulsionDuNavire,
   type SteamBreakdownEntry,
@@ -128,6 +129,7 @@ import {
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
+import { TEMPORARY_REPAIR } from '../engine/riverNavigation';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
@@ -189,7 +191,7 @@ import {
 } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { type BuiltCascadeStep } from './stepBrand';
-import { startCascade, jouerLaJournee, pushStep, type TableStepDef } from './cascade';
+import { startCascade, jouerLaJournee, pushStep, type CascadeApplier, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
@@ -199,8 +201,9 @@ import { creatureLabel, dataLabel, findCreatureById } from '../data';
 import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
-import { stepPrecision, idDansLaSequence } from './rollSeam';
-import { actorIn, equipageApte, inBattleId } from './monde/combatants';
+import { stepPrecision, idDansLaSequence, dieStep } from './rollSeam';
+import { actorIn, coqueParId, equipageApte, inBattleId } from './monde/combatants';
+import { touchActors } from './combatOrParty';
 import { garanti } from '../lib/garanti';
 import { referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
@@ -924,6 +927,76 @@ function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
   });
 }
 
+/** La coque `hull` est tenue par une réparation temporaire : marqueur du navire de campagne quand elle est la sienne,
+ *  de l'état fluvial du bateau de la route sinon. MDG 13 l.651 ; MSRC 7 l.117 */
+export function reparationTemporaireTient(get: Get, hull: Combatant): boolean {
+  const vessel = get().vessel;
+  if (vessel && hull.creatureId === vessel.vehicleId) return !!vessel.reparationTemporaire;
+  const plan = get().travelPlan;
+  return plan?.vehicle?.id === hull.id && !!plan.river?.reparationTemporaire;
+}
+
+/** Pose le marqueur de réparation temporaire de la coque de trajet, au porteur que lit `reparationTemporaireTient`.
+ *  MDG 13 l.651 ; MSRC 7 l.117 */
+export function poserLaReparationTemporaire(get: Get, set: Set): void {
+  const plan = get().travelPlan;
+  const vessel = get().vessel;
+  if (vessel && coqueDuNavireDeCampagne(plan, vessel)) set({ vessel: { ...vessel, reparationTemporaire: true } });
+  else if (plan?.river) set({ travelPlan: { ...plan, river: { ...plan.river, reparationTemporaire: true } } });
+}
+
+/** Étape MONO du Test d'Endurance de la coque `hull` tenue par une réparation temporaire, tenue par le MONDE :
+ *  `kind` et enjeu de même id, `id` = son adresse dans la séquence, `meta.hullId` = la coque qui le joue.
+ *  `undefined` si la coque n'est pas tenue par une réparation temporaire. MDG 13 l.651 ; MSRC 7 l.117 */
+export function etapeDeLaReparationTemporaire(
+  get: Get, hull: Combatant, id: string, kind: 'mer-reparation-temporaire' | 'fleuve-reparation-temporaire', difficulty: Difficulty, failDamage: Tirage,
+): BuiltCascadeStep | undefined {
+  if (!reparationTemporaireTient(get, hull)) return undefined;
+  return monoStep({
+    id, kind, monde: true, icon: 'voyage/reparer',
+    label: composeRollLabel(hull, t('sv.reparationTemporaire'), { characteristic: 'endurance' }),
+    difficulty,
+    ligne: ligneDuVaisseau(hull),
+    stake: voyageStakeRef(kind, { degats: formatDice(failDamage.dice) }),
+    meta: { hullId: hull.id },
+  });
+}
+
+/** Issue du Test d'Endurance d'une réparation temporaire : l'échec ouvre le dé `failDamage` des Dégâts de la
+ *  coque qui a joué le Test (`reparation-temporaire-degats`). MDG 13 l.651 ; MSRC 7 l.117 */
+export function appliquerLaReparationTemporaire(get: Get, set: Set, step: CascadeStep, failDamage: Tirage): ReturnType<CascadeApplier> {
+  if (!step.result) return;
+  const line = t(step.result.success ? 'sv.reparationTemporaireTient' : 'sv.reparationTemporaireCede');
+  noteSeaLine(get, set, [line]);
+  const degats = step.result.success ? undefined : dieStep({
+    id: `${step.id}-degats`, kind: 'reparation-temporaire-degats', worldOwner: true, icon: 'voyage/reparer',
+    label: t('sv.reparationTemporaireDegats'), spec: failDamage.dice, meta: { hullId: String(step.meta?.hullId) },
+  });
+  return { consequences: freeCons([line]), ...(degats ? { insert: [degats] } : {}) };
+}
+
+/** Le Test d'Endurance de la coque `hull` tenue par une réparation temporaire, après le Test `apres` du jour ou de
+ *  Manœuvre ; Difficulté : règle maison `mer-reparation-temporaire-difficulte`. MDG 13 l.651 */
+export function reparationTemporaireDuNavire(get: Get, hull: Combatant | undefined, apres: string): BuiltCascadeStep | undefined {
+  return hull && etapeDeLaReparationTemporaire(get, hull, `${apres}-reparation-temporaire`, 'mer-reparation-temporaire',
+    rule('mer-reparation-temporaire-difficulte') as Difficulty, REPARATION.temporaire.failDamage);
+}
+
+/** Le Test d'Endurance Accessible (+20) de la coque `hull` tenue par une réparation temporaire, après le Test `apres`
+ *  du barreur ou les Dégâts du fleuve. MSRC 7 l.117 */
+export function reparationTemporaireFluviale(get: Get, hull: Combatant, apres: string): BuiltCascadeStep | undefined {
+  return etapeDeLaReparationTemporaire(get, hull, `${apres}-reparation-temporaire`, 'fleuve-reparation-temporaire',
+    TEMPORARY_REPAIR.enduranceDifficulty, TEMPORARY_REPAIR.failDamage);
+}
+
+/** Le Test d'Endurance de la coque `ship` après sa Manœuvre de combat, appendu à la séquence de combat, au régime du
+ *  milieu du voyage (fluvial : règle maison `fleuve-reparation-temporaire-navigation`). MDG 13 l.651 ; MSRC 7 l.117 */
+export function reparationTemporaireApresLaManoeuvre(get: Get, set: Set, ship: Combatant): void {
+  const fluvial = milieuDuVoyage(get().travelPlan) === 'fluvial';
+  if (fluvial && !rule('fleuve-reparation-temporaire-navigation')) return;
+  pushStep(set, (index) => (fluvial ? reparationTemporaireFluviale : reparationTemporaireDuNavire)(get, ship, `manoeuvre-${ship.id}-${index}`), 'combat');
+}
+
 /**
  * Étapes POST-PROGRESSION du jour (crise → embuscade ancrée → phare → orientation → extermination →
  * entretien), calculées APRÈS que `applySeaProgress` ait posé `sea.milesToday` du jour (dépendance de
@@ -955,6 +1028,8 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
     });
     if (st) out.push(st);
     else resolveSeaCrisisRound(get, set, capToSuccesMinime(UNDERCREW_DR));
+    // MDG 13 l.651
+    if (findCrewTestTypeById(testTypeId)?.steering) pousseSi(out, reparationTemporaireDuNavire(get, get().travelPlan?.vehicle, st?.id ?? kind));
   }
   // EMPÊTRÉ dans des Débris marins (MDG 13 l.491, #444) : Test étendu de Force pour se dégager —
   // n'arrête PAS la Progression (contrairement à l'Échouage, `sea.stranded`).
@@ -967,6 +1042,8 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   out.push(...buildOverspeedSteps(get));
   // SALISSURES (MDG 13 l.148, #1105) : le Test de la semaine.
   pousseSi(out, buildFoulingStep(get));
+  // MDG 13 l.651
+  pousseSi(out, reparationTemporaireDuNavire(get, get().travelPlan?.vehicle, `jour-${sea.daysAtSea}`));
   // #212. Embuscade AUTHORÉE à ancrage déterministe : franchissement de l'ancrage ce jour → Test de
   // Perception PUIS abordage (applier `equipage-embuscade`, table `appliers`).
   if (route?.ambush?.scene.id && route.ambush.encounter && !sea.ambushFired) {
@@ -2329,7 +2406,7 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote
   const carenageGold = Math.ceil((v?.purchase?.price?.gold ?? 0) * (carenagePct / 100));
   return {
     max, current, missing, lissage, reparationGold, foulLevel, carenagePct, carenageGold,
-    refusReparation: refusHote ?? (missing <= 0 && !vessel.criticals?.length ? t('sv.hullIntact')
+    refusReparation: refusHote ?? (missing <= 0 && !vessel.criticals?.length && !vessel.reparationTemporaire ? t('sv.hullIntact')
       : !canAfford(bourse, toMoney({ gold: reparationGold })) ? t('sv.yardTooExpensive', { cost: reparationGold })
       : null),
     refusCarenage: refusHote ?? (foulLevel <= 0 && !modificateursAuCarenage(vessel.modificateurs).length ? t('sv.hullClean')
@@ -2361,7 +2438,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   }
   const cost = Math.ceil(prix);
   payFromGroup(get, set, toMoney({ gold: cost }), { purpose: 'réparation navire' });
-  set({ vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [] } });
+  set({ vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [], reparationTemporaire: undefined } });
   const jours = constructeur ? joursDuChantier(get, set, constructeur.duree, rng) : null;
   const duree = jours !== null ? t('sv.dureeJours', { n: jours }) : t('sv.dureeHeures', { n: Math.max(1, heures) });
   get().avancerLeTemps(jours !== null ? jours * MINUTES_PER_DAY : Math.max(1, heures) * 60);
@@ -2576,7 +2653,7 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
 export const GENRES_D_ETAPE = [
   SEA_BOARD_EVENT_KIND, 'mer-forcer-le-rythme', 'mer-scorbut', 'mer-mal-de-mer',
   'mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-epuisement', 'equipage-progression', 'mer-survitesse',
-  'mer-salissures', 'equipage-affaler', 'testDEquipage', 'equipage-orientation', 'equipage-phare', 'equipage-embuscade',
+  'mer-salissures', 'mer-reparation-temporaire', 'reparation-temporaire-degats', 'equipage-affaler', 'testDEquipage', 'equipage-orientation', 'equipage-phare', 'equipage-embuscade',
   'merProgressionChoix', 'merProgressionNavigation', 'equipage-poursuite', 'equipage-tourbillon', 'equipage-extermination',
   'mer-degagement', 'mer-degagement-debris', 'equipage-voyage-rapide', 'equipage-entretien', 'merPiratesSommation',
   'merPiratesTribut', 'merDesertion',
@@ -2745,6 +2822,18 @@ export const TABLES = {
       noteSeaLine(get, set, [line]);
       return { consequences: freeCons([line]) };
     },
+    'mer-reparation-temporaire': (get, set, step) => appliquerLaReparationTemporaire(get, set, step, REPARATION.temporaire.failDamage),
+    /** Dégâts de la réparation temporaire qui cède, à la coque qui a joué le Test, planchés à 0. MDG 13 l.651 ; MSRC 7 l.117 */
+    'reparation-temporaire-degats': (get, set, step) => {
+      if (!step.de?.result) return;
+      const hull = coqueParId(get(), String(step.meta?.hullId));
+      if (!hull) return { consequences: freeCons([t('cascade.cibleDisparue', { label: t('sv.reparationTemporaireDegats') })]) };
+      const n = Math.max(0, step.de.result.total);
+      const line = [t('sv.reparationTemporaireCoque', { n }), ...(n > 0 ? damageVesselHull(get, set, hull, n) : [])];
+      set(touchActors(get()));
+      noteSeaLine(get, set, line);
+      return { consequences: freeCons(line) };
+    },
     'equipage-affaler': (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
     /** Test d'équipage d'un nœud `test` de Flow (`navireOps.ouvrirLeTestDEquipage`) : cascade AUTONOME
      *  (`purpose:'test'`), dont la branche du verdict puis la suite du Flow se jouent ici, sous le libellé et
@@ -2899,8 +2988,9 @@ export const TABLES = {
       let j: string[];
       if (adj >= 1) {
         const hull = get().travelPlan!.vehicle!;
-        const healed = Math.min(hull.wounds.max - hull.wounds.current, rollDice(1, 10, rng));
+        const healed = Math.min(hull.wounds.max - hull.wounds.current, tirer(REPARATION.temporaire.woundsPerRepair, rng));
         healVesselHull(get, set, hull, healed);
+        poserLaReparationTemporaire(get, set); // MDG 13 l.651
         // MDG 14 l.122
         j = [t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` })];
       } else j = [t('sv.juryRepairsKo', { dr: adj })];

@@ -99,9 +99,9 @@ describe('statusIncome — « Gagner de l’argent grâce au Statut » (LDB 08 l
 });
 
 // ── Catalogues UI (sélecteurs alimentés par la donnée — audit POC→produit) ──────────────────
-import { craftSpecOf, craftCatalog, learnableTalents, orderBlockOf, orderCatalog, tutorCostRange, metierOf } from './activities';
+import { craftSpecOf, craftCatalog, learnableTalents, learnOptionOf, orderBlockOf, orderCatalog, tutorCostRange, metierOf } from './activities';
 import { createHero } from './character';
-import { findTrappingById, skillInstanceLabel, talentConcrete, trappings } from '../data';
+import { findTrappingById, skillInstanceLabel, talentConcrete, talents, trappings } from '../data';
 import { priceToMoney } from './money';
 import { desEnSuite } from './dice.testkit';
 
@@ -198,6 +198,12 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
     expect(deja!.xpCost).toBe(200);
     expect(fresh.tutorMinBrass).toBe(tutorCostRange(fresh.xpCost).minBrass);
     expect(tutorCostRange(250)).toEqual({ minBrass: 3 * 2 * 12, maxBrass: 3 * 20 * 12 }); // 3 tranches
+  });
+  it('learnOptionOf : l’option d’UN Talent égale celle de la liste, apprenable ou non', () => {
+    const liste = learnableTalents(hero);
+    for (const { id } of talents) expect(learnOptionOf(hero, id), id).toEqual(liste.find((o) => o.id === id));
+    expect(talents.filter(({ id }) => !learnOptionOf(hero, id)).length, 'témoin : des Talents hors liste').toBeGreaterThan(0);
+    expect(learnOptionOf(hero, 'talent-inconnu')).toBeUndefined();
   });
   it('metierOf : Compétence Métier avec avances seulement', () => {
     expect(metierOf(hero)).toBeUndefined();

@@ -99,7 +99,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [ship(), helmsman()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' } });
     const before = banc.getState().facing.ship;
-    const r = maneuverShip(() => banc.getState(), 'ship', 2)!;
+    const r = maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     expect(r).toBeTruthy();
     expect(r.helmsman).toBe('Timonier'); // le seul de l'équipage → barreur désigné
     const after = banc.getState().facing.ship;
@@ -109,7 +109,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
 
   it('hors combat → null', () => {
     banc.setState({ battle: null as never });
-    expect(maneuverShip(() => banc.getState(), 'ship', 2)).toBeNull();
+    expect(maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)).toBeNull();
   });
 
   it('« Peu maniable » pénalise la manœuvre (−1 DR/niveau, MDG 12 l.173) — cumulé au Man de la colonne', () => {
@@ -117,7 +117,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
     const cogue = { ...ship(), creatureId: 'cogue' } as Combatant;
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [cogue, helmsman()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' } });
-    const r = maneuverShip(() => banc.getState(), 'ship', 2)!;
+    const r = maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     expect(r.dr).toBe(r.navDR - 2); // Man (−1) + Peu maniable (−1)
   });
 
@@ -128,7 +128,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
       seedBattleRng(7);
       const s = { ...ship(), upgrades } as Combatant; // bateau-de-patrouille (aucun Lissage de TYPE)
       banc.setState({ battle: { combatants: [s, helmsman()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' } });
-      return maneuverShip(() => banc.getState(), 'ship', 2)!;
+      return maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     };
     const plain = run();
     const lisse = run([{ id: 'lissage' }]);
@@ -142,7 +142,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
       seedBattleRng(7);
       const s = { ...ship(), upgrades } as Combatant; // bateau-de-patrouille (aucun navTestMod de TYPE)
       banc.setState({ battle: { combatants: [s, helmsman()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
-      return maneuverShip(() => banc.getState(), 'ship', 2)!;
+      return maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     };
     const plain = run();
     const bouteur = run([{ id: 'bouteur' }]);
@@ -155,7 +155,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
       seedBattleRng(7);
       const s = { ...ship(), upgrades } as Combatant;
       banc.setState({ battle: { combatants: [s, helmsman()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
-      return maneuverShip(() => banc.getState(), 'ship', 2)!;
+      return maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     };
     const plain = run();
     const greement = run([{ id: 'greement-de-course' }]);
@@ -168,7 +168,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
     const h = helmsman();
     h.pos = { x: 5, y: 4 }; // équipier décalé d'une case → vérifie que l'offset est conservé
     banc.setState({ battle: { combatants: [s, h], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
-    const r = maneuverShip(() => banc.getState(), 'ship', 2)!;
+    const r = maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     expect(r.success).toBe(true); // (seed 7 : manœuvre réussie — cf. test ci-dessus)
     expect(r.advanced).toBeGreaterThan(0); // le navire AVANCE
     const d = DIR8_DELTA[banc.getState().facing.ship]; // cap d'APRÈS le virage
@@ -186,7 +186,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
     ok.skills = [{ id: 'voile', characteristic: 'agilite', advances: 10 } as never]; // conscient mais moins bon
     const s = { ...ship(), crewIds: ['ace', 'helm'] } as Combatant;
     banc.setState({ battle: { combatants: [s, down, ok], order: ['ship'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
-    const r = maneuverShip(() => banc.getState(), 'ship', 2)!;
+    const r = maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     expect(r.helmsman).toBe('Timonier'); // pas « As » malgré sa meilleure Voile : il est hors-combat
   });
 
@@ -196,7 +196,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
       seedBattleRng(7);
       const s = { ...ship(), postes } as Combatant; // bateau-de-patrouille : Contenance 80, Man 0, aucun Trait à passif
       banc.setState({ battle: { combatants: [s, helmsman()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
-      return maneuverShip(() => banc.getState(), 'ship', 2)!;
+      return maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     };
     const plain = run();
     const heavy = run([heavyTribord]);
@@ -212,7 +212,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
     const cogue = { ...ship(), creatureId: 'cogue' } as Combatant;
     seedBattleRng(3);
     banc.setState({ battle: { combatants: [cogue, weak], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
-    const r = maneuverShip(() => banc.getState(), 'ship', 2)!;
+    const r = maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     expect(r.success).toBe(false); // manœuvre ratée
     expect(banc.getState().facing.ship).toBe('N'); // le cap TIENT (aucun virage)
     expect(r.advanced).toBeGreaterThan(0); // … mais le navire avance quand même (M÷2 plancher)
@@ -291,7 +291,7 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
       banc.setState({ battle: { combatants: [ship2(), sansVoile], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never, journal: [] });
       const res = rollShipManeuver(() => banc.getState(), 'ship', imposee)!;
       expect(res.refus).toBe(attendu);
-      applyShipManeuver(() => banc.getState(), 'ship', res, 2);
+      applyShipManeuver(() => banc.getState(), banc.setState, 'ship', res, 2);
       expect(banc.getState().journal).toContain(attendu);
       expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? sansVoile.label : t('shipManv.crewFallback'), ship: ship2().label, dr: res.dr }));
     }
@@ -302,7 +302,7 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
     const { baseM, manoeuvre } = shipManeuverParams(esquif, 'maritime');
     expect(manoeuvre).toBeGreaterThan(0);
     banc.setState({ battle: { combatants: [esquif], order: ['ship'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
-    const r = maneuverShip(() => banc.getState(), 'ship', 2)!;
+    const r = maneuverShip(() => banc.getState(), banc.setState, 'ship', 2)!;
     expect(r.success).toBe(false);
     expect(r.dr).toBe(ECHEC_SANS_JET.sl);
     expect(r.advanced).toBe(baseM);
@@ -315,7 +315,7 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
     banc.setState({ battle: { combatants: [ship2(), helm2()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
     const res = rollShipManeuver(() => banc.getState(), 'ship', 'helm')!;
     expect(res.success).toBe(true); // seed 7 → réussite (cf. tests maneuverShip)
-    const advanced = applyShipManeuver(() => banc.getState(), 'ship', res, 2); // tribord 90°
+    const advanced = applyShipManeuver(() => banc.getState(), banc.setState, 'ship', res, 2); // tribord 90°
     expect(advanced).toBeGreaterThan(0);
     expect(banc.getState().facing.ship).toBe('E');
   });
