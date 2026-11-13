@@ -49,7 +49,7 @@ const doc = document(
     },
     talentALaPlaceDe: {
       label: 'Talent de la substitution',
-      hint: 'Présent : prise à la place de la carrière tirée (« À la place de »), la carrière ne garde le bonus d’XP du tirage qu’avec ce Talent de carrière, à l’une de ces spécialisations',
+      hint: 'Présent : prise à la place de la carrière tirée (« À la place de »), la carrière perd le bonus d’XP du tirage si son Talent de carrière est ce Talent à une spécialisation hors de cette liste',
     },
     gatedByRule: { label: 'Règle optionnelle requise', hint: 'Présente : la carrière n’est offerte que si cette règle optionnelle est active' },
   },

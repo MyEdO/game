@@ -423,12 +423,14 @@ describe('culte du Tiléen qui prend Nonne ou Prêtre à la place de Flagellant 
     careerXp(withCareerTalent(withCareer({ ...base, careerRolls }, carriere), talent));
 
   for (const carriere of ['nonne', 'pretre']) {
-    it(`${carriere} : Béni d’un dieu tiléen garde le bonus, Béni d’un autre dieu le perd, un autre Talent de carrière le garde`, () => {
+    it(`${carriere} : Béni d’un dieu tiléen garde le bonus, Béni d’un autre dieu ou sans spécialisation le perd, un autre Talent de carrière ou aucun le garde`, () => {
       for (const dieu of ['myrmidia', 'morr', 'verena', 'shallya', 'ranald'])
         expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni', spec: dieu }), `Béni (${dieu})`).toBe(50);
       for (const dieu of ['sigmar', 'ulric'])
         expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni', spec: dieu }), `Béni (${dieu})`).toBe(0);
       expect(xp(tileen, FLAGELLANT, carriere, { id: 'lire-ecrire' })).toBe(50);
+      expect(xp(tileen, FLAGELLANT, carriere, { id: 'beni' }), 'Béni sans spécialisation').toBe(0);
+      expect(careerXp(withCareer({ ...tileen, careerRolls: FLAGELLANT }, carriere)), 'Talent de carrière pas encore choisi').toBe(50);
     });
   }
 
