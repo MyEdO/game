@@ -34,24 +34,25 @@ const LIBELLES_DE_CASCADE = {
   combat: 'Cascade de combat',
 } as const satisfies Record<StakeCascade, string>;
 
-/**
- * Par cascade : les clés de CHARGE admises (`cles`), celles EXIGÉES (`requises`), et si l'entrée doit
- * porter une PORTE vers sa règle (`porte` : `rule`, `entryCategory` ou `entryFromSource`). Le voyage
- * n'en exige pas : `stake-rule-ratchet.test.ts` énumère son stock sans foyer.
- */
-const CHARGE_PAR_CASCADE = {
-  nuit: { cles: ['template', 'form', 'rule'], requises: ['template', 'form'], porte: true },
-  voyage: { cles: ['template', 'form', 'rule'], requises: ['template', 'form'], porte: false },
-  flux: { cles: ['template', 'form', 'rule', 'entryCategory'], requises: ['template', 'form'], porte: true },
-  combat: { cles: ['template', 'form', 'rule', 'entryCategory', 'entryFromSource'], requises: [], porte: true },
-} as const satisfies Record<StakeCascade, { cles: readonly string[]; requises: readonly string[]; porte: boolean }>;
+/** Par cascade : les clés de CHARGE admises (`espace.chargeParDiscriminant`). */
+const chargeParDiscriminant = {
+  nuit: ['template', 'form', 'rule'],
+  voyage: ['template', 'form', 'rule'],
+  flux: ['template', 'form', 'rule', 'entryCategory'],
+  combat: ['template', 'form', 'rule', 'entryCategory', 'entryFromSource'],
+} as const satisfies Record<StakeCascade, readonly string[]>;
 
-const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  Object.entries(CHARGE_PAR_CASCADE).map(([cascade, charge]) => [cascade, charge.cles as readonly string[]]),
-);
-const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  Object.entries(CHARGE_PAR_CASCADE).map(([cascade, charge]) => [cascade, charge.requises as readonly string[]]),
-);
+/** Par cascade : les clés EXIGÉES de sa charge (`espace.requisesParDiscriminant`). */
+const requisesParDiscriminant = {
+  nuit: ['template', 'form'],
+  voyage: ['template', 'form'],
+  flux: ['template', 'form'],
+  combat: [],
+} as const satisfies { readonly [C in StakeCascade]: readonly (typeof chargeParDiscriminant)[C][number][] };
+
+/** Par cascade : l'entrée porte-t-elle une PORTE vers sa règle (`rule`, `entryCategory` ou `entryFromSource`). Le
+ *  voyage n'en exige pas : `stake-rule-ratchet.test.ts` énumère son stock sans foyer. */
+const PORTE_PAR_CASCADE = { nuit: true, voyage: false, flux: true, combat: true } as const satisfies Record<StakeCascade, boolean>;
 
 const doc = document(
   'stakes',
@@ -111,7 +112,7 @@ const doc = document(
         if (!e.template && !e.rule) {
           ctx.addIssue({ code: 'custom', path: ['rule'], message: `${e.id} : entrée sans gabarit ET sans foyer — elle ne dirait plus rien` });
         }
-        if (CHARGE_PAR_CASCADE[e.cascade]?.porte && !e.rule && !e.entryCategory && !e.entryFromSource) {
+        if (PORTE_PAR_CASCADE[e.cascade] && !e.rule && !e.entryCategory && !e.entryFromSource) {
           ctx.addIssue({ code: 'custom', path: ['rule'], message: `${e.id} : ni foyer (rule) ni catégorie d’entrée` });
         }
       }),

@@ -1025,7 +1025,7 @@ export const aLaFormeDe = (noeud: unknown, valeur: unknown): boolean =>
  * la forme (aucune issue de type ni de clé) — celui d'`idDe` nomme l'id et son catalogue —, jamais par
  * l'« Entrée invalide » générique d'une union.
  */
-export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
+export function unionDeFormes<const B extends readonly [z.ZodType, ...z.ZodType[]]>(branches: B): z.ZodUnion<B> {
   return z.union(branches, { error: messageDeFormes });
 }
 
@@ -1057,8 +1057,8 @@ export function pick<T extends TypeEntite, O = never>(type: T, optionsDuPorteur:
  * nœud ; il n'ajoute aucune option (cf. `pick`, `formesDeDotation` de `reference.ts`).
  */
 export function parmi<O, N extends number>(options: readonly z.ZodType<O>[], nombre: z.ZodType<N>): z.ZodType<Parmi<N, O>> {
-  const option: z.ZodType<unknown> = z.lazy(() => unionDeFormes([noeud, ...options]));
-  const noeud = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of') as z.ZodType<Parmi<N, O>>;
+  const option: z.ZodType<O | Parmi<N, O>> = z.lazy(() => unionDeFormes([noeud, ...options]));
+  const noeud: z.ZodType<Parmi<N, O>> = marquerProduit(nommerChamps(z.strictObject({ pick: nombre, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of');
   return noeud;
 }
 
