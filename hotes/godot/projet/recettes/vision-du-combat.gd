@@ -3,10 +3,11 @@ extends SceneTree
 ## La vision du groupe sous le jeu (#3950, `hotes/godot/pont/CONTRAT.md`, méthode `vision`, champ `vue.vision`), sur le
 ## noyau vivant (`TransportDuProcessus`, `--pont=<chemin>` après `--`), chaque partie sur son propre pont espion
 ## (`PontEspion`, qui garde chaque méthode appelée et la dernière réponse de chacune) et son combat (`scenes/Combat.tscn`).
-## `embuscade-fluviale` : au départ, chaque combattant posé que `voisins` ne nomme pas (`vue.occupants`) n'a ni modèle
+## `siege-enceinte` : au départ, chaque combattant posé que `voisins` ne nomme pas (`vue.occupants`) n'a ni modèle
 ## ni marque ; la vision est posée une fois, son image est le masque servi, la case d'un héros lit 255, une case d'un
-## ennemi hors de vue jamais 255 et l'une d'elles 0 ; sans actif en vue, la caméra suit un combattant dessiné ; l'attaque
-## armée, la cible hors de vue que le noyau laisse viser est surlignée en cible à sa case (`vue.casesDesCibles`). `grimpant` : le premier clic du pas
+## ennemi hors de vue jamais 255 et l'une d'elles 0 ; sans actif en vue, la caméra suit un combattant dessiné.
+## `melee-dans-le-noir` : l'attaque armée, la cible hors de vue que le noyau laisse viser est surlignée en cible à sa case
+## (`vue.casesDesCibles`), sans modèle. `grimpant` : le premier clic du pas
 ## (l'aperçu) ne rappelle rien ; le second rappelle `vision` une fois, ni `monde` ni `morceaux`, pose l'image neuve,
 ## son fondu part de 0, et l'ennemi sorti de la vue perd son modèle et sa marque ; le pas annulé pendant le fondu, la
 ## vision reçue attend, l'ennemi rentré dans la vue regagne son modèle ; le fondu fini, la vision qui attendait se pose
@@ -21,8 +22,8 @@ const RECETTE_AUTONOME := true
 const COMBAT := "res://scenes/Combat.tscn"
 ## L'attente la plus longue d'un état : le lancement du processus et le démarrage de la partie compris.
 const ATTENTE_S := 120.0
-## Les combattants de `embuscade-fluviale` hors de la vue du groupe au départ (#3950, mesure du contrat).
-const HORS_DE_VUE_AU_DEPART := 5
+## Les combattants de `siege-enceinte` hors de la vue du groupe au départ, derrière la muraille (#3950).
+const HORS_DE_VUE_AU_DEPART := 8
 ## La case de `grimpant` dont le pas de l'actif fait sortir l'ennemi de la vue.
 const CASE_DU_PAS := Vector3i(5, 0, 0)
 ## La case de `arene` où le pas du groupe le mène.
@@ -56,7 +57,8 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[vision-du-combat] version=", Engine.get_version_info().string)
-	await _embuscade()
+	await _siege()
+	await _noir()
 	await _grimpant()
 	await _arene()
 	for faute in _fautes:
@@ -65,8 +67,8 @@ func _recetter() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-func _embuscade() -> void:
-	var partie := await _demarrer("embuscade-fluviale")
+func _siege() -> void:
+	var partie := await _demarrer("siege-enceinte")
 	if partie.is_empty():
 		return
 	var pont: PontEspion = partie.pont
@@ -74,35 +76,44 @@ func _embuscade() -> void:
 	var plateau: Plateau = combat.get_node("Plateau")
 	var vue: Dictionary = combat.get("_vue")
 	var caches := _hors_de_vue(vue)
-	print("[vision-du-combat] embuscade : hors de vue %s" % [caches])
-	_verifier(caches.size() == HORS_DE_VUE_AU_DEPART, "embuscade : %d combattants hors de vue, attendu %d" % [caches.size(), HORS_DE_VUE_AU_DEPART])
+	print("[vision-du-combat] siège : hors de vue %s" % [caches])
+	_verifier(caches.size() == HORS_DE_VUE_AU_DEPART, "siège : %d combattants hors de vue, attendu %d" % [caches.size(), HORS_DE_VUE_AU_DEPART])
 	for id: String in caches:
-		_verifier(not plateau.get("_modeles").has(id) and not plateau.get("_marques").has(id), "embuscade : %s hors de vue a un modèle ou une marque" % id)
-		_verifier(not _dessines(plateau).has(id), "embuscade : %s hors de vue dans l'arbre" % id)
-	_verifier(pont.appels.count("vision") == 1, "embuscade : `vision` appelée %d fois, attendu une" % pont.appels.count("vision"))
+		_verifier(not plateau.get("_modeles").has(id) and not plateau.get("_marques").has(id), "siège : %s hors de vue a un modèle ou une marque" % id)
+		_verifier(not _dessines(plateau).has(id), "siège : %s hors de vue dans l'arbre" % id)
+	_verifier(pont.appels.count("vision") == 1, "siège : `vision` appelée %d fois, attendu une" % pont.appels.count("vision"))
 	var volume: VolumeDeScene = (combat.get_node("Plateau/Monde") as Monde).volume
-	_verifier(_image_posee(volume) == _masque_servi(pont), "embuscade : l'image posée n'est pas le masque servi")
+	_verifier(_image_posee(volume) == _masque_servi(pont), "siège : l'image posée n'est pas le masque servi")
 	var heros: Dictionary = vue.projection.combat.voisins.liste.filter(func(c: Dictionary) -> bool: return c.id.ends_with("-de-test"))[0]
-	_verifier(_etat(volume, heros.pos) == 255, "embuscade : la case du héros %s lit %d, attendu 255" % [heros.id, _etat(volume, heros.pos)])
+	_verifier(_etat(volume, heros.pos) == 255, "siège : la case du héros %s lit %d, attendu 255" % [heros.id, _etat(volume, heros.pos)])
 	var etats: Array = caches.values().map(func(cle: String) -> int: return _etat(volume, Array(cle.split(","))))
-	_verifier(not etats.has(255) and etats.has(0), "embuscade : les cases hors de vue lisent %s, aucune 255 et une 0 attendues" % [etats])
+	_verifier(not etats.has(255) and etats.has(0), "siège : les cases hors de vue lisent %s, aucune 255 et une 0 attendues" % [etats])
 	var suivi: Variant = (combat.get_node("Plateau/Monde") as Monde).lieu_suivi()
 	var lieux_dessines: Array = vue.projection.combat.voisins.liste.map(func(c: Dictionary) -> Vector3: return plateau.call("_lieu", c.pos))
 	_verifier(suivi != null and lieux_dessines.any(func(l: Vector3) -> bool: return l.is_equal_approx(suivi)),
-		"embuscade : la caméra suit %s, attendu le lieu d'un combattant dessiné parmi %s" % [suivi, lieux_dessines])
+		"siège : la caméra suit %s, attendu le lieu d'un combattant dessiné parmi %s" % [suivi, lieux_dessines])
+	await _clore(combat)
+
+
+func _noir() -> void:
+	var partie := await _demarrer("melee-dans-le-noir")
+	if partie.is_empty():
+		return
+	var combat: Node = partie.combat
+	var plateau: Plateau = combat.get_node("Plateau")
 	_passer_les_fenetres(combat)
-	if not await _attendre(func() -> bool: return combat.get("_vue").projection.combat.actif != null, "embuscade : un actif en vue"):
+	if not await _attendre(func() -> bool: return combat.get("_vue").projection.combat.actif != null, "noir : un actif en vue"):
 		await _clore(combat)
 		return
 	_jouer(combat, _jeu(combat.get("_vue").zones, "attaque"))
-	caches = _hors_de_vue(combat.get("_vue"))
+	var caches := _hors_de_vue(combat.get("_vue"))
 	var cibles: Array = combat.get("_vue").projection.combat.cibles.liste.filter(func(id: String) -> bool: return caches.has(id))
-	if _verifier(not cibles.is_empty(), "embuscade : l'attaque armée ne vise aucun combattant hors de vue"):
+	if _verifier(not cibles.is_empty(), "noir : l'attaque armée ne vise aucun combattant hors de vue"):
 		var case: Array = combat.get("_vue").casesDesCibles[cibles[0]]
 		var plaque: Variant = _plaque(plateau, Vector3i(int(case[0]), int(case[1]), int(case[2])))
 		_verifier(plaque != null and (plaque as MeshInstance3D).mesh == (plateau.get_node("Monde") as Monde).surbrillances.get_item_mesh(Monde.ITEM_CIBLE),
-			"embuscade : la cible hors de vue %s n'est pas surlignée en cible à sa case %s" % [cibles[0], case])
-		_verifier(not plateau.get("_modeles").has(cibles[0]), "embuscade : la cible hors de vue %s a un modèle" % cibles[0])
+			"noir : la cible hors de vue %s n'est pas surlignée en cible à sa case %s" % [cibles[0], case])
+		_verifier(not plateau.get("_modeles").has(cibles[0]), "noir : la cible hors de vue %s a un modèle" % cibles[0])
 	await _clore(combat)
 
 
