@@ -203,9 +203,9 @@ function resoudreLesRegions(lire, versions) {
     }
   }
   if (!resolues) return null
-  const vues = Object.fromEntries(COTES.map((cote) => [cote, vueDe(sortie, cote)]))
-  for (const cote of ['ours', 'theirs']) {
-    const lu = lire(vues[cote])
+  const vues = { ours: vueDe(sortie, 'ours'), base: vueDe(sortie, 'base'), theirs: vueDe(sortie, 'theirs') }
+  for (const vue of [vues.ours, vues.theirs]) {
+    const lu = lire(vue)
     if (!lu) throw new NonAdmis()
     liensDe(lu)
   }
