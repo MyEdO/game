@@ -52,6 +52,7 @@ import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
 import { avisDeGodot, avisDeNode, avisDesAssets, avisDesPaquets, deposerLesAvis } from './avis.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
@@ -179,7 +180,7 @@ const SCENARIO = 'dome'
 export function lecturesDuBundle(code) {
   const globaux = runInContext('Object.getOwnPropertyNames(globalThis)', createContext())
   const messages = new Linter({ configType: 'flat' }).verify(code, [{
-    languageOptions: { ecmaVersion: 'latest', sourceType: 'script', globals: Object.fromEntries(globaux.map((nom) => [nom, 'readonly'])) },
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'script', globals: tableTotale(globaux, () => 'readonly') },
     rules: { 'no-undef': 'error' },
   }])
   const lectures = {}
