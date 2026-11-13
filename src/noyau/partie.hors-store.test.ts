@@ -410,7 +410,7 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
   });
 
   it('R6 : la suite d’un combat rend sa queue, un combat neuf son journal entier, même égal au dernier reçu', () => {
-    const lancement = { party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' };
+    const lancement = { party: [heroDuDuel()], scene: { ...testScene(), startMessage: { texte: 'Vous entrez dans la salle.' } }, projet: null, combatDirect: 'enc-mutants' };
     let garde = etatInitialDuJeu();
     const [avant, premier, second] = chezLHote(garde, (hote, diffuser) => {
       hote.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null });
@@ -438,11 +438,11 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
       expect(deCombat(partie.recevoir(premier))).toEqual(log(premier));
       const lignesAvant = partie.etat().lignesAuJournal;
       expect(deCombat(partie.recevoir(second)), 'le combat relancé passe pour la suite du premier').toEqual(log(second));
+      expect(partie.etat().lignesAuJournal, 'le second lancement remet le compte du journal à zéro').toBeGreaterThan(lignesAvant);
       expect(deCombat(partie.recevoir(suite))).toEqual(log(suite).slice(log(second).length));
       expect(deCombat(partie.recevoir(suite)), 'le même instantané redit le combat').toEqual([]);
       expect(deCombat(partie.relever()), 'la capture redit le combat reçu').toEqual([]);
       expect(partie.etat().combatsOuverts).toBe(2);
-      expect(partie.etat().lignesAuJournal).toBeGreaterThanOrEqual(lignesAvant);
     });
   });
 
