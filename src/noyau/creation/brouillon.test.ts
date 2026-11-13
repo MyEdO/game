@@ -481,12 +481,12 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
       const dot = adresseDeCreation.dotation;
       const d = { ...withCareer(readyDraft(), CARRIERE_FIXTURE), careerTalent: undefined, wealthRoll: true };
       const [classe] = DOTATIONS_FIXTURE.classe;
-      const [joker, , branches] = DOTATIONS_FIXTURE.niveau;
-      expect(unresolvedTrappingSlots(d)).toEqual([classe, joker, branches].map(trappingRefLabel));
-      const trappingChoices = { [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague' };
+      const [joker, , branches, , lot, jokerDeGroupe, jokerAAtout] = DOTATIONS_FIXTURE.niveau;
+      expect(unresolvedTrappingSlots(d)).toEqual([classe, joker, branches, lot, jokerDeGroupe, jokerAAtout].map(trappingRefLabel));
+      const trappingChoices = { [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague', [dot([5])]: 1, [dot([6])]: 'epee-batarde', [dot([7])]: 'rapiere' };
       expect(unresolvedTrappingSlots({ ...d, trappingChoices })).toEqual([]);
       const objets = (buildHero({ ...d, trappingChoices }, idsDeTest, 'h-dotations').items ?? []).map((it) => it.trappingId);
-      expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague']));
+      expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague', 'arc', 'fleche', 'epee-batarde', 'rapiere']));
       expect(objets).not.toContain('miroir-a-main');
       expect(objets).not.toContain('grande-hache');
     });
