@@ -14,7 +14,7 @@ import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, ficheEditee, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, idDuCorps, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
+  DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, idDeLaSceneEditee, projetEdite, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
@@ -37,7 +37,7 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
 
 /**
  * L'éditeur de carte (#3508) est un état du pont, qu'aucune partie ne touche : la session d'édition du noyau
- * (`SessionDEdition`, `src/noyau/edition/session.ts` : le projet ouvert, l'historique de sa scène éditée, l'outil, la
+ * (`SessionDEdition`, `src/noyau/edition/session.ts` : l'historique du projet ouvert et de sa scène éditée, l'outil, la
  * couche, le pinceau, la sélection, le geste du pointeur en cours, l’entité copiée et les calques de référence), que
  * chaque geste fait avancer (`editer`, du même module).
  *
@@ -125,9 +125,9 @@ export interface ZonesDeLEditeur {
    * les scènes du projet en liste, l'éditée pressée, chacune jouant `{ geste: 'scenes', quoi: 'aller', id }` ;
    * « Nouvelle scène », vide, d'identifiant `scene-<n>` libre, en fin de projet (`addProjectScene`), « Dupliquer la
    * scène », l'éditée copiée en fin de projet (`duplicateProjectScene`), et « Retirer la scène », refusé pour la seule
-   * scène du projet, sa suivante sinon sa précédente éditée (`deleteProjectScene`), ses calques retirés : `{ geste:
-   * 'scenes', quoi: 'ajouter' | 'dupliquer' | 'retirer' }` ; la scène éditée change ainsi, à l'outil de sélection, sur
-   * la couche 0, son historique neuf, les changements des autres gardés au projet
+   * scène du projet, sa suivante sinon sa précédente éditée (`deleteProjectScene`) : `{ geste: 'scenes', quoi:
+   * 'ajouter' | 'dupliquer' | 'retirer' }`, chacun sur un cran de l'historique du projet, qu'aller à une scène ne pose
+   * ni ne vide ; la scène éditée change ainsi, à l'outil de sélection, sur la couche 0
    */
   'editeur.scenes': (Choix | Bouton)[];
   /**
@@ -169,7 +169,10 @@ export interface ZonesDeLEditeur {
    * une couche que seuls les ponts d'un navire posent
    */
   'editeur.couches': (Choix | Bouton)[];
-  /** annuler, rétablir, refusés sans cran */
+  /**
+   * annuler, rétablir, refusés sans cran : chaque cran est le projet édité et sa scène montrée, qu'annuler ou rétablir
+   * rend, à l'outil de sélection et sur la couche 0 quand elle change ; changer de scène ne vide pas l'historique
+   */
   'editeur.historique': Bouton[];
   /**
    * copier l'entité sélectionnée et la dupliquer sur la case voisine au sud-est, sur sa couche, refusés sans entité
@@ -580,7 +583,7 @@ function ligneDeLArete(s: SessionDEdition): Ligne[] {
 /** Le nom de l'entité `ent` de la scène éditée de `s` : celui que l'auteur lui donne, celui de sa fiche
  *  (`nomDEntite`), ou sa sorte. */
 const nomALEcran = (s: SessionDEdition, ent: Scene['entities'][number]): string =>
-  nomDEntite(ent, presetDuNarratif(s.projet.narratif)) ?? t(`ecran.editeur.entite.${ent.kind}`);
+  nomDEntite(ent, presetDuNarratif(projetEdite(s).narratif)) ?? t(`ecran.editeur.entite.${ent.kind}`);
 
 /** L'entrée sélectionnée de la session `s` : son nom et sa case, `undefined` hors d'une entrée sélectionnée. */
 function entreeDeLaSelection(s: SessionDEdition): { nom: string; x: number; y: number; z: number } | undefined {
@@ -911,7 +914,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
  *  Compétences à la valeur de leur Test, ses Talents et ses possessions. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
-  const porte = ficheEditee(ent, presetDuNarratif(s.projet.narratif));
+  const porte = ficheEditee(ent, presetDuNarratif(projetEdite(s).narratif));
   const fiche = porte && ficheDuCombattant(porte, (id) => {
     const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
@@ -933,7 +936,7 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
  *  imprime ; sinon, s'il a une liste de sorts (`listesDeSorts`), ses sorts au combat, choisis et tirés (`sortsDuPnj`).
  *  Les sorts choisis s'écrivent au formulaire tiré du schéma (`formulaireDe`). */
 function sorts(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
-  const fiche = ficheEditee(ent, presetDuNarratif(s.projet.narratif));
+  const fiche = ficheEditee(ent, presetDuNarratif(projetEdite(s).narratif));
   if (!fiche) return [];
   const liste = (ids: readonly string[]) => ids.map((id) => findSpellById(id)?.label ?? id).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);
@@ -1815,7 +1818,7 @@ export const cheminDeLaPlanche = (projetId: string, sceneId: string, z: number):
 export function calqueAffiche(s: SessionDEdition): CalqueAffiche | null {
   const c = calqueDeLaCouche(s);
   return c?.visible
-    ? { image: cheminDeLaPlanche(s.projet.id, s.sceneId, s.z), coins: coinsDuCalque(c), plan: planDuCalque(sceneEditee(s), s.z), opacite: c.opacite, dessus: c.dessus }
+    ? { image: cheminDeLaPlanche(projetEdite(s).id, idDeLaSceneEditee(s), s.z), coins: coinsDuCalque(c), plan: planDuCalque(sceneEditee(s), s.z), opacite: c.opacite, dessus: c.dessus }
     : null;
 }
 
@@ -1824,34 +1827,36 @@ export function calqueAffiche(s: SessionDEdition): CalqueAffiche | null {
  *  renommée, à déplacer sous son nouvel identifiant. À l'ouverture, ils ne changent que retirés d'un autre format. */
 export function memoireDesCalques(avant: SessionDEdition | null, apres: SessionDEdition): { calques: CalquesStockes; oublier: string[]; deplacer: { de: string; vers: string }[] } | null {
   if (avant ? apres.calques === avant.calques : !apres.ecartes) return null;
-  const siens = avant && avant.sceneId !== apres.sceneId && !avant.calques[apres.sceneId] ? avant.calques[avant.sceneId] : undefined;
-  const renommee = siens && apres.calques[apres.sceneId] === siens ? avant!.sceneId : null;
+  const ici = idDeLaSceneEditee(apres);
+  const la = avant && idDeLaSceneEditee(avant);
+  const projetId = projetEdite(apres).id;
+  const siens = avant && la !== ici && !avant.calques[ici] ? avant.calques[la!] : undefined;
+  const renommee = siens && apres.calques[ici] === siens ? la : null;
   const oublier = Object.entries(avant?.calques ?? {}).filter(([sceneId]) => sceneId !== renommee).flatMap(([sceneId, couches]) =>
-    Object.keys(couches).filter((z) => !apres.calques[sceneId]?.[z]).map((z) => cheminDeLaPlanche(apres.projet.id, sceneId, Number(z))));
-  const deplacer = renommee ? Object.keys(siens!).map((z) => ({ de: cheminDeLaPlanche(apres.projet.id, renommee, Number(z)), vers: cheminDeLaPlanche(apres.projet.id, apres.sceneId, Number(z)) })) : [];
+    Object.keys(couches).filter((z) => !apres.calques[sceneId]?.[z]).map((z) => cheminDeLaPlanche(projetId, sceneId, Number(z))));
+  const deplacer = renommee ? Object.keys(siens!).map((z) => ({ de: cheminDeLaPlanche(projetId, renommee, Number(z)), vers: cheminDeLaPlanche(projetId, ici, Number(z)) })) : [];
   return { calques: calquesAStocker(apres.calques), oublier, deplacer };
 }
 
 /** Les scènes du projet de la session `s` : chacune en liste, l'éditée pressée, qui s'édite à sa pression ; en ajouter
  *  une vide, dupliquer l'éditée, la retirer, refusé pour la seule scène du projet. */
 function scenesDuProjet(s: SessionDEdition): (Choix | Bouton)[] {
-  const scenes = s.projet.scenes;
+  const { scenes } = projetEdite(s);
+  const ici = idDeLaSceneEditee(s);
   return [
-    choix('scenes', t('ecran.editeur.scenes', { n: scenes.length }), scenes.map((sc) => bouton(`scenes/${sc.id}`, sc.id === s.sceneId ? sceneEditee(s).label || sc.id : sc.label || sc.id, { geste: 'scenes', quoi: 'aller', id: sc.id }, sc.id === s.sceneId)), 'liste'),
+    choix('scenes', t('ecran.editeur.scenes', { n: scenes.length }), scenes.map((sc) => bouton(`scenes/${sc.id}`, sc.label || sc.id, { geste: 'scenes', quoi: 'aller', id: sc.id }, sc.id === ici)), 'liste'),
     bouton('scenes/ajouter', t('ecran.editeur.scenes.ajouter'), { geste: 'scenes', quoi: 'ajouter' }),
     bouton('scenes/dupliquer', t('ecran.editeur.scenes.dupliquer'), { geste: 'scenes', quoi: 'dupliquer' }),
     bouton('scenes/retirer', t('ecran.editeur.scenes.retirer'), { geste: 'scenes', quoi: 'retirer' }, false, scenes.length > 1 ? null : t('ecran.editeur.scenes.seule')),
   ];
 }
 
-/** Pourquoi la session `s` ne s'enregistre pas : son projet vient du jeu, un enregistrement est en cours, ou ses
- *  scènes sont celles que le dépôt porte. */
+/** Pourquoi la session `s` ne s'enregistre pas : son projet vient du jeu, un enregistrement est en cours, ou son
+ *  projet édité est celui que le dépôt porte. */
 function refusDEnregistrer(s: SessionDEdition): string | null {
   if (!s.depot) return t('ecran.editeur.enregistrer.horsDuDepot');
   if (s.depot.enCours) return t('ecran.editeur.enregistrer.enCours');
-  const scenes = scenesDeLaSession(s);
-  const memes = scenes.length === s.depot.enregistrees.length && scenes.every((sc, i) => sc === s.depot!.enregistrees[i]);
-  return memes ? t('ecran.editeur.rien.enregistrer') : null;
+  return projetEdite(s) === s.depot.enregistre ? t('ecran.editeur.rien.enregistrer') : null;
 }
 
 /**
@@ -1877,9 +1882,9 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * éditée (`retraitDuMonde(scene, z)`, section « Monde »). Tous deux ne sont rendus qu'à l'ouverture, et sans geste en
  * cours quand la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche
  * tient lieu. Le
- * geste « Enregistrer » rend `depot: { id, texte }`, le texte du projet, ses scènes à jour (`scenesDeLaSession`), passé
- * par la porte, en forme dépôt (`texteAEnregistrer`) ; l'enregistrement est en cours jusqu'à son issue, et les scènes
- * écrites ne sont tenues pour enregistrées qu'à l'issue réussie.
+ * geste « Enregistrer » rend `depot: { id, texte }`, le texte du projet édité (`projetEdite`), passé par la porte, en
+ * forme dépôt (`texteAEnregistrer`) ; l'enregistrement est en cours jusqu'à son issue, et le projet écrit n'est tenu
+ * pour enregistré qu'à l'issue réussie, qui oublie les calques des scènes retirées.
  *
  * Le calque de référence (#830) est une planche de livre posée sur le plan d'une couche pour la décalquer, un par
  * couche de chaque scène : une aide d'auteur que l'hôte garde chez lui, jamais une donnée de scène. `calque` porte

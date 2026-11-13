@@ -710,8 +710,10 @@ describe('l’éditeur de carte par le pont, les scènes du projet', () => {
     editionDe(appel('editer', { type: 'nommer', args: ['Relais de poste'] }));
     const ailleurs = presser(seconde);
     expect([titre(ailleurs), scenes(ailleurs)[0].libelle, scenes(ailleurs)[1].presse]).toEqual([seconde.libelle, 'Relais de poste', true]);
-    expect(boutonDe(ailleurs, 'annuler').refus, 'l’historique est celui de la scène éditée').toBe('Rien à annuler');
-    expect(titre(presser(scenes(ailleurs)[0])), 'revenue, la scène garde son nom').toBe('Relais de poste');
+    const revenue = presser(scenes(ailleurs)[0]);
+    expect(titre(revenue), 'revenue, la scène garde son nom').toBe('Relais de poste');
+    expect(titre(presser(boutonDe(presser(seconde), 'annuler'))), 'annuler depuis une autre scène montre la scène du cran').toBe(premiere.libelle);
+    expect(titre(presser(boutonDe(revenue, 'retablir')))).toBe('Relais de poste');
 
     const neuve = presser(boutonDe(ailleurs, 'scenes/ajouter'));
     expect([titre(neuve), scenes(neuve).length, derniere(neuve).id]).toEqual(['Nouvelle scène', scenes(ouverte).length + 1, 'scenes/scene-0']);
@@ -1200,7 +1202,7 @@ describe('l’éditeur de carte par le pont, le calque de référence', () => {
     expect(charge.memoire).toEqual({ calques: { version: expect.any(String), calques: { [sceneId]: { 0: expect.objectContaining({ largeur: 200, hauteur: 100 }) } } }, oublier: [], deplacer: [] });
   });
 
-  it('la scène renommée garde son calque : sa planche se déplace sous son nouvel identifiant ; la scène retirée l’oublie', () => {
+  it('la scène renommée garde son calque : sa planche se déplace sous son nouvel identifiant ; la scène retirée le garde pour une annulation', () => {
     const { appel, ouverte, jouer, presser } = ouvrirLaCarte();
     presser(boutonDe(ouverte, 'calque/charger'));
     const charge = jouer({ geste: 'chargement', image: { largeur: 200, hauteur: 100 } });
@@ -1208,7 +1210,8 @@ describe('l’éditeur de carte par le pont, le calque de référence', () => {
     expect(renommee.calque?.image).toBe(`calques/${CAMPAGNE}/cour/0`);
     expect(renommee.memoire).toEqual({ calques: { version: expect.any(String), calques: { cour: { 0: expect.objectContaining({ largeur: 200 }) } } }, oublier: [], deplacer: [{ de: charge.calque!.image, vers: `calques/${CAMPAGNE}/cour/0` }] });
     const retiree = presser(boutonDe(renommee, 'scenes/retirer'));
-    expect(retiree.memoire).toEqual({ calques: { version: expect.any(String), calques: {} }, oublier: [`calques/${CAMPAGNE}/cour/0`], deplacer: [] });
+    expect(retiree.memoire, 'le retrait s’annule : rien d’oublié').toBeUndefined();
+    expect(presser(boutonDe(retiree, 'annuler')).calque?.image).toBe(`calques/${CAMPAGNE}/cour/0`);
   });
 
   it('caler par deux points : un point de l’image, son nœud, un second point, son nœud ; la planche se pose sur la grille', () => {

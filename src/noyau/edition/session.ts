@@ -1,5 +1,5 @@
 /**
- * LA SESSION D'ÉDITION D'UNE CARTE (#3508), sans hôte : le projet ouvert, l'historique de la scène éditée, l'outil, la
+ * LA SESSION D'ÉDITION D'UNE CARTE (#3508), sans hôte : l'historique du projet ouvert et de sa scène éditée, l'outil, la
  * couche, le pinceau, la sélection, le geste du pointeur en cours, le tracé d'une volée, le brouillon de l'arête
  * sélectionnée, l'entité copiée, l'enregistrement au dépôt et les calques de référence, et le seul réducteur qui les fait avancer
  * (`editer`) sur une union fermée de gestes. Chaque geste délègue au pointeur (`./pointeur`), à l'historique
@@ -20,7 +20,7 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, sceneSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, sceneSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
 import { FORMULAIRES, entiteDeLaSelection, porteurDeLaSel, porteursDeLaScene, selDuPorteur, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
@@ -106,9 +106,9 @@ const validationDuProjet = memoByDeps<Warning[]>();
 /** Les avertissements de la validation (`validateScene`) qui concernent la scène éditée de la session `s`, ceux de la
  *  carte du monde compris. */
 export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
-  const scenes = scenesDeLaSession(s);
-  return validationDuProjet([versionDesDatasets(), ...scenes, s.projet.worldMap, s.projet.narratif], () => validateScene(scenes, s.projet.worldMap, s.projet.narratif))
-    .filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
+  const { scenes, worldMap, narratif } = projetEdite(s);
+  return validationDuProjet([versionDesDatasets(), ...scenes, worldMap, narratif], () => validateScene(scenes, worldMap, narratif))
+    .filter((w) => w.sceneId === idDeLaSceneEditee(s) || w.scope === 'worldMap');
 }
 
 /** La sorte du porteur de formulaire que désigne la portée d'un avertissement (`Warning.scope`). */
@@ -157,34 +157,52 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
 
 /** Les scènes du projet de la session `s` autour de la scène éditée. */
 function scenesEnProjet(s: SessionDEdition): ProjectScenes {
-  const scenes = scenesDeLaSession(s);
-  const rang = scenes.findIndex((sc) => sc.id === s.sceneId);
+  const { scenes } = projetEdite(s);
+  const rang = scenes.findIndex((sc) => sc.id === idDeLaSceneEditee(s));
   return { avant: scenes.slice(0, rang), scene: scenes[rang], apres: scenes.slice(rang + 1) };
 }
 
-/** La session `s` qui édite la scène `p.scene` de son projet `p`, à l'outil de sélection, sur la couche 0, son
- *  historique neuf ; les calques d'une scène retirée retirés. Telle quelle sans `p`. */
+/** Les scènes de chaque cran de l'historique `h` : un identifiant neuf n'en reprend aucun, qu'annuler ou rétablir
+ *  ramènerait. */
+const scenesDeLHistorique = (h: Historique<CranDEdition>): Scene[] => [...h.passe, h.present, ...h.futur].flatMap((c) => c.projet.scenes);
+
+/** La session `s` montrant une autre scène : à l'outil de sélection, sur la couche 0, sans sélection, geste, volée,
+ *  brouillon, case pointée, défaut suivi ni calage. */
+const remiseAZero = (s: SessionDEdition): SessionDEdition => ({
+  ...s, outil: { mode: 'selection' }, z: 0, sel: null, geste: null, volee: [], brouillon: null, pointee: null, defaut: null, calage: HORS_DU_CALAGE,
+});
+
+/** La session `s` qui édite la scène `p.scene` de son projet `p`, sur un cran neuf, remise à zéro (`remiseAZero`).
+ *  Telle quelle sans `p`. */
 function versLaScene(s: SessionDEdition, p: ProjectScenes | null): SessionDEdition {
   if (!p) return s;
-  const scenes = [...p.avant, p.scene, ...p.apres];
-  const calques = Object.fromEntries(Object.entries(s.calques).filter(([id]) => scenes.some((sc) => sc.id === id)));
-  return {
-    ...s, projet: { ...s.projet, scenes }, sceneId: p.scene.id, historique: historiqueDe(p.scene), outil: { mode: 'selection' }, z: 0,
-    sel: null, geste: null, volee: [], brouillon: null, pointee: null, defaut: null, calage: HORS_DU_CALAGE,
-    ...(Object.keys(calques).length === Object.keys(s.calques).length ? {} : { calques }),
-  };
+  const projet = { ...projetEdite(s), scenes: [...p.avant, p.scene, ...p.apres] };
+  return { ...remiseAZero(s), historique: poser(s.historique, { projet, sceneId: p.scene.id }, true) };
+}
+
+/** La session `s` qui montre la scène `id` de son projet, sans cran : une navigation, remise à zéro (`remiseAZero`).
+ *  Telle quelle si `id` est la scène montrée ou n'est pas au projet. */
+function allerALaScene(s: SessionDEdition, id: string): SessionDEdition {
+  const cran = s.historique.present;
+  if (id === cran.sceneId || !cran.projet.scenes.some((sc) => sc.id === id)) return s;
+  return { ...remiseAZero(s), historique: poser(s.historique, { ...cran, sceneId: id }, false) };
 }
 
 /** La session `s` dont la scène éditée `scene` prend l'identifiant `id` (`renameScene`), hors de l'historique : chaque
- *  cran le porte, et ses calques le suivent. Telle quelle sous un identifiant vide ou déjà pris. */
+ *  cran le porte, sa scène montrée comprise, et ses calques le suivent. Telle quelle sous un identifiant vide ou pris
+ *  dans un cran. */
 function sceneRenommee(s: SessionDEdition, scene: Scene, id: string): SessionDEdition {
-  const renommee = renameScene(scene, s.projet.scenes.filter((sc) => sc.id !== s.sceneId), id);
+  const ancien = idDeLaSceneEditee(s);
+  const renommee = renameScene(scene, scenesDeLHistorique(s.historique).filter((sc) => sc.id !== ancien), id);
   if (renommee === scene) return s;
-  const { [s.sceneId]: siens, ...autres } = s.calques;
+  const renommer = (c: CranDEdition): CranDEdition => ({
+    projet: { ...c.projet, scenes: c.projet.scenes.map((sc) => (sc.id === ancien ? { ...sc, id: renommee.id } : sc)) },
+    sceneId: c.sceneId === ancien ? renommee.id : c.sceneId,
+  });
+  const { [ancien]: siens, ...autres } = s.calques;
   return {
-    ...s, sceneId: renommee.id,
-    projet: { ...s.projet, scenes: s.projet.scenes.map((sc) => (sc.id === s.sceneId ? { ...sc, id: renommee.id } : sc)) },
-    historique: { ...reecrire(s.historique, (sc) => ({ ...sc, id: renommee.id })), present: renommee },
+    ...s,
+    historique: { ...reecrire(s.historique, renommer), present: renommer(s.historique.present) },
     ...(siens ? { calques: { ...autres, [renommee.id]: siens } } : {}),
   };
 }
@@ -296,12 +314,15 @@ export interface BrouillonDArete {
   crossable?: true;
 }
 
-export interface SessionDEdition {
-  /** Le projet ouvert : son document, la scène éditée tenue par `historique` (`scenesDeLaSession`). */
+/** Un cran de l'historique de l'éditeur : le projet édité et la scène qu'il montre. #3606 */
+export interface CranDEdition {
   projet: Omit<ProjectDoc, 'schema'>;
-  /** L'id de la scène éditée du projet. */
   sceneId: string;
-  historique: Historique;
+}
+
+export interface SessionDEdition {
+  /** Le projet ouvert et sa scène éditée : le présent de l'historique (`projetEdite`, `sceneEditee`). */
+  historique: Historique<CranDEdition>;
   outil: OutilDeLEditeur;
   z: number;
   pinceau: (typeof PINCEAUX)[number];
@@ -316,9 +337,9 @@ export interface SessionDEdition {
   pointee: (Pt & { z: number }) | null;
   /** L'entité copiée, que coller pose sur la case pointée ; `null` avant toute copie. */
   presse: SceneEntity | null;
-  /** Le dépôt d'où le projet s'est ouvert : les scènes du projet telles qu'il les porte, et celles qu'un
-   *  enregistrement en cours lui écrit. `null` : le projet vient du jeu, il ne s'enregistre pas. */
-  depot: { enregistrees: readonly Scene[]; enCours: readonly Scene[] | null } | null;
+  /** Le dépôt d'où le projet s'est ouvert : le projet tel qu'il le porte, et celui qu'un enregistrement en cours lui
+   *  écrit. `null` : le projet vient du jeu, il ne s'enregistre pas. */
+  depot: { enregistre: Omit<ProjectDoc, 'schema'>; enCours: Omit<ProjectDoc, 'schema'> | null } | null;
   /** Les calques de référence du projet, par scène et par couche, hors de l'historique. */
   calques: CalquesDuProjet;
   /** Le calage du calque de la couche éditée : `idle` hors du calage. */
@@ -406,8 +427,17 @@ export type GesteDEdition =
   | { geste: 'retirerCalque' }
   | { geste: 'chapitre'; book: string; ch: string; texte: string | null };
 
-/** La scène éditée : celle qui s'écrit et s'enregistre. */
-export const sceneEditee = (s: SessionDEdition): Scene => s.historique.present;
+/** Le projet édité : le présent de l'historique. */
+export const projetEdite = (s: SessionDEdition): Omit<ProjectDoc, 'schema'> => s.historique.present.projet;
+
+/** L'id de la scène éditée du projet. */
+export const idDeLaSceneEditee = (s: SessionDEdition): string => s.historique.present.sceneId;
+
+/** La scène que montre le cran `c`. */
+const sceneDuCran = (c: CranDEdition): Scene => c.projet.scenes.find((sc) => sc.id === c.sceneId)!;
+
+/** La scène éditée : celle qui s'écrit. */
+export const sceneEditee = (s: SessionDEdition): Scene => sceneDuCran(s.historique.present);
 
 /** La vue de la scène éditée de la session `s` : ses navires posés par leurs ponts (`poserLesNavires`), comme en jeu.
  *  L'hôte la montre, le pointeur y vise les ponts, ses couches sont celles qu'on édite ; les écritures vont à la scène
@@ -417,19 +447,15 @@ export const vueDeLaScene = (s: SessionDEdition): Scene => poserLesNavires(scene
 /** La couche `z` est-elle l'une de la vue de `scene` (`poserLesNavires`) ? */
 const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).layers.some((l) => l.z === z);
 
-/** Les scènes du projet de la session `s`, dans l'ordre du document, la scène éditée à jour. */
-export const scenesDeLaSession = (s: SessionDEdition): Scene[] => s.projet.scenes.map((sc) => (sc.id === s.sceneId ? sceneEditee(s) : sc));
-
 /** La session qui édite la première scène du projet `projet`, à l'outil de sélection, sur la couche 0 ; `duDepot` :
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format ; `manifeste`, l'index des chapitres du
  *  `Source/` que l'hôte sert, sans aucun chapitre chargé. */
 export function ouvrirLEdition(projet: Omit<ProjectDoc, 'schema'>, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null): SessionDEdition {
-  const scene = projet.scenes[0];
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
-    projet, sceneId: scene.id, historique: historiqueDe(scene), outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
-    depot: duDepot ? { enregistrees: projet.scenes, enCours: null } : null,
+    historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
+    depot: duDepot ? { enregistre: projet, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
     manifeste, chapitres: {}, chapitreEnAttente: null,
   };
@@ -439,7 +465,7 @@ export function ouvrirLEdition(projet: Omit<ProjectDoc, 'schema'>, duDepot: bool
 const HORS_DU_CALAGE: CalibProgress = { step: 'idle' };
 
 /** Le calque de la couche éditée de la session `s`, `undefined` sans lui. */
-export const calqueDeLaCouche = (s: SessionDEdition): CalqueDeCouche | undefined => s.calques[s.sceneId]?.[String(s.z)];
+export const calqueDeLaCouche = (s: SessionDEdition): CalqueDeCouche | undefined => s.calques[idDeLaSceneEditee(s)]?.[String(s.z)];
 
 /** Les calques de la session `s`, celui de la couche `z` de la scène `sceneId` posé à `calque`, retiré s'il est `null`. */
 function avecLeCalque(s: SessionDEdition, sceneId: string, z: number, calque: CalqueDeCouche | null): CalquesDuProjet {
@@ -461,23 +487,27 @@ function aLaPorte<T>(geste: GesteDePorte, passer: () => T): { ok: true; valeur: 
 /** Le projet `lu` que sert le dépôt, prose matérialisée, passé par la porte, ou son refus. */
 export const projetDuDepot = (lu: unknown) => aLaPorte('ouverture', () => parseProject(lu));
 
-/** Le texte que l'enregistrement de la session `s` écrit au dépôt : son projet, ses scènes à jour, passé par la porte,
- *  en forme dépôt (`texteDuDepot`) ; ou le refus de la porte. */
+/** Le document du projet édité de la session `s` (`documentDeProjet`). */
+function documentEdite(s: SessionDEdition): ProjectDoc {
+  const { scenes, worldMap, activeAxes, narratif, ...identite } = projetEdite(s);
+  return documentDeProjet(identite, scenes, { worldMap, activeAxes, narratif });
+}
+
+/** Le texte que l'enregistrement de la session `s` écrit au dépôt : son projet édité, passé par la porte, en forme
+ *  dépôt (`texteDuDepot`) ; ou le refus de la porte. */
 export function texteAEnregistrer(s: SessionDEdition) {
-  const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
-  const doc = documentDeProjet(identite, scenesDeLaSession(s), { worldMap, activeAxes, narratif });
+  const doc = documentEdite(s);
   return aLaPorte('export', () => (parseProject(doc), texteDuDepot(doc)));
 }
 
-/** L'essai de la scène éditée de la session `s` : le projet, ses scènes à jour, passé par la porte, et ce qui construit
- *  son lancement, la scène éditée à l'entrée, joué par le groupe vitrine (`groupeVitrine`), à l'ouverture de la
- *  partie ; ou le refus de la porte. */
+/** L'essai de la scène éditée de la session `s` : son projet édité, passé par la porte, et ce qui construit son
+ *  lancement, la scène éditée à l'entrée, joué par le groupe vitrine (`groupeVitrine`), à l'ouverture de la partie ;
+ *  ou le refus de la porte. */
 export function essaiDeLaScene(s: SessionDEdition) {
-  const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
-  const doc = documentDeProjet(identite, scenesDeLaSession(s), { worldMap, activeAxes, narratif });
+  const doc = documentEdite(s);
   return aLaPorte('test', (): ((idNeuf: FabriqueDId) => LancementDeScenario) => {
     const projet = parseProject(doc);
-    return (idNeuf) => lancementDuProjet(projet, groupeVitrine(idNeuf), s.sceneId, null);
+    return (idNeuf) => lancementDuProjet(projet, groupeVitrine(idNeuf), idDeLaSceneEditee(s), null);
   });
 }
 
@@ -598,13 +628,20 @@ function porter(s: SessionDEdition, effet: EffetDuPointeur): SessionDEdition {
     ...(effet.sel !== undefined ? { brouillon: null } : {}),
     geste: effet.geste,
     ...(effet.volee ? { volee: basculer(s.volee, effet.volee) } : {}),
-    ...(effet.scene ? { historique: poser(s.historique, effet.scene, effet.cran === true) } : {}),
+    ...(effet.scene ? { historique: avecLaScene(s, effet.scene, effet.cran === true) } : {}),
     ...(effet.sel !== undefined ? { sel: effet.sel } : {}),
   };
 }
 
+/** L'historique de la session `s` où la scène éditée devient `scene`, à sa place dans le projet, sur un cran neuf
+ *  (`cran`) ou à la place du présent : les autres scènes, la carte du monde et le narratif gardent leur identité. */
+function avecLaScene(s: SessionDEdition, scene: Scene, cran: boolean): Historique<CranDEdition> {
+  const { projet, sceneId } = s.historique.present;
+  return poser(s.historique, { projet: { ...projet, scenes: projet.scenes.map((sc) => (sc.id === sceneId ? scene : sc)) }, sceneId }, cran);
+}
+
 /** La scène `scene` écrite sur un cran neuf, la sélection et son brouillon levés, ou `sel` sélectionnée. */
-const ecrire = (s: SessionDEdition, scene: Scene, sel: Sel = null): SessionDEdition => ({ ...s, historique: poser(s.historique, scene, true), sel, brouillon: null });
+const ecrire = (s: SessionDEdition, scene: Scene, sel: Sel = null): SessionDEdition => ({ ...s, historique: avecLaScene(s, scene, true), sel, brouillon: null });
 
 /** Les zones de la scène `sc` : ses déclencheurs, ses zones de repos et d'effet. */
 const zonesDe = (sc: Scene) => [sc.triggers, sc.restZones, sc.effectZones];
@@ -612,7 +649,7 @@ const zonesDe = (sc: Scene) => [sc.triggers, sc.restZones, sc.effectZones];
 /** La session `s` où la scène `scene` s'écrit sur un cran neuf si ce que `lire` y lit de la sélection change : sinon,
  *  `s` telle quelle. La sélection reste. */
 function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Scene) => T): SessionDEdition {
-  return jsonCanonique(lire(scene)) === jsonCanonique(lire(sceneEditee(s))) ? s : { ...s, historique: poser(s.historique, scene, true) };
+  return jsonCanonique(lire(scene)) === jsonCanonique(lire(sceneEditee(s))) ? s : { ...s, historique: avecLaScene(s, scene, true) };
 }
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent`, chaque absence posée par `champs` (`editEntity`) : le
@@ -665,16 +702,25 @@ function membrePatche(scene: Scene, id: string, patch: PatchDeMembre): Scene {
 const enPatchDeSegment = (patch: PatchDArete): Partial<WallSeg> =>
   Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, v ?? undefined]));
 
-/** La session revenue à l'état `historique` d'annuler ou de rétablir : la couche éditée reste, sauf disparue de sa
- *  vue (`coucheVue`), où le rez la remplace. */
-function revenir(s: SessionDEdition, historique: Historique): SessionDEdition {
-  const z = coucheVue(historique.present, s.z) ? s.z : 0;
+/** La session `s` revenue au cran visé par annuler ou rétablir (`sens`), qui montre sa scène. Le cran quitté prend
+ *  d'abord la scène du cran visé quand chacune existe des deux côtés : seule une navigation les sépare, et rétablir ou
+ *  annuler encore montrera la scène où l'écriture a eu lieu. Une autre scène montrée remet la session à zéro
+ *  (`remiseAZero`) ; sinon la couche éditée reste, sauf disparue de sa vue (`coucheVue`), où le rez la remplace. */
+function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdition {
+  const h = s.historique;
+  const crans = sens === 'annuler' ? h.passe : h.futur;
+  const vise = crans[crans.length - 1] as CranDEdition | undefined;
+  const { projet, sceneId } = h.present;
+  const navigue = vise !== undefined && vise.sceneId !== sceneId && projet.scenes.some((sc) => sc.id === vise.sceneId) && vise.projet.scenes.some((sc) => sc.id === sceneId);
+  const historique = (sens === 'annuler' ? annuler : retablir)(navigue ? poser(h, { projet, sceneId: vise.sceneId }, false) : h);
+  if (historique.present.sceneId !== sceneId) return { ...remiseAZero(s), historique };
+  const z = coucheVue(sceneDuCran(historique.present), s.z) ? s.z : 0;
   return { ...s, historique, z, sel: null, geste: null, brouillon: null };
 }
 
 /** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
  *  sert. */
-export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: s.projet, source: { manifeste: s.manifeste, chapitres: s.chapitres } });
+export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: { manifeste: s.manifeste, chapitres: s.chapitres } });
 
 /** Ce qu'un geste écrit au formulaire d'un porteur, dans le cadre `cadre` : sa donnée écrite, ou son refus. */
 type EcritureDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
@@ -710,8 +756,8 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
  *  dit à l'auteur ; `null` sans lui. #3606 */
 export function refusHorsDeLaScene(s: SessionDEdition): string | null {
   const porteur = porteurDeLaSel(s.sel);
-  const worldMap = s.projet.worldMap;
-  return (porteur && worldMap && ECRITURES_DES_PORTEURS[porteur.sorte].viseHorsDeLaScene?.(worldMap, s.sceneId, porteur.id)) ?? null;
+  const worldMap = projetEdite(s).worldMap;
+  return (porteur && worldMap && ECRITURES_DES_PORTEURS[porteur.sorte].viseHorsDeLaScene?.(worldMap, idDeLaSceneEditee(s), porteur.id)) ?? null;
 }
 
 /** Pourquoi la session `s` ne supprime pas sa sélection : ce qui désigne son porteur hors de sa scène
@@ -761,7 +807,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const calque = calqueDeLaCouche(s);
       if (s.calage.step !== 'idle' && calque) {
         const pas = caler(s.calage, calque, g.point.f);
-        return { ...s, calage: pas.progress, ...(pas.transform ? { calques: avecLeCalque(s, s.sceneId, s.z, { ...calque, calage: pas.transform }) } : {}) };
+        return { ...s, calage: pas.progress, ...(pas.transform ? { calques: avecLeCalque(s, idDeLaSceneEditee(s), s.z, { ...calque, calage: pas.transform }) } : {}) };
       }
       const pointee = { ...g.point.case, z: s.z };
       if (s.outil.mode === 'navire') {
@@ -864,9 +910,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'baie':
       return ecrireSurLaSelection(s, ouverturePosee(scene, s.sel, g.id, g.patch), (sc) => sc.architecture);
     case 'scenes':
-      return g.quoi === 'aller' ? versLaScene(s, switchProjectScene(scenesEnProjet(s), g.id))
+      return g.quoi === 'aller' ? allerALaScene(s, g.id)
         : g.quoi === 'retirer' ? versLaScene(s, deleteProjectScene(scenesEnProjet(s)))
-          : versLaScene(s, (g.quoi === 'ajouter' ? addProjectScene : duplicateProjectScene)(scenesEnProjet(s), nextEntityId('scene', s.projet.scenes.map((sc) => sc.id))));
+          : versLaScene(s, (g.quoi === 'ajouter' ? addProjectScene : duplicateProjectScene)(scenesEnProjet(s), nextEntityId('scene', scenesDeLHistorique(s.historique).map((sc) => sc.id))));
     case 'avertissement': {
       const w = avertissementsDeLaSession(s)[g.rang];
       return w && versLaFautive(w) ? versLAvertissement(s, scene, w) : s;
@@ -918,17 +964,19 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;
     }
     case 'annuler':
-      return revenir(s, annuler(s.historique));
     case 'retablir':
-      return revenir(s, retablir(s.historique));
+      return revenir(s, g.geste);
     case 'enregistrer':
-      return s.depot ? { ...s, depot: { ...s.depot, enCours: scenesDeLaSession(s) } } : s;
+      return s.depot ? { ...s, depot: { ...s.depot, enCours: projetEdite(s) } } : s;
     case 'tester':
       return s;
     case 'enregistrement':
-      return s.depot?.enCours ? { ...s, depot: { enregistrees: g.reussi ? s.depot.enCours : s.depot.enregistrees, enCours: null } } : s;
+      if (!s.depot?.enCours) return s;
+      return g.reussi
+        ? { ...s, depot: { enregistre: s.depot.enCours, enCours: null }, ...calquesElagues(s) }
+        : { ...s, depot: { ...s.depot, enCours: null } };
     case 'planche':
-      return s.chargement ? s : { ...s, chargement: { sceneId: s.sceneId, z: s.z }, calage: HORS_DU_CALAGE };
+      return s.chargement ? s : { ...s, chargement: { sceneId: idDeLaSceneEditee(s), z: s.z }, calage: HORS_DU_CALAGE };
     case 'chargement': {
       const c = s.chargement;
       if (!c) return s;
@@ -938,18 +986,26 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const calque = calqueDeLaCouche(s);
       if (!calque) return s;
       const regle = { ...calque, ...g.reglage };
-      return { ...s, calques: avecLeCalque(s, s.sceneId, s.z, regle), ...(regle.visible ? {} : { calage: HORS_DU_CALAGE }) };
+      return { ...s, calques: avecLeCalque(s, idDeLaSceneEditee(s), s.z, regle), ...(regle.visible ? {} : { calage: HORS_DU_CALAGE }) };
     }
     case 'caler':
       return { ...s, calage: g.actif && calqueDeLaCouche(s)?.visible ? { step: 'image1' } : HORS_DU_CALAGE };
     case 'retirerCalque':
-      return calqueDeLaCouche(s) ? { ...s, calques: avecLeCalque(s, s.sceneId, s.z, null), calage: HORS_DU_CALAGE } : s;
+      return calqueDeLaCouche(s) ? { ...s, calques: avecLeCalque(s, idDeLaSceneEditee(s), s.z, null), calage: HORS_DU_CALAGE } : s;
     case 'chapitre': {
       const attendu = s.chapitreEnAttente;
       if (attendu?.book !== g.book || attendu.ch !== g.ch) return s;
       return { ...s, chapitreEnAttente: null, chapitres: { ...s.chapitres, [cleDuChapitre(g.book, g.ch)]: g.texte === null ? null : parseChapitre(g.texte) } };
     }
   }
+}
+
+/** Les calques de la session `s` sans ceux des scènes absentes de son projet édité, à l'enregistrement réussi ; rien
+ *  s'il n'en retire aucun. Une annulation peut ressusciter une scène retirée jusque-là. */
+function calquesElagues(s: SessionDEdition): { calques?: CalquesDuProjet } {
+  const { scenes } = projetEdite(s);
+  const calques = Object.fromEntries(Object.entries(s.calques).filter(([id]) => scenes.some((sc) => sc.id === id)));
+  return Object.keys(calques).length === Object.keys(s.calques).length ? {} : { calques };
 }
 
 /** Le porteur de formulaire de la sélection de la session `s` (`porteurDeLaSel`) : le schéma de sa sorte

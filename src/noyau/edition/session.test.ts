@@ -18,7 +18,7 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { emptyWorldMap, type WorldMap } from '../worldMap';
-import { avertissementsDeLaSession, cadreDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
+import { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, champDuMessage, editer, groupesDuLieu, idDeLaSceneEditee, ouvrirLEdition, planDeLaVolee, projetEdite, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
 import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
 import { validateScene } from '../validateScene';
 import { bumperDataset } from '../../data/versionDataset';
@@ -88,13 +88,17 @@ describe('session d’édition', () => {
     expect([s.pinceau, s.rectangle]).toEqual([3, false]);
   });
 
-  it('enregistrer : hors du dépôt, rien ; au dépôt, les scènes ne sont enregistrées qu’à l’écriture réussie', () => {
+  it('enregistrer : hors du dépôt, rien ; au dépôt, le projet édité n’est enregistré qu’à l’écriture réussie', () => {
     expect(editer(ouverte(), { geste: 'enregistrer' }).depot).toBeNull();
-    const modifiee = editer(ouverte(true), { geste: 'ajouterCouche' });
+    const ouv = ouverte(true);
+    const modifiee = editer(ouv, { geste: 'ajouterCouche' });
     const enCours = editer(modifiee, { geste: 'enregistrer' });
-    expect(enCours.depot).toEqual({ enregistrees: [sceneEditee(ouverte(true))], enCours: [sceneEditee(modifiee)] });
-    expect(editer(enCours, { geste: 'enregistrement', reussi: true }).depot).toEqual({ enregistrees: [sceneEditee(modifiee)], enCours: null });
-    expect(editer(enCours, { geste: 'enregistrement', reussi: false }).depot).toEqual({ enregistrees: [sceneEditee(ouverte(true))], enCours: null });
+    expect(enCours.depot!.enregistre).toBe(projetEdite(ouv));
+    expect(enCours.depot!.enCours).toBe(projetEdite(modifiee));
+    const reussi = editer(enCours, { geste: 'enregistrement', reussi: true }).depot!;
+    expect([reussi.enregistre === projetEdite(modifiee), reussi.enCours]).toEqual([true, null]);
+    const echoue = editer(enCours, { geste: 'enregistrement', reussi: false }).depot!;
+    expect([echoue.enregistre === projetEdite(ouv), echoue.enCours]).toEqual([true, null]);
     expect(editer(modifiee, { geste: 'enregistrement', reussi: true }), 'aucun enregistrement en cours').toBe(modifiee);
   });
 
@@ -978,7 +982,7 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
 describe('la validation de la session ne se refait que quand le projet change (#3993)', () => {
   it('deux sessions au même projet rendent les mêmes avertissements ; une scène écrite ou un dataset re-daté les refait, au contenu de `validateScene`', () => {
     const projet = { scenes: [{ ...emptyScene('valide', 4, 4), walls: [{ x: 1, y: 1, side: 'N' }] }], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
-    const direct = (s: SessionDEdition) => validateScene([sceneEditee(s)], undefined, NARRATIF_VIDE).filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
+    const direct = (s: SessionDEdition) => validateScene([sceneEditee(s)], undefined, NARRATIF_VIDE).filter((w) => w.sceneId === idDeLaSceneEditee(s) || w.scope === 'worldMap');
     const a = avertissementsDeLaSession(ouvrirLEdition(projet, false));
     expect(a.length, 'le mur en impasse est averti').toBeGreaterThan(0);
     const b = avertissementsDeLaSession(ouvrirLEdition(projet, false));
@@ -994,5 +998,89 @@ describe('la validation de la session ne se refait que quand le projet change (#
     const d = avertissementsDeLaSession(ecrite);
     expect(d[0]).not.toBe(c[0]);
     expect(d).toEqual(c);
+  });
+});
+
+describe('l’historique de l’éditeur tient le projet et sa scène montrée (#3606)', () => {
+  const projet = { scenes: [emptyScene('a', 4, 4), emptyScene('b', 4, 4)], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const vers = (id: string): GesteDEdition => ({ geste: 'scenes', quoi: 'aller', id });
+  const couches = (s: SessionDEdition, id: string) => projetEdite(s).scenes.find((sc) => sc.id === id)!.layers.map((l) => l.z);
+  const ANNULER: GesteDEdition = { geste: 'annuler' };
+  const RETABLIR: GesteDEdition = { geste: 'retablir' };
+  const COUCHE: GesteDEdition = { geste: 'ajouterCouche' };
+
+  it('écrire dans A, aller en B sans cran, écrire, annuler deux fois rend le projet d’origine, chaque cran montrant sa scène ; rétablir aussi', () => {
+    const ouv = ouvrirLEdition(projet, false);
+    const enB = jouer(ouv, COUCHE, vers('b'));
+    expect([enB.historique.passe.length, idDeLaSceneEditee(enB), enB.z], 'aller est une navigation').toEqual([1, 'b', 0]);
+    const ecrite = jouer(enB, COUCHE, { geste: 'outil', outil: { mode: 'terrain', terrain: 'pierre' } });
+    const une = jouer(ecrite, ANNULER);
+    expect([idDeLaSceneEditee(une), couches(une, 'a'), couches(une, 'b')]).toEqual(['b', [0, 1], [0]]);
+    const deux = jouer(une, ANNULER);
+    expect([idDeLaSceneEditee(deux), deux.z, deux.outil], 'une autre scène montrée remet à zéro').toEqual(['a', 0, { mode: 'selection' }]);
+    expect(projetEdite(deux)).toBe(projetEdite(ouv));
+    const r1 = jouer(deux, RETABLIR);
+    expect([idDeLaSceneEditee(r1), couches(r1, 'a'), couches(r1, 'b')]).toEqual(['a', [0, 1], [0]]);
+    const r2 = jouer(r1, RETABLIR);
+    expect(idDeLaSceneEditee(r2)).toBe('b');
+    expect(projetEdite(r2)).toBe(projetEdite(ecrite));
+  });
+
+  it('annuler depuis A un cran posé sur B montre B ; rétablir aussi', () => {
+    const depuisA = jouer(ouvrirLEdition(projet, false), vers('b'), COUCHE, vers('a'));
+    const annule = jouer(depuisA, ANNULER);
+    expect([idDeLaSceneEditee(annule), couches(annule, 'b')]).toEqual(['b', [0]]);
+    const retabli = jouer(jouer(annule, vers('a')), RETABLIR);
+    expect([idDeLaSceneEditee(retabli), couches(retabli, 'b')]).toEqual(['b', [0, 1]]);
+  });
+
+  it('ajouter, dupliquer et retirer une scène posent un cran ; annulés, la scène montrée est au projet', () => {
+    const ouv = ouvrirLEdition(projet, false);
+    const ids = (s: SessionDEdition) => projetEdite(s).scenes.map((sc) => sc.id);
+    for (const quoi of ['ajouter', 'dupliquer'] as const) {
+      const neuve = jouer(ouv, { geste: 'scenes', quoi });
+      expect([neuve.historique.passe.length, idDeLaSceneEditee(neuve)]).toEqual([1, 'scene-0']);
+      const annule = jouer(neuve, ANNULER);
+      expect([idDeLaSceneEditee(annule), projetEdite(annule)], `annuler ${quoi} pendant qu’on édite la scène neuve`).toEqual(['a', projetEdite(ouv)]);
+      expect(idDeLaSceneEditee(jouer(annule, RETABLIR))).toBe('scene-0');
+    }
+    const retiree = jouer(ouv, { geste: 'scenes', quoi: 'retirer' });
+    expect([ids(retiree), idDeLaSceneEditee(retiree)]).toEqual([['b'], 'b']);
+    const ressuscitee = jouer(retiree, ANNULER);
+    expect([idDeLaSceneEditee(ressuscitee), projetEdite(ressuscitee)]).toEqual(['a', projetEdite(ouv)]);
+    expect(idDeLaSceneEditee(jouer(ressuscitee, RETABLIR)), 'rétablir le retrait montre la scène qui reste').toBe('b');
+    expect(idDeLaSceneEditee(jouer(ouv, { geste: 'scenes', quoi: 'ajouter' }, { geste: 'scenes', quoi: 'retirer' }, { geste: 'scenes', quoi: 'ajouter' })), 'un id neuf ne reprend aucun id d’un cran').toBe('scene-1');
+  });
+
+  it('l’enregistrement voit une écriture faite sur une scène quittée', () => {
+    const enCours = jouer(ouvrirLEdition(projet, true), COUCHE, vers('b'), { geste: 'enregistrer' });
+    expect(enCours.depot!.enCours!.scenes.find((sc) => sc.id === 'a')!.layers.map((l) => l.z)).toEqual([0, 1]);
+  });
+
+  it('renommer la scène réécrit chaque cran, sa scène montrée comprise ; un id d’un cran se refuse', () => {
+    const renommee = jouer(ouvrirLEdition(projet, false), vers('b'), COUCHE, vers('a'), { geste: 'identifier', id: 'aa' });
+    expect(projetEdite(renommee).scenes.map((sc) => sc.id)).toEqual(['aa', 'b']);
+    const annule = jouer(renommee, ANNULER);
+    expect([idDeLaSceneEditee(annule), projetEdite(annule).scenes.map((sc) => sc.id)]).toEqual(['b', ['aa', 'b']]);
+    const sansB = jouer(ouvrirLEdition(projet, false), { geste: 'scenes', quoi: 'retirer' }, vers('b'));
+    expect(jouer(sansB, { geste: 'identifier', id: 'a' }), 'a vit dans un cran passé').toBe(sansB);
+  });
+
+  it('renommée, la scène qu’un cran passé ou futur montrait revient sous son nouvel id', () => {
+    const passee = jouer(ouvrirLEdition(projet, false), COUCHE, { geste: 'identifier', id: 'aa' }, ANNULER);
+    expect([idDeLaSceneEditee(passee), sceneEditee(passee).id, couches(passee, 'aa')], 'annuler').toEqual(['aa', 'aa', [0]]);
+    const future = jouer(ouvrirLEdition(projet, false), COUCHE, ANNULER, { geste: 'identifier', id: 'aa' }, RETABLIR);
+    expect([idDeLaSceneEditee(future), sceneEditee(future).id, couches(future, 'aa')], 'rétablir').toEqual(['aa', 'aa', [0, 1]]);
+  });
+
+  it('les calques d’une scène retirée ressuscitent avec elle ; l’enregistrement réussi les oublie', () => {
+    const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
+    expect(calqueDeLaCouche(calee)).toBeDefined();
+    const retiree = jouer(calee, { geste: 'scenes', quoi: 'retirer' });
+    expect(calqueDeLaCouche(jouer(retiree, ANNULER)), 'annuler le retrait rend le calque').toBe(calqueDeLaCouche(calee));
+    const enregistree = jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: true });
+    expect(Object.keys(enregistree.calques)).toEqual([]);
+    expect(Object.keys(jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: false }).calques)).toEqual(['a']);
   });
 });
