@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=9 format=3]
+[gd_resource type="Theme" load_steps=10 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
@@ -11,6 +11,17 @@ content_margin_left = 20.0
 content_margin_top = 20.0
 content_margin_right = 20.0
 content_margin_bottom = 20.0
+script = ExtResource("2_cadre")
+cadre = "chene-ferre"
+matiere = "prop--bois-chene"
+teinte = Color(0.62, 0.55, 0.48, 1)
+ombre = ExtResource("3_ombre")
+
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Cartouche"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
 script = ExtResource("2_cadre")
 cadre = "chene-ferre"
 matiere = "prop--bois-chene"
@@ -34,6 +45,7 @@ script = ExtResource("2_cadre")
 cadre = "laiton"
 
 [resource]
+Cartouche/styles/panel = SubResource("Cartouche")
 CarteDuVoyage/styles/panel = SubResource("Parchemin")
 Fenetre/styles/panel = ExtResource("4_fenetre")
 Parchemin/styles/panel = SubResource("Parchemin")
@@ -43,6 +55,10 @@ Rubrique/base_type = &"Label"
 Rubrique/colors/font_color = Color(0.816, 0.69, 0.42, 1)
 Rubrique/font_sizes/font_size = 17
 Rubrique/fonts/font = ExtResource("5_rubriques")
+ChiffreFort/base_type = &"Label"
+ChiffreFort/colors/font_color = Color(0.953, 0.902, 0.784, 1)
+ChiffreFort/font_sizes/font_size = 20
+ChiffreFort/fonts/font = ExtResource("1_titres")
 NomDeCarte/base_type = &"Label"
 NomDeCarte/colors/font_color = Color(0.953, 0.902, 0.784, 1)
 NomDeCarte/font_sizes/font_size = 21

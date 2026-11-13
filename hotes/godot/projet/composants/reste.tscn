@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Reste" type="HBoxContainer"]
+size_flags_horizontal = 8
+theme_type_variation = &"RangeeSerree"
+alignment = 2
+
+[node name="Valeur" type="Label" parent="."]
+theme_type_variation = &"ChiffreFort"
+
+[node name="valeur" type="Node" parent="Valeur"]
+script = ExtResource("1_liaison")
+champ = "valeur"
+
+[node name="Libelle" type="Label" parent="."]
+size_flags_vertical = 8
+theme_type_variation = &"Rubrique"
+
+[node name="libelle" type="Node" parent="Libelle"]
+script = ExtResource("1_liaison")
+champ = "libelle"

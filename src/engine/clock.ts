@@ -108,6 +108,9 @@ export function formatImperial(minutes: number): string {
   return `${jourDe(d)} · ${String(d.hour).padStart(2, '0')}:${String(d.minute).padStart(2, '0')}`;
 }
 
+/** « 30 Jahrdrung 2512 CI », ou « Hexenstag 2512 CI » (intercalaire), sans le jour de la semaine. */
+export const formatDateImperiale = (minutes: number): string => jourDe(toDate(minutes));
+
 /** « Festag · 30 Jahrdrung 2512 CI », ou « Hexenstag 2512 CI » (un intercalaire est hors de la semaine). */
 export function formatJourImperial(minutes: number): string {
   const d = toDate(minutes);

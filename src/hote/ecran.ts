@@ -10,8 +10,8 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, enTeteDuPorteur, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
-  type CombatEvent, type Equipe, type EntreeDeLaFiche, type IdDeCouche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
+  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatDateImperiale, formatJourImperial, toDate, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, enTeteDuPorteur, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
+  type CombatEvent, type Equipe, type EntreeDeLaFiche, type IconId, type IdDeCouche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -20,7 +20,7 @@ import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
 import type { RosterMontre } from './roster';
-import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Paysage, type Plan, type Puce, type Saisie, type Ton } from './elements';
+import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Icone, type Jet, type Ligne, type PanneauDeLHote, type Paysage, type Plan, type Puce, type Saisie, type Ton } from './elements';
 
 /**
  * @contrat Vue
@@ -509,14 +509,14 @@ const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): C
   valeurs: c.valeurs.map((v, i): Bouton => ({ type: 'bouton', id: String(i), libelle: v.libelle, jeu: { type: v.geste.verbe, args: v.geste.args }, presse: v.choisie, focus: false, refus: null })),
 });
 
-/** La nuit à régler (`reposEnVue`) : la tête de sa scène (`scene` : le paysage de la halte, le jour, la nuit et son
- *  lieu), le temps qu'il fait (en alerte quand il expose), puis la note, en alerte quand les bourses ne la couvrent
+/** La nuit à régler (`reposEnVue`) : la tête de sa scène (`scene` : le paysage de la halte, le temps sous le ciel de
+ *  nuit, la nuit et son lieu), le temps qu'il fait (en alerte quand il expose), puis la note, en alerte quand les bourses ne la couvrent
  *  pas ; la nuit de chaque dormeur est sur sa carte (`surLesCartes`). */
 function nuitDuRepos(etat: Jeu, cle: string): Element[] {
   const r = reposEnVue(etat);
   if (!r) return [];
   return [
-    ...scene(etat, paysageDeLaHalte(r.toit, voyageEnVue(etat)), r.nuit),
+    ...scene(etat, paysageDeLaHalte(r.toit, voyageEnVue(etat)), { ciel: 'arche-nuit', moment: r.nuit, meteo: null, jourDeRoute: null }),
     ...(r.temps ? [ligne(`${cle}/temps`, r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
     ...(r.note ? [ligne(`${cle}/note`, r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
   ];
@@ -579,6 +579,11 @@ const COUCHE_DE_LA_METEO: Record<NonNullable<Voyage['meteo']>['id'], IdDeCouche 
   sec: null, beau: null, pluie: 'meteo-pluie', 'pluie-diluvienne': 'meteo-pluie-diluvienne', neige: 'meteo-neige', blizzard: 'meteo-blizzard',
 };
 
+/** Le pictogramme de chaque météo du jour. */
+const ICONE_DE_LA_METEO: Record<NonNullable<Voyage['meteo']>['id'], IconId> = {
+  sec: 'meteo/sec', beau: 'meteo/beau', pluie: 'meteo/pluie', 'pluie-diluvienne': 'meteo/pluie-diluvienne', neige: 'meteo/neige', blizzard: 'meteo/blizzard',
+};
+
 /** La lumière des plans de terre à la teinte `t` : leurs couleurs au jour, leurs silhouettes sinon. */
 const lumiere = (t: Teinte) => (t === 'jour' ? 'jour' : 'ombre');
 
@@ -604,13 +609,26 @@ type Equipage = 'pied' | 'monture' | 'attelage' | 'barge' | 'navire';
 /** L'équipage du trajet : le navire en mer, la barge au fleuve ; sur la route, les marcheurs, les cavaliers ou l'attelage. */
 const equipage = (v: Voyage): Equipage => (v.voie === 'maritime' ? 'navire' : v.voie === 'fluvial' ? 'barge' : v.mode === 'pied' ? 'pied' : v.mode === 'monture' ? 'monture' : 'attelage');
 
-/** La tête d'une scène du monde : son paysage, ses couches de la plus lointaine à la plus proche, le jour de jeu,
- *  puis ce qui se dit du moment. */
-const scene = (etat: Jeu, couches: IdDeCouche[], moment: string): Element[] => [
-  { type: 'paysage', id: 'scene/paysage', paysage: couches } satisfies Paysage,
-  ligne('scene/jour', formatJourImperial(etat.gameTime)),
-  ligne('scene/moment', moment),
-];
+/** L'objet du temps d'une scène : `ciel`, la couche du ciel de son arche ; `moment`, ce qui se dit du moment ; `meteo`,
+ *  le pictogramme de la météo du jour (`null` : sans) ; `jourDeRoute`, le jour du trajet (`null` : hors d'un trajet). */
+type Temps = { ciel: IdDeCouche; moment: string; meteo: IconId | null; jourDeRoute: number | null };
+
+/** La tête d'une scène du monde : son paysage, ses couches de la plus lointaine à la plus proche ; puis son objet du
+ *  temps : le ciel du moment dans son arche, le jour de la semaine (hors d'un intercalaire), la date impériale et le
+ *  jour de route, le pictogramme de la météo et ce qui se dit du moment. */
+function scene(etat: Jeu, couches: IdDeCouche[], temps: Temps): Element[] {
+  const semaine = toDate(etat.gameTime).weekday;
+  const date = formatDateImperiale(etat.gameTime);
+  const route = temps.jourDeRoute === null ? null : temps.jourDeRoute === 1 ? t('ecran.voyage.premierJour') : t('ecran.voyage.jourDeRoute', { jour: temps.jourDeRoute });
+  return [
+    { type: 'paysage', id: 'scene/paysage', paysage: couches } satisfies Paysage,
+    { type: 'paysage', id: 'scene/ciel', paysage: [temps.ciel] } satisfies Paysage,
+    ...(semaine ? [ligne('scene/jour', semaine)] : []),
+    ligne('scene/date', route ? t('ecran.voyage.date', { date, route }) : date),
+    ...(temps.meteo ? [{ type: 'icone', id: 'scene/meteo', icone: temps.meteo } satisfies Icone] : []),
+    ligne('scene/moment', temps.moment),
+  ];
+}
 
 /** Le paysage du trajet : le ciel du moment, le relief de la voie, l'équipage, sa lanterne quand le jour baisse, puis ce
  *  qui ferme le paysage. */
@@ -629,44 +647,51 @@ function paysageDeLaHalte(toit: NonNullable<ReturnType<typeof reposEnVue>>['toit
   return ['ciel-nuit', ...reliefDeLaVoie(voie, 'nuit'), ...halte, ...avantDuPaysage(voie, 'nuit', v?.meteo)];
 }
 
-/** La frise du trajet, en plan d'une seule ligne : le départ, chaque nuit passée en route à son km, là où est le
- *  groupe (`ici`, en `reussite`, sans nom), l'arrivée ; la route faite en `alerte`, celle qui reste en `neutre`. */
+/** La frise du trajet, en plan d'une seule ligne : le départ nommé, chaque nuit passée en route à son km, sans nom,
+ *  qui porte le croissant de la nuit passée, là où est le groupe (`ici`, en `reussite`, sans nom), l'arrivée nommée ; la
+ *  route faite en `alerte`, celle qui reste en `neutre`. */
 function friseDuVoyage(v: Voyage): Plan {
-  const point = (id: string, nom: string, km: number, ton: Ton): Plan['points'][number] => ({ type: 'point', id, nom, x: v.km > 0 ? km / v.km : 1, y: 0, ton, elements: [] });
-  const faits = [point('depart', v.de, 0, 'alerte'), ...v.nuits.map((n, i) => point(`nuit/${i}`, t('ecran.voyage.nuit', { nuit: i + 1 }), n, 'alerte')), point('ici', '', v.fait, 'reussite')];
+  const point = (id: string, nom: string, km: number, ton: Ton, elements: Element[] = []): Plan['points'][number] => ({ type: 'point', id, nom, x: v.km > 0 ? km / v.km : 1, y: 0, ton, elements });
+  const nuit: Icone = { type: 'icone', id: 'nuit', icone: 'voyage/nuit-passee' };
+  const faits = [point('depart', v.de, 0, 'neutre'), ...v.nuits.map((n, i) => point(`nuit/${i}`, '', n, 'neutre', [nuit])), point('ici', '', v.fait, 'reussite')];
   const points = [...faits, point('arrivee', v.vers, v.km, 'neutre')];
   return { type: 'plan', id: 'voyage/frise', points, traits: points.slice(1).map((p, i) => ({ id: p.id, de: points[i].id, vers: p.id, ton: i < faits.length - 1 ? 'alerte' : 'neutre' })) };
 }
 
-/** La carte du trajet, en plan : chaque lieu que la carte montre, sans son nom, l'arrivée en `reussite`, chaque route
+/** La carte du trajet, en plan : chaque lieu que la carte montre, nommé s'il est le départ ou l'arrivée du trajet,
+ *  l'arrivée en `reussite`, chaque route
  *  en `neutre` ; quand elle montre les deux bouts du trajet, là où est le groupe sur sa route (`ici`, en `alerte`) et
  *  la part faite de cette route en `alerte`. */
 function carteDuVoyage(v: Voyage): Plan {
   const lieu = (id: string) => v.carte.lieux.find((l) => l.id === id);
   const [de, vers] = [lieu(v.depart), lieu(v.arrivee)];
   const part = v.km > 0 ? v.fait / v.km : 1;
-  const point = (id: string, x: number, y: number, ton: Ton): Plan['points'][number] => ({ type: 'point', id, nom: '', x, y, ton, elements: [] });
-  const lieux = v.carte.lieux.map((l) => point(`lieu/${l.id}`, l.x, l.y, l.id === v.arrivee ? 'reussite' : 'neutre'));
+  const point = (id: string, nom: string, x: number, y: number, ton: Ton): Plan['points'][number] => ({ type: 'point', id, nom, x, y, ton, elements: [] });
+  const nom = (id: string) => (id === v.depart ? v.de : id === v.arrivee ? v.vers : '');
+  const lieux = v.carte.lieux.map((l) => point(`lieu/${l.id}`, nom(l.id), l.x, l.y, l.id === v.arrivee ? 'reussite' : 'neutre'));
   const routes = v.carte.routes.filter((r) => r.route !== v.route).map((r) => ({ id: r.route, de: `lieu/${r.de}`, vers: `lieu/${r.vers}`, ton: 'neutre' as const }));
   if (!de || !vers) return { type: 'plan', id: 'voyage/carte', points: lieux, traits: routes };
   return {
     type: 'plan', id: 'voyage/carte',
-    points: [...lieux, point('ici', de.x + (vers.x - de.x) * part, de.y + (vers.y - de.y) * part, 'alerte')],
+    points: [...lieux, point('ici', '', de.x + (vers.x - de.x) * part, de.y + (vers.y - de.y) * part, 'alerte')],
     traits: [...routes, { id: 'reste', de: 'ici', vers: `lieu/${v.arrivee}`, ton: 'neutre' }, { id: 'fait', de: `lieu/${v.depart}`, vers: 'ici', ton: 'alerte' }],
   };
 }
 
 /** Le trajet en cours (`voyageEnVue`) : hors d'une halte, qui tient la sienne (`nuitDuRepos`), la tête de sa scène
- *  (`scene` : son paysage, le jour, le moment du jour et la météo) ; puis sa carte (`carteDuVoyage`), les km faits sur
- *  ceux du trajet par son moyen, et sa frise (`friseDuVoyage`). */
+ *  (`scene` : son paysage, le ciel du moment, le jour de route, la météo et le moment du jour, un jour de route par
+ *  nuit passée en route) ; puis le titre de sa carte et sa carte (`carteDuVoyage`), les km qui restent avant l'arrivée
+ *  et sa frise (`friseDuVoyage`). */
 function voyage(etat: Jeu): Element[] {
   const v = voyageEnVue(etat);
   if (!v) return [];
   const moment = v.meteo ? t('ecran.voyage.moment', { moment: v.moment.nom, meteo: v.meteo.nom.toLocaleLowerCase('fr') }) : v.moment.nom;
+  const temps: Temps = { ciel: `arche-${v.moment.id}`, moment, meteo: v.meteo && ICONE_DE_LA_METEO[v.meteo.id], jourDeRoute: v.nuits.length + 1 };
   return [
-    ...(reposEnVue(etat) ? [] : scene(etat, paysageDuVoyage(v), moment)),
+    ...(reposEnVue(etat) ? [] : scene(etat, paysageDuVoyage(v), temps)),
+    ligne('voyage/titre', t('ecran.voyage.titre', { arrivee: v.vers })),
     carteDuVoyage(v),
-    ligne('voyage/route', t('ecran.voyage.route', { moyen: v.moyen, fait: v.fait, km: v.km })),
+    puce('voyage/reste', t('ecran.voyage.reste', { arrivee: v.vers }), String(v.km - v.fait)),
     friseDuVoyage(v),
   ];
 }
