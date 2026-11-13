@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
-import { isFumble, rollOups, desDOups, desDeBrisDeLame, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved } from './oups';
+import { isFumble, rollOups, desDOups, desDeBrisDeLame, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from './oups';
 import { oupsTable, oupsMisfire } from '../data/oups';
 import type { Combatant, Weapon } from './types';
+import { t } from '../i18n';
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const pistol: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'Poudre noire', range: 20 };
@@ -146,6 +147,12 @@ describe('desDOups — la grappe d’une Maladresse, dans l’ordre', () => {
     const d = desDOups(porteur(), canon({ id: 'salve', value: 9 }), MISFIRE);
     expect(cles(d)).toEqual(['salve-table']);
     expect(d[0].lecture).toEqual({ kind: 'table', tableId: 'artillerie-salve-incident' });
+  });
+
+  it('une demande lue en TABLE ne porte aucun dé : sa table est le seul porteur du sien (#1667)', () => {
+    // @ts-expect-error -- `spec` refusé sur le membre table de `DemandeDeCasse`
+    const fautive: DemandeDeCasse = { cle: 'salve-table', spec: { n: 1, sides: 10 }, libelle: t('step.salveMisfire', { weapon: 'x' }), lecture: { kind: 'table', tableId: 'artillerie-salve-incident' } };
+    expect(fautive.lecture.kind).toBe('table');
   });
 
   it('objet SOURCE DÉJÀ détruit (Bâclé + Solide(1)) : aucun dé — la cassure a eu lieu, rien à sauver (`LDB 60 l.30`)', () => {

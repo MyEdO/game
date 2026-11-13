@@ -62,7 +62,7 @@ export type LectureDeCasse =
  *  TABLE, il ne porte aucun dé : sa table est le seul porteur du sien (`noyau/cascade.TableStepDef.die`, #1667). */
 export type DemandeDeCasse =
   | (DemandeDe & { lecture: Extract<LectureDeCasse, { kind: 'seuil' }> })
-  | (Omit<DemandeDe, 'spec'> & { lecture: Extract<LectureDeCasse, { kind: 'table' }> });
+  | (Omit<DemandeDe, 'spec'> & { spec?: never; lecture: Extract<LectureDeCasse, { kind: 'table' }> });
 
 /** La qualité qui OFFRE la sauvegarde contre la cassure instantanée (`LDB 60 l.30`) — id STABLE. */
 export const SOURCE_SOLIDE: SourceDeSauvegarde = Object.freeze({ kind: 'qualite', id: 'solide' }); // #2097

@@ -3215,7 +3215,7 @@ function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean, deSoli
 function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse, casse: PendingCasseDArme): void {
   const id = `casse-${porteur.id}-${demande.cle}`;
   const commun = { kind: 'casseDArme' as const, label: demande.libelle, actorId: porteur.id, casse };
-  if (!('spec' in demande)) {
+  if (!demande.spec) {
     // MÊME séquence d'accueil que le dé en seuil (`pushDie` ci-dessous) : la grappe ne se scinde pas
     // en deux fenêtres — d'où l'append direct plutôt que `pushTable` (qui vise la séquence 'combat').
     pushStep(set, (index) => tableStep({
