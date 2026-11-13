@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VEHICLES_LIST } from '../engine/travel';
+import { vehicles } from './index';
 import { vehicleCombatant } from '../engine/vehicle';
 import { shipHitLocation } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
@@ -7,7 +7,7 @@ import { shipCritSet, shipCritSetIds } from './shipCriticals';
 
 // MDG 12 = navires MARITIMES (18). Les bateaux FLUVIAUX MSRC (propulsion:'fluvial') ont aussi une
 // facette `ship` mais relèvent de leur propre table (MSRC 7) — couverts par `16-embuscade-fluviale`.
-const ships = VEHICLES_LIST.filter((v) => v.ship && v.hull?.propulsion === 'maritime');
+const ships = vehicles.filter((v) => v.ship && v.hull?.propulsion === 'maritime');
 /** MDG 12 l.86-103 */
 const EXEMPLES_DE_BATEAUX = [
   'coracle', 'chaloupe', 'esquif', 'barge', 'grande-barge', 'bateau-de-patrouille', 'knarr', 'langskip', 'cogue',
@@ -48,7 +48,7 @@ describe('Navires MDG (ch.12) — profils en donnée', () => {
   });
 
   it("un navire devient un Combattant à coque, frappé via la localisation de son gréement", () => {
-    const cogue = VEHICLES_LIST.find((v) => v.id === 'cogue')!; // voile, E45/B50
+    const cogue = vehicles.find((v) => v.id === 'cogue')!; // voile, E45/B50
     const c = vehicleCombatant(cogue)!;
     expect(c.bodyShape).toBe('vehicule');
     expect(c.wounds.max).toBe(50);
@@ -59,7 +59,7 @@ describe('Navires MDG (ch.12) — profils en donnée', () => {
 });
 
 describe('Table de Localisation d’une COQUE — vocabulaire fermé, résolution fail-fast', () => {
-  const hulls = VEHICLES_LIST.filter((v) => v.hull);
+  const hulls = vehicles.filter((v) => v.hull);
 
   it('les coques ne portent qu’un id de table CONNU (absent = `navire` MDG 13, seule autre valeur `navire-fluvial` MSRC 7)', () => {
     const distinct = [...new Set(hulls.map((v) => v.hull!.locationTable).filter((t) => t != null))];
@@ -75,7 +75,7 @@ describe('Table de Localisation d’une COQUE — vocabulaire fermé, résolutio
 });
 
 describe('Jeu de Critiques d’une COQUE — vocabulaire fermé, résolution fail-fast', () => {
-  const hulls = VEHICLES_LIST.filter((v) => v.hull);
+  const hulls = vehicles.filter((v) => v.hull);
 
   it('les coques ne portent qu’un id de jeu CHARGÉ (absent = `ship-criticals` MDG 13, seule autre valeur `river-criticals`)', () => {
     expect(shipCritSetIds()).toEqual(['ship-criticals', 'river-criticals']);

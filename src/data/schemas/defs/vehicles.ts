@@ -1,9 +1,8 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `vehicles.json` — véhicules/embarcations à coque (chariots, barges, navires), 3 facettes
- * indépendantes (achat/voyage/coque+navire). Dérivé de l'interface `VehicleData` EXISTANTE
- * (`src/engine/types.ts`, + `NavalTraitRef`/`Propulsion`/`VehicleTravelClass` co-localisées) et du
- * contenu RÉEL (25 entrées, script d'inventaire : `hull` 22/25, `ship` 20/25, `travel` 3/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
+ * indépendantes (achat/voyage/coque+navire), dont `VehicleData` (`src/engine/types.ts`) est le type dérivé ;
+ * relevé sur le contenu RÉEL (25 entrées, script d'inventaire : `hull` 22/25, `ship` 20/25, `travel` 3/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
  */
 import { z } from 'zod';
 import { availabilitySchema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';

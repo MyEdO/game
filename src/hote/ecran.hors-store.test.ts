@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as fiches from '../noyau/ficheDuPorteur';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { lignesDuJournal, zonesDeLEcran } from './ecran';
 import { SANS_ROSTER } from './roster';
@@ -148,6 +149,29 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
       const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'objet/arme', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
       const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER)['fenetre.corps'];
       expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('la carte d’un héros lit l’en-tête de sa fiche, pas la fiche (#3975)', () => {
+  it('dessiner l’écran sans fiche ouverte ne calcule aucune fiche', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const etat = partie.etat();
+      const ns = fiches as unknown as Record<string, unknown>;
+      const appels: string[] = [];
+      for (const nom of ['ficheDuPorteur', 'ficheDuCombattant']) {
+        const vrai = ns[nom] as (...a: unknown[]) => unknown;
+        vi.spyOn(ns, nom, 'get').mockReturnValue((...a: unknown[]) => {
+          appels.push(nom);
+          return vrai(...a);
+        });
+      }
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+      expect(zones['groupe.heros'].length, 'aucune carte de héros dessinée').toBeGreaterThan(0);
+      expect(appels).toEqual([]);
     } finally {
       partie.fermer();
     }

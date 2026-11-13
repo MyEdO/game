@@ -9,12 +9,8 @@
  */
 import type { FabriqueDId } from './fabriqueDId';
 import cargoesJson from '../data/cargoes.json';
-import landCargoJson from '../data/land-cargo.json';
-import seaCargoJson from '../data/sea-cargo.json';
-import type { LandCargoData } from '../data/schemas/defs/land-cargo';
-import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
 import { memoParVersion } from '../data/versionDataset';
-import { cargaisonsAleatoires } from '../data';
+import { cargaisonsAleatoires, landCargo, seaCargo } from '../data';
 import { garanti } from '../lib/garanti';
 import { rollDice, type DiceSpec, type RNG } from './dice';
 import { deDeLaTableTiree, findTableEntry } from './tables';
@@ -123,8 +119,8 @@ export function rollSeasonalCargo(voie: Voie, saison: Season, rng: RNG): CargoDe
 
 /** L'Encombrement que couvre un prix du livre, par voie : donnée de la configuration de chaque voie. */
 const ENC_PAR_PRIX: Readonly<Record<Voie, number>> = {
-  mer: (seaCargoJson as SeaCargoData).prixDuLivre.encParPrix,
-  terre: (landCargoJson as LandCargoData).prixDuLivre.encParPrix,
+  mer: seaCargo.prixDuLivre.encParPrix,
+  terre: landCargo.prixDuLivre.encParPrix,
 };
 
 /** SEULE conversion d'un prix du livre de la voie en CO par point d'Enc, l'unité de `CargoLot.basePriceGold`.

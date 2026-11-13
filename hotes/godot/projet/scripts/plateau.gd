@@ -4,14 +4,16 @@
 ## (`Immersion`, dont chaque case jouée part en clic), ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant que la vue nomme à sa case et sa couche (`voisins`, réconciliés par id : celui qu'elle ne nomme plus
-## quitte l'arbre avec ses marques) ou, en exploration, le meneur du groupe à la case du groupe, à
+## quitte l'arbre avec ses marques), ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`), son véhicule (`vue.corps.vehicules`) et les marques de ses États (`vue.marques`,
 ## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque navire de la scène sous le modèle
 ## de son corps (`vue.corps.navires`, `MontageDesNavires`), sous tout regard, coupé sous les ponts que le regard
 ## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité que l'exploration nomme (`exploration.entites`, aucune en combat) nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles à la case que `vue.casesDesCibles` leur donne, en vue ou non, des entités nommées et de l'aperçu du premier clic, et la case sous le
-## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
+## pointeur jusqu'au clic, chacun sur le sol de sa case ; touchables par le rayon même retirées, hors de l'immersion, les cases
+## jouables qui se voient : celle de chaque combattant dessiné et chaque case peinte en cible (`Monde.poser_les_cases_jouables`),
+## la plus haute d'une colonne prenant le clic ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
 ## appel entre ses combattants (`Effets`), dont le chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
 ## case inspectée sous le pointeur. Il pose la caméra sur un cadrage sans rien jouer (`cadrer`).
@@ -68,11 +70,7 @@ func montrer(vue: Dictionary) -> void:
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
 	var actif: Variant = null if combat == null or combat.actif == null else combat.actif.id
-	var dessines: Array = []
-	if combat != null:
-		dessines = combat.voisins.liste
-	elif exploration != null:
-		dessines = exploration.heros.slice(0, 1)
+	var dessines := _dessines(vue.projection)
 	_nommer_les_entites([] if exploration == null else exploration.entites.liste)
 	if vue.plateau != null:
 		_monde.regarder(vue.plateau.regard)
@@ -105,6 +103,16 @@ func montrer(vue: Dictionary) -> void:
 	if vue.plateau != null:
 		_zones.poser(vue.zonesQuiDurent, func(case: Dictionary) -> Vector3: return _lieu([case.x, case.y, case.get("z", 0)]), vue.plateau.metresParCase)
 	_peindre()
+
+
+## Les combattants que dessine la projection `projection` : en combat ceux que la vue nomme (`voisins`), en exploration
+## le meneur du groupe.
+static func _dessines(projection: Dictionary) -> Array:
+	var combat: Variant = projection.get("combat")
+	var exploration: Variant = projection.get("exploration")
+	if combat != null:
+		return combat.voisins.liste
+	return [] if exploration == null else exploration.heros.slice(0, 1)
 
 
 ## Chaque nœud de `noeuds` (par id de combattant) dont l'id n'est pas l'un de `poses` retiré de l'arbre, avec ce qu'il
@@ -273,13 +281,23 @@ func _lieu(pos: Array) -> Vector3:
 
 
 ## Les cases peintes (`Monde.peindre`) : celles de la vue, les cibles, l'aperçu, les entités nommées de l'exploration, puis
-## la case sous le pointeur, chacune à la place de celle qu'elle portait.
+## la case sous le pointeur, chacune à la place de celle qu'elle portait ; et les cases jouables qui se voient hors de
+## l'immersion (`Monde.poser_les_cases_jouables`) : celle de chaque combattant dessiné et chaque case peinte en cible.
 func _peindre() -> void:
 	var plaques := {}
-	var surligner := func(pos: Array, item: int) -> void: plaques[Vector3i(int(pos[0]), int(pos[1]), int(pos[2]))] = item
+	var jouables: Array[Vector3i] = []
+	var projection: Dictionary = _vue.get("projection", {})
+	for c in _dessines(projection):
+		if c.pos != null:
+			jouables.append(Vector3i(int(c.pos[0]), int(c.pos[1]), int(c.pos[2])))
+	var surligner := func(pos: Array, item: int) -> void:
+		var case := Vector3i(int(pos[0]), int(pos[1]), int(pos[2]))
+		plaques[case] = item
+		if item == Monde.ITEM_CIBLE:
+			jouables.append(case)
 	for c in _vue.get("cases", []):
 		surligner.call([c.case.x, c.case.y, c.case.get("z", 0)], Monde.ITEM_ATTEIGNABLE)
-	var combat: Variant = _vue.get("projection", {}).get("combat")
+	var combat: Variant = projection.get("combat")
 	if combat != null:
 		for case: Array in _cases_des(combat.cibles.liste):
 			surligner.call(case, Monde.ITEM_CIBLE)
@@ -289,7 +307,7 @@ func _peindre() -> void:
 				surligner.call(case, Monde.ITEM_SURVOL)
 		if apercu != null and apercu.case != null:
 			surligner.call(apercu.case, Monde.ITEM_SURVOL)
-	var exploration: Variant = _vue.get("projection", {}).get("exploration")
+	var exploration: Variant = projection.get("exploration")
 	if exploration != null:
 		for e in exploration.entites.liste:
 			if e.nom != null:
@@ -297,6 +315,9 @@ func _peindre() -> void:
 	if _survol != null:
 		surligner.call([_survol.x, _survol.y, _survol.z], Monde.ITEM_SURVOL)
 	_monde.peindre(plaques)
+	if not _combattants.visible:
+		jouables.clear()
+	_monde.poser_les_cases_jouables(jouables)
 
 
 func _unhandled_input(event: InputEvent) -> void:

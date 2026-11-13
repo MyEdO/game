@@ -18,8 +18,7 @@
  */
 import seaEventsJson from '../data/sea-events.json';
 import { t } from '../i18n';
-import seaCargoJson from '../data/sea-cargo.json';
-import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
+import { seaCargo, type SeaCargoData } from '../data';
 import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, rollDice, tirerSigne, type EffetSigne, type RNG } from './dice';
@@ -93,7 +92,7 @@ const EVENTS = seaEventsJson as unknown as {
  *  `mMod`/`drDeManoeuvre` = −M et −DR Manœuvre appliqués au navire. */
 type OverloadPalier = SeaCargoData['surcharge']['paliers'][number];
 
-const CARGO = seaCargoJson as SeaCargoData;
+const CARGO = seaCargo;
 
 export const MANANN_FACTORS = EVENTS.manann.factors;
 export const BOARD_EVENTS = EVENTS.boardEvents.entries;

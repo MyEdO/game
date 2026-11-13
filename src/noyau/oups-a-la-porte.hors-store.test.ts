@@ -38,6 +38,7 @@ import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { markFixedDie } from './fixedDieMark';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -546,7 +547,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     expect(maladresses(frappeur.label), 'la Maladresse de l’attaquant s’applique, une fois').toBe(1);
     expect(maladresses(rival.label), 'celle du défenseur la suit, une fois').toBe(1);
     expect(sauvegardes(frappeur.label), 'un seul dé de casse par porteur').toBe(1);
-    expect(sauvegardes(rival.label), 'un seul dé de casse par porteur').toBe(1);
+    // Aucune case n'est vue du groupe : la ligne de dé du rival le nomme du nom neutre (#4017).
+    expect(sauvegardes(t('vision.horsDeVue')), 'un seul dé de casse par porteur').toBe(1);
     expect(banc.getState().battle!.acted, 'la suite (Action gratuite rendue) joue enfin').toBe(false);
     const premiereSuite = journalDesEcritures.findIndex((e) => !e.acted);
     expect(premiereSuite, 'la suite a bien laissé une trace datée').toBeGreaterThanOrEqual(0);
