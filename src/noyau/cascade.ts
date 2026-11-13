@@ -1496,7 +1496,7 @@ export function reprendreLaPile(get: Get, set: Set): void {
 /** La séquence du slot est celle d'un pilote À CONTEXTE, hors combat (#4075) : la condition sous laquelle
  *  `piloteImmediat` parque au rang ce qu'un applier ouvre, lue sur la séquence qu'il a posée au slot
  *  (`repriseDe` : `sansContexte` marque le pilote sans contexte). Prend l'état, pas `get` : lisible dans un `set((s) => …)`. */
-export function sequenceDuPiloteHorsCombat(s: Pick<Jeu, 'pendingCascade' | 'battle'>): boolean {
+export function sequenceDuPiloteAContexteHorsCombat(s: Pick<Jeu, 'pendingCascade' | 'battle'>): boolean {
   const reprise = s.pendingCascade?.piloteImmediat;
   return !!reprise && !reprise.sansContexte && !s.battle;
 }
@@ -1713,7 +1713,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   let steps = p.participants;
   let suspended = false;
   let parked = false;
-  const duPilote = sequenceDuPiloteHorsCombat(get()); // lu À L'ENTRÉE : l'applier peut ouvrir un combat
+  const duPilote = sequenceDuPiloteAContexteHorsCombat(get()); // lu À L'ENTRÉE : l'applier peut ouvrir un combat
   let fondu: PendingCascade = p; // la séquence ET les bornes des fragments collectés par l'applier
   // Le COMPTEUR d'identité (#1508) voyage avec le tableau : `commitStep` le rend augmenté de ce que
   // l'applier a poussé, et TOUTE écriture du slot le repose — sinon la prochaine poussée re-servirait
@@ -1737,7 +1737,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   const next = p.cursor + 1;
   // SUSPENDUE en plein vol (`lancerLeCombat`/`quitterLaScene` déclenché par l'applier de l'étape courante) :
   // le slot ne nous appartient plus — jamais de ressuscite ici.
-  //  - séquence d'un pilote à contexte hors combat (`sequenceDuPiloteHorsCombat`) que l'applier a PARQUÉE :
+  //  - séquence d'un pilote à contexte hors combat (`sequenceDuPiloteAContexteHorsCombat`) que l'applier a PARQUÉE :
   //    la règle de son pilote (`piloteImmediat`), dernière étape comprise — l'entrée de pile est mise à jour,
   //    puis la reprise partagée ; son dénouement se joue à sa reprise, par son pilote (`resumeSuspendedCascade`) ;
   //  - sinon, étapes RESTANTES (curseur avant la fin) : met à jour l'entrée de pile (étapes/curseur À JOUR),
@@ -1794,7 +1794,7 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
  *  conséquences ; c'est `finalizeCascade` (« Terminer ») qui ferme et enchaîne la suite — on rend alors
  *  `null`. Une étape qui SUSPEND la séquence en plein vol (`lancerLeCombat`/`quitterLaScene` depuis son
  *  applier) arrête la boucle, en deux cas (même distinction qu'`advanceCascade`) :
- *  - séquence d'un pilote à contexte hors combat (`sequenceDuPiloteHorsCombat`) que l'applier a PARQUÉE :
+ *  - séquence d'un pilote à contexte hors combat (`sequenceDuPiloteAContexteHorsCombat`) que l'applier a PARQUÉE :
  *    la règle de son pilote, dernière étape comprise — l'entrée de pile est mise à jour, la reprise partagée
  *    est jouée, et son dénouement vient à sa reprise, par son pilote ; on rend `null` ;
  *  - sinon, à la DERNIÈRE étape, aucun BILAN n'est montrable (le slot appartient au nouveau contexte) et il
@@ -1803,7 +1803,7 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
 export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | null {
   const p = get().pendingCascade;
   if (!p) return null;
-  const duPilote = sequenceDuPiloteHorsCombat(get()); // lu À L'ENTRÉE : un applier peut ouvrir un combat
+  const duPilote = sequenceDuPiloteAContexteHorsCombat(get()); // lu À L'ENTRÉE : un applier peut ouvrir un combat
   let steps = p.participants;
   let log = p.log;
   let seq = p.seq;

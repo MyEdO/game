@@ -70,6 +70,8 @@ const reveler = (s: SetFn, own: boolean): void => pushReveal(s, { kind: 'effet',
 const quitterLaPile = (g: Parameters<typeof suspendActiveCascade>[0], s: SetFn): void => { suspendActiveCascade(g, s); dropSceneEntrySteps(g, s); };
 
 let apples = 0;
+/** Le `purpose` du slot vu par l'applier `KIND_REVELE` juste après son émission : la séquence d'accueil de la révélation. */
+let slotsSousRevelation: (string | undefined)[] = [];
 beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: () => { apples++; return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
   apples++;
   // Ce que fait `lancerLeCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE
@@ -80,7 +82,7 @@ beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_
   apples++;
   runFlow(g, s, flowOuvert);
   return {};
-}, [KIND_REVELE]: (_g, s) => { apples++; reveler(s, false); return {}; },
+}, [KIND_REVELE]: (g, s) => { apples++; reveler(s, false); slotsSousRevelation.push(g().pendingCascade?.purpose); return {}; },
 [KIND_REVELE_A_PART]: (_g, s) => { apples++; reveler(s, true); return {}; },
 [KIND_OUVRE_FLOW_PUIS_REVELE]: (g, s) => { apples++; runFlow(g, s, flowOuvert); reveler(s, true); return {}; },
 [KIND_OUVRE_FLOW_PUIS_COMBAT]: (g, s) => {
@@ -117,6 +119,7 @@ function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
 
 beforeEach(() => {
   apples = 0;
+  slotsSousRevelation = [];
   ratesVus = [];
   seedBattleRng(7);
   const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
@@ -509,7 +512,7 @@ describe('#4006 — le pilote immédiat à contexte parque au rang ce que son ap
   });
 });
 
-describe('#4075 — borne : au slot, une séquence hors du prédicat `sequenceDuPiloteHorsCombat` dont la dernière étape suspend se dénoue au même geste', () => {
+describe('#4075 — borne : au slot, une séquence hors du prédicat `sequenceDuPiloteAContexteHorsCombat` dont la dernière étape suspend se dénoue au même geste', () => {
   beforeEach(groupe);
   /** La dernière étape : un choix sans défaut (le pilote s'y arrête, `cascade.ts › piloteImmediat`) dont l'applier quitte la scène. */
   const choixQuiQuitte = () => choiceStep({ id: 'q', kind: KIND_QUITTE, actorId: get().party[1].id, label: fixtureText('Quitte'), options: [{ key: 'a', label: fixtureText('A') }] })!;
@@ -530,4 +533,38 @@ describe('#4075 — borne : au slot, une séquence hors du prédicat `sequenceDu
       expect(get().suspendedCascades, `la pile est vide (${cas})`).toEqual([]);
     });
   }
+});
+
+describe('#4075 — borne : une révélation émise sous une séquence au slot hors du prédicat `sequenceDuPiloteAContexteHorsCombat` la rejoint', () => {
+  beforeEach(groupe);
+  /** La dernière étape : un choix sans défaut (le pilote s'y arrête, `cascade.ts › piloteImmediat`) dont l'applier émet une révélation. */
+  const choixQuiRevele = () => choiceStep({ id: 'q', kind: KIND_REVELE, actorId: get().party[1].id, label: fixtureText('Révèle'), options: [{ key: 'a', label: fixtureText('A') }] })!;
+  const MONTAGES: { cas: string; poser: () => void; reprise: unknown }[] = [
+    { cas: 'séquence sans pilote', reprise: undefined, poser: () => startCascade(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] }) },
+    { cas: 'pilote sans contexte', reprise: { sansContexte: true }, poser: () => { runCascadeImmediate(get, set, [choixQuiRevele()]); } },
+    { cas: 'pilote à contexte, en combat', reprise: {}, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] }); } },
+  ];
+  for (const { cas, poser, reprise } of MONTAGES) {
+    it(`${cas}, par « Suivant » : la révélation rejoint la séquence, elle n’ouvre pas la sienne`, () => {
+      poser();
+      const tenue = get().pendingCascade!;
+      expect([tenue.cursor, tenue.participants.length, tenue.piloteImmediat], `prémisse (${cas}) : le choix tient le slot`).toEqual([0, 1, reprise]);
+      get().jetRegler('cascade', 'choix', 'a', 'q');
+      advanceCascade(get, set);
+      expect(apples, `prémisse (${cas}) : l’étape est jouée une fois`).toBe(1);
+      expect(slotsSousRevelation, `la séquence tient toujours le slot après l’émission (${cas})`).toEqual([tenue.purpose]);
+      expect(get().pendingCascade?.purpose, `aucune séquence d’affichage au slot (${cas})`).not.toBe('affichage');
+      expect(get().suspendedCascades, `aucune séquence parquée (${cas})`).toEqual([]);
+    });
+  }
+  it('pilote à contexte, hors combat, par « Suivant » : la révélation ouvre la sienne, la séquence attend en pile, finie', () => {
+    openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] });
+    expect(get().pendingCascade?.piloteImmediat, 'prémisse : le choix tient le slot, sous son pilote à contexte').toEqual({});
+    get().jetRegler('cascade', 'choix', 'a', 'q');
+    advanceCascade(get, set);
+    expect(slotsSousRevelation, 'la révélation tient le slot dès son émission').toEqual(['affichage']);
+    const slot = get().pendingCascade;
+    expect([slot?.purpose, slot?.participants.map((x) => x.label)], 'la révélation tient le slot, seule').toEqual(['affichage', ['Révélation']]);
+    expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), 'la séquence attend en pile, finie').toEqual([['travelDay', 1]]);
+  });
 });
