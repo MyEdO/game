@@ -254,7 +254,7 @@ const NOMMES = [
   // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
   Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
-  'personne|immeuble|titre|intangible',
+  'personne|bete|vehicule|immeuble|titre|intangible',
 ].sort();
 
 /**

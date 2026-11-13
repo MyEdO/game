@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  salon.quitter(useGame.setState);
+  salon.quitter(useGame.getState);
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.useRealTimers();
@@ -60,7 +60,7 @@ describe('relais local injoignable', () => {
       urls.push(url);
       throw new TypeError('Failed to fetch');
     });
-    expect(await salon.heberger(useGame.getState, useGame.setState, 'Anne')).toBe(false);
+    expect(await salon.heberger(useGame.getState, 'Anne')).toBe(false);
     expect(urls).toEqual(['http://localhost:8787/rooms']);
     expect(useGame.getState().net.mode).toBe('local');
     expect(FakeSocket.instances).toHaveLength(0);
