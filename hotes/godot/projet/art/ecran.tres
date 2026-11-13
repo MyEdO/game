@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=8 format=3]
+[gd_resource type="Theme" load_steps=9 format=3]
 
 [ext_resource type="FontVariation" path="res://art/police_des_titres.tres" id="1_titres"]
 [ext_resource type="FontVariation" path="res://art/police_des_rubriques.tres" id="5_rubriques"]
@@ -25,10 +25,19 @@ content_margin_bottom = 10.0
 script = ExtResource("2_cadre")
 cadre = "parchemin"
 
+[sub_resource type="StyleBox" script_class="CadreDeMatiere" id="Laiton"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+script = ExtResource("2_cadre")
+cadre = "laiton"
+
 [resource]
 CarteDuVoyage/styles/panel = SubResource("Parchemin")
 Fenetre/styles/panel = ExtResource("4_fenetre")
 Parchemin/styles/panel = SubResource("Parchemin")
+Portrait/styles/panel = SubResource("Laiton")
 Recit/styles/panel = SubResource("Cadre_du_recit")
 Rubrique/base_type = &"Label"
 Rubrique/colors/font_color = Color(0.816, 0.69, 0.42, 1)

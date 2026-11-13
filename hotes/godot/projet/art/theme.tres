@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=28 format=3]
+[gd_resource type="Theme" load_steps=27 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -172,22 +172,6 @@ corner_radius_top_right = 999
 corner_radius_bottom_right = 999
 corner_radius_bottom_left = 999
 
-[sub_resource type="StyleBoxFlat" id="Cadre_de_portrait"]
-bg_color = Color(0.165, 0.141, 0.11, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.56, 0.46, 0.28, 1)
-content_margin_left = 2.0
-content_margin_top = 2.0
-content_margin_right = 2.0
-content_margin_bottom = 2.0
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
 [sub_resource type="StyleBoxFlat" id="Carte_de_service"]
 content_margin_left = 1.0
 content_margin_top = 1.0
@@ -280,18 +264,23 @@ corner_radius_bottom_right = 999
 corner_radius_bottom_left = 999
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_vie"]
-bg_color = Color(0.227, 0.196, 0.149, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+bg_color = Color(0, 0, 0, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.66, 0.52, 0.25, 1)
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="Plein_de_vie"]
-bg_color = Color(0.651, 0.212, 0.149, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+bg_color = Color(0.58, 0.11, 0.08, 1)
+border_width_top = 1
+border_color = Color(0.8, 0.3, 0.22, 1)
+expand_margin_left = -1.0
+expand_margin_top = -1.0
+expand_margin_right = -1.0
+expand_margin_bottom = -1.0
+anti_aliasing = false
 
 [sub_resource type="StyleBoxFlat" id="Bouton_focus"]
 bg_color = Color(0, 0, 0, 0)
@@ -364,7 +353,6 @@ Puce/styles/panel = SubResource("Fond_de_puce")
 TeteDEntite/base_type = &"PanelContainer"
 TeteDEntite/styles/panel = SubResource("Sans_fond")
 Portrait/base_type = &"PanelContainer"
-Portrait/styles/panel = SubResource("Cadre_de_portrait")
 Entite/base_type = &"PanelContainer"
 Entite/styles/panel = SubResource("Sans_fond")
 reussite/base_type = &"Label"
@@ -378,8 +366,6 @@ alerte/colors/font_color = Color(0.95, 0.75, 0.35, 1)
 alerte/styles/panel = SubResource("Anneau_alerte")
 Chiffre/base_type = &"Label"
 Chiffre/font_sizes/font_size = 30
-De/base_type = &"Label"
-De/font_sizes/font_size = 18
 Discret/base_type = &"Label"
 Discret/colors/font_color = Color(0.725, 0.671, 0.573, 1)
 TooltipPanel/styles/panel = SubResource("Fond_de_bulle")
@@ -438,8 +424,12 @@ Dessin/colors/fer = Color(0.16, 0.155, 0.15, 1)
 Dessin/colors/fer_clair = Color(0.42, 0.4, 0.37, 1)
 Dessin/colors/fer_sombre = Color(0.05, 0.045, 0.04, 1)
 Dessin/colors/laiton_clair = Color(0.85, 0.7, 0.38, 1)
+Dessin/colors/laiton = Color(0.66, 0.52, 0.25, 1)
 Dessin/colors/laiton_sombre = Color(0.36, 0.26, 0.1, 1)
 Dessin/colors/roussi = Color(0.42, 0.24, 0.08, 1)
+Dessin/colors/cire = Color(0.58, 0.11, 0.08, 1)
+Dessin/colors/cire_claire = Color(0.8, 0.3, 0.22, 1)
+Dessin/colors/cire_sombre = Color(0.3, 0.05, 0.035, 1)
 Dessin/colors/ciel_aube_haut = Color(0.173, 0.208, 0.322, 1)
 Dessin/colors/ciel_aube_bas = Color(0.69, 0.478, 0.361, 1)
 Dessin/colors/ciel_jour_haut = Color(0.2, 0.282, 0.369, 1)
