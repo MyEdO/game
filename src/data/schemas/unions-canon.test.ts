@@ -242,6 +242,10 @@ const s = alias.extract(['limitee', 'rare']);`, 1],
       ["const T: Record<string | 'x', string> = { a: '1' };", false],
       ['const T: Record<`${string}#x`, string> = { a: \'1\' };', false],
       ['const T: Record<`${Bone}#${View}`, string> = { a: \'1\' };', true],
+      ["const T: { readonly [M in View]: Mode & { id: M } } = { a: A };", true],
+      ["const T = { a: A } satisfies { [M in View]?: Mode };", true],
+      ["const T: { [M in string]: Mode } = { a: A };", false],
+      ["const T: { [M in View as `x${M}`]: Mode } = { a: A };", false],
     ];
     for (const [code, attendu] of CAS) expect(totale(code), code).toBe(attendu);
   });
