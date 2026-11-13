@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, dechirureFractureFicheId, traumaRecoveryDays, tickTraumaRecovery, applyFractureEnd, treatTrauma, hasTreatableTrauma, traumaSkillPenalty, hasSurgeryTrauma, removeSurgicalTrauma, amputationWoundDesc, avecSequelles } from './trauma';
+import {
+  traumaById,
+  dechirureFractureFicheId,
+  traumaRecoveryDays,
+  tickTraumaRecovery,
+  applyFractureEnd,
+  treatTrauma,
+  hasTreatableTrauma,
+  traumaSkillPenalty,
+  hasSurgeryTrauma,
+  removeSurgicalTrauma,
+  amputationWoundDesc,
+  avecSequelles,
+} from './trauma';
 import type { HitLocation } from './types';
 import type { UpkeepDeferTest } from './types';
 const tk = (k: 'dechirure' | 'fracture', sv: 'mineur' | 'majeur', loc: HitLocation, opts?: { be?: number; d10?: number }) => traumaById(dechirureFractureFicheId(k, sv, loc), opts, loc);

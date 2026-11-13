@@ -110,7 +110,16 @@ import { ACTIVITIES, testsDeLActivite } from '../../engine/activities';
 import type { OutcomeBand } from '../../engine/activities';
 import { traitArgSkeleton, traitLisible } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
-import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
+import {
+  CHAR_KEYS,
+  CHAR_LABELS,
+  HIT_LOCATION_LABELS,
+  DIFFICULTY_LABELS,
+  LOCALISATIONS_DE_COUP,
+  type Combatant,
+  type CharKey,
+  type HitLocation,
+} from '../../engine/types';
 import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
 import type { Porteur, PorteurDeRangee } from './porteur';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';

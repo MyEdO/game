@@ -94,6 +94,8 @@ var _noeuds: Dictionary = {}
 var _demandes: Dictionary = {}
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
+## Les matières locales de ses pièces (`materiau_local`), qu'il tient au-delà de leur vie.
+var _locaux: Dictionary = {}
 ## Par id d'emplacement d'un objet rangé, ses meshes rangés : `{ noeud, piece }`, le nœud `Range_<point>` qui porte le
 ## mesh et le mesh (`_ranger`).
 var _rangements: Dictionary = {}
@@ -196,14 +198,21 @@ static func repere(declaration: Dictionary) -> Transform3D:
 		Vector3(declaration.position[0], declaration.position[1], declaration.position[2]))
 
 
-## Le duplicata du matériau actif de la surface `surface` de `piece`, posé en matériau de surface propre à `piece` ;
-## `null` si ce matériau n'est pas un `BaseMaterial3D`.
-static func materiau_local(piece: MeshInstance3D, surface: int) -> BaseMaterial3D:
+## Le duplicata du matériau actif de la surface `surface` de `piece`, posé en matériau de surface propre à `piece` et
+## tenu dans `locaux`, ceux de son porteur, par id d'instance de pièce : un mesh libéré libère ses matériaux de surface
+## avant que le serveur de rendu ne relise son instance (`servers/rendering/renderer_scene_cull.cpp:4415` à 4.7), et le
+## porteur, dont les pièces meurent avant lui, les tient jusqu'à la création suivante qui suit leur mort ; `null` si ce
+## matériau n'est pas un `BaseMaterial3D`.
+static func materiau_local(piece: MeshInstance3D, surface: int, locaux: Dictionary) -> BaseMaterial3D:
 	var original := piece.get_active_material(surface) as BaseMaterial3D
 	if original == null:
 		return null
+	for id: int in locaux.keys():
+		if not is_instance_id_valid(id):
+			locaux.erase(id)
 	var local := original.duplicate() as BaseMaterial3D
 	piece.set_surface_override_material(surface, local)
+	locaux.get_or_add(piece.get_instance_id(), []).append(local)
 	return local
 
 
@@ -328,6 +337,15 @@ static func boucler(lecteur: AnimationPlayer, noms: Array) -> void:
 			propre.add_animation(local, clip)
 		lecteur.remove_animation_library(cle)
 		lecteur.add_animation_library(cle, propre)
+
+
+## Sorti de l'arbre avec son combattant ou son atelier, qui n'y reviennent pas (#4195) : chaque montage en vol est
+## jeté (`_demandes`, `monter`), sa refonte demandée (`_refondre_la_demande`) et la pile qu'il attend du pont
+## (`recevoir_la_pile`) aussi.
+func _exit_tree() -> void:
+	_demandes.clear()
+	_refonte_demandee = false
+	_pile_fondue = ""
 
 
 ## Le montage ramené à aucun modèle : ni squelette ni lecteur, ni élément monté, ni demande de montage en vol.
@@ -1053,7 +1071,7 @@ func _habiller(id: String) -> bool:
 	var palette: Dictionary = composee.get("palette", {}).duplicate()
 	if monte.get("element") == element:
 		palette.merge(monte.get("palette", {}), true)
-	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette)
+	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette, _locaux)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
 	_demander_la_refonte()
@@ -1074,7 +1092,7 @@ func habiller_la_base() -> void:
 			erreurs.append("materiau-absent : %s" % materiaux[surface])
 		else:
 			remplacants[surface] = remplacant
-	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants)
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), _locaux, remplacants)
 	_demander_la_refonte()
 
 
@@ -1086,8 +1104,8 @@ func habiller_la_base() -> void:
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
-## surface au moins.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, remplacants: Dictionary = {}) -> bool:
+## surface au moins. Chaque matériau propre se tient dans `locaux`, ceux du porteur, qui lâche ceux d'avant de chaque mesh.
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, locaux: Dictionary, remplacants: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -1095,6 +1113,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 	for piece: MeshInstance3D in meshes:
 		if texture != null:
 			_uv2_des_emblemes(piece, par_nom)
+		locaux.erase(piece.get_instance_id())
 		for rang in piece.mesh.get_surface_count():
 			piece.set_surface_override_material(rang, null)
 			var materiau := piece.get_active_material(rang)
@@ -1109,7 +1128,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			var texturee := not matiere.is_empty()
 			if couleur == null and not blason and not texturee:
 				continue
-			var local := materiau_local(piece, rang)
+			var local := materiau_local(piece, rang, locaux)
 			if local == null:
 				continue
 			if texturee:
@@ -1304,7 +1323,13 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 func _demander_la_refonte() -> void:
 	if not _refonte_demandee:
 		_refonte_demandee = true
-		refondre.call_deferred()
+		_refondre_la_demande.call_deferred()
+
+
+## La refonte demandée (`_demander_la_refonte`), si rien ne l'a faite ni jetée entre-temps.
+func _refondre_la_demande() -> void:
+	if _refonte_demandee:
+		refondre()
 
 
 ## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce

@@ -11,7 +11,16 @@ import { fileURLToPath } from 'node:url';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { DOSSIER_DU_KIT } from './kit.ts';
-import { CACHE_DES_MODELES, EXTENSIONS_D_ASSET, enCacheOuTire, nomDAsset, tirerDeLaRelease, type AssetAPublier, type FichierEpingle, type Telecharger } from './release.ts';
+import {
+  CACHE_DES_MODELES,
+  EXTENSIONS_D_ASSET,
+  enCacheOuTire,
+  nomDAsset,
+  tirerDeLaRelease,
+  type AssetAPublier,
+  type FichierEpingle,
+  type Telecharger,
+} from './release.ts';
 
 /** Le dossier épinglé des sons du projet Godot (`res://sons/`). */
 export const DOSSIER_DES_SONS = fileURLToPath(new URL('../projet/sons', import.meta.url));

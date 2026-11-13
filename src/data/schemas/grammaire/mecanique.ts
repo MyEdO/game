@@ -14,10 +14,62 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import { categorieDEntreeAPool, trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
-import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type Flow, type FlowTestNode } from '../../../engine/flowCore';
-import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import {
+  ARG_TEMPLATE,
+  CHAMPS_DE_DECISION,
+  INDICE_TEMPLATE,
+  flowHasFreeAttack,
+  walkFlow,
+  type Condition,
+  type EffectOp,
+  type Flow,
+  type FlowTestNode,
+} from '../../../engine/flowCore';
+import {
+  acteDeDeverrouillageSchema,
+  attackKindSchema,
+  chaosAlignSchema,
+  charKeySchema,
+  cibleEtendueSchema,
+  contexteDeTestSchema,
+  deDeTirageSchema,
+  diceSpecSchema,
+  difficultySchema,
+  effetSigneSchema,
+  idDIconeSchema,
+  enumNomme,
+  shipLocationSchema,
+  exposureLevelSchema,
+  formulaSchema,
+  formuleSansTirageSchema,
+  genreDArmeSchema,
+  hitLocationSchema,
+  mainSchema,
+  messageDeTermeDeJet,
+  meteoImposeeSchema,
+  statutSchema,
+  ouReserve,
+  plageSchema,
+  reachSchema,
+  natureDInfluenceSchema,
+  sizeCategorySchema,
+  symptomSeveritySchema,
+  tirageSchema,
+} from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import {
+  idDe,
+  marquerOpAtteinte,
+  ref,
+  refs,
+  refOuSpec,
+  specAuCatalogue,
+  specDe,
+  specFermeeDe,
+  tirageSurTable,
+  type RegimeDePorteur,
+  type TypeEntite,
+} from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';

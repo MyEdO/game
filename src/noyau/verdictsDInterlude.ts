@@ -25,8 +25,8 @@ import { identiteDeCiblage, refDeCible, type RefDeCible } from '../engine/psych/
 import { actorStatus } from '../engine/social';
 import { fromBrass, toBrass, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import {
-  ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, activityById, cleDEntrainement, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
-  type ActivityDef, type EntrainementOption, type GenreDeDepot, type LearnOption, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
+  ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, activityById, cleDEntrainement, craftSpecOf, entrainementOptions, learnOptionOf, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
+  type ActivityDef, type EntrainementOption, type GenreDeDepot, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -166,17 +166,11 @@ export function refusDArtisanat(s: EtatDInterlude, heroId: string, trappingId?: 
   return refusDeBourse(h, fromBrass(spec.materialsBrass), 'if.craftMaterialsKo');
 }
 
-/** L'option d'Apprentissage particulier (`learnableTalents`, la liste du volet) du Talent `talentId`, ou
- *  `undefined` : Talent de carrière, au Maxi ou à spécialisation. LDB 23 l.68 */
-export function optionDApprentissage(h: Combatant, talentId: string): LearnOption | undefined {
-  return learnableTalents(h).find((o) => o.id === talentId);
-}
-
 /** Refus d'un Talent qu'Apprentissage particulier ne peut pas enseigner au héros : inconnu, ou hors de
  *  `learnableTalents`. LDB 23 l.68 */
 function refusDuTalentAApprendre(h: Combatant, talentId: string): string | null {
   if (!findTalentById(talentId)) return t('if.talentUnknown', { id: talentId });
-  return optionDApprentissage(h, talentId) ? null : t('if.talentNonApprenable', { name: h.label, label: refLabel('talents', { id: talentId }) });
+  return learnOptionOf(h, talentId) ? null : t('if.talentNonApprenable', { name: h.label, label: refLabel('talents', { id: talentId }) });
 }
 
 /** Refus d'un Apprentissage particulier AVANT le tirage du tuteur : Activité, Talent à apprendre, PX, puis
@@ -186,7 +180,7 @@ export function refusDApprentissage(s: EtatDInterlude, heroId: string, talentId:
   const refus = refusDActivite(s, heroId);
   const h = herosDe(s, heroId);
   if (refus || !h) return refus;
-  const opt = optionDApprentissage(h, talentId);
+  const opt = learnOptionOf(h, talentId);
   if (!opt) return refusDuTalentAApprendre(h, talentId);
   return refusDePx(h, opt.xpCost) ?? refusDeBourse(h, fromBrass(opt.tutorMinBrass), 'if.tuteurMinKo');
 }
@@ -495,7 +489,7 @@ export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDAc
   const refus = refusDActivite(s, pa.heroId);
   const h = herosDe(s, pa.heroId);
   if (refus || !h) return refus;
-  const opt = pa.talent ? optionDApprentissage(h, pa.talent) : undefined;
+  const opt = pa.talent ? learnOptionOf(h, pa.talent) : undefined;
   return (pa.talent && !opt ? refusDuTalentAApprendre(h, pa.talent) : null)
     ?? (opt && pa.success ? refusDePx(h, opt.xpCost) : null)
     ?? (pa.tutorBrass ? refusDeBourse(h, fromBrass(pa.tutorBrass), 'if.tuteurKo') : null)

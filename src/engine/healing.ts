@@ -5,7 +5,16 @@
  */
 import { Combatant, type Difficulty, type TestIds } from './types';
 import { hasSurgery } from './combatFeatures/dispatch';
-import { loseWounds, addCondition, removeCondition, reprendreConnaissance, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions, stacks } from './conditions';
+import {
+  loseWounds,
+  addCondition,
+  removeCondition,
+  reprendreConnaissance,
+  recoveredStacks,
+  hasSurgeryLockedCondition,
+  syncDerivedConditions,
+  stacks,
+} from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
 import { isAstoundingFailure } from './tests';

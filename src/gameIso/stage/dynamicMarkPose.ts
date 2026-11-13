@@ -14,7 +14,17 @@
  * éphémères que la jeune génération ramasse, mesurés à quelques dizaines d'octets par frame.
  */
 import * as THREE from 'three';
-import { TEAM_RING_WIDTH_K, TETHER_DASH_K, TETHER_GAP_K, TETHER_WIDTH_K, dashPattern, ringAxesPx, ringPhaseRad, type DynamicMarks, type MarkCell } from '../builders/dynamicMarks';
+import {
+  TEAM_RING_WIDTH_K,
+  TETHER_DASH_K,
+  TETHER_GAP_K,
+  TETHER_WIDTH_K,
+  dashPattern,
+  ringAxesPx,
+  ringPhaseRad,
+  type DynamicMarks,
+  type MarkCell,
+} from '../builders/dynamicMarks';
 import type { ProjKind } from '../../geometry/iso';
 import { dynSlotLiftM, silhouetteTwinOf, type DynMarkSlot } from '../backends/webgl/dynamicMarkMeshes';
 import { diagOnce } from '../devDiag';

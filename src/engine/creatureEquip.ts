@@ -6,7 +6,19 @@
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, cleDInstanceDeTrait, emptyArmour, estUneVraieArme, gabaritDObjet, peutEtreTenu, uidDArme, unarmedWeapon, weaponFromItem, type GabaritDObjet, type TrappingResolver } from './items';
+import {
+  buildWeapon,
+  cleDInstanceDeTrait,
+  emptyArmour,
+  estUneVraieArme,
+  gabaritDObjet,
+  peutEtreTenu,
+  uidDArme,
+  unarmedWeapon,
+  weaponFromItem,
+  type GabaritDObjet,
+  type TrappingResolver,
+} from './items';
 import { armureDuTrait } from './armourBypass';
 import type { WeaponDamageSpec } from './types';
 import { traitLabelById } from './traits/dispatch';

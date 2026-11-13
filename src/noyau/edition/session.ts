@@ -9,7 +9,18 @@
  * Godot la reçoit par le pont.
  */
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
+import type {
+  ArchitectureBody,
+  ArchitectureStorey,
+  BuildingMass,
+  FacadeFeature,
+  RoofDefaults,
+  Scene,
+  SceneEntity,
+  SceneStationAnchor,
+  WallSecret,
+  WallSeg,
+} from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { refusDeLEntite, type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import { inventaireApres, type IntentionDObjet } from '../../engine/items';
@@ -20,8 +31,91 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameActionAuthoree, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
-import { FORMULAIRES, entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
+import {
+  addArchitectureBody,
+  addArchitecturePart,
+  addBuildingMass,
+  addFacadeFeature,
+  addRoofExclusion,
+  patchBuildingMass,
+  poseToitureDuCorps,
+  rectFrom,
+  removeRoofExclusion,
+  addLayer,
+  patchSceneRoofDefaults,
+  removeSceneFlag,
+  resizeGrid,
+  setNorthDeg,
+  setReliefDefault,
+  setSceneFlags,
+  setSceneLabel,
+  setSceneRest,
+  setSceneScalaires,
+  type ScalairesDeScene,
+  addProjectScene,
+  deleteProjectScene,
+  duplicateProjectScene,
+  renameScene,
+  switchProjectScene,
+  type ProjectScenes,
+  addMember,
+  addStoreyAbove,
+  patchArchitectureBody,
+  patchArchitectureStorey,
+  patchFacadeFeature,
+  patchFacadeSection,
+  removeFacadeFeature,
+  setFacadeSectionZ,
+  assoirALaPlace,
+  deleteSel,
+  dupliquerLEntite,
+  poserUneTroupe,
+  coucheEcrite,
+  editEntity,
+  editEntry,
+  pasteEntity,
+  sansVide,
+  TypeNonNomme,
+  patchMember,
+  patchWall,
+  patchZone,
+  propRefPatch,
+  removeLayer,
+  removeMember,
+  renameActionAuthoree,
+  renameEffectZone,
+  replaceEffectZone,
+  avecLaValeurDuPorteur,
+  avecLAdresseRescellee,
+  type EcritureDeValeur,
+  type RefusDeValeur,
+  type Segment,
+  renameEntry,
+  renameTrigger,
+  setPosteCrew,
+  setPosteEngine,
+  setPosteSide,
+  addStation,
+  patchStation,
+  removeStation,
+  setSceneMusic,
+  setStartMessageTexte,
+  type PatchDeZone,
+  type Pt,
+} from '../sceneEdit';
+import {
+  FORMULAIRES,
+  entiteDeLaSelection,
+  etageSuivant,
+  poigneeDeLaSelection,
+  segmentDeLaSelection,
+  type CadreDuPorteur,
+  type DonneeDuPorteur,
+  type Layers,
+  type Sel,
+  type SorteDePorteur,
+  type Tool,
+} from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';

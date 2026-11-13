@@ -2,7 +2,16 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import type { Combatant, ConditionUnlock } from './types';
 import type { Condition } from './flowCore';
-import { addCondition, removeCondition, hasCondition, stacks, isConditionLocked, raisonVerrouEtat, releaseConditionLocks, hasSurgeryLockedCondition } from './conditions';
+import {
+  addCondition,
+  removeCondition,
+  hasCondition,
+  stacks,
+  isConditionLocked,
+  raisonVerrouEtat,
+  releaseConditionLocks,
+  hasSurgeryLockedCondition,
+} from './conditions';
 import { t } from '../i18n';
 import { applyOps } from './ops';
 import { CRITIQUE_DOCS } from '../data/criticals';

@@ -21,7 +21,20 @@ import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, qualities, type TrappingData } from '../data';
+import {
+  trappingsInstanciables,
+  talents,
+  levelsForCareer,
+  skills,
+  specPoolOf,
+  specCatalogOf,
+  refLabel,
+  findCareerById,
+  findTalentById,
+  qualities,
+  type TalentData,
+  type TrappingData,
+} from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars, refKey } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
@@ -1015,22 +1028,27 @@ export interface LearnOption {
  *  ceux à spécialisation (`specCatalogOf(t).length > 0`) : `LearnOption` ne porte aucune spec, l'achat
  *  ne produirait pas l'identité `(talentId, spec)` que lit `arcaneDomainGate` (`careerSlots.ts`). */
 export function learnableTalents(hero: Combatant): LearnOption[] {
-  const levels = levelsForCareer(hero.career ?? '');
-  const slots = talentSlotsUpTo(levels, hero.careerLevel ?? 1);
+  const apprendre = learnOptionWith(hero);
+  return talents.flatMap((t) => apprendre(t) ?? []).sort((a, b) => parLibelle(a.label, b.label));
+}
+
+/** L'option de `learnableTalents` du Talent `talentId`, ou `undefined` (id inconnu, Talent non apprenable). */
+export function learnOptionOf(hero: Combatant, talentId: string): LearnOption | undefined {
+  const t = findTalentById(talentId);
+  return t && learnOptionWith(hero)(t);
+}
+
+function learnOptionWith(hero: Combatant): (t: TalentData) => LearnOption | undefined {
+  const slots = talentSlotsUpTo(levelsForCareer(hero.career ?? ''), hero.careerLevel ?? 1);
   const desig = designationsFor(hero, hero.career ?? '');
-  return talents
-    .filter((t) => {
-      if (specCatalogOf(t).length > 0) return false; // pas de sélecteur de spec dans ce catalogue
-      if (talentEnCarriere(hero, slots, desig, t.id, undefined) != null) return false; // de carrière → Avancement
-      if (talentMaxReached(hero, t.id)) return false;
-      return true;
-    })
-    .map((t) => {
-      const xpCost = talentCost(talentAcquisitions(hero, t.id));
-      const { minBrass, maxBrass } = tutorCostRange(xpCost);
-      return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
-    })
-    .sort((a, b) => parLibelle(a.label, b.label));
+  return (t) => {
+    if (specCatalogOf(t).length > 0) return undefined; // pas de sélecteur de spec dans ce catalogue
+    if (talentEnCarriere(hero, slots, desig, t.id, undefined) != null) return undefined; // de carrière → Avancement
+    if (talentMaxReached(hero, t.id)) return undefined;
+    const xpCost = talentCost(talentAcquisitions(hero, t.id));
+    const { minBrass, maxBrass } = tutorCostRange(xpCost);
+    return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
+  };
 }
 
 /** Ce qui interdit « Passer commande » sur un équipement, ou `null` s'il est commandable. Porte

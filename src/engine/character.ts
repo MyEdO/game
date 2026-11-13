@@ -42,7 +42,20 @@ import {
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
-import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
+import {
+  refKey,
+  skillSlots,
+  talentSlots,
+  designateSlot,
+  freeSlotFor,
+  statutOuRefus,
+  designationsFor,
+  talentMaxReached,
+  wildcardSpecs,
+  prisParLesAutres,
+  acquerirTalent,
+  type PorteurDeTalents,
+} from './careerSlots';
 import { dotationsDuHeros, resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';

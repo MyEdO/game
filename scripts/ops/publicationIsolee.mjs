@@ -4,7 +4,19 @@ import { ancetresValidesDe, mesurerArbreProcessus } from '../guards/lib/arbrePro
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
-import { ajouterWorktree, brancheDe, depotDe, estAncetre, estShaComplet, fetchOrigin, reussi, refusDeGit, retirerWorktree, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
+import {
+  ajouterWorktree,
+  brancheDe,
+  depotDe,
+  estAncetre,
+  estShaComplet,
+  fetchOrigin,
+  reussi,
+  refusDeGit,
+  retirerWorktree,
+  shaDe,
+  shasDistants,
+} from '../guards/lib/gitPorte.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { prendreVerrou, tenantDe } from '../test/verrou.mjs'
 import { estPidVivant } from '../guards/lib/pid.mjs'

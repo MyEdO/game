@@ -12,9 +12,35 @@ import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { syncBuiltinESMExports } from 'node:module'
 import { setTimeout as delai } from 'node:timers/promises'
-import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent, controleur } from './session-runtime.mjs'
+import {
+  creerSessions,
+  envAgent,
+  planAgent,
+  validerRapport,
+  lireJsonc,
+  ligneControleur,
+  mesurerProcessus,
+  lirePolitique,
+  contratCodex,
+  consigneAgent,
+  lancerAgent,
+  lireRapportDe,
+  validateurDeSchema,
+  piloterAgent,
+  controleur,
+} from './session-runtime.mjs'
 import { rejouer, refusSession } from './session-rejeu.mjs'
-import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal, outilsSession, attendreSuivi } from './session.mjs'
+import {
+  lancerSession,
+  optionsSession,
+  profilTerminal,
+  executableNatif,
+  verifierContratAgent,
+  commandeSession,
+  argsTerminal,
+  outilsSession,
+  attendreSuivi,
+} from './session.mjs'
 import { preflightSessionStart } from './session-start.mjs'
 import { finDeTour } from '../hooks/fin-de-tour.mjs'
 import { ajouterTransition, lireTransitions } from './session-transitions.mjs'

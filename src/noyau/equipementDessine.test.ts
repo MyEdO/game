@@ -5,7 +5,16 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { armeDeDessin, armesDEntite, armesDuCombattant } from './equipementDessine';
-import { apparencesCandidates, deciderApparencesDesArmes, emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout, weaponFromItem } from '../engine/items';
+import {
+  apparencesCandidates,
+  deciderApparencesDesArmes,
+  emptyArmour,
+  itemFromGive,
+  loadoutSetActive,
+  loadoutSetSlot,
+  recomputeLoadout,
+  weaponFromItem,
+} from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
 import { creatures, findCreatureById } from '../data';
 import { setDataset } from '../data/overrides';

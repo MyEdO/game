@@ -21,7 +21,20 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { ouReserve, roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, equipeSchema, idDIconeSchema, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
+import {
+  amateurSchema,
+  cell2Schema,
+  deckCoverSchema,
+  difficultySchema,
+  dir8Schema,
+  entityAppearanceSchema,
+  enumNomme,
+  equipeSchema,
+  idDIconeSchema,
+  moneyPartialSchema,
+  pointDuPlanSchema,
+  settlementSchema,
+} from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
