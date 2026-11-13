@@ -497,13 +497,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/i18n/messages/fr.ts",
-    motif: "désormais",
-    ancre: "`craft.*`, LDB 60 l.7/11/42). La fonction rend désormais un id STABLE ; ces clés en sont l'affichage.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/name-field-guard.test.ts",
     motif: "désormais",
     ancre: "`GallerySpecimen` que l'ancienne version à pile ratait) est désormais couvert.",

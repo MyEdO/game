@@ -247,7 +247,7 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
 
 
 /** `TrappingRef` (`src/data/index.ts`) — par id de catalogue (+ quantité, + Atouts ATTACHÉS `qualities`
- *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
+ *  ou emplacement « Atouts au choix » `qualityChoice`, sa classe de qualité — LDB 60 l.7 ; LDB 60 l.11),
  *  texte narratif hors catalogue (+ quantité), dotation de POSSESSION (`dotationDePossessionSchema`,
  *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), somme d'argent (`sommeSchema`), mention par nature
  *  (`dotationDeMentionSchema`), « 1 parmi » (`pick`, `{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`,
@@ -271,8 +271,13 @@ export const objetDeCatalogueSchema = nommerChamps(z.strictObject({
   valeur: sommeSchema.optional(),
 }), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, valeur: { label: 'valeur' } });
 
-/** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atout au choix » (`qualityChoice`). LDB 60 */
-export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({ ...objetDeCatalogueSchema.shape, qualityChoice: z.literal(true).optional() }), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } });
+/** La classe de qualité d'un objet doté dont les Atouts sont au choix. LDB 60 l.7 ; LDB 60 l.11 */
+export const classeDeQualiteSchema = enumNomme({ qualite: 'de qualité', haute: 'de Haute Qualité' });
+export type ClasseDeQualite = z.infer<typeof classeDeQualiteSchema>;
+
+/** Dotation d'un objet du catalogue : l'objet, et son emplacement « Atouts au choix » (`qualityChoice`), sa classe de
+ *  qualité. LDB 60 */
+export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({ ...objetDeCatalogueSchema.shape, qualityChoice: classeDeQualiteSchema.optional() }), { ...metaDesChamps(objetDeCatalogueSchema, { exigees: true }), qualityChoice: { label: 'qualité au choix' } });
 
 /** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */
 export const dotationDeMentionSchema = nommerChamps(z.strictObject({
@@ -295,10 +300,10 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
 type ObjetDeCatalogue = { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; valeur?: Somme };
 type FormeSansTexte =
-  | (ObjetDeCatalogue & { qualityChoice?: true })
+  | (ObjetDeCatalogue & { qualityChoice?: ClasseDeQualite })
   | DotationDePossession
   | Somme;
-type JokerDeDotation = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: true };
+type JokerDeDotation = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: 'qualite' };
 type LotDeDotation = { lot: (ObjetDeCatalogue | DotationDePossession)[] };
 type DotationSansTexte = FormeSansTexte | Parmi<1, FormeSansTexte>;
 type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
@@ -309,7 +314,7 @@ type FormeDeDotation = FormeSansTexte | JokerDeDotation | DotationDeTexte | Dota
 const jokerDeDotationSchema = nommerChamps(z.strictObject({
   wildcard: z.literal('arme'),
   groupe: ref('weaponGroup', undefined, 'weapon').optional(),
-  qualityChoice: z.literal(true).optional(),
+  qualityChoice: z.literal('qualite').optional(),
 }), { wildcard: { label: "choix libre" }, groupe: { label: "Groupe d’armes" }, qualityChoice: { label: 'qualité au choix' } });
 
 /** Plusieurs objets ou possessions dotés ENSEMBLE, option d'un « 1 parmi » : ni emplacement, ni somme, ni mention, ni texte. */

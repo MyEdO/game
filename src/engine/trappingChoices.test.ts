@@ -1,17 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import {
+  atoutChoisi,
   dotationsDuHeros,
   emplacementsDeDotation,
   emplacementTranche,
   estEmplacementDeDotation,
   estEmplacementRacine,
+  libelleDeLaValeur,
   resolveTrappingChoices,
+  valeurParDefaut,
   valeursDeLEmplacement,
   type ChoixDeDotation,
 } from './trappingChoices';
+import { craftAtoutCount } from './qualities/craftEconomy';
 import { adresseDeCreation } from './adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
-import { careerLevels, findTrappingById, groupeDeLArme, trappingRefLabel, fabricationAtouts, qualities, trappings, type BrancheDeDotation, type QualityData, type TrappingRef } from '../data/index';
+import { careerLevels, findTrappingById, groupeDeLArme, trappingRefLabel, fabricationAtouts, qualities, qualityInstance, trappings, type BrancheDeDotation, type QualityData, type TrappingRef } from '../data/index';
 import { setDataset } from '../data/overrides';
 
 const dot = adresseDeCreation.dotation;
@@ -39,7 +43,7 @@ describe('emplacementsDeDotation — énumération canonique (classe PUIS niveau
   });
 
   it('`estEmplacementDeDotation` : `{pick, of}`, `{wildcard}`, `{id, qualityChoice}` ; une ref concrète n\'en est pas un', () => {
-    expect([{ pick: 1, of: [] }, { wildcard: 'arme' }, { wildcard: 'arme', groupe: { id: 'lancer' } }, { id: 'fleuret', qualityChoice: true }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true, true]);
+    expect([{ pick: 1, of: [] }, { wildcard: 'arme' }, { wildcard: 'arme', groupe: { id: 'lancer' } }, { id: 'fleuret', qualityChoice: 'qualite' }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true, true]);
     expect(([{ id: 'dague' }, { text: 'Toges' }, { id: 'cheval', type: 'creature' }, { id: 'charrette', type: 'vehicle' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
   });
 });
@@ -130,7 +134,8 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
   });
 
   it('trappingRefLabel affiche « (qualité au choix) » / les Atouts attachés', () => {
-    expect(trappingRefLabel({ id: 'fleuret', qualityChoice: true })).toBe('Fleuret (qualité au choix)');
+    expect(trappingRefLabel({ id: 'fleuret', qualityChoice: 'qualite' })).toBe('Fleuret (qualité au choix)');
+    expect(trappingRefLabel({ id: 'costume-de-cour', qualityChoice: 'haute' })).toBe('Habit de cour (Haute Qualité au choix)');
     expect(trappingRefLabel({ id: 'fleuret', qualities: [{ id: 'solide' }] })).toBe('Fleuret (Solide)');
   });
 
@@ -216,3 +221,102 @@ describe('valeursDeLEmplacement — le domaine d’une arme au choix', () => {
     for (const g of groupes) expect(valeursDeLEmplacement({ adresse: dot([0]), chemin: [0], sorte: 'joker', ref: { wildcard: 'arme', groupe: { id: g } } }).length, g).toBeGreaterThan(0);
   });
 });
+
+/** Trois Atouts de Fabrication de fixture, dans un ordre de donnée qui n'est pas celui des ids : `raffine`
+ *  (`DEFAULT_FABRICATION_ATOUT`) et `alpha-indice` (indicé) peuvent être pris plusieurs fois, `zeta-unique` non ; et un
+ *  objet d'Encombrement 1. */
+function avecAtoutsDeFixture<T>(fn: () => T): T {
+  const modele = qualities.find((q) => q.polarite === 'atout' && q.subType === 'objet')!;
+  const atout = (id: string, patch: Partial<QualityData> = {}): QualityData => ({ ...modele, id, label: id, capabilities: undefined, indice: undefined, ...patch });
+  const qualitesAvant = qualities.slice();
+  const objetsAvant = trappings.slice();
+  setDataset('qualities', [
+    atout('raffine', { capabilities: { repetable: true } }),
+    atout('zeta-unique'),
+    atout('alpha-indice', { indice: { label: 'Indice' }, capabilities: { repetable: true } }),
+  ]);
+  setDataset('trappings', [...objetsAvant, { ...findTrappingById('vetements')!, id: 'objet-d-encombrement-1', enc: 1 }]);
+  try {
+    return fn();
+  } finally {
+    setDataset('qualities', qualitesAvant);
+    setDataset('trappings', objetsAvant);
+  }
+}
+
+describe('emplacement `atout` : les combinaisons d’Atouts de sa classe de qualité (LDB 60 l.7 ; LDB 60 l.11)', () => {
+  const atoutDe = (ref: TrappingRef) => {
+    const [e] = emplacementsDeDotation([ref]);
+    if (e?.sorte !== 'atout') throw new Error(`pas un emplacement atout : ${JSON.stringify(ref)}`);
+    return e;
+  };
+  const deQualite = () => atoutDe({ id: 'objet-d-encombrement-1', qualityChoice: 'qualite' });
+  const deHauteQualite = () => atoutDe({ id: 'objet-d-encombrement-1', qualityChoice: 'haute' });
+  const resolu = (ref: TrappingRef, v?: string) => resolveTrappingChoices([ref], v === undefined ? {} : { [dot([0])]: v })[0];
+
+  it('de Qualité : chaque Atout de Fabrication seul, dans l’ordre de la donnée', () => {
+    avecAtoutsDeFixture(() => {
+      expect(valeursDeLEmplacement(deQualite())).toEqual(['raffine', 'zeta-unique', 'alpha-indice']);
+    });
+  });
+
+  it('de Haute Qualité sur un objet d’Encombrement 1 : toutes les paires, un doublon pour le seul Atout qui peut être pris plusieurs fois (LDB 60 l.26 ; LDB 60 l.30)', () => {
+    avecAtoutsDeFixture(() => {
+      expect(valeursDeLEmplacement(deHauteQualite())).toEqual(['raffine+raffine', 'raffine+zeta-unique', 'alpha-indice+raffine', 'alpha-indice+zeta-unique', 'alpha-indice+alpha-indice']);
+    });
+  });
+
+  it('sans choix, l’emplacement pose sa combinaison par défaut : autant de Raffiné que d’Atouts', () => {
+    avecAtoutsDeFixture(() => {
+      expect(valeurParDefaut(deQualite())).toBe('raffine');
+      expect(valeurParDefaut(deHauteQualite())).toBe('raffine+raffine');
+      expect(resolu({ id: 'objet-d-encombrement-1', qualityChoice: 'haute' })).toEqual({ id: 'objet-d-encombrement-1', qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
+    });
+  });
+
+  it('un Atout indicé pris deux fois est une entrée d’Indice 2, un autre deux entrées ; une paire mixte, une entrée par Atout (LDB 60 l.30-32)', () => {
+    avecAtoutsDeFixture(() => {
+      const habit: TrappingRef = { id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualityChoice: 'haute' };
+      expect(resolu(habit, 'alpha-indice+alpha-indice')).toEqual({ id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualities: [{ id: 'alpha-indice', value: 2 }] });
+      expect(resolu(habit, 'raffine+raffine')).toEqual({ id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
+      expect(resolu(habit, 'alpha-indice+raffine')).toEqual({ id: 'objet-d-encombrement-1', count: { fixed: 4 }, qualities: [{ id: 'raffine' }, { id: 'alpha-indice', value: 1 }] });
+    });
+  });
+
+  it('une valeur hors des combinaisons offertes prend la valeur par défaut, jamais un Atout découpé ou étranger', () => {
+    avecAtoutsDeFixture(() => {
+      const habit: TrappingRef = { id: 'objet-d-encombrement-1', qualityChoice: 'haute' };
+      for (const v of ['zeta-unique+zeta-unique', 'zeta-unique+raffine', 'raffine', 'maudit', 'raffine+raffine+raffine']) {
+        expect(atoutChoisi(deHauteQualite(), { [dot([0])]: v }), v).toBe('raffine+raffine');
+        expect(resolu(habit, v)!, v).toEqual({ id: 'objet-d-encombrement-1', qualities: [{ id: 'raffine' }, { id: 'raffine' }] });
+      }
+      expect(resolu({ id: 'objet-d-encombrement-1', qualityChoice: 'qualite' }, 'raffine+raffine')).toEqual({ id: 'objet-d-encombrement-1', qualities: [{ id: 'raffine' }] });
+    });
+  });
+
+  it('le libellé d’une combinaison nomme chacune de ses prises, celui d’un Atout seul son Atout', () => {
+    avecAtoutsDeFixture(() => {
+      expect(libelleDeLaValeur(deHauteQualite(), 'alpha-indice+raffine')).toBe('raffine, alpha-indice');
+      expect(libelleDeLaValeur(deHauteQualite(), 'raffine+raffine')).toBe('raffine, raffine');
+      expect(libelleDeLaValeur(deQualite(), 'zeta-unique')).toBe('zeta-unique');
+    });
+  });
+
+  it('le choix « maudit » sur des vêtements de qualité pose le défaut : Maudit n’est pas un Atout de Fabrication', () => {
+    expect(resolveTrappingChoices([{ id: 'vetements', qualityChoice: 'qualite' }], { [dot([0])]: 'maudit' })).toEqual([{ id: 'vetements', qualities: [{ id: 'raffine' }] }]);
+  });
+
+  it('un Habit de cour de Haute Qualité (LDB 65 l.21, Encombrement 1) offre huit paires d’Atouts, chacune de deux prises (arbitrage #4053)', () => {
+    const habit: TrappingRef = { id: 'costume-de-cour', qualityChoice: 'haute' };
+    const valeurs = valeursDeLEmplacement(atoutDe(habit)).map(String);
+    expect(valeurs).toHaveLength(8);
+    expect(valeurs).toEqual(expect.arrayContaining(['raffine+raffine', 'solide+solide', 'leger+pratique']));
+    expect(valeurs).not.toEqual(expect.arrayContaining(['leger+leger']));
+    expect(valeurs).not.toEqual(expect.arrayContaining(['pratique+pratique']));
+    for (const v of valeurs) {
+      const qs = (resolu(habit, v) as { qualities: { id: string; value?: number }[] }).qualities;
+      expect(craftAtoutCount({ qualities: qs.map(qualityInstance) }), v).toBe(2);
+    }
+  });
+});
+

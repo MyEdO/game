@@ -4081,13 +4081,6 @@ export const fr = {
   'statut.echelon.argent': 'Argent',
   'statut.echelon.or': 'Or',
 
-  // ── #1318 V8c₅ — CLASSE DE QUALITÉ d'un objet artisanal (`engine/qualities/craftEconomy.ts`,
-  // `craft.*`, LDB 60 l.7/11/42). La fonction rend désormais un id STABLE ; ces clés en sont l'affichage.
-  'craft.classHaute': 'Haute Qualité',
-  'craft.classQualite': 'Qualité',
-  'craft.classDefectueuse': 'Défectueuse',
-  'craft.classStandard': 'Standard',
-
   // ── #1318 V8c₅ — MODIFICATEUR DE STATUT en Charme social (`engine/social.ts`, LDB 08 l.57-63).
   'social.statusMod': 'Statut ({beg}{side}) {sign}{mod}',
   'social.fragBegging': 'mendicité ',
@@ -4170,6 +4163,7 @@ export const fr = {
   'ref.armeAuChoix': 'Arme (au choix)',
   'ref.armeDuGroupeAuChoix': 'Arme du groupe {groupe} (au choix)',
   'ref.qualiteAuChoix': '{base} (qualité au choix)',
+  'ref.hauteQualiteAuChoix': '{base} (Haute Qualité au choix)',
   'ref.valant': '{base} valant {somme}',
   // Réf de source d'une entrée (`data/index.ts#sourceRefLabel`) : titre du livre, puis la page.
   'ref.sourcePage': '{livre} p. {page}',

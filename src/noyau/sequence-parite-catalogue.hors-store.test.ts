@@ -23,11 +23,10 @@ import { riverForceLabel } from '../engine/riverNavigation';
 import { DIFFICULTY_LABELS, locationLabel } from '../engine/types';
 import { shipLocationLabel } from '../engine/shipCritical';
 import { riverLocLabel } from './riverVoyageFlow';
-import { diseaseLabel, refLabel, findCareerById } from '../data';
+import { diseaseLabel, refLabel, findCareerById, trappingRefLabel } from '../data';
 import type { PlayerText } from '../i18n/playerText';
 import { ammoFamilyLabel } from '../engine/items';
 import { spellMoney } from '../engine/money';
-import { qualityClassLabel } from '../engine/qualities/craftEconomy';
 import { structureCollapseLog } from '../engine/structureCritical';
 import { traitArgSkeleton } from '../engine/traits/dispatch';
 import { validateCareerChange } from '../engine/advancement';
@@ -653,7 +652,7 @@ const V8C4: Site[] = [
 /* ── V8c₅ : la TRANCHE FINALE — les dix-huit derniers fichiers gelés, plus les deux nommés aux limites
  * du garde (`advancement`/`careerSlots`, dont les `reason` remontent à l'écran par `pf.refused`). Les
  * oracles montent la PRODUCTION partout où elle est appelable (`ammoFamilyLabel`, `spellMoney`,
- * `qualityClassLabel`, `structureCollapseLog`, `traitArgSkeleton`, `talentMaxLabel`, `keyLabel`,
+ * `trappingRefLabel`, `structureCollapseLog`, `traitArgSkeleton`, `talentMaxLabel`, `keyLabel`,
  * `bindingLabel`, `keySectionLabel`), sinon le gabarit exact du site. UN oracle porte le texte CORRIGÉ :
  * `keyLabel('NumpadEnter')` rendait « Pavé Enter » (l'entrée nommée « Entrée (pavé) » était
  * inatteignable derrière le préfixe `Numpad`) — la parité avec un bug n'est pas un abri. */
@@ -682,9 +681,9 @@ const V8C5: Site[] = [
     apres: spellMoney({ gold: 2, silver: 1, brass: 5 }),
   },
   {
-    site: 'craftEconomy.ts:62 — classe de qualité (l’id est la logique, le libellé une clé)',
-    avant: 'Haute Qualité',
-    apres: qualityClassLabel('haute'),
+    site: 'data/index.ts — Atouts au choix d’une dotation de Haute Qualité (l’id de classe est la logique, le libellé une clé)',
+    avant: 'Habit de cour (Haute Qualité au choix)',
+    apres: trappingRefLabel({ id: 'costume-de-cour', qualityChoice: 'haute' }),
   },
   {
     site: 'social.ts:127 — modificateur de Statut en mendicité (LDB 08 l.63)',

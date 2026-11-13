@@ -25,14 +25,14 @@ export function avecDotations<T>(careerId: string, dotations: { classe?: ClassDa
  *  une branche est un lot, un joker d'un Groupe d'armes, un joker à Atout au choix. */
 export const CARRIERE_FIXTURE = 'artiste';
 export const DOTATIONS_FIXTURE: { classe: ClassData['trappings']; niveau: CareerLevelData['trappings'] } = {
-  classe: [{ pick: 1, of: [{ id: 'miroir-a-main' }, { id: 'fleuret', qualityChoice: true }] }],
+  classe: [{ pick: 1, of: [{ id: 'miroir-a-main' }, { id: 'fleuret', qualityChoice: 'qualite' }] }],
   niveau: [
     { wildcard: 'arme' },
     { id: 'pinceau' },
     { pick: 1, of: [{ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] },
-    { id: 'fleuret', qualityChoice: true },
+    { id: 'fleuret', qualityChoice: 'qualite' },
     { pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }, { id: 'fleche', count: { fixed: 10 } }] }] },
     { wildcard: 'arme', groupe: { id: 'deux-mains' } },
-    { wildcard: 'arme', qualityChoice: true },
+    { wildcard: 'arme', qualityChoice: 'qualite' },
   ],
 };

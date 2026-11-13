@@ -35,6 +35,7 @@ const qualityCapabilities = nommerChamps(z.strictObject({
   ram: z.boolean().optional(),
   unbreakable: z.boolean().optional(),
   magic: z.boolean().optional(),
+  repetable: z.boolean().optional(),
   withheldOnRestraint: z.boolean().optional(),
   beats: refs('quality').optional(),
 }), {
@@ -61,6 +62,7 @@ const qualityCapabilities = nommerChamps(z.strictObject({
   ram: { label: 'Éperonnage' },
   unbreakable: { label: 'Incassable' },
   magic: { label: 'Magique' },
+  repetable: { label: 'Peut être pris plusieurs fois' },
   withheldOnRestraint: { label: 'Neutralisé pendant la retenue' },
   beats: { label: 'Qualités supplantées' },
 });
