@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildShip, shipSizeOfLength, installCost, rollPortRepair, rollTemporaryRepair,
-  temporaryRepairFailureDamage, steamBreakdownFor, steamBreakdownTriggered,
+  buildShip, shipSizeOfLength, installCost, rollPortRepair,
+  steamBreakdownFor, steamBreakdownTriggered,
 } from './shipBuild';
 import { findNavalTrait } from '../data';
 import type { RNG } from './dice';
@@ -127,7 +127,7 @@ describe('installCost — pose d’une Amélioration par PALIER DE LONGUEUR (MDG
   });
 });
 
-describe('Réparations (MDG 13 l.639-651)', () => {
+describe('Réparations au port (MDG 13 l.639-643)', () => {
   it('port : Test réussi → 1d10 h, 1d10 Blessures, 1 CO/Blessure ; Lissage +50 % (ch.12 l.295)', () => {
     // jet 20 (réussite), heures d10=4, blessures d10=6.
     const r = rollPortRepair(60, 20, seq(20, 4, 6));
@@ -137,13 +137,6 @@ describe('Réparations (MDG 13 l.639-651)', () => {
     // Restauration plafonnée aux Blessures manquantes.
     expect(rollPortRepair(60, 3, seq(20, 4, 8)).wounds).toBe(3);
     expect(rollPortRepair(60, 20, seq(99, 4)).wounds).toBe(0); // Test raté
-  });
-
-  it('temporaire : 1 h, 1d10 Blessures ; une réparation qui cède inflige 1d10−4 Dégâts (min 0)', () => {
-    const r = rollTemporaryRepair(50, 20, 'complexe', seq(15, 7));
-    expect(r).toMatchObject({ success: true, hours: 1, wounds: 7, costGold: 0 });
-    expect(temporaryRepairFailureDamage(seq(9))).toBe(5);
-    expect(temporaryRepairFailureDamage(seq(2))).toBe(0);
   });
 });
 

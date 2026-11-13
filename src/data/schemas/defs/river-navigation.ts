@@ -57,11 +57,15 @@ const champs = {
     difficulty: difficultySchema,
     charpentierPenalty: z.number(),
     woundsPerRepair: tirageSchema,
+    enduranceDifficulty: difficultySchema,
+    failDamage: tirageSchema,
     source: sourceRefSchema,
   }), {
     difficulty: { label: 'Difficulté' },
     charpentierPenalty: { label: 'Pénalité de Charpentier' },
     woundsPerRepair: { label: 'Blessures par réparation' },
+    enduranceDifficulty: { label: 'Difficulté du Test d’Endurance' },
+    failDamage: { label: 'Dégâts à l’échec' },
     source: { label: 'Source' },
   }),
 };

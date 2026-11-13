@@ -34,7 +34,7 @@ import type { Id } from '../data/schemas/grammaire/ref';
 
 import { rollShipCritical } from '../engine/shipCritical';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { dataLabel, findCrewRoleById, refLabel } from '../data';
+import { dataLabel, findCrewRoleById, findCrewTestTypeById, refLabel } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
 import {
@@ -48,6 +48,7 @@ import {
   navireHostileEnVue,
   noteSeaLine,
   persistHullWounds,
+  reparationTemporaireDuNavire,
   setVesselHull,
   vesselManann,
   voyageShip,
@@ -298,9 +299,11 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   const { difficulty } = resoudreFlowTest(node.test, { cc: condCtx(get) });
   const st = etapeDEquipage(get, type, 'testDEquipage', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
   if (!st) return false;
+  // MDG 13 l.651
+  const reparation = findCrewTestTypeById(type)?.steering ? reparationTemporaireDuNavire(get, get().travelPlan?.vehicle, st.id) : undefined;
   startCascade(get, set, {
     title: label, icon: 'voyage/ancre', purpose: 'test',
-    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.reussite, onFail: node.echec, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }],
+    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.reussite, onFail: node.echec, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }, ...(reparation ? [reparation] : [])],
   });
   return true;
 }
