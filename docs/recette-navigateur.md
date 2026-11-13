@@ -1593,7 +1593,7 @@ que CHAQUE page rend, jamais à un `pending*` (identique des deux côtés, cf. i
 
 | Cas | Commande | Contrôle |
 |---|---|---|
-| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `timeout <N> npm run dev` en fond | `relayHttpUrl` (`src/state/netFlow.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
+| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `timeout <N> npm run dev` en fond | `relayHttpUrl` (`src/hote/coop/page.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
 | Build de production sans variable | Build avec `import.meta.env.PROD` vrai | Le défaut `RELAY_URL_PROD` vise le Worker Cloudflare déployé |
 | Relais explicite | Relancer Vite avec `VITE_RELAY_URL` | La variable prend priorité dans tous les modes ; une URL locale convient aussi à un build de production |
 
