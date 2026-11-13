@@ -84,15 +84,16 @@ function launchAtA(): void {
   const h = trader();
   g.fixerLeGroupe([h]);
   g.chargerLeProjet({ scenes: [marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], entryId: 'marche-a', worldMap: tradeMap(), projet: null });
-  // trader() n'a pas de bourse → partyMoneyTotal = 0 ; le registre de possessions REMPLACE tout auto-semis
-  // de dotation carrière (marchand niveau 1 porte une mule) par LE porteur déterministe du test.
+  // Le registre de possessions REMPLACE tout auto-semis de dotation carrière (marchand niveau 1 porte une mule) par
+  // LE porteur déterministe du test.
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });
 }
 
 const lot: CargoLot = { uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
 const rumourB: TradeRumour = { placeId: 'B', biens: ['vin-eau-de-vie'], mult: 2, text: 'Le vin manque à Altdorf.', heardDay: 0 };
 
-/** Vend le lot 0 à Altdorf (place B) avec le board donné et renvoie le gain en brass. */
+/** Vend le lot 0 à Altdorf (place B) avec le board donné et renvoie le gain en brass : l'argent du groupe après la vente,
+ *  moins celui d'avant (la Bourse du Marchand porte déjà ses 3d10 pistoles, LDB 08 l.419). */
 function sellAtB(board: TradeRumour[]): number {
   launchAtA();
   set({
@@ -101,6 +102,7 @@ function sellAtB(board: TradeRumour[]): number {
     journal: [],
     ...persistCarriersCargo(get(), [{ carrierId: CARRIER_ID, cargo: [{ ...lot }] }]),
   });
+  const avant = toBrass(partyMoneyTotal(get));
   seedBattleRng(3);
   vendreALaHalle(get, set, lot.uid);
   // Le dé d'acheteur est un dé de MONDE : le siège qui possède le monde le LANCE dans sa fenêtre
@@ -112,7 +114,7 @@ function sellAtB(board: TradeRumour[]): number {
     get().jetValider('cascade');
     banc.reprendreLesEnAttente();
   }
-  return toBrass(partyMoneyTotal(get));
+  return toBrass(partyMoneyTotal(get)) - avant;
 }
 
 describe('#99 — rumeur CROSS-LIEU appliquée à la vente au Lieu désigné (l.180)', () => {

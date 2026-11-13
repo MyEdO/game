@@ -82,6 +82,14 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ id: 'epee-de-cour', type: 'vehicle', qualityChoice: true }).success).toBe(false);
   });
 
+  it('accepte une somme, un objet à sa valeur, une mention de nature connue ; refuse une nature inconnue (#4053)', () => {
+    expect(trappingRefSchema.safeParse({ monnaie: 'silver', count: { roll: { n: 3, sides: 10 } } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ id: 'bijoux', valeur: { monnaie: 'gold', count: { fixed: 50 } } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ label: 'Pamphlétaires', nature: 'personne', count: { fixed: 3 } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ label: 'Apprenti', nature: 'objet' }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ monnaie: 'florin', count: { fixed: 1 } }).success).toBe(false);
+  });
+
   it('accepte {choice} — dotation « X ou Y » migrée (chantier #654 Lot 3)', () => {
     const ref = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
     expect(trappingRefSchema.safeParse(ref).success).toBe(true);

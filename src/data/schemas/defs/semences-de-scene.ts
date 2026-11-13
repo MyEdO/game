@@ -17,14 +17,9 @@
  * PARSE de toutes les scènes déjà écrites, une plage éditable ferait refuser au chargement des
  * projets utilisateur aujourd'hui valides.
  *
- * `ambientLight` est ici plus STRICT que le champ qu'il alimente (`Scene.ambientLight` est une
- * `z.string()` libre) : une semence nomme un palier RÉEL de `lightLevels.json` — une semence qui
- * nommerait un palier inexistant poserait le défaut faux sur CHAQUE scène créée ensuite. ABSENT =
- * `auto`, l'éclairage suit l'horloge via `ambiance` : la sentinelle n'est pas une VALEUR du champ,
- * c'est son absence, et `emptyScene` (`noyau/monde/scene.ts`) la rend en clair sur la scène produite. Un
- * champ typé `idDe(…)` ne se mêle pas d'une chaîne hors registre — une union « sentinelle | idDe »
- * n'existe nulle part au dépôt (mesuré), et elle poserait au registre des slots une valeur qui ne
- * résout pas.
+ * `ambientLight` nomme un palier RÉEL de `lightLevels.json`, comme `Scene.ambientLight` qu'il alimente,
+ * sans la valeur réservée `auto` de la scène : ABSENT = `auto`, l'éclairage suit l'horloge via
+ * `ambiance`, et `emptyScene` (`noyau/monde/scene.ts`) la rend en clair sur la scène produite.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

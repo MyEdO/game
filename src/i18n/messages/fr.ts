@@ -651,6 +651,7 @@ export const fr = {
   'ecran.editeur.profil.competences': 'Compétences : {liste}',
   'ecran.editeur.profil.talents': 'Talents : {liste}',
   'ecran.editeur.profil.possessions': 'Possessions : {liste}',
+  'ecran.editeur.profil.mentions': '{nature} : {liste}',
   'ecran.editeur.profil.aucun': 'aucune',
   'ecran.editeur.profil.neuf': 'Profil neuf',
   'ecran.editeur.profil.copie': 'Copie de {fiche}',
@@ -4136,6 +4137,7 @@ export const fr = {
   'ref.armeAuChoix': 'Arme (au choix)',
   'ref.jokerAuChoix': '{base} (au choix)',
   'ref.qualiteAuChoix': '{base} (qualité au choix)',
+  'ref.valant': '{base} valant {somme}',
   // Réf de source d'une entrée (`data/index.ts#sourceRefLabel`) : titre du livre, puis la page.
   'ref.sourcePage': '{livre} p. {page}',
   'slot.notCovered': "ce choix n'est pas couvert par cet emplacement",

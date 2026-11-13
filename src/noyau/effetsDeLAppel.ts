@@ -24,10 +24,9 @@ import { hauteurDe, sceneMetresPerTile } from './monde/scene';
 import { meteoSurLesBandes, type MeteoDuRegard } from './monde/meteo';
 import { FLAME_LIFT_M } from './monde/vision';
 import { discTiles, type BattleZone } from './monde/zones';
-import { spaceCellKey } from './monde/volume/architectureVisibility';
 import { campOf } from '../engine/relations';
 import { inBattleId } from './monde/combatants';
-import { connaissanceDuGroupe, corpsEnVue, porteurEnVue } from './visionDuGroupe';
+import { caseDeZoneEnVue, caseEnVue, corpsEnVue, porteurEnVue } from './visionDuGroupe';
 import type { Evenement } from './partie';
 
 /**
@@ -281,17 +280,17 @@ export function renduDeLaZone(z: Pick<ChargeDeZone, 'sort' | 'rendu'>): { rendu:
 }
 
 /**
- * Une zone qui dure (`vue.zonesQuiDurent`, `battle.zones`, #3834) se voit tant qu'elle dure : celle d'un sort au rendu
+ * Une zone qui dure (`vue.zonesQuiDurent`, `zonesQuiDurentEnVue`, `battle.zones`, #3834) se voit tant qu'elle dure : celle d'un sort au rendu
  * de son Domaine, la fumée d'un Souffle au rendu de son Type, une zone de scène à son `rendu` ; sans rendu, elle ne se
  * voit pas.
  * @contrat Effets
  */
 export interface ZoneQuiDure {
-  /** la nomme d'une vue à l'autre : une zone déjà posée reste telle quelle. */
+  /** la nomme d'une vue à l'autre, celle de la zone entière : une zone déjà posée reste posée. */
   cle: string;
-  /** ses cases, chacune à sa couche. */
+  /** ses cases que le groupe voit (`caseDeZoneEnVue`), chacune à sa couche ; une zone sans aucune n'est pas servie. */
   cases: CaseDEffet[];
-  /** la case la plus proche de son barycentre, où joue sa `boucle`. */
+  /** celle de ses `cases` la plus proche de leur barycentre, où joue sa `boucle`. */
   centre: CaseDEffet;
   /** sa teinte `#rrggbb`. */
   couleur: string;
@@ -315,19 +314,27 @@ function caseCentrale(cases: readonly CaseDEffet[]): CaseDEffet {
   return cases.reduce((m, c) => (Math.hypot(c.x - mx, c.y - my) < Math.hypot(m.x - mx, m.y - my) ? c : m));
 }
 
-/** Celles des zones persistantes `zones` (`battle.zones`) qui se voient, chacune à son rendu : la nappe de son rendu
- *  (son visuel de zone, à défaut celui de son impact) et son son de zone qui dure. */
-export function zonesQuiDurent(zones: readonly BattleZone[]): ZoneQuiDure[] {
+/** Les zones qui durent de `etat` (`battle.zones`) telles que le groupe les voit (`caseDeZoneEnVue`) : `vue.zonesQuiDurent`. */
+export function zonesQuiDurentEnVue(etat: Jeu): ZoneQuiDure[] {
+  return zonesQuiDurent(etat.battle?.zones ?? [], caseDeZoneEnVue(etat));
+}
+
+/** Celles des zones persistantes `zones` (`battle.zones`) qui se voient, chacune à son rendu, réduite à ses cases que
+ *  `montree` montre : la nappe de son rendu (son visuel de zone, à défaut celui de son impact) et son son de zone qui
+ *  dure. Sa clé se lit sur la zone entière. */
+function zonesQuiDurent(zones: readonly BattleZone[], montree: (c: CaseDEffet) => boolean): ZoneQuiDure[] {
   const vues = new Map<string, number>();
   return zones.flatMap((z): ZoneQuiDure[] => {
     const r = renduDeLaZoneQuiDure(z);
     if (!r || !z.tiles.length) return [];
-    const centre = caseCentrale(z.tiles);
-    const base = `${z.id ?? z.rendu?.id ?? z.source?.id}@${centre.x},${centre.y},${centre.z ?? 0}`;
+    const milieu = caseCentrale(z.tiles);
+    const base = `${z.id ?? z.rendu?.id ?? z.source?.id}@${milieu.x},${milieu.y},${milieu.z ?? 0}`;
     const rang = vues.get(base) ?? 0;
     vues.set(base, rang + 1);
+    const cases = z.tiles.filter(montree);
+    if (!cases.length) return [];
     return [{
-      cle: rang ? `${base}#${rang}` : base, cases: z.tiles, centre, couleur: r.couleur,
+      cle: rang ? `${base}#${rang}` : base, cases, centre: caseCentrale(cases), couleur: r.couleur,
       visuel: r.rendu.zoneVisuel ?? r.rendu.impactVisuel ?? null,
       boucle: r.rendu.zoneBoucle ? sonDEffet(r.rendu.zoneBoucle.id) : null,
     }];
@@ -363,7 +370,8 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
  *   créature sur elle-même, ne rend aucun effet.
  * - Ce que le groupe ne voit pas ne se montre pas (`src/noyau/visionDuGroupe.ts`) : un coup ou une incantation sur une
  *   cible hors de vue, un flottant sur un combattant hors de vue ou sur une case que le groupe ne voit pas, une zone
- *   dont il ne voit aucune case, le déplacement d'un combattant qui finit hors de vue ne rendent aucun effet.
+ *   dont il ne voit aucune case, le déplacement d'un combattant qui finit hors de vue ne rendent aucun effet. Une zone
+ *   qui coupe la vue se montre entière dès que le groupe en voit le bord (`caseDeZoneEnVue`).
  * - `couleur` (`#rrggbb`) teint les visuels qui prennent la teinte de l'effet. Un son nomme ses variantes, des noms nus
  *   que Godot lit sous `res://sons/` et joue l'une à son tour (`Effets.variante_du_son`), le dossier épinglé des sons
  *   (`projet/sons/provenance.json`, `hotes/godot/asset/epingles.ts`), et son `volume` propre (0..1).
@@ -409,16 +417,12 @@ function effetsEmis(etat: Jeu, evenements: readonly Evenement[]): EffetEmis[] {
   });
 }
 
-/** La clé `x,y,z` de la case `c`. */
-const cleDe = (c: CaseDEffet): string => spaceCellKey(c.x, c.y, c.z ?? 0);
-
 /** L'effet `e` tel que le groupe le voit sur `etat` (#3950) : sans lui quand sa cible, son porteur ou toutes ses cases
- *  sont hors de vue ; sans auteur (`de`, son départ et son trajet) quand l'auteur l'est ; le chemin d'un combattant
+ *  (d'une zone : `caseDeZoneEnVue`) sont hors de vue ; sans auteur (`de`, son départ et son trajet) quand l'auteur l'est ; le chemin d'un combattant
  *  hors du camp du groupe réduit à la fin où son corps, ancré à chaque case, est vu (`corpsEnVue`), la première à 0 m.
  *  Un son se rend tel quel. */
 function aLaVueDuGroupe(etat: Jeu, e: EffetEmis): Effet[] {
   const enVue = (id: string) => porteurEnVue(etat, id);
-  const vue = (c: CaseDEffet) => connaissanceDuGroupe(etat)(cleDe(c)) === 'visible';
   if (e.quoi === 'coup') {
     if (!enVue(e.vers)) return [];
     return [enVue(e.de) ? e : { ...e, de: null, depart: null, trajet: null }];
@@ -428,14 +432,14 @@ function aLaVueDuGroupe(etat: Jeu, e: EffetEmis): Effet[] {
     return [enVue(e.de) ? e : { ...e, de: null, depart: null }];
   }
   if (e.quoi === 'zone') {
-    const cases = e.cases.filter(vue);
+    const cases = e.cases.filter(caseDeZoneEnVue(etat));
     if (!cases.length) return [];
     const auteur = enVue(e.de) ? {} : { de: null, depart: null, trajet: null };
     return [{ ...e, ...auteur, cases }];
   }
   if (e.quoi === 'flottant') {
     if (e.sur !== null) return enVue(e.sur) ? [e] : [];
-    return e.case === null || vue(e.case) ? [e] : [];
+    return e.case === null || caseEnVue(etat, e.case) ? [e] : [];
   }
   if (e.quoi === 'deplacement') {
     if (!enVue(e.qui)) return [];
@@ -633,7 +637,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
   const zones = rendus.filter((r) => r.zoneVisuel ?? r.impactVisuel).map((r) => ({
     id: r.id,
     label: r.label,
-    zone: zonesQuiDurent([{ label: r.label, tiles: casesDeLaZone, rounds: 1, rendu: { id: r.id } }])[0],
+    zone: zonesQuiDurent([{ label: r.label, tiles: casesDeLaZone, rounds: 1, rendu: { id: r.id } }], () => true)[0],
   }));
   const marques = etats.map((e) => ({ id: e.id, label: e.label, marque: marquesDesEtats([{ id: e.id, valeur: 1 }])[0] }));
   const bande = [{ y: caseDeLAuteur.y, x0: caseDeLAuteur.x, x1: caseDeLaCible.x }];

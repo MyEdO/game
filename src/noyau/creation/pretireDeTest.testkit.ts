@@ -31,8 +31,7 @@ export const PRETIRE_DE_TEST: PregenDef = {
   motivation: 'Curiosité',
   age: 30,
   sex: 'M',
-  richesse: { n: 4, sides: 10 },
-  monnaie: 'brass',
+  richesse: { monnaie: 'brass', count: { roll: { n: 4, sides: 10 } } },
 };
 
 /** Pose `defs` pour seuls prétirés du registre `pregens`, jusqu'à la fin du test courant. */
