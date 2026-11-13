@@ -413,11 +413,11 @@ describe('la tuile effondrée, absente du volume (#4044)', () => {
     for (const [cle, empreinte] of eb) if (!cle.endsWith(`/${bloc}`)) expect(empreinte, cle).toBe(ea.get(cle));
   });
 
-  it('la tuile effondrée est une case où rien n’est bâti : même volume que la case absente de sa couche, sans crénelure', () => {
+  it('la tuile effondrée est une case où rien n’est bâti : même volume que la case absente de sa couche, qui garde sa crénelure', () => {
     const absente = setStructureDown(siege, 14, 37, 'N', 0, true);
     const k = 37 * siege.dimensions.w + 14;
     const etage = absente.layers.find((l) => l.z === 1)!;
-    const couche = { ...etage, tiles: etage.tiles.map((t, i) => (i === k ? terrainAbsent() : t)), crenellated: etage.crenellated!.map((c, i) => (i === k ? null : c)) };
+    const couche = { ...etage, tiles: etage.tiles.map((t, i) => (i === k ? terrainAbsent() : t)) };
     expect(etage.crenellated![k], 'la case effondrée était crénelée').not.toBeNull();
     expect(empreintes(volumeDuMonde(abattu()))).toEqual(empreintes(volumeDuMonde({ ...absente, layers: absente.layers.map((l) => (l.z === 1 ? couche : l)) })));
   });

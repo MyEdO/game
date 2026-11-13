@@ -417,8 +417,8 @@ const memesFaces = (a: readonly FaceDuMorceau[], b: readonly FaceDuMorceau[]): b
 const couchesRetenues = memoByRefDeps<SceneDuVolume['layers'], SceneDuVolume['layers']>();
 
 /** Les couches de `scene` vues par son volume : une tuile d'étage effondrée (`tileCollapsed`) y est absente
- *  (`terrainAbsent`), sans crénelure, comme une case où rien n'est bâti ; sans tuile effondrée, les couches mêmes de la
- *  scène, et chaque couche sans tuile effondrée elle-même. */
+ *  (`terrainAbsent`), comme une case où rien n'est bâti, et garde sa crénelure ; sans tuile effondrée, les couches mêmes
+ *  de la scène, et chaque couche sans tuile effondrée elle-même. */
 const couchesDuVolume = (scene: Readonly<SceneDuVolume>): SceneDuVolume['layers'] => {
   const signature = tuilesEffondreesSignature(scene);
   if (!signature) return scene.layers;
@@ -426,12 +426,9 @@ const couchesDuVolume = (scene: Readonly<SceneDuVolume>): SceneDuVolume['layers'
   return couchesRetenues(scene.layers, [signature, versionDesDatasets()], () => scene.layers.map((couche) => {
     const effondrees = couche.z > 0 ? couche.tiles.flatMap((_, i) => (tileCollapsed(scene, i % w, Math.floor(i / w), couche.z) ? [i] : [])) : [];
     if (!effondrees.length) return couche;
-    const tiles = [...couche.tiles], crenellated = couche.crenellated && [...couche.crenellated];
-    for (const i of effondrees) {
-      tiles[i] = terrainAbsent();
-      if (crenellated) crenellated[i] = null;
-    }
-    return { ...couche, tiles, ...(crenellated ? { crenellated } : {}) };
+    const tiles = [...couche.tiles];
+    for (const i of effondrees) tiles[i] = terrainAbsent();
+    return { ...couche, tiles };
   }));
 };
 
