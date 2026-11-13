@@ -3,8 +3,9 @@
  * `carrieres-aleatoires.json` ensemble (le refine d'un fichier n'en lit aucun autre) :
  *  - une portion (MDG 09 l.9) ne porte que des carrières d'UNE Classe, et l'étendue qu'elle couvre dans sa
  *    colonne ne porte que des carrières d'UNE autre Classe, la Classe remplacée ;
- *  - une carrière d'une variante (AA 02 l.109-128 ; VDM 03 l.17-31) ou qui se choisit à la place d'une autre (ADE I 07 l.11-23)
- *    porte ses `races` (AA 02 l.137 ; ADE I 07 l.11), qui l'admettent au tirage.
+ *  - une carrière d'une variante (AA 02 l.109-128 ; VDM 03 l.17-31) ou qui se choisit à la place d'une autre (ADE I 07 l.11-23 ;
+ *    Middenheim 09 l.57 ; AA 05 l.135-140 ; VDM 03 l.11) porte ses `races` (AA 02 l.137 ; ADE I 07 l.11 ; LDB 08 l.1676), qui
+ *    l'admettent au tirage.
  */
 import { describe, expect, it } from 'vitest';
 import careersJson from './careers.json';
@@ -13,7 +14,7 @@ import { tableDeCarrieres } from './schemas/defs/carrieres-aleatoires';
 
 type Rangee = { id: string; min: number; max: number };
 type Colonne = { id: string; kind: string; colonne?: string; carriere?: string; entries: Rangee[] };
-type Carriere = { id: string; class: { id: string }; races?: string[]; aLaPlaceDe?: string };
+type Carriere = { id: string; class: { id: string }; races?: string[]; aLaPlaceDe?: { id: string } };
 
 /** Les écarts de sens de chaque portion de `documents`, nommés. */
 function ecartsDeSens(documents: readonly Colonne[], careers: readonly Carriere[]): string[] {
