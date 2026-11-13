@@ -44,6 +44,7 @@ import { dailyWaterLitres } from './seaWeather';
 import { findTraitById, refLabel } from '../data';
 import { RULE_REF, type CodexTarget } from './ruleRefs';
 import { traceLineOf } from './traceLine';
+import type { Id } from '../data/schemas/grammaire/ref';
 import type { ModFamille } from './types';
 import { t } from '../i18n';
 import { effectiveTalents } from './talentEffects';
@@ -334,15 +335,24 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
 /** Contenance d'un tonneau d'eau douce, en litres. MDG 14 l.242 */
 export const LITRES_PAR_TONNEAU = 145;
 
+/** Vivres de la cale du navire, en jours-homme par vivre (`sea-navigation.json` `longsVoyages.vivresDeCale`).
+ *  MDG 14 l.245-252, l.238, l.263 */
+export type VivresDeCale = Partial<Record<Id<'trapping'>, number>>;
+
+/** Total des rations (jours-homme) de la cale, tous vivres confondus. */
+export function rationsDeCale(provisions: VivresDeCale | undefined): number {
+  return Object.values(provisions ?? {}).reduce<number>((s, n) => s + Math.max(0, n ?? 0), 0);
+}
+
 /** Manifeste d'avitaillement AU DÉPART (#241/#245) : vivres/eau disponibles vs requis pour couvrir
  *  `joursEstimes` de voyage, sur la POPULATION EMBARQUÉE ENTIÈRE (héros + effectif PNJ, MDG 14 l.238).
  *  PUR — aucune mutation, aucune consommation. `waterLitres` = tonneaux du navire (`CampaignVessel.waterLitres`,
  *  absent = ravitaillement réputé assuré, cf. en-tête) ; l'eau requise suit le régime de bord médian
  *  (`dailyWaterLitres('mediane')`, MDG 14 l.242 — la bande de Température réelle n'est tirée qu'en mer).
- *  `crew` (optionnel, #245) = effectif PNJ nominal présent (`count`) et ses vivres de cale (`provisions`,
- *  rations en jours-homme) : l'équipage mange 1 ration/jour (pas de Brouet), les héros suivent Brouet
- *  (LDB 10 l.139 : 1 ration / 2 jours) sur leurs rations portées. Rations disponibles = celles des héros + vivres
- *  de cale (le port avitaille les deux). Absent = seuls les héros comptent (rétro-compat). */
+ *  `crew` (#245) = effectif PNJ nominal présent (`count`) et ses vivres de cale (`provisions`, `rationsDeCale`) :
+ *  l'équipage mange 1 ration/jour (pas de Brouet), les héros suivent Brouet (LDB 10 l.139) sur leurs rations
+ *  portées. Rations disponibles = celles des héros + vivres de cale. `crew` absent : voyage à terre
+ *  (`travelFlow`), seuls les héros comptent. */
 export interface ProvisioningManifest {
   joursEstimes: number;
   /** Population embarquée totale (héros vivants + effectif PNJ) — l'eau se calcule dessus. */
@@ -356,13 +366,13 @@ export interface ProvisioningManifest {
 
 export function provisioningManifest(
   party: Combatant[], waterLitres: number | undefined, joursEstimes: number,
-  crew: { count?: number; provisions?: number } = {},
+  crew: { count?: number; provisions?: VivresDeCale } = {},
 ): ProvisioningManifest {
   const alive = party.filter((h) => !h.dead);
   const days = Math.max(0, joursEstimes);
   const crewCount = Math.max(0, crew.count ?? 0);
   const souls = alive.length + crewCount;
-  const rationsDispo = alive.reduce((sum, h) => sum + rationCount(h), 0) + Math.max(0, crew.provisions ?? 0);
+  const rationsDispo = alive.reduce((sum, h) => sum + rationCount(h), 0) + rationsDeCale(crew.provisions);
   // Ogre (ADE II 2 l.708) : facteur ×2 sur les vivres/eau requis, PAR TÊTE — `traitConsumptionFactor`.
   const rationsRequises =
     alive.reduce((sum, h) => sum + (hasBrouet(h) ? Math.ceil(days / 2) : days) * traitConsumptionFactor(h), 0) + crewCount * days;
