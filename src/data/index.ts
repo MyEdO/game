@@ -93,6 +93,7 @@ import type * as qualityTypesDef from './schemas/defs/qualityTypes';
 import type * as weatherDef from './schemas/defs/weather';
 import type * as planDeBestiaireDef from './schemas/defs/planDeBestiaire';
 import type * as booksDef from './schemas/defs/books';
+import type * as vehiclesDef from './schemas/defs/vehicles';
 import type * as qualitiesDef from './schemas/defs/qualities';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
@@ -2272,7 +2273,7 @@ export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () =
 /** Véhicules / embarcations à coque — FOYER UNIQUE app-owned (data-driven). Trois facettes par
  *  enregistrement (achat / voyage / coque) ; cf. `VehicleData`. La facette `travel` est lue par
  *  `engine/travel` ; les facettes `purchase`/`hull` par le marché et les incidents/combat. */
-export const vehicles = vehiclesJson as VehicleData[];
+export const vehicles = datasetDe<typeof vehiclesDef>(vehiclesJson);
 const vehiculeParId = indexParId('vehicles', vehicles);
 export const findVehicleById: (id: string) => VehicleData | undefined = vehiculeParId;
 
