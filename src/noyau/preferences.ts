@@ -13,7 +13,7 @@
  */
 import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } from '../engine/cadence';
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
-import { valeurConforme } from '../engine/policy';
+import { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
 import { CANAUX_DE_SON, type CanalDeSon } from '../data/sons/types';
 import { VOLUME_DEFAUT, reglerLeVolume, volumeDuCanal } from './volumes';
 

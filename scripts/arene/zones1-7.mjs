@@ -238,7 +238,7 @@ export function makeZone3() {
           { skill: { id: 'resistance' }, difficulty: 'facile', label: 'Miasmes des égouts', stake: { authored: 'Tenir le coup dans l’air des égouts : sinon la Fièvre du Rongeur vous prend.' } },
           [{ type: 'journal', desc: 'L’air est irrespirable, mais vous gardez vos tripes — et votre santé.' }],
           [
-            { type: 'inflictDisease', disease: 'Fièvre du Rongeur' },
+            { type: 'inflictDisease', disease: 'fievre-du-rongeur' },
             { type: 'journal', desc: 'Quelque chose se glisse dans vos poumons avec l’odeur… La Fièvre du Rongeur couve.' },
           ],
         ),
@@ -322,7 +322,7 @@ export function makeZone4() {
             { type: 'journal', desc: 'Le fossoyeur serrait encore sa bourse : 18 pa, et rien d’attrapé.' },
           ],
           [
-            { type: 'inflictDisease', disease: 'Blessure Purulente' },
+            { type: 'inflictDisease', disease: 'blessure-purulente' },
             { type: 'journal', desc: 'Un os brisé vous entaille la paume. La plaie sent déjà mauvais…' },
           ],
         )),
@@ -593,7 +593,7 @@ export function makeZone7() {
             { type: 'journal', desc: 'Dans la soie : la besace d’une victime, potion intacte.' },
           ],
           [
-            { type: 'inflictDisease', disease: 'Infection Mineure' },
+            { type: 'inflictDisease', disease: 'infection-mineure' },
             { type: 'journal', desc: 'Quelque chose vous mord à travers la soie avant de fuir. La plaie gonfle déjà.' },
           ],
         )),

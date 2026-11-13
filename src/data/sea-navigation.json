@@ -375,13 +375,21 @@
       "page": 129,
       "note": "ch.15 « Longs voyages » — Vitesse moyenne des bateaux lors de longs voyages, table M/Milles par jour (l.53-70)."
     },
-    "rationDeCale": {
-      "id": "ration-nourriture-preservee"
-    },
+    "vivresDeCale": [
+      {
+        "id": "nourriture-courses-journee"
+      },
+      {
+        "id": "ration-nourriture-preservee"
+      },
+      {
+        "id": "ration-biscuits-de-mer"
+      }
+    ],
     "tonneauDeCale": {
       "id": "tonneau-d-eau-douce"
     },
-    "maison": "Les vivres de la cale ne sont pas typés (biscuits de mer, MDG 14 l.166 ; soupe de chou fermenté, MDG 14 l.230) : la cale s'avitaille en ration de nourriture préservée pour un jour (MDG 14 l.251) (consigne utilisateur 2026-11-07)."
+    "maison": "L'équipage mange les vivres de la cale dans l'ordre de la liste, le périssable d'abord (MDG 14 l.238, l.263) (consigne utilisateur 2026-11-07)."
   },
   "poursuite": {
     "distanceUnitM": 10,

@@ -1,6 +1,6 @@
 import type { CharKey, Main } from '../engine/types';
 import type { GenreDeDepot } from '../engine/activities';
-import type { BattleActionMode } from './actionRegistry';
+import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShootingStanceKey } from './etat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { OptionDeDetermination } from './combatSlice';
@@ -330,8 +330,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   recruterLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
   /** Débarque `count` PNJ salariés du rôle `roleId` (#228). */
   renvoyerLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
-  /** Achète à quai `rations` rations-jour et `tonneaux` tonneaux d'eau douce pour la cale (MDG 14 l.248-252). */
-  avitaillerLeNavire: (rations: number, tonneaux: number) => void;
+  /** Achète à quai `quantites` rations-jour par vivre de la cale et `tonneaux` tonneaux d'eau douce
+   *  (`devisDAvitaillement`, MDG 14 l.238, l.248-252 ; MDG 15 l.262). */
+  avitaillerLeNavire: (quantites: import('../engine/provisions').VivresDeCale, tonneaux: number) => void;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`) ; ses
    *  achats, ventes et bradages sont ses choix (`fenetreChoisir('marcheDeTerre', …)`, comme au port, `cargaison.ts`). */
   ouvrirLeMarche: () => void;

@@ -279,6 +279,15 @@
     "verrou": "tsc : la rangée a le type dérivé du schéma du def (`z.output`), l'id de document est exigé pour la famille `entite` ; fail-fast à l'exécution sur un document absent"
   },
   {
+    "id": "datasetDe",
+    "type": "primitives.manifest",
+    "label": "datasetDe/DatasetDe/EntreeDe",
+    "fichier": "src/data/datasets.ts",
+    "concept": "dataset VIVANT d'un document entier, lu dans le module JSON de son fichier (racine que le seam mute en place) — typé par la sortie du schéma que le def exporte (`DatasetDuDocument`, `grammaire/document.ts`) ; `EntreeDe` en est l'entrée",
+    "perimetre": "tout lecteur d'un dataset (registre `src/data/index.ts`, moteur, noyau) qui ne relit pas une table à rangées (`rangeesDe`)",
+    "verrou": "tsc : un champ renommé au schéma du def rougit ses lecteurs"
+  },
+  {
     "id": "clockLabel",
     "type": "primitives.manifest",
     "label": "clockLabel",
@@ -989,10 +998,10 @@
   {
     "id": "cascadeSuspension",
     "type": "primitives.manifest",
-    "label": "suspendActiveCascade/resumeSuspendedCascade",
+    "label": "suspendActiveCascade/resumeSuspendedCascade/reprendreLaPile/sortirDeLHote",
     "fichier": "src/noyau/cascade.ts",
-    "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
-    "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
+    "concept": "suspendre la cascade active quand un combat, une transition ou une autre séquence s’ouvre en plein vol (le pilote immédiat à contexte parque son tableau au rang où le slot l’aurait mis), puis reprendre la tête de pile hors combat, slot libre",
+    "perimetre": "ouverture de combat, transition de scène, ouverture d’une séquence d’un autre purpose, applier d’une étape sous le pilote immédiat à contexte (`jouerLaJournee`, `openSequence`), clôture de cascade, sortie d’hôte d’un Test de scène, clôture hors combat (`clotureHorsCombat`), teardown de victoire ou de défaite",
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
   },
   {
@@ -2049,6 +2058,15 @@
     "concept": "marque de TYPE du texte destiné à l'œil du joueur, sorti d'un minteur ; un `string` nu ne lui est pas assignable",
     "perimetre": "tout champ de texte AFFICHÉ au joueur (étape de cascade, portes du seam de jet)",
     "verrou": "src/noyau/built-brand-lint.test.ts, src/player-text-ratchet.test.ts"
+  },
+  {
+    "id": "nomDe",
+    "type": "primitives.manifest",
+    "label": "nomDe/poserLeNommeur",
+    "fichier": "src/engine/nom.ts",
+    "concept": "le nom d’un combattant dans un texte que le moteur compose (#4017) : minteur de `PlayerText`, la réponse du nommeur posé pour son id, sinon son `label` ; `poserLeNommeur` pose le crochet et rend le précédent, `brancherLeJeu` y pose `nomEnVue` (`src/noyau/visionDuGroupe.ts`) : un combattant hors de la vue du groupe se nomme du nom neutre",
+    "perimetre": "texte joueur du moteur qui nomme un combattant : ligne de touche (`ToucheDuJournal`, `phraseDeTouche`), issue d’une attaque (`AttackResult.log`), ligne du Contre-sort ; un lecteur qui reçoit l’état nomme par `nomEnVue`",
+    "verrou": "src/engine/nom.test.ts, src/noyau/nom-hors-de-vue.hors-store.test.ts"
   },
   {
     "id": "dataLabel",

@@ -67,17 +67,5 @@ const facteurDeCarrureSchema = enumNomme(
 /** Surcharge PARTIELLE des facteurs d'une carrure, clés fermées (`raceAppearance.json › gabaritOverride`). */
 export const surchargeDeGabaritSchema = z.partialRecord(facteurDeCarrureSchema, facteur);
 
-/** VUE TS d'une entrée — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`). */
-export interface GabaritDef {
-  id: GabaritId;
-  type: 'gabarits';
-  label: string;
-  sl: number;
-  st: number;
-  legs: number;
-  arms?: number;
-  head?: number;
-}
-
 /** Surcharge partielle des facteurs d'une carrure. */
-export type SurchargeDeGabarit = Partial<Omit<GabaritDef, 'id' | 'type' | 'label'>>;
+export type SurchargeDeGabarit = z.output<typeof surchargeDeGabaritSchema>;

@@ -6,6 +6,8 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { trappingCategorieSchema } from './trappings';
+import { refs } from '../grammaire/ref';
 
 export const file = 'merchantFamilies.json';
 export const famille = 'entite';
@@ -16,7 +18,7 @@ const doc = document(
   {
     match: nommerChamps(z.strictObject({
       /** CATÉGORIE de catalogue classée par cette famille (`TrappingData.categorie`). */
-      categorie: z.string().optional(),
+      categorie: trappingCategorieSchema.optional(),
       shield: z.boolean().optional(),
       unit: z.boolean().optional(),
     }), {
@@ -24,7 +26,7 @@ const doc = document(
       shield: { label: 'bouclier' },
       unit: { label: 'unité' },
     }),
-    columns: z.array(z.string()),
+    columns: refs('colonneDuMarchand'),
   },
   {
     match: { label: 'Critère de rattachement', hint: 'Condition qui range un objet dans cette famille de présentation' },

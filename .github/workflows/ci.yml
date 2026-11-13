@@ -169,7 +169,7 @@ jobs:
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
       # Les caches de la chaîne 3D précèdent `test:noyau`, dont « les modèles commités » (`asset.hors-store.test.ts`)
-      # lit les GLB épinglés (`CACHE_DES_MODELES`), puis `godot:sonde`, qui lit aussi l'éditeur.
+      # lit les GLB épinglés (`CACHE_DES_MODELES`).
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
@@ -187,6 +187,31 @@ jobs:
         run: npm run typecheck
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run pont:godot
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run lint
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm --prefix server ci
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run server:typecheck
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # L'hôte Godot et la chaîne 3D, hors du chemin critique de `types` (#3412) : une SÉRIE, dans la lane locale `types`
+  # (`LANE_LOCALE_DE_JOB`). Les caches de la chaîne 3D précèdent `godot:sonde`, qui lit les GLB épinglés et l'éditeur.
+  godot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
+        uses: ./.github/actions/prologue
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
       - name: Godot — scripts et recettes autonomes
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
@@ -213,12 +238,6 @@ jobs:
           cache-dependency-path: scripts/personnage-3d/requirements.txt
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run personnage-3d:tests
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run lint
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm --prefix server ci
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run server:typecheck
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
@@ -253,7 +272,7 @@ jobs:
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
   # Les suites `node --test` des scripts hors `test:hooks`, hors du chemin critique de `types` et de
-  # `types-hooks` (#3412) : ces trois jobs se partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
+  # `types-hooks` (#3412) : ces jobs et `godot` se partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
   # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
   # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   corpus:

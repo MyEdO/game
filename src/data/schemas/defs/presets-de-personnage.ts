@@ -163,9 +163,8 @@ export const meta = doc.meta;
 
 export const exposition = doc.exposition;
 
-/** VUE TS d'une entrée — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`), la vue se recompose donc
- *  depuis l'enveloppe et les champs déclarés (`EnveloppeDocument`) : `type` y est le littéral du document, `source` exigée
- *  (`exiges`), et l'id de `tenue` resserré à `TenueId`. */
+/** VUE TS d'une entrée. Le type se dérive par `DatasetDe`/`EntreeDe` (`data/datasets.ts`) ; la vue manuscrite reste parce
+ *  que l'id de `tenue` y est resserré à `TenueId`, là où le dérivé rend `string`. */
 export type PresetDePersonnage = Omit<EnveloppeDocument, 'type' | 'source'> & {
   type: 'presets-de-personnage';
   source: NonNullable<EnveloppeDocument['source']>;

@@ -1,13 +1,15 @@
 /** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTP 01 l.3 */
 import type { CharKey, Characteristics, Combatant } from '../engine/types';
-import { enPieces, type Money } from '../engine/money';
-import { rollDice, type DiceSpec, type RNG } from '../engine/dice';
+import type { Money } from '../engine/money';
+import type { DiceSpec, RNG } from '../engine/dice';
+import { sommeTiree } from '../engine/possessionGrants';
 import { buildInventory } from '../engine/items';
 import type { ItemInstance } from '../engine/types';
 import { heroDeFiche, type FicheDeHeros } from '../engine/heroDeFiche';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { DescRef, Sexe, SourceRef } from './schemas/grammaire/valeurs';
+import type { Somme } from './schemas/grammaire/reference';
 import type { CountSpec, TalentRef, TrappingRef } from './index';
 import { pregens } from './index';
 
@@ -33,8 +35,7 @@ export interface PregenDef {
   motivation: string;
   age: number;
   sex: Sexe;
-  richesse: DiceSpec;
-  monnaie: keyof Money;
+  richesse: Somme;
 }
 
 /** La dotation à quantité tirée aux dés (`count.roll`) : elle se tire à l'engagement, jamais sur la fiche. */
@@ -89,7 +90,7 @@ export function possessionsTireesDuPretire(d: PregenDef, rng: RNG, idNeuf: Fabri
 
 /** La Richesse de départ imprimée du prétiré `d`, tirée sur `rng`. */
 export function richesseDuPretire(d: PregenDef, rng: RNG): Money {
-  return enPieces(d.monnaie, rollDice(d.richesse, rng));
+  return sommeTiree(d.richesse, rng);
 }
 
 export const GROUPE_VITRINE = ['wanda-weltschmertz', 'harbull-piedvelu', 'malmir-giluviel', 'werner-murrmann'] as const;

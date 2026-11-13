@@ -745,7 +745,11 @@ export function buildScene(spec: MapSpec): Scene {
       ...(side === '\\' || side === '/' ? { x: wall.x, y: wall.y, side } : canonEdge(wall.x, wall.y, side)), ...(z ? { z } : {}),
       ...(wall.door ? { door: true } : {}), ...champs,
     });
-    if (!compile.success) throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
+    if (!compile.success) {
+      // Un id inconnu se nomme par la source de l'AUTEUR (`assertAuthoredIds`) avant l'arête compilée.
+      assertAuthoredIds(spec, s);
+      throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
+    }
     if (side === '\\' || side === '/') continue;
     s = setEdgeWall(s, wall.x, wall.y, side, z, wall.door ? 'door' : 'wall');
     if (wall.structure || wall.appearance || wall.window || wall.climb || wall.secret) {

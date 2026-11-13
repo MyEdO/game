@@ -6,6 +6,8 @@ import { addCondition, removeCondition } from './conditions';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { creatures, domains, etats, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, psychologies, SPEC_SOURCES, talents, traits, type GroupData, type SpecsSource } from '../data';
 import { resetData, setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { schema as groupsSchema } from '../data/schemas/defs/groups';
 import groupsJson from '../data/groups.json';
 import { ciblePsy } from './psych/ciblage';
@@ -174,30 +176,30 @@ describe('Groupes du Tableau des Obsessions portés par le moteur (EDOC 12 l.180
 });
 
 describe('`exceptGroups` retranche ses porteurs de tout Groupe-cible, joker ou composite (#3045)', () => {
-  const groupe = (id: string, o: Partial<GroupData> = {}): GroupData => ({ id, type: 'groups', label: id, ...o });
-  const avec = (...gs: GroupData[]) => setDataset('groups', [...groups, ...gs] as never);
+  const groupe = (id: string, o: Partial<GroupData> = {}): EntreeVivante<GroupData> => ({ id, type: 'groups', label: id, ...o });
+  const avec = (...gs: EntreeVivante<GroupData>[]) => setDataset('groups', [...groups, ...gs]);
   const inclus = groupe('inclus-de-banc');
   const exclu = groupe('exclu-de-banc');
   /** Un Trait Dressé, porteur d'Animaux domestiques (Q7 A). */
-  const dresse = traits.find((t) => t.id.startsWith('dresse-') && t.capabilities?.grantGroups?.includes('animaux-domestiques'));
+  const dresse = traits.find((t) => t.id.startsWith('dresse-') && t.capabilities?.grantGroups?.some((g) => g === 'animaux-domestiques'));
   afterEach(() => resetData());
 
   it('un composite vise le porteur d’un Groupe inclus, sauf s’il porte aussi un Groupe exclu', () => {
-    avec(inclus, exclu, groupe('composite-sauf', { inclut: [inclus.id], exceptGroups: [exclu.id] }));
+    avec(inclus, exclu, groupe('composite-sauf', { inclut: [idDeFixture('groupe', inclus.id)], exceptGroups: [idDeFixture('groupe', exclu.id)] }));
     expect(groupMatch('composite-sauf', [inclus.id])).toBe(true);
     expect(groupMatch('composite-sauf', [inclus.id, exclu.id])).toBe(false);
     expect(groupMatch('composite-sauf', [exclu.id])).toBe(false);
   });
 
   it('un joker vise tout porteur, sauf celui d’un Groupe exclu', () => {
-    avec(inclus, exclu, groupe('joker-sauf', { matchesAll: true, exceptGroups: [exclu.id] }));
+    avec(inclus, exclu, groupe('joker-sauf', { matchesAll: true, exceptGroups: [idDeFixture('groupe', exclu.id)] }));
     expect(groupMatch('joker-sauf', [])).toBe(true);
     expect(groupMatch('joker-sauf', [inclus.id])).toBe(true);
     expect(groupMatch('joker-sauf', [exclu.id])).toBe(false);
   });
 
   it('un cycle d’`exceptGroups` termine : le Groupe déjà traversé ne retranche rien', () => {
-    avec(inclus, groupe('se-retranche', { inclut: [inclus.id], exceptGroups: ['se-retranche'] }), groupe('sauf-a', { inclut: [inclus.id], exceptGroups: ['sauf-b'] }), groupe('sauf-b', { inclut: [inclus.id], exceptGroups: ['sauf-a'] }));
+    avec(inclus, groupe('se-retranche', { inclut: [idDeFixture('groupe', inclus.id)], exceptGroups: [idDeFixture('groupe', 'se-retranche')] }), groupe('sauf-a', { inclut: [idDeFixture('groupe', inclus.id)], exceptGroups: [idDeFixture('groupe', 'sauf-b')] }), groupe('sauf-b', { inclut: [idDeFixture('groupe', inclus.id)], exceptGroups: [idDeFixture('groupe', 'sauf-a')] }));
     expect(groupMatch('se-retranche', [inclus.id])).toBe(true);
     expect(groupMatch('sauf-a', [inclus.id])).toBe(false);
   });

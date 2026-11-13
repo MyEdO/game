@@ -70,7 +70,7 @@ export const REPORT_DE_COMBATTANT = {
   dispel: rencontre('cumul du Test étendu de Dissipation mené pendant la rencontre'), // LDB 46 l.158-162
   craft: PERSISTE, ritual: PERSISTE, movement: PERSISTE,
   fate: PERSISTE, fortune: PERSISTE, resilience: PERSISTE, resolve: PERSISTE, resistanceUsed: PERSISTE,
-  motivation: PERSISTE, star: PERSISTE, details: PERSISTE, criticalWounds: PERSISTE,
+  motivation: PERSISTE, mentions: PERSISTE, star: PERSISTE, details: PERSISTE, criticalWounds: PERSISTE,
   tookCriticalThisFight: rencontre(REGLE, false), // LDB 20 l.90
   critEntriesSuffered: PERSISTE,
   woundDressed: rencontre(REGLE, false), // LDB 09 l.260
