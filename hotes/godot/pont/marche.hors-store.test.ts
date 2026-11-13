@@ -41,7 +41,7 @@ describe('le marché de cargaison par le pont', () => {
     const { suite, jouer } = marche('commerce-fluvial', 'ouvrirLeMarche', 'marcheDeTerre');
     expect(suite.vue.disposition, 'la halle a son écran').toBe('marcheDeTerre');
     const c = corps(suite);
-    expect(c['bourse'], 'la bourse du groupe').toMatchObject({ type: 'puce', valeur: '5000 CO' });
+    expect(c['bourse'], 'la bourse du groupe : les 5000 CO du scénario et les 3d10 pistoles de Berta, Marchande (LDB 08 l.419)').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^5000 CO \d+\/–$/) });
     const offre = c['offre/laine-terre'];
     expect([dans(offre, 'dispo'), dans(offre, 'prix')], 'son Enc et son prix, 1 CO les 10 Enc au livre (MSRC 13 l.91)').toMatchObject([{ valeur: '350 Enc' }, { valeur: '2/– / Enc' }]);
     expect(dans(offre, 'acheter'), 'l’achat ouvert, à composer').toMatchObject({ type: 'bouton', jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'offre', 'laine-terre'] }, presse: false, refus: null });
