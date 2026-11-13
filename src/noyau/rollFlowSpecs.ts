@@ -2196,7 +2196,7 @@ export const FLOWS = paresseux({
     caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
       const tDR = actor ? drDeReussiteDuTest(_s, actor, p.sujet ?? {}) : 0;
-      // Capricieux (MSRC 15 l.149-159) : delta de DR de la table du d10 de l'interlocuteur, tiré à
+      // Capricieux (MSRC 15 l.149-159) : delta de DR de la table de l'interlocuteur, tiré à
       // l'ouverture du Test (`openSkillTest`) et appliqué ICI, au DR du Test RÉSOLU.
       const capDR = p.capriciousDR ?? 0;
       // Le gate de DR exigé est la SOURCE UNIQUE `meetsRequiredSL` (également Chance et inversion).

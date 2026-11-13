@@ -148,10 +148,10 @@ export interface PendingTest {
   /** CONTEXTE du Test que l'interlocuteur déclare (sa fiche : amateur d'art ou de théâtre, ACE 12
    *  l.60-62) — lu par l'inversion (LDB 12 l.42). */
   contexte?: ContexteDeTest;
-  /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
+  /** Jet de la table Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
-  /** Delta de DR de la table Capricieux (`capriciousDR`, MSRC 15 l.149-159) : appliqué au DR du Test
+  /** Delta de DR de la table Capricieux (`tirerLeCapricieux`, MSRC 15 l.149-159) : appliqué au DR du Test
    *  RÉSOLU (`FLOWS.test.resolve`), jamais à `skillValue`/`target`. */
   capriciousDR?: number;
   /** Outil utilisé (uid résolu sur l'acteur) : sa qualité d'artisanat module l'issue / casse l'objet (Phase C2a). */
@@ -1940,7 +1940,7 @@ export interface BatchParticipant extends RollParticipant {
 export type CascadeActorCounter = 'sinPoints';
 
 /**
- * LE DÉ D'UNE ÉTAPE DE CASCADE — la DÉCLARATION, sérialisable (coop) : quels dés (`spec`), quel
+ * LE DÉ D'UNE ÉTAPE DE CASCADE — la DÉCLARATION, sérialisable (coop) : quel
  * modificateur appliqué au naturel (`mod`, `modPerActor`), quel dé IMPOSÉ (`forcedRoll` — dé posé par
  * un siège, ou injection d'un résolveur moteur), combien de tirages dont on retient le meilleur
  * (`keepHighest`). `result` absent = dé non jeté (interaction `'de'`).
@@ -1950,18 +1950,6 @@ export type CascadeActorCounter = 'sinPoints';
  * `tableId`). Le tirage est le même geste ; seule la lecture diffère.
  */
 export interface CascadeDeTirage {
-  /**
-   * Les DÉS du tirage (`engine/dice.DiceSpec`, forme canonique partagée avec la Formula `{dice}`).
-   *
-   * OPTIONNEL ICI, REQUIS À LA PORTE — et la raison est la TABLE : une `TableStepDef` déclare déjà les
-   * siens (`die`, d100 par défaut), et les ~20 déclarations de table du dépôt n'ont pas à les répéter
-   * pour que la table reste la source de son propre dé (`cascade.tableSpec` : la déclaration l'emporte,
-   * la table donne son défaut, d100 sinon). Un DÉ NU, lui, n'a aucune table où les prendre : sa porte
-   * les EXIGE au type (`rollSeam.DieStepSpec.spec`, non optionnel) et REFUSE une déclaration non
-   * tirable, et `roulerDe` lève plutôt que de replier en silence — il n'y a donc pas de d100 fantasmé
-   * pour un dé nu, seulement pour une table qui a le sien.
-   */
-  spec?: DiceSpec;
   mod?: number;
   forcedRoll?: number;
   /** Modificateur VIVANT : `factor` × le COMPTEUR `counter` de l'ACTEUR de l'étape, lu à l'instant du
@@ -1989,6 +1977,10 @@ export interface CascadeDeTirage {
  *  deux ne divergent que par leur `result`, ce qui interdit une intersection naïve (le socle prend
  *  donc `CascadeDeTirage` en paramètre partout où il ROULE, jamais la déclaration complète). */
 export interface CascadeDeDecl extends CascadeDeTirage {
+  /** Les DÉS du tirage (`engine/dice.DiceSpec`) : un dé NU n'a aucune table où les prendre, sa
+   *  déclaration les porte (`rollSeam.DieStepSpec.spec`). Une TABLE porte les siens
+   *  (`cascade.TableStepDef.die`), seul porteur du dé d'une étape à table (#1667). */
+  spec: DiceSpec;
   result?: CascadeDeResult | null;
   /** LECTURE EN SEUIL de ce tirage (#1508) — troisième lecture du MÊME dé, à côté de la nue (le total EST
    *  la conséquence) et de la table : le total est comparé à un INDICE. Déclaré SUR l'étape, comme

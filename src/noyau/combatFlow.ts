@@ -157,7 +157,7 @@ import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolv
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
@@ -1692,7 +1692,7 @@ export function critSeverityDecl(target: Combatant, location: HitLocation, overk
     throw new Error(`critSeverityDecl : tables LDB déclarées sous la variante « combat-aa-blessures » — la sévérité y est résolue sur les tables AA (#974).`);
   }
   return {
-    tableId: CRIT_TABLE_IDS[critTableKeyFor(location)], spec: critiqueDie(jeuDeCritique(twice), critTableKeyFor(location)),
+    tableId: CRIT_TABLE_IDS[critTableKeyFor(location)],
     mod: REGIMES_DE_CRITIQUE[jeuDeCritique(twice)].severite(target, overkill), clamp: true,
     ...(twice ? { keepHighest: 2 } : {}),
   };
@@ -1934,7 +1934,7 @@ export function applyStructureCriticalToTarget(
   //    celle affichée par l'étape.
   // AA 10 l.114 ; AA 07 l.36 ; LDB 18 l.17.
   const table: CascadeTableDecl = {
-    tableId: STRUCTURE_CRIT_TABLE, spec: structureCriticalsDie(), forcedRoll,
+    tableId: STRUCTURE_CRIT_TABLE, forcedRoll,
     mod: REGIMES_DE_CRITIQUE[jeuDeCritique()].severite(target, overkill), clamp: true,
   };
   const rolled = rollTableStep(table, battleRng());
@@ -2828,10 +2828,7 @@ function appliquerLaTouche(
   bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind, defense, weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
   const evKind: CombatEventKind = weapon.type === 'distance' ? 'tir' : 'attaque';
   const log = [ev(evKind, ligneDuCoup(res), attacker.id, target.id)];
-  // Dispersion (LDB 14 l.144-151) : une arme de JET (Portée `{bf}`) dont le Test de Projectiles (Lancer)
-  // ÉCHOUE dévie vers une tuile (1d10 direction / 9 = pieds du lanceur / 10 = pieds de la cible, 2d10 m
-  // plafonnés à la demi-distance). Le jeu ne modélise pas l'arme au sol → l'effet visible RAW = la tuile
-  // d'atterrissage (floater FX + journal). Les tirs à Portée FIXE (arc/arbalète/poudre) ratent sans dévier.
+  // LDB 14 l.142-151
   if (!res.hit && isThrownWeapon(weapon) && attacker.pos && target.pos) {
     const land = scatter(attacker.pos, target.pos, battleRng(), sceneMetresPerTile(get().scene), get().scene?.dimensions);
     bus.emit(EVT.ANIM_FLOAT, { pos: land, text: tr('cf.dispersionFlottante'), kind: 'rate' });
@@ -3216,13 +3213,12 @@ function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean, deSoli
 function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse, casse: PendingCasseDArme): void {
   const id = `casse-${porteur.id}-${demande.cle}`;
   const commun = { kind: 'casseDArme' as const, label: demande.libelle, actorId: porteur.id, casse };
-  const lecture = demande.lecture;
-  if (lecture.kind === 'table') {
+  if (!demande.spec) {
     // MÊME séquence d'accueil que le dé en seuil (`pushDie` ci-dessous) : la grappe ne se scinde pas
     // en deux fenêtres — d'où l'append direct plutôt que `pushTable` (qui vise la séquence 'combat').
     pushStep(set, (index) => tableStep({
       ...commun, id: `${id}-${index}`, icon: 'objet/arme',
-      table: { tableId: lecture.tableId, spec: demande.spec },
+      table: { tableId: demande.lecture.tableId },
       stake: combatStakeRef('artillerie-salve-incident'),
     }), revealPurpose('sequence', false));
     return;
@@ -3232,7 +3228,7 @@ function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse
     id,
     icon: 'objet/arme',
     spec: demande.spec,
-    seuil: { indice: lecture.indice, source: lecture.source, dome: false },
+    seuil: { indice: demande.lecture.indice, source: demande.lecture.source, dome: false },
   }, revealPurpose('sequence', false));
 }
 
@@ -4655,7 +4651,7 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
  *  (LDB 40 l.89) : aucun plafond à borner, et son plancher est 01 (`clamp` inutile, `mod` positif). */
 export function miscastTableDecl(ctx: PendingMiscastStep): CascadeTableDecl {
   return {
-    tableId: miscastTableId(ctx.severity), spec: miscastDie(miscastTableId(ctx.severity)),
+    tableId: miscastTableId(ctx.severity),
     ...(ctx.severity === 'colere' ? { modPerActor: { counter: 'sinPoints' as const, factor: 10 } } : {}),
   };
 }
@@ -9153,7 +9149,7 @@ export const TABLES = {
      *  tirée) et une fois par l'application (`lireSalveMisfire`) — aucune transcription. */
     [TABLE_SALVE_MISFIRE]: {
       label: tr('step.salveMisfire'),
-      get die() { return facesDuDe(artilleryMisfireDie()); },
+      get die() { return artilleryMisfireDie(); },
       rows: ARTILLERY_MISFIRE,
       lines: (roll) => [findTableEntry(ARTILLERY_MISFIRE, roll).label],
       entryCategory: 'artilleryMisfire',
@@ -9165,7 +9161,7 @@ export const TABLES = {
         const rows = critTableRows('ldb', key);
         return [CRIT_TABLE_IDS[key], {
           label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
-          die: facesDuDe(critiqueDie('ldb', key)),
+          die: critiqueDie('ldb', key),
           rows,
           lines: (die) => [findTableEntry(rows, die).label],
           entryCategory: CRIT_TABLE_CATEGORIES[key],
@@ -9174,7 +9170,7 @@ export const TABLES = {
     )),
     memoParVersion('structureCriticals', () => new Map<string, TableStepDef>([[STRUCTURE_CRIT_TABLE, {
       label: structureCriticalsLabel(),
-      die: facesDuDe(structureCriticalsDie()),
+      die: structureCriticalsDie(),
       rows: tableDesCritiquesDeStructure(),
       lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
       entryCategory: 'structureCriticals',
@@ -9189,7 +9185,7 @@ export const TABLES = {
         const entryCategory = categorieDesLignesDeLaTable(table.id);
         return [table.id, {
           label: table.label,
-          die: facesDuDe(miscastDie(table.id)),
+          die: miscastDie(table.id),
           rows: miscastTableRows(table.id),
           lines: (die) => [miscastRowAt(table.id, die).label],
           ...(entryCategory ? { entryCategory } : {}),
