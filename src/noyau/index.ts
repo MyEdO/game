@@ -22,7 +22,7 @@ export { isWearable, objetsDeLInventaire } from '../engine/items';
 export { candidatsDuSlot, carriereActuelle, designationsDeCarriere, parcoursDe, parcoursRetouche, talentsDuParcours, type ParcoursDeCarriere } from '../engine/pnjDeCarriere';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
-export { dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, libelleDeLaValeur, sousEmplacement, valeursDeLEmplacement, type EmplacementDeDotation } from '../engine/trappingChoices';
+export { dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, libelleDeLaValeur, sousEmplacementActif, valeursDeLEmplacement, type EmplacementDeDotation } from '../engine/trappingChoices';
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';

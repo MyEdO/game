@@ -69,6 +69,7 @@ import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from
 import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
+import { rangerLesEvenements } from './evenementDuJour';
 import { jouerLaJournee, type TableStepDef, type TableStepRow } from './cascade';
 import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
 import { t } from '../i18n';
@@ -103,9 +104,9 @@ export interface TravelRecapDay {
   /** Les JETS du jour (marche forcée, Survie, Perception…) en lignes de jet structurées —
    *  même brique multijet que le bilan de nuit (MultiRollList), pas du texte. */
   entries?: import('./restFlow').NightEntry[];
-  /** Événements de bord RACONTÉS du jour (#371 LOT 4, mer seulement) — titre + texte verbatim +
-   *  tirage d100 optionnel, rendus en `ParchmentCard` (`SeaVoyageBody`) : un événement PORTE UN
-   *  RÉCIT, distinct des `lines` de routine. */
+  /** Événements RACONTÉS du jour clos (#371 LOT 4, #4005), rangés depuis `TravelPlan.evenements` à la
+   *  sortie du jour (`rangerLesEvenements`) — titre + texte verbatim + tirage d100 optionnel, rendus en
+   *  `ParchmentCard` : un événement PORTE UN RÉCIT, distinct des `lines` de routine. */
   events?: import('./recapLine').RecapEvent[];
   /** MER (route COMMANDÉE) : instantané du jour pour l'écran de traversée (rose des vents + jauges +
    *  distance restante) — rendu par `SeaVoyageScreen` à la place du corps de recap terrestre. */
@@ -205,6 +206,9 @@ export interface TravelPlan {
    *  (`ouvrirLeRepos` porte le `travelDay` finalisé). Alimente le journal de voyage de l'écran-hub
    *  (`VoyageScreen`) — une carte par jour passé. Vidé avec le plan à l'arrivée. */
   log?: TravelRecapDay[];
+  /** Événements RACONTÉS du jour EN COURS, tous milieux (#4005) : seul écrivain `noteEvent`, rangés dans le
+   *  `TravelRecapDay` clos à chaque sortie de jour (`rangerLesEvenements`). Absent : aucun événement. */
+  evenements?: import('./recapLine').RecapEvent[];
 }
 
 /** Entrées d'une journée de route terrestre, figées au build de la cascade `travelDay` : l'horloge/les
@@ -885,6 +889,8 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   // Arrivée recalculée depuis `plan.kmDone` À JOUR (posé au build sur le chemin synchrone, ci-dessus
   // sur le chemin différé) — source UNIQUE, sans champ `LandDayContext.arrived` figé au build.
   const arrived = (get().travelPlan?.km ?? 0) - (get().travelPlan?.kmDone ?? 0) < 1e-9;
+  // Chaque sortie du jour (interruption, arrivée, halte) part avec ses événements rangés (#4005).
+  if (recapDay) rangerLesEvenements(get, set, recapDay);
 
   // Efface les contextes transitoires du jour ; le `recap` d'un jour INTERROMPU reste jusqu'à
   // `reprendreLeVoyage`, qui le clôt au log (#2533, 2026-10-09 01:51).

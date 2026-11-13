@@ -35,7 +35,8 @@ import { ouvrirLeRepos } from './restFlow';
 import { arriverAuLieu } from './lieuFlow';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
-import { toRecapLines, type RecapEvent } from './recapLine';
+import { toRecapLines } from './recapLine';
+import { noteEvent, rangerLesEvenements } from './evenementDuJour';
 import type { BatchParticipant } from './pendings';
 import { crewTestContributors, equipageImplique, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
 import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
@@ -173,9 +174,6 @@ export interface SeaVoyageState {
   waterContaminated?: { diseaseId: string };
   /** Lignes du jour (recap de la halte de nuit). */
   lines: string[];
-  /** Événements de bord RACONTÉS aujourd'hui (#371 LOT 4) — rendus en `ParchmentCard`, distincts des
-   *  lignes de routine (`lines`) : un événement PORTE UN RÉCIT (titre + texte d'auteur/de table). */
-  events?: RecapEvent[];
   /** PROCÈS-VERBAL structuré du jour (couche `voyageCadence`) : une ligne de JET par Test d'équipage de
    *  ROUTINE auto-résolu en route COMMANDÉE — « aucun jet silencieux » (rendu par `MultiRollList`). */
   entries?: NightEntry[];
@@ -271,18 +269,6 @@ function tell(get: Get, set: Set, lines: string[]): void {
   log(get, set, lines);
   const plan = get().travelPlan;
   if (plan?.sea) set({ travelPlan: { ...plan, sea: { ...plan.sea, lines: [...plan.sea.lines, ...lines] } } });
-}
-
-/** POSE un ÉVÉNEMENT RACONTÉ (#371 LOT 4) au recap du jour EN CARTE (`sea.events`, distinct de
- *  `sea.lines`) : le titre + texte verbatim de l'événement se rendent en `ParchmentCard`
- *  (`SeaVoyageBody`), pas en ligne de routine. REND la ligne qui le nomme au lieu de l'écrire : depuis
- *  un applier de cascade, cette ligne est la CONSÉQUENCE de l'étape (`commitStep` la journalise ET la
- *  garde dans `outcome`, donc dans la pile à l'écran) ; hors cascade, l'appelant la passe à `ecrireAuJournal`.
- *  Même partage des voix que `noteSeaLine` ci-dessous — un applier n'écrit jamais au journal en direct. */
-function noteEvent(get: Get, set: Set, event: RecapEvent): string {
-  const plan = get().travelPlan;
-  if (plan?.sea) set({ travelPlan: { ...plan, sea: { ...plan.sea, events: [...(plan.sea.events ?? []), event] } } });
-  return `${event.title} — ${event.text}`;
 }
 
 /** Écrit SEULEMENT au recap du jour (`sea.lines`) — le JOURNAL des appliers de cascade migrés (#295
@@ -1679,7 +1665,6 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   const sea = get().travelPlan!.sea!;
   const daysAtSea = sea.daysAtSea + 1;
   const todayLines = sea.lines;
-  const todayEvents = sea.events ?? [];
 
   const miles = sea.milesToday;
   const kmDone = Math.min(plan.km, plan.kmDone + miles);
@@ -1698,7 +1683,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   // Météo du LENDEMAIN, sous les météos imposées au navire.
   const { weather, windFrom } = meteoDuJour(get, hull, sea.weather.vent, rng);
   patchSea(get, set, {
-    daysAtSea, lines: [], entries: [], events: [],
+    daysAtSea, lines: [], entries: [],
     weather, windFrom,
     milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, paceToday: undefined, manieursToday: undefined,
     hullAtDayStart: hull.wounds.current,
@@ -1707,7 +1692,8 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
 
   const worldMap = get().worldMap as WorldMap;
   const to = placeById(worldMap, plan.toPlaceId);
-  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(todayLines), entries: dayEntries, events: todayEvents, sea: chrome };
+  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(todayLines), entries: dayEntries, sea: chrome };
+  rangerLesEvenements(get, set, recapDay);
 
   if (plan.km - kmDone < 1e-9 && to) {
     // ARRIVÉE : la distance de la traversée est NOTÉE sur le navire (vente à un port producteur :
