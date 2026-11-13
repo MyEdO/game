@@ -930,7 +930,8 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
 }
 
 /**
- * Construit la CASCADE du jour (#275 Ronde 2 cran 3) : tronc = Forcer le rythme (si demandé) → Affaler
+ * Construit la CASCADE du jour (#275 Ronde 2 cran 3) : en tête, les périls d'auteur de la route
+ * (`buildAuthorPerilSteps`) puis l'événement de bord (`buildSeaBoardEventStep`) ; tronc = Forcer le rythme (si demandé) → Affaler
  * (si vents violents) → Progression — l'applier `'equipage-progression'` (table `appliers`, cran 2a) INSÈRE les
  * étapes post-progression (`buildPostProgressionSteps`) une fois `sea.milesToday` connu. Aucun PJ apte
  * pour la Progression → applique la progression au plancher de Manque de bras (MDG 14 l.55) et bâtit
@@ -1234,15 +1235,14 @@ function finalizeFastVoyage(get: Get, set: Set): void {
 
 // ── Boucle jour par jour (#275 Ronde 2 cran 3 — pipeline cascade) ───────────────────────────────
 
-/** Décompte du compteur d'événement de bord (ch.15 l.89), AVANT la construction du jour. L'événement lui-même
- *  est une ÉTAPE du jour (`buildSeaBoardEventStep`) ; le compteur se retire à sa résolution, par l'applier du
- *  `kind`, qui tire le délai suivant. */
-function resolveSeaDayEvent(get: Get, set: Set): void {
-  const days = get().travelPlan!.sea!.daysToEvent - 1;
-  if (days > 0) patchSea(get, set, { daysToEvent: days });
+/** Décompte d'un jour du compteur d'événement de bord (MDG 15 l.89), seul écrivain du jour, AVANT la
+ *  construction du jour, qui le lit décompté (`buildSeaBoardEventStep`). Le compteur se retire à la résolution
+ *  de l'événement, par l'applier du `kind`, qui tire le délai suivant. */
+function decompterLEvenementDeBord(get: Get, set: Set): void {
+  patchSea(get, set, { daysToEvent: get().travelPlan!.sea!.daysToEvent - 1 });
 }
 
-/** L'ÉVÉNEMENT DE BORD du jour (MDG 15 l.89) quand le compteur y arrive — une étape à TABLE de monde,
+/** L'ÉVÉNEMENT DE BORD du jour (MDG 15 l.89) quand le compteur décompté est à zéro ou en dessous — une étape à TABLE de monde,
  *  dont le `mod` est l'Humeur de Manann (elle DÉCALE le dé, l.85 : c'est bien un modificateur, pas une
  *  autre table). Événement NOMMÉ d'avance (`forcedEventId`) : la même étape, en AFFICHAGE (aucun dé n'est
  *  tombé, `displayStep`), quel que soit le compteur. `undefined` les autres jours. */
@@ -1251,7 +1251,7 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
   if (!sea) return undefined;
   const etape = { id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'voyage/vague', label: t('step.seaBoardEvent') } as const;
   if (sea.forcedEventId) return displayStep(etape);
-  if (sea.daysToEvent - 1 > 0) return undefined;
+  if (sea.daysToEvent > 0) return undefined;
   const mood = vesselManann(get().vessel);
   return tableStep({
     ...etape,
@@ -1279,7 +1279,7 @@ const journeeEnVol = (s: Jeu): boolean => [s.pendingCascade, ...s.suspendedCasca
 
 /**
  * Boucle maritime — appelée par `runTravelDays`/`reprendreLeVoyage` (plan `sea`) et la reprise de nuit.
- * UN JOUR = décompte du compteur d'événement de bord → la CASCADE du jour (`buildSeaDayCascade`, purpose
+ * UN JOUR = décompte du compteur d'événement de bord (`decompterLEvenementDeBord`) → la CASCADE du jour (`buildSeaDayCascade`, purpose
  * `travelDay` : périls d'auteur, événement de bord, Progression…) → `continueSeaDayAfterCascade` à sa clôture (dénouement
  * du jour + halte/arrivée). La cascade EST le point de reprise (`pendingCascade`/`suspendedCascades`,
  * noyau/cascade.ts).
@@ -1298,7 +1298,7 @@ export function runSeaDay(get: Get, set: Set): void {
   // la CLÔTURE du jour précédent, `continueSeaDayAfterCascade` — décision 1 #275 Ronde 2 cran 3, aligné
   // sur le fluvial `tickRiverWindDay`/`finishRiverDay`) — cette ligne l'ANNONCE seulement.
   tell(get, set, [t('sv.weatherOfDay', { weather: seaWeatherLabel(sea.weather), from: sea.windFrom, heading: sea.heading })]);
-  resolveSeaDayEvent(get, set);
+  decompterLEvenementDeBord(get, set);
   const { steps, log: lines } = buildSeaDayCascade(get, set);
   for (const l of lines) log(get, set, [l]);
   jouerLesEtapesDuJour(get, set, steps);
@@ -2618,7 +2618,7 @@ export const TABLES = {
         }
       }
       noteSeaLine(get, set, j);
-      if (get().pendingSteamSave) return { consequences: freeCons(j) }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `runSeaDay`)
+      if (get().pendingSteamSave) return { consequences: freeCons(j) }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `continueSeaDayFromPostProgression`)
       const insert = buildPostProgressionSteps(get, set);
       return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
     },
@@ -2860,10 +2860,10 @@ export const TABLES = {
       }
       return { consequences: freeCons(j) };
     },
-    /** Désertion (MDG 14 l.192-202, dé de MONDE par `openWorldTest`) : la boucle d100/marin réelle (INCHANGÉE, même seuil,
-     *  mêmes tirages via `battleRng()`) vit ICI — l'étape `merDesertion` n'est que le vecteur de visibilité
-     *  MJ. La FINALISATION de l'accostage (`finalizePortArrival`) est portée par le champ `portArrival` de la
-     *  cascade et jouée à sa clôture par `dispatchCascadeDone` (#387) — plus de `setTimeout` de reprise. */
+    /** Désertion (MDG 14 l.192-202) : l'étape `merDesertion` est le dé de MONDE que `trancherLaRelache` ouvre par
+     *  `openWorldTest` ; l'applier tire les départs par `resolveShoreLeaveDesertion` (`shipCrew.ts`, RNG `battleRng()`).
+     *  L'accostage se finalise chez `trancherLaRelache` quand l'étape se résout sur place, sinon à la clôture du slot :
+     *  champ `portArrival` de la cascade, `dispatchCascadeDone` → `finalizePortArrival` (#387). */
     'merDesertion': (get, set, step) => {
       if (!step.result) return;
       const journal = resolveShoreLeaveDesertion(get, set, battleRng());

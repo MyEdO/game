@@ -3385,6 +3385,24 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     }
   });
 
+  it('une séquence `test` close pendant le combat naval, ennemis hors de combat : le combat se conclut, aucune journée bâtie', () => {
+    const choix = { kind: 'choix', invite: 'Payer', oui: { kind: 'effet', effet: { type: 'setFlag', flag: 'oui', value: true } }, non: EMPTY_FLOW } as never;
+    for (const cadence of CADENCES) {
+      jourDuMontage(6, cadence);
+      expect(get().battle, `prémisse (${cadence}) : le Puissant monstre marin ouvre le combat`).toBeTruthy();
+      const avant = { meteo: lignesDeMeteo(), jours: get().travelPlan!.sea!.daysAtSea, pile: pile() };
+      const b = get().battle!;
+      set({ battle: { ...b, combatants: b.combatants.map((c) => (c.kind === 'heros' ? c : { ...c, dead: true })) } } as never);
+      jouerFlowEntier(runFlow(get, set, choix, 'Décision'));
+      expect([get().pendingCascade?.purpose, etapeAuSlot()], `prémisse (${cadence}) : le choix ouvre sa séquence \`test\``).toEqual(['test', 'choixDeFlux']);
+      unPas(undefined, (e) => (e.kind === 'choixDeFlux' ? 'oui' : undefined));
+      expect(get().flags.oui, `prémisse (${cadence}) : la branche est jouée`).toBe(true);
+      expect(get().battle?.over, `le combat se conclut (${cadence})`).toBe('victoire');
+      expect(get().pendingCascade, `aucune journée au slot (${cadence})`).toBeNull();
+      expect({ meteo: lignesDeMeteo(), jours: get().travelPlan!.sea!.daysAtSea, pile: pile() }, `ni météo annoncée, ni journée comptée, le jour toujours en pile (${cadence})`).toEqual(avant);
+    }
+  });
+
   describe('péril d’AUTEUR en traversée COMMANDÉE : ce que son effet ouvre passe avant le reste du jour', () => {
     const MALADIE = 'blessure-purulente';
     const perilMap = (effects: NonNullable<WorldMap['routes'][number]['perils']>[number]['effects']): WorldMap => ({
@@ -3429,5 +3447,71 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       expect(get().travelPlan!.interrupted, 'le voyage reste interrompu').toBe(true);
       expect(get().scene!.id).toBe('ilot');
     });
+  });
+});
+
+describe('l’événement de bord tombe le jour où son compteur arrive à zéro (MDG 15 l.89)', () => {
+  beforeEach(freshState);
+  /** Une route assez longue pour qu'aucune arrivée ne coupe la traversée observée. */
+  const merLongue: WorldMap = { ...seaMap, routes: [{ ...seaMap.routes[0], km: 5000 }] };
+  /** Appareille sous la graine ; `daysToEvent` posé au départ, sinon le tirage de `buildSeaPlan`. */
+  const appareiller = (graine: number, daysToEvent?: number, cadence: 'jourParJour' | 'commande' = 'jourParJour') => {
+    set({ worldMap: merLongue } as never);
+    seedBattleRng(graine);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', merLongue.routes[0], { cadence })!;
+    set({ travelPlan: daysToEvent === undefined ? plan : { ...plan, sea: { ...plan.sea!, daysToEvent } } } as never);
+    runSeaDay(get, set);
+    return plan.sea!.daysToEvent;
+  };
+  /** Joue la journée en cours jusqu'à sa halte (Activités hebdo validées en route) ; rend le compteur du soir. */
+  const jouerLaJournee = (jour: number) => {
+    for (let i = 0; i < 300 && !get().pendingRest; i++) {
+      if (get().pendingCascade) avanceEtapeCascade(get);
+      else if (get().pendingSeaActivities) get().fenetreValider('activitesEnMer');
+      else break;
+      banc.reprendreTout();
+    }
+    expect(get().pendingRest, `prémisse : la journée ${jour} se dénoue sur la halte`).toBeTruthy();
+    return get().travelPlan!.sea!.daysToEvent;
+  };
+  /** Joue `jours` journées de plus (la halte de la veille validée, celle du dernier soir laissée) ; rend les
+   *  compteurs du soir. */
+  const traverser = (jours: number) => {
+    const soirs: number[] = [];
+    for (let jour = 1; jour <= jours; jour++) {
+      if (get().pendingRest) { get().fenetreValider('repos'); banc.reprendreTout(); }
+      soirs.push(jouerLaJournee(jour));
+    }
+    return soirs;
+  };
+  /** Les jours (1 = premier jour en mer) dont le procès-verbal raconte un événement de bord. */
+  const joursDEvenement = () => (get().travelPlan!.log ?? []).flatMap((j, i) => (j.events?.length ? [i + 1] : []));
+
+  it.each([1, 2, 3])('compteur posé à %i au départ : l’événement tombe ce jour-là, aucun avant', (compteur) => {
+    appareiller(6, compteur);
+    traverser(compteur);
+    expect(joursDEvenement()).toEqual([compteur]);
+  });
+
+  it.each(Array.from({ length: 10 }, (_, k) => k + 1))('traversée commandée, compteur posé à %i au départ : l’événement tombe ce jour-là, aucun avant', (compteur) => {
+    set({ gameTime: 160 * 1440 + 8 * 60, lastUpkeepDay: 160 } as never); // été : le froid ne coupe pas la traversée avant N = 10
+    appareiller(6, compteur, 'commande');
+    traverser(compteur);
+    expect(joursDEvenement()).toEqual([compteur]);
+  });
+
+  it.each([{ graine: 5, tirage: 5 }, { graine: 21, tirage: 4 }])('après un événement dont l’applier tire $tirage (graine $graine), le suivant tombe $tirage jours plus tard', ({ graine, tirage }) => {
+    appareiller(graine, 1);
+    const [soirDuJour1] = traverser(1);
+    expect(joursDEvenement(), 'prémisse : l’événement du jour 1').toEqual([1]);
+    expect(soirDuJour1, 'prémisse : le délai suivant tiré par l’applier').toBe(tirage);
+    traverser(tirage);
+    expect(joursDEvenement()).toEqual([1, 1 + tirage]);
+  });
+
+  it.each([{ graine: 20, tirage: 2 }, { graine: 3, tirage: 5 }])('premier événement d’une traversée : le tirage du départ ($tirage, graine $graine) le pose ce jour-là', ({ graine, tirage }) => {
+    expect(appareiller(graine), 'prémisse : le tirage de `buildSeaPlan`').toBe(tirage);
+    traverser(tirage);
+    expect(joursDEvenement()).toEqual([tirage]);
   });
 });
