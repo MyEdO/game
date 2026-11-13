@@ -7,7 +7,7 @@ import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy|MaximumDesBlessures|DeDeTable)$/';
-const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463/#1667) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures`/`DeDeTable` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), par celles des Blessures (`blessuresPosees`, `blessuresReconciliees`), ou par le constructeur du dé de table (`deDeLaTableTiree`).';
+const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463/#1667) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures`/`DeDeTable` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`, `nomDe`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), par celles des Blessures (`blessuresPosees`, `blessuresReconciliees`), ou par le constructeur du dé de table (`deDeLaTableTiree`).';
 
 const VERROU_MARQUES = [{
   selector: `TSAsExpression TSTypeReference > Identifier[name=${MARQUES}]`,

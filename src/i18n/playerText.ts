@@ -1,9 +1,7 @@
 /**
  * MARQUE DU TEXTE JOUEUR (#1318 V8a₀) — module FEUILLE et entièrement TYPE : il n'importe rien et ne
  * déclare aucune valeur d'exécution, donc tout import s'efface à la compilation. C'est ce qui lui
- * permet d'être partagé par les TROIS minteurs sans cycle : `i18n/index.ts` (`t()`), `data/index.ts`
- * (les libellés de la donnée, via `dataLabel`) et les fabriques de forme du seam de jet
- * (`noyau/rollSeam.ts` : `composeRollLabel`).
+ * permet d'être partagé par tous les minteurs sans cycle (leur liste : paragraphe LIMITES ci-dessous).
  *
  * Il vit sous `src/i18n/` : le texte joueur est la matière de ce seam (déjà PUR, sans React/DOM, déjà
  * importé par `engine`/`data` sans cycle), alors qu'un module d'une couche au-dessus serait importé par
@@ -21,8 +19,8 @@
  * hors portée : l'ANNOTATION d'une valeur déjà élargie, le RENOMMAGE à l'import, l'alias GÉNÉRIQUE ou
  * calculé. Tous les minteurs sont sous ce lint (#1709 C3c-3b, #1988), chacun par exemption AU SITE avec
  * sa raison : `t()` (`i18n/index.ts`), `composeRollLabel` (`noyau/rollSeam.ts`), les deux casts du
- * minteur (b) — `data/index.ts` (`dataLabel`) et `data/mutations.ts` (`mutationTablePlayerLabel`) — et la
- * fabrique de fixture `i18n/fixtureText.ts`.
+ * minteur (b) — `data/index.ts` (`dataLabel`) et `data/mutations.ts` (`mutationTablePlayerLabel`) —, le nom d'un
+ * combattant `nomDe` (`engine/nom.ts`, #4017) et la fabrique de fixture `i18n/fixtureText.ts`.
  *
  * La CONCATÉNATION blanchit à l'envers : `` `${a} — ${b}` `` de deux `PlayerText` rend un `string` nu.
  * C'est VOULU — recomposer du texte est une FABRIQUE DE FORME, et une fabrique de forme est un
@@ -31,7 +29,7 @@
 
 declare const PLAYER_TEXT: unique symbol;
 
-/** Texte destiné à l'ŒIL DU JOUEUR, sorti d'un des trois minteurs (cf. JSDoc ci-dessus). */
+/** Texte destiné à l'ŒIL DU JOUEUR, sorti d'un des minteurs (cf. JSDoc ci-dessus). */
 export type PlayerText = string & { readonly [PLAYER_TEXT]: true };
 
 declare const NON_AFFICHABLE: unique symbol;

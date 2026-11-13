@@ -57,7 +57,10 @@ import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
-import type { Jeu } from './etat';
+import type { CampaignVessel, Jeu } from './etat';
+import { itemCapability } from '../engine/capabilities';
+import type { VivresDeCale } from '../engine/provisions';
+import type { Id } from '../data/schemas/grammaire/ref';
 import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
 
@@ -538,36 +541,51 @@ export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1)
   return lines;
 }
 
-/** Devis d'AVITAILLEMENT de la cale à quai : `rations` rations-jour et `tonneaux` tonneaux d'eau douce
- *  (`VIVRES_DE_CALE`), au prix du catalogue, la ration-jour au prix de l'escale s'il est posé
- *  (`vessel.rationsDEscale`) ; `refus` est `null` quand l'achat passe. SOURCE UNIQUE d'`avitaillerLeNavire` et de
- *  l'écran d'escale. PUR. MDG 14 l.248-252 ; MDG 15 l.262 */
-export interface DevisDAvitaillement { ration: Money; tonneau: Money; total: Money; refus: string | null }
+/** Les vivres de la cale qui s'achètent à quai, au prix de l'unité (ration-jour) : ceux que le catalogue fait tenir
+ *  en mer (`isRations`) au prix du catalogue, les autres au prix de l'escale s'il est posé (`vessel.rationsDEscale`).
+ *  MDG 14 l.238, l.248-252 ; MDG 15 l.262 */
+export function vivresAchetables(vessel: CampaignVessel): { id: Id<'trapping'>; prix: Money }[] {
+  return VIVRES_DE_CALE.vivres.flatMap((id) => {
+    const objet = garanti(findTrappingById(id), id, 'vivre de la cale');
+    if (itemCapability(objet, 'isRations')) return [{ id, prix: priceToMoney(objet.price ?? null) }];
+    return vessel.rationsDEscale !== undefined ? [{ id, prix: fromBrass(vessel.rationsDEscale) }] : [];
+  });
+}
 
-export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, rations: number, tonneaux: number): DevisDAvitaillement {
-  const prixAuCatalogue = (id: string) => priceToMoney(garanti(findTrappingById(id), id, 'objet de cale').price ?? null);
-  const ration = vessel?.rationsDEscale !== undefined ? fromBrass(vessel.rationsDEscale) : prixAuCatalogue(VIVRES_DE_CALE.ration);
-  const tonneau = prixAuCatalogue(VIVRES_DE_CALE.tonneau);
-  const total = fromBrass(rations * toBrass(ration) + tonneaux * toBrass(tonneau));
+/** Devis d'AVITAILLEMENT de la cale à quai : `quantites` rations-jour par vivre (`vivresAchetables`) et `tonneaux`
+ *  tonneaux d'eau douce (`VIVRES_DE_CALE.tonneau`) au prix du catalogue ; `refus` est `null` quand l'achat passe.
+ *  SOURCE UNIQUE d'`avitaillerLeNavire` et de l'écran d'escale. PUR. MDG 14 l.238, l.248-252 ; MDG 15 l.262 */
+export interface DevisDAvitaillement { vivres: { id: Id<'trapping'>; prix: Money }[]; tonneau: Money; total: Money; refus: string | null }
+
+export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, quantites: VivresDeCale, tonneaux: number): DevisDAvitaillement {
+  const tonneau = priceToMoney(garanti(findTrappingById(VIVRES_DE_CALE.tonneau), VIVRES_DE_CALE.tonneau, 'objet de cale').price ?? null);
+  const vivres = vessel ? vivresAchetables(vessel) : [];
+  const demandes = Object.entries(quantites) as [Id<'trapping'>, number][];
+  const rations = demandes.reduce((s, [, n]) => s + n, 0);
+  const prixDe = (id: Id<'trapping'>) => vivres.find((v) => v.id === id)?.prix;
+  const horsVente = demandes.find(([id, n]) => n > 0 && prixDe(id) === undefined)?.[0];
+  const total = fromBrass(demandes.reduce((s, [id, n]) => { const prix = prixDe(id); return prix ? s + n * toBrass(prix) : s; }, 0) + tonneaux * toBrass(tonneau));
   const refus = refusHote ?? (!vessel ? t('port.sansNavire')
     : vessel.escale === undefined ? t('port.pasAQuai')
-    : !Number.isInteger(rations) || !Number.isInteger(tonneaux) || rations < 0 || tonneaux < 0 || rations + tonneaux === 0 ? t('port.avitaillementVide')
+    : [tonneaux, ...demandes.map(([, n]) => n)].some((n) => !Number.isInteger(n) || n < 0) || rations + tonneaux === 0 ? t('port.avitaillementVide')
+    : horsVente !== undefined ? t('port.vivreHorsVente', { vivre: refLabel('trappings', { id: horsVente }) })
     : rations > 0 && vessel.provisions == null ? t('port.vivresSansSuivi')
     : tonneaux > 0 && vessel.waterLitres == null ? t('port.eauSansSuivi')
     : !canAfford(bourse, total) ? t('port.avitaillementTropCher', { cost: formatMoney(total) })
     : null);
-  return { ration, tonneau, total, refus };
+  return { vivres, tonneau, total, refus };
 }
 
-/** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), les rations-jour vont aux
+/** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), chaque vivre va à sa part des
  *  vivres de la cale, les tonneaux à son eau douce. Renvoie le journal. MDG 14 l.238-252 ; MDG 15 l.262 */
-export function avitaillerLeNavire(get: Get, set: Set, rations: number, tonneaux: number): string[] {
-  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), rations, tonneaux);
+export function avitaillerLeNavire(get: Get, set: Set, quantites: VivresDeCale, tonneaux: number): string[] {
+  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), quantites, tonneaux);
   if (devis.refus) { refuserGeste(get, set, devis.refus); return []; }
   payFromGroup(get, set, devis.total, { purpose: 'avitaillement navire' });
+  const achats = (Object.entries(quantites) as [Id<'trapping'>, number][]).filter(([, n]) => n > 0);
   const lines = [
-    t('port.avitaille', { rations, tonneaux, cost: formatMoney(devis.total) }),
-    ...(rations > 0 ? ajouterDesRations(get, set, rations) : []),
+    t('port.avitaille', { rations: achats.reduce((s, [, n]) => s + n, 0), tonneaux, cost: formatMoney(devis.total) }),
+    ...achats.flatMap(([id, n]) => ajouterDesRations(get, set, n, id)),
     ...(tonneaux > 0 ? ajouterDeLEau(get, set, tonneaux) : []),
   ];
   log(get, set, lines);
@@ -583,7 +601,7 @@ export function creerActionsDuPort(get: Get, set: Set) {
     ouvrirLePort: () => ouvrirLePort(get, set),
     recruterLEquipage: (roleId, count) => recruterLEquipage(get, set, roleId, count),
     renvoyerLEquipage: (roleId, count) => renvoyerLEquipage(get, set, roleId, count),
-    avitaillerLeNavire: (rations, tonneaux) => avitaillerLeNavire(get, set, rations, tonneaux),
+    avitaillerLeNavire: (quantites, tonneaux) => avitaillerLeNavire(get, set, quantites, tonneaux),
   } satisfies FabriqueDuNoyau;
 }
 
