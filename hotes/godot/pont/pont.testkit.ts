@@ -15,6 +15,7 @@ import { gestesDessines } from './dessines';
 export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
 import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
+import type { VoyageCadence } from '../../../src/noyau/voyageCadence';
 import { parametresDuGeste } from '../../../src/hote/gestes';
 import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } from '../../../src/hote/elements';
 
@@ -165,8 +166,9 @@ export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulair
 /** L'élément d'id `id` du corps de la fenêtre, `undefined` sans lui. */
 export const corpsDe = (vue: VueDuPont, id: string): Element | undefined => vue.zones['fenetre.corps'].find((e) => e.id === id);
 
-/** Le départ du trajet `route` sur la carte ouverte : le choix de ses modes, sous sa destination au plan. */
-export function departDeLaCarte(vue: VueDuPont, route: string): Choix {
+/** Le départ du trajet `route` sous la cadence `cadence` sur la carte ouverte : le choix de ses modes, sous sa
+ *  destination au plan. */
+export function departDeLaCarte(vue: VueDuPont, route: string, cadence: VoyageCadence): Choix {
   const plan = corpsDe(vue, 'carte/plan') as Plan;
-  return plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.type === 'choix' && e.id === route)!;
+  return plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.type === 'choix' && e.id === `${route}/${cadence}`)!;
 }

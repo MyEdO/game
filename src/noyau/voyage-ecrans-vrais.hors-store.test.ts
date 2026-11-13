@@ -113,7 +113,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map(), 'clair');
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     expect(get().pendingRest?.travelHalt).toBe(true);
@@ -125,7 +125,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map(), 'tempete');
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('beau');
     draineCascade(get);
     expect(activeExposureSeverity(get)).toBe('clement');
@@ -147,7 +147,7 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
     setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     expect(get().travelPlan?.interrupted).toBe(true);
@@ -176,7 +176,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     const jours = get().travelPlan!.recap!.days;
@@ -216,7 +216,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     setRule('voyage-etapes', true);
     setup(map({ km: 200, modes: ['diligence', 'pied'], perils: brigands }));
     creditBourse(get, set, 'h', { gold: 5, silver: 0, brass: 0 });
-    get().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur', cadence: 'jourParJour' });
     interromptPuisVainc();
     const jours = get().travelPlan!.recap!.days;
     const jourInterrompu = jours[jours.length - 1];
@@ -229,7 +229,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
   it('à pied, nuit passée en scène puis reprise : une carte = un jour, la journée neuve a sa météo', () => {
     setRule('voyage-etapes', true);
     setup(map({ km: 60, perils: brigands }));
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     interromptPuisVainc();
     get().offrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
     get().fenetreValider('repos');
@@ -246,7 +246,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     setup(map({ km: 300, modes: ['diligence', 'pied'], perils: brigands }), undefined,
       [hero({ skills: [{ id: 'conduite-d-attelage', advances: 60 }] } as Partial<Combatant>)]);
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
-    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop', cadence: 'jourParJour' });
     const premierPas = get().pendingCascade!.participants[0].kind;
     interromptPuisVainc();
     const nJournal = get().journal.length;
@@ -264,7 +264,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
     setRule('voyage-attraper-froid', true);
     setDesFixes(true);
     setup(map(), 'clair', [hero({ travelRole: { activityId: 'plein-air' } })]);
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     poseMeteo('pluie-diluvienne');
     const jour: string[] = [];
     draineCascade(get, 200, (step) => { jour.push(step.kind); return step.table || step.de ? undefined : issue; });
@@ -315,7 +315,7 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
   it('jour sans événement : la rangée montre le dé POSÉ et « aucune péripétie »', () => {
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerre')!;
     expect(seuil.worldOwner).toBe(true);
     expect(tableSpec(seuil.table!), 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
@@ -332,7 +332,7 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
   it('dé posé sur le seuil : la table des péripéties s’insère, son dé passe aussi par la porte', () => {
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
-    get().partirEnVoyage('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied', { cadence: 'jourParJour' });
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerre')!;
     get().jetImposerLeResultat('cascadeTirage', 8, seuil.id);
     get().jetValider('cascade');

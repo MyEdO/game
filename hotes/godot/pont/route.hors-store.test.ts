@@ -6,7 +6,9 @@
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { departDeLaCarte, drainer, gestesDessines, table } from './pont.testkit';
-import type { Bouton, Element, Entite, Jet, Ligne, Paysage, Plan } from '../../../src/hote/elements';
+import type { Bouton, Choix, Element, Entite, Jet, Ligne, Paysage, Plan } from '../../../src/hote/elements';
+import { cleDEmplacement } from '../../../src/hote/sauvegardes';
+import type { SaveGame } from '../../../src/noyau/index';
 import type { Pont, Suite } from './pont';
 import { encounterTable } from '../../../src/engine/travelTables';
 import { noteEvent } from '../../../src/noyau/evenementDuJour';
@@ -17,7 +19,7 @@ afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 /** Une partie du scénario `voyage` partie de Weiler vers Steinbruck : la première vue de la route, et les lignes que le
  *  journal a écrites depuis le départ. */
 function enRoute() {
-  const { pont, appel } = table();
+  const { pont, appel, stockage } = table();
   ouvert = pont;
   const lignes: Ligne[] = [];
   const jouer = (jeu: Bouton['jeu']): Suite => { const d = drainer(appel, appel('jouer', jeu)); lignes.push(...d.lignes); return d.suite; };
@@ -27,14 +29,30 @@ function enRoute() {
     s = jouer(gestesDessines(s.vue).find((x): x is Bouton => x.type === 'bouton' && !x.refus)!.jeu);
   }
   s = jouer(s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
-  s = jouer(departDeLaCarte(s.vue, 'r-grandroute').valeurs[0].jeu);
-  return { suite: s, lignes, jouer };
+  s = jouer(departDeLaCarte(s.vue, 'r-grandroute', 'jourParJour').valeurs[0].jeu);
+  return { suite: s, lignes, jouer, appel, stockage };
 }
 
 const corps = (s: Suite) => Object.fromEntries(s.vue.zones['fenetre.corps'].map((e: Element) => [e.id, e]));
 const geste = (s: Suite, libelle: string) => gestesDessines(s.vue).find((x): x is Bouton => x.type === 'bouton' && x.libelle === libelle);
 
 describe('la journée de route par le pont', () => {
+  it('la cadence choisie au départ est celle du plan, pressée en route ; le choix servi en route la change', () => {
+    const r = enRoute();
+    const cadence = (s: Suite) => corps(s)['voyage/cadence'] as Choix;
+    const ordres = () => {
+      expect(r.appel('sauvegarder', { sauvegarder: 1 }).ok, 'la partie se sauvegarde en route').toBe(true);
+      return (JSON.parse(r.stockage.getItem(cleDEmplacement(1))!) as SaveGame).data.travelPlan?.orders;
+    };
+    expect(ordres(), 'le départ jour par jour, joué tel que servi, pose sa cadence au plan').toEqual({ cadence: 'jourParJour' });
+    expect(cadence(r.suite).valeurs.map((b) => [b.libelle, b.presse]), 'chaque cadence, celle que le trajet joue pressée').toEqual([
+      ['Sous vos ordres', false], ['Jour par jour', true],
+    ]);
+    const s = r.jouer(cadence(r.suite).valeurs.find((b) => b.id === 'commande')!.jeu);
+    expect(ordres(), 'le choix servi en route, joué tel quel, change la cadence du plan').toEqual({ cadence: 'commande' });
+    expect(cadence(s).valeurs.filter((b) => b.presse).map((b) => b.id), 'la cadence jouée pressée').toEqual(['commande']);
+  });
+
   it('la journée s’arrête d’abord aux jets des héros, dans la scène du voyage ; la météo est déjà au journal', () => {
     const { suite, lignes } = enRoute();
     expect(suite.vue.disposition, 'la scène du voyage').toBe('voyage');

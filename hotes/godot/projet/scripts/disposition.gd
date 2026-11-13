@@ -55,7 +55,7 @@ extends Node
 ## En tête le jour, puis le moment et la météo (`scene/jour`, `scene/moment`), face à la carte du trajet
 ## (`voyage/carte`, en `carteDuVoyage` : chaque lieu, l'arrivée, le groupe sur sa route) ; à droite le récit : le
 ## titre de ce qui tient la journée, le journal de la partie, ses dernières lignes au pied et le reste au défilement, les jets qu'aucun
-## héros ne jette (`jets/`), puis ses gestes ; au pied les km faits sur ceux du trajet par son moyen (`voyage/route`)
+## héros ne jette (`jets/`), le choix de sa cadence (`voyage/cadence`), puis ses gestes ; au pied les km faits sur ceux du trajet par son moyen (`voyage/route`)
 ## et la frise (`voyage/frise`, en `frise` : le départ, chaque nuit passée en route à son km, le groupe, l'arrivée).
 ## Le jet d'un héros (en `jetDeHeros` : son dé dans un anneau à son ton, puis son test et son issue) et les gestes
 ## qui le désignent sont sur sa carte (`groupe.heros`), cerclée quand c'est à lui d'agir. La halte de nuit

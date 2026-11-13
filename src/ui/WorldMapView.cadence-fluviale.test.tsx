@@ -163,6 +163,29 @@ describe('#2545 — mer puis fleuve : le bouton pressé est la cadence transmise
   });
 });
 
+describe('Traversée rapide et mode hors local : la cadence ne s’offre que là où elle a un effet', () => {
+  const rapide = () => bouton(String(t('wm.traverseeRapideAction')));
+  afterEach(() => set({ net: { ...get().net, mode: 'local' } }));
+
+  it('traversée rapide pressée : aucune cadence n’est pressée', () => {
+    act(() => { cogue(); });
+    choisirDestination('Marienburg');
+    cliquer(rapide());
+    expect(boutons().filter((b) => b.getAttribute('aria-pressed') === 'true')).toEqual([rapide()]);
+  });
+
+  it('hors mode local, en mer : la traversée rapide seule, qu’un second clic relâche', () => {
+    act(() => { cogue(); set({ net: { ...get().net, mode: 'hote' } }); });
+    choisirDestination('Marienburg');
+    expect(rapide(), 'la traversée rapide reste offerte').toBeTruthy();
+    expect([String(t('wm.traverseeCommandee')), jourParJour].map(bouton)).toEqual([undefined, undefined]);
+    cliquer(rapide());
+    expect(rapide()!.getAttribute('aria-pressed')).toBe('true');
+    cliquer(rapide());
+    expect(rapide()!.getAttribute('aria-pressed')).toBe('false');
+  });
+});
+
 describe('Forcer le rythme au départ (MDG 13 l.95, LDB 09 l.30) : le geste suit qui peut tenter le Test', () => {
   const forcer = () => bouton(String(t('wm.forcerRythme', { bonus: 1 })));
 
