@@ -55,7 +55,6 @@ import { ajouteEntree, etatCouvert, indiceCouple, type RegistreCreable } from '.
 import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
-import { ENTREES_DE_DOSSIER } from '../data/dossiers';
 import { SOUS_ENTREES, cheminOffert, choixDuChamp, DOCUMENTS, ecritureOfferte, noeudNeuf, formeDuPorteur, projetAvecLePorteur, type CadreDuPorteur, type ProjetDEdition, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect, accesDe } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
@@ -1315,14 +1314,15 @@ interface EcritureDeScene<D> {
  *  à son élément `element`, dit (`null` : retenu) ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la
  *  sous-collection à clé du porteur `id` prend l'identifiant `vers` ; celui où son élément `element` est retiré ; et ce
  *  qui refuse le retrait du porteur `id`, ou de son élément `element`, dit. Un renommage sous un identifiant vide ou déjà
- *  pris rend le projet tel quel. #3606 */
+ *  pris rend le projet tel quel. `entrees` : les identifiants des entrées des fiches de dossier que l'hôte sert à la
+ *  session (`SessionDEdition`, `entreesDeFiche`). #3606 */
 interface EcritureDuPorteur<D> {
   ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D) => EcritureDeValeur<ProjetDEdition>;
-  creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec?: string) => { projet: ProjetDEdition; id: string } | undefined;
+  creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec: string | undefined, entrees: readonly string[]) => { projet: ProjetDEdition; id: string } | undefined;
   refusDeCreer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => string | undefined;
-  avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => readonly string[];
-  renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => ProjetDEdition;
-  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element?: string) => string | null;
+  avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, entrees: readonly string[]) => readonly string[];
+  renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string, entrees: readonly string[]) => ProjetDEdition;
+  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly string[]) => string | null;
   retirer?: (projet: ProjetDEdition, sceneId: string, id: string) => ProjetDEdition;
   renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => ProjetDEdition;
   retirerElement?: (projet: ProjetDEdition, sceneId: string, id: string, element: string) => ProjetDEdition;
@@ -1537,17 +1537,17 @@ const ecartsDe = (projet: ProjetDEdition): NonNullable<NarratifBlock['ecartes']>
 const avecLesEcarts = (projet: ProjetDEdition, ecartes: NonNullable<NarratifBlock['ecartes']>): ProjetDEdition =>
   ({ ...projet, narratif: { ...projet.narratif, ecartes: ecartes.length ? ecartes : undefined } });
 
-/** Les entrées des fiches commitées (`ENTREES_DE_DOSSIER`) qu'aucun écart du projet `projet` n'écarte encore
+/** Les entrées `entrees` des fiches de dossier que l'hôte sert, qu'aucun écart du projet `projet` n'écarte encore
  *  (`NarratifEditor.tsx`, `EcartesForm`). */
-const entreesLibres = (projet: ProjetDEdition): readonly string[] =>
-  ENTREES_DE_DOSSIER.flatMap((e) => (ecartsDe(projet).some((x) => x.entree === e.id) ? [] : [e.id]));
+const entreesLibres = (projet: ProjetDEdition, entrees: readonly string[]): readonly string[] =>
+  entrees.filter((e) => !ecartsDe(projet).some((x) => x.entree === e));
 
-/** Le refus de donner l'entrée `vers` à l'écart `id` du projet `projet` : une entrée que les fiches commitées ne portent
- *  pas, ou qu'un autre écart écarte déjà ; `null` : retenue ou inchangée. */
-function refusDEntree(projet: ProjetDEdition, id: string, vers: string): string | null {
+/** Le refus de donner l'entrée `vers` à l'écart `id` du projet `projet` : une entrée hors des entrées `entrees` que
+ *  l'hôte sert, ou qu'un autre écart écarte déjà ; `null` : retenue ou inchangée. */
+function refusDEntree(projet: ProjetDEdition, id: string, vers: string, entrees: readonly string[]): string | null {
   const entree = vers.trim();
-  if (entree === id || entreesLibres(projet).includes(entree)) return null;
-  return ENTREES_DE_DOSSIER.some((e) => e.id === entree) ? tr('ecran.editeur.ecart.entreePrise', { entree }) : tr('ecran.editeur.ecart.entreeInconnue', { entree });
+  if (entree === id || entreesLibres(projet, entrees).includes(entree)) return null;
+  return entrees.includes(entree) ? tr('ecran.editeur.ecart.entreePrise', { entree }) : tr('ecran.editeur.ecart.entreeInconnue', { entree });
 }
 
 /** L'écriture d'un écart du narratif : son remplacement (`remplace`) ; sa création avec l'entrée `avec`, à motif vide,
@@ -1555,12 +1555,12 @@ function refusDEntree(projet: ProjetDEdition, id: string, vers: string): string 
  *  (`refusDEntree`) ; son retrait, la liste vidée retirée (`avecLesEcarts`). #3606 B7 */
 const ECRITURE_DE_L_ECART: EcritureDuPorteur<DonneeDuPorteur['ecart']> = {
   ecrire: remplace('ecart'),
-  creer: (projet, _sceneId, _depuis, avec) => (avec !== undefined && entreesLibres(projet).includes(avec)
+  creer: (projet, _sceneId, _depuis, avec, entrees) => (avec !== undefined && entreesLibres(projet, entrees).includes(avec)
     ? { projet: avecLesEcarts(projet, [...ecartsDe(projet), { entree: avec, motif: '' }]), id: avec } : undefined),
-  avecs: entreesLibres,
-  renommer: (projet, _sceneId, de, vers) => (refusDEntree(projet, de, vers) === null && vers.trim() !== de
+  avecs: (projet, _sceneId, _depuis, entrees) => entreesLibres(projet, entrees),
+  renommer: (projet, _sceneId, de, vers, entrees) => (refusDEntree(projet, de, vers, entrees) === null && vers.trim() !== de
     ? avecLesEcarts(projet, ecartsDe(projet).map((e) => (e.entree === de ? { ...e, entree: vers.trim() } : e))) : projet),
-  refusDeRenommer: (projet, _sceneId, id, vers) => refusDEntree(projet, id, vers),
+  refusDeRenommer: (projet, _sceneId, id, vers, _element, entrees) => refusDEntree(projet, id, vers, entrees),
   retirer: (projet, _sceneId, id) => avecLesEcarts(projet, ecartsDe(projet).filter((e) => e.entree !== id)),
 };
 

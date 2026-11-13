@@ -41,7 +41,6 @@ import { valeurNeuveDe } from '../valeursNeuves';
 import { refusDeLaValeur, refusDeRetrait, refusDuRenommage } from './session';
 import { identiteNeuve } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
 import { refusDeForme } from '../narratifEdit';
-import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { creatures, findCreatureById, MERCHANT_ARCHETYPES, navalPorts, siegeEngines, spells, talents, traits } from '../../data';
@@ -1212,13 +1211,13 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
 
   it('relier deux lieux pose une route depuis le lieu sélectionné vers l’un de ceux qu’il rejoint, sélectionnée sur un cran ; sans lieu offert, c’est sans objet', () => {
     const s = jouer(ouvert(), { geste: 'document', document: 'carte' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
-    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(s), idDeLaSceneEditee(s), s.sel)).toEqual(['lieu-1']);
+    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(s), idDeLaSceneEditee(s), s.sel, s.entreesDeFiche)).toEqual(['lieu-1']);
     expect(jouer(s, { geste: 'ajouter', sorte: 'route' }), 'sans l’autre lieu').toBe(s);
     expect(jouer(s, { geste: 'ajouter', sorte: 'route', avec: 'lieu-0' }), 'une boucle').toBe(s);
     const reliee = jouer(s, { geste: 'ajouter', sorte: 'route', avec: 'lieu-1' });
     expect([reliee.sel, carte(reliee).routes, reliee.historique.passe.length]).toEqual([{ type: 'route', id: 'trajet-0' }, [{ id: 'trajet-0', a: { id: 'lieu-0' }, b: { id: 'lieu-1' }, km: 10, modes: ['pied'] }], s.historique.passe.length + 1]);
     const depuis = jouer(reliee, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
-    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(depuis), idDeLaSceneEditee(depuis), depuis.sel), 'la paire est reliée dans les deux sens').toEqual([]);
+    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(depuis), idDeLaSceneEditee(depuis), depuis.sel, depuis.entreesDeFiche), 'la paire est reliée dans les deux sens').toEqual([]);
     expect(carte(jouer(reliee, { geste: 'annuler' })).routes).toEqual([]);
   });
 
@@ -1534,17 +1533,30 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     expect(refusDeRetrait(s, 'calme')).toBe('Un état énuméré garde au moins une valeur.');
   });
 
-  it('un écart s’ajoute avec son entrée parmi les entrées libres, écrit son motif, change d’entrée vers une libre, se retire', () => {
-    const [premiere, seconde] = ENTREES_DE_DOSSIER.map((e) => e.id);
-    const s = ouvert();
+  /** Les entrées de fiche que l'hôte sert à la session, comme il sert le manifeste du `Source/`. */
+  const ENTREES = ['EDO-01#i1', 'EDO-01#i2'];
+  const servie = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, null, ENTREES), { geste: 'document', document: 'narratif' });
+
+  it('un écart s’ajoute avec son entrée parmi les entrées libres que l’hôte sert, écrit son motif, change d’entrée vers une libre, se retire', () => {
+    const [premiere, seconde] = ENTREES;
+    const s = servie();
+    expect(ECRITURES_DES_PORTEURS.ecart.avecs?.(projetEdite(s), idDeLaSceneEditee(s), null, s.entreesDeFiche)).toEqual(ENTREES);
     const ecarte = jouer(s, { geste: 'ajouter', sorte: 'ecart', avec: premiere }, valeur('ecart', premiere, ['motif'], 'Hors du chapitre'));
     expect([narratif(ecarte).ecartes, ecarte.sel]).toEqual([[{ entree: premiere, motif: 'Hors du chapitre' }], { type: 'ecart', id: premiere }]);
-    expect(ECRITURES_DES_PORTEURS.ecart.avecs?.(projetEdite(ecarte), idDeLaSceneEditee(ecarte), null).includes(premiere)).toBe(false);
+    expect(ECRITURES_DES_PORTEURS.ecart.avecs?.(projetEdite(ecarte), idDeLaSceneEditee(ecarte), null, ecarte.entreesDeFiche)).toEqual([seconde]);
     expect(refusDuRenommage(ecarte, { geste: 'nommer', nom: 'XX-99#rien' })).toBe('L’entrée « XX-99#rien » n’est dans aucune fiche de dossier commitée.');
     const deplace = jouer(ecarte, { geste: 'nommer', nom: seconde });
     expect(narratif(deplace).ecartes).toEqual([{ entree: seconde, motif: 'Hors du chapitre' }]);
     expect('ecartes' in narratif(jouer(deplace, { geste: 'supprimer' }))).toBe(true);
     expect(narratif(jouer(deplace, { geste: 'supprimer' })).ecartes).toBeUndefined();
+  });
+
+  it('sans entrée de fiche servie par l’hôte, l’écart n’en offre aucune, ne se crée pas, et son renommage vers une entrée est refusé, dit', () => {
+    const [premiere, seconde] = ENTREES;
+    const s = choisir(ouvert({ ...NARRATIF, ecartes: [{ entree: premiere, motif: 'Hors du chapitre' }] } as typeof NARRATIF), 'ecart', premiere);
+    expect(ECRITURES_DES_PORTEURS.ecart.avecs?.(projetEdite(s), idDeLaSceneEditee(s), null, s.entreesDeFiche)).toEqual([]);
+    expect(jouer(s, { geste: 'ajouter', sorte: 'ecart', avec: seconde })).toBe(s);
+    expect([refusDuRenommage(s, { geste: 'nommer', nom: seconde }), jouer(s, { geste: 'nommer', nom: seconde })]).toEqual([`L’entrée « ${seconde} » n’est dans aucune fiche de dossier commitée.`, s]);
   });
 
   it('sélectionner un PNJ dont le profil porte une adresse à chapitre demande ce chapitre, comme un porteur de la scène', () => {
@@ -1630,7 +1642,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
   });
 
   it('une faute du narratif se lit à la validation de la session avant l’enregistrement et mène à son porteur : son document ouvert, lui sélectionné', () => {
-    const [premiere] = ENTREES_DE_DOSSIER.map((e) => e.id);
+    const [premiere] = ENTREES;
     const fautif = { ...NARRATIF, etats: [{ id: 'humeur', label: 'Humeur', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }], ecartes: [{ entree: premiere, motif: ' ' }] } as typeof NARRATIF;
     const s = ouvrirLEdition({ scenes: [RELAIS], narratif: fautif } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
     const fautes = avertissementsDeLaSession(s).filter((w) => w.scope === 'narratif');

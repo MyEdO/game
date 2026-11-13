@@ -372,6 +372,9 @@ export interface SessionDEdition {
   chargement: { sceneId: string; z: number } | null;
   /** L'index des chapitres du `Source/` que l'hôte sert, `null` s'il ne le sert pas. */
   manifeste: Manifeste | null;
+  /** Les identifiants des entrées des fiches de dossier que l'hôte sert, que l'écart du narratif écarte ; vides s'il
+   *  n'en sert aucune, l'écart n'en offrant alors aucune. */
+  entreesDeFiche: readonly string[];
   /** Chaque chapitre que l'hôte a chargé, par `cleDuChapitre` : parsé, ou `null` s'il n'a pas pu se charger. */
   chapitres: Readonly<Record<string, ChapitreParse | null>>;
   /** Le chapitre que l'hôte charge, `null` sans chargement en cours (`avecLeChapitreDemande`). */
@@ -488,14 +491,15 @@ const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).l
 /** La session qui édite la première scène du projet `projet`, à l'outil de sélection, sur la couche 0 ; `duDepot` :
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format ; `manifeste`, l'index des chapitres du
- *  `Source/` que l'hôte sert, sans aucun chapitre chargé. */
-export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null): SessionDEdition {
+ *  `Source/` que l'hôte sert, sans aucun chapitre chargé ; `entreesDeFiche`, les identifiants des entrées des fiches de
+ *  dossier que l'hôte sert. */
+export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null, entreesDeFiche: readonly string[] = []): SessionDEdition {
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistre: projet, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
-    manifeste, chapitres: {}, chapitreEnAttente: null, planDuLieu: null,
+    manifeste, entreesDeFiche, chapitres: {}, chapitreEnAttente: null, planDuLieu: null,
   };
 }
 
@@ -938,8 +942,8 @@ export function refusDuRenommage(s: SessionDEdition, g: Extract<GesteDEdition, {
   const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
   const refus = porteur && s.sel ? ECRITURES_DES_PORTEURS[porteur.sorte].refusDeRenommer : undefined;
   if (!porteur || !refus) return null;
-  if (g.geste === 'nommer') return refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom ?? '');
-  return g.element === undefined ? null : refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.id, g.element);
+  if (g.geste === 'nommer') return refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom ?? '', undefined, s.entreesDeFiche);
+  return g.element === undefined ? null : refus(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.id, g.element, s.entreesDeFiche);
 }
 
 /** La session après le geste `g`, sur la couche éditée, l'une de la vue (`vueDeLaScene`) : les ponts d'un navire en sont.
@@ -1041,7 +1045,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
       const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommer;
       if (!porteur || !renommer) return s;
-      const renomme = renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom);
+      const renomme = renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom, s.entreesDeFiche);
       return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, selDuPorteur(porteur.sorte, g.nom.trim()));
     }
     case 'selectionner': {
@@ -1049,7 +1053,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return porteurDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s), id) ? { ...s, sel: selDuPorteur(sorte, id), geste: null, brouillon: null } : s;
     }
     case 'ajouter': {
-      const cree = ECRITURES_DES_PORTEURS[g.sorte].creer?.(projetEdite(s), idDeLaSceneEditee(s), s.sel, g.avec);
+      const cree = ECRITURES_DES_PORTEURS[g.sorte].creer?.(projetEdite(s), idDeLaSceneEditee(s), s.sel, g.avec, s.entreesDeFiche);
       return cree ? ecrireLeProjet(s, cree.projet, selDuPorteur(g.sorte, cree.id)) : s;
     }
     case 'document':

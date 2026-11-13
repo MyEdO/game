@@ -1707,7 +1707,7 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
     const ids = porteursDuProjet(acces, projet, sceneId).map((d) => idDuPorteur(acces, d, sceneId));
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
     const { creer, refusDeCreer, avecs } = ECRITURES_DES_PORTEURS[sorte];
-    const offerts = avecs?.(projet, sceneId, s.sel) ?? [];
+    const offerts = avecs?.(projet, sceneId, s.sel, s.entreesDeFiche) ?? [];
     const ajouts = !creer ? []
       : avecs ? (offerts.length ? [choix(`logique/${sorte}/ajouter`, t(texte('.avecs')), offerts.map((avec) => bouton(`logique/${sorte}/ajouter/${avec}`, t(texte('.avec'), { avec }), { geste: 'ajouter', sorte, avec })), 'liste')] : [])
         : [bouton(`logique/${sorte}/ajouter`, t(texte('.ajouter')), { geste: 'ajouter', sorte }, false, refusDeCreer?.(projet, sceneId, s.sel) ?? null)];
@@ -1729,7 +1729,7 @@ function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sor
   const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
   const { renommer, retirer, avecs } = ECRITURES_DES_PORTEURS[porteur.sorte];
   const refus = retirer ? refusDeRetrait(s) : null;
-  const noms = avecs && [porteur.id, ...avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel)];
+  const noms = avecs && [porteur.id, ...avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel, s.entreesDeFiche)];
   return [
     ...(renommer ? [formulaireDuNom(porteur.id, false, noms)] : []),
     ...propres,
