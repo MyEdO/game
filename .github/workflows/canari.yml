@@ -146,6 +146,23 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: node hotes/godot/construire.mjs --export --sortie "$RUNNER_TEMP/godot-web"
+      # Le banc des étalons (#3935) sur ce même export : chaque planche comparée au pixel à son étalon, dans le Chromium
+      # que l'épingle nomme (`EPINGLE`, hotes/godot/planches.mjs, la version de Playwright lue à sa source), installé
+      # sous son propre `PLAYWRIGHT_BROWSERS_PATH` posé au step : les recettes gardent le Chrome du runner.
+      - id: godot-etalons
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.godot-export.outcome == 'success' }}
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/chromium-epingle
+        run: |
+          npx -y "playwright@$(node --input-type=module -e "import { EPINGLE } from './hotes/godot/planches.mjs'; console.log(EPINGLE.playwright)")" install chromium
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          node hotes/godot/etalons.mjs --web "$RUNNER_TEMP/godot-web" --rapport "$RUNNER_TEMP/godot-etalons"
+      - if: ${{ !cancelled() && steps.godot-etalons.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-etalons
+          path: ${{ runner.temp }}/godot-etalons
       - id: godot-recettes
         continue-on-error: true
         if: ${{ !cancelled() && steps.godot-export.outcome == 'success' }}
@@ -226,6 +243,7 @@ jobs:
             server-install=${{ steps.server-install.outcome }}
             server-typecheck=${{ steps.server-typecheck.outcome }}
             godot-export=${{ steps.godot-export.outcome }}
+            godot-etalons=${{ steps.godot-etalons.outcome }}
             godot-recettes=${{ steps.godot-recettes.outcome }}
             godot-recettes-natives=${{ steps.godot-recettes-natives.outcome }}
             arbre-inchange=${{ steps.arbre-inchange.outcome }}

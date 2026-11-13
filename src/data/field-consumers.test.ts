@@ -358,7 +358,7 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
  * L'ancre est le SYMBOLE englobant, jamais le numéro de ligne d'un fichier VIVANT.
  */
 const RECOUVRES: readonly (readonly [string, string, string])[] = [
-  ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
+  ['DetailRecipe', 'tintVar', 'src/noyau/monde/volume/matieres.ts @tv'],
   ['EntityAppearance', 'armurePortee', 'src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
   ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/noyau/codex/registry.ts @meta'],
@@ -381,9 +381,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
  * hors du type de l'entrée le dit par sa raison (`RAISONS_DES_ZEROS`) ; il reste au rapport.
  */
 const ZEROS: Readonly<Record<string, readonly string[]>> = {
-  ActionDef: ['blocked'],
   ActivityDef: ['rounds', 'stake', 'stakeForm', 'unavailableIfExtenue'],
-  AdvanceCostBand: ['max', 'min'],
   BookData: ['dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
   CritDoc: ['die'],
   DomainData: ['grantGroups'],

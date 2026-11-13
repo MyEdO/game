@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { ALBEDO_REF, AMBIANCE, METEO_SANS_EFFET, weatherLightScalars } from './ambiance';
-import type { WeatherFxId } from '../../data/ambiance.types';
+import type { WeatherFxId } from '../../data';
 import { luminanceHex } from '../../lib/ombrage';
 
 const TYPES = ['pluie', 'brouillard', 'neige', 'tempete'] as const;

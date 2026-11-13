@@ -14,7 +14,7 @@
  */
 import { RNG, rollDice } from '../engine/dice';
 import { findTableEntry, type DeDeTable } from '../engine/tables';
-import type { Mutation } from '../engine/corruption';
+import type { Mutation, MutationDeCatalogue } from '../engine/corruption';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import { deDeTirageDe } from './rangees';
 import type { EntreeDe } from './datasets';
@@ -24,7 +24,7 @@ import { indexParId, memoParVersion } from './versionDataset';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Une MUTATION (entité, `mutations.json`) : identité + effets, INDÉPENDANTE de toute table de tirage. */
-export type MutationData = Omit<Mutation, 'roll' | 'talentsAcquis'> & { type: 'mutations' };
+export type MutationData = MutationDeCatalogue & { type: 'mutations' };
 
 /** Une TABLE de Corruption (`mutationTables.json`) : plages de son dé de tirage `die` → référence de
  *  mutation par id. `id` STABLE (langue-indépendant — 'physique'/'mentale'/'khorne'…) ; `label` = affichage. */

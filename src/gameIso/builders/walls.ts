@@ -18,7 +18,9 @@ import { viewedBuilder, type Viewed } from '../../noyau/monde/volume/viewTruth';
 import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
 import { edgeAppearance } from '../../noyau/monde/volume/structures';
 import { crownFaces, cretesDePerimetre } from '../../noyau/monde/volume/creneaux';
-import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
+import type { WallPart } from '../../data/structureAppearance.types';
+import type { StructureAppearanceDef } from '../../data';
+import type { EntreeVivante } from '../../data/datasets';
 import { edgeKey, facadeEdges, facadeWallFeatureAppearance, KINDS_DE_DECOR, type FacadeEdge } from '../../noyau/monde/facades';
 import { WALL_H_M, isoPxToM } from '../../noyau/monde/iso';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
@@ -72,7 +74,7 @@ type GXY = { x: number; y: number };
  *  [haut, bas] — le backend lui donne sa largeur. `capped` = un ÉTAGE repose sur ce mur (`storeyAbove`) :
  *  la lèvre débordante du couronnement est alors omise, elle percerait le plancher du dessus. `porte` =
  *  l'arête se lit en PORTE sous la lecture du rendu (`porteSelon`). */
-function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: boolean, wallHeightM = WALL_H_M, porte = false, open = false, capped = false): Face[] {
+function wallFaces(seg: WallSeg, app: EntreeVivante<StructureAppearanceDef>, b: number, down: boolean, wallHeightM = WALL_H_M, porte = false, open = false, capped = false): Face[] {
   const [A, B] = wallEnds(seg);
   const at = (t: number): GXY => ({ x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t });
   const mat = (part: WallPart) => ({ domain: 'structure' as const, id: app.id, part });

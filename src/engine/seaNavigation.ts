@@ -31,62 +31,30 @@
  *  - Course-poursuite (MDG 13 l.354-420) : Distance en points de 10 m ; Tests de Navigation → Distance
  *    parcourue = mètres ÷ 10 (min 1) ±1/−2 selon la bande de DR ; M 3/2/1 → −1/−2/−3 DR.
  */
-import seaNavJson from '../data/sea-navigation.json';
-import { deDeLaTableTiree, findTableEntry, tableOuverte, type BandeOuverte, type DeDeTable } from './tables';
+import { seaNavigation } from '../data';
+import { deDeLaTableTiree, findTableEntry, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, rollDice, type RNG, type Tirage } from './dice';
+import { d10, rollDice, type RNG } from './dice';
 import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
-import type { Id } from '../data/schemas/grammaire/ref';
 import { testValue } from './skills';
 
-type Per = 'heure' | 'minute' | 'round';
-const DATA = seaNavJson as unknown as {
-  workPeriodHours: { voile: number; avirons: number };
-  epuisement: { difficulty: Difficulty; forcedDifficulty: Difficulty };
-  forcerLeRythme: { bonusM: number; voile?: Difficulty; avirons?: Difficulty }[];
-  vitesseMax: { safeBonus: number; table: (BandeOuverte & { difficulty: Difficulty; per: Per; damage: number })[] };
-  salissures: { weeklyTest: boolean; levels: { level: number; manDR: number; mMod: number; navDR: number; repairPctOfBase: number; desc: string }[] };
-  orientation: {
-    testsPerDay: number;
-    reperes: (BandeOuverte & { outcome: OrientationOutcome; desc: string })[];
-    bonusDeDeriveMajeure: number;
-    coteDeLaDerive: { tribordMax: number };
-    changementDeCap: { die: string; entries: (BandeOuverte & { outcome: CourseChangeOutcome; delayPct?: number; desc: string })[] };
-  };
-  phares: { voirLaLumiere: (BandeOuverte & { difficulty: Difficulty })[]; perilSpotBonus: number; clocher: { orientationDR: number; distanceDiviseur: number } };
-  longsVoyages: { millesParJourParM: number; sansVoguerDeNuitDiviseur: number; progressionPctParDR: number; vivresDeCale: { id: Id<'trapping'> }[]; tonneauDeCale: { id: string } };
-  poursuite: {
-    distanceUnitM: number;
-    escapeDistances: { id: string; label: string; distance: number }[];
-    drDeltas: (BandeOuverte & { delta: number })[];
-    lowMPenalty: { m: number; dr: number }[];
-    voileSansProfil: number;
-  };
-  reparation: {
-    portCostGoldPerWound: number; testHours: Tirage; woundsPerTest: Tirage; charpentierPenalty: number;
-    lissageRepairSurcoutPct: number;
-    temporaire: { difficultyMin: Difficulty; difficultyMax: Difficulty; hoursPerRepair: number; woundsPerRepair: Tirage; failDamage: Tirage };
-    entretienCrewTestDR: number;
-    constructeurLocal: number;
-    joursDePose: Tirage;
-  };
-};
+type FicheDeNavigation = typeof seaNavigation;
 
 /** Les tables telles que `findTableEntry` les lit (`tableOuverte`) : « 4 ou plus », « –5 ou moins »…
  *  (MDG 13) ouvrent leurs bandes extrêmes. Mémoïsées sur la fiche, que le Codex édite. */
 const tables = memoParVersion('seaNavigation', () => ({
-  vitesseMax: tableOuverte(DATA.vitesseMax.table),
-  reperes: tableOuverte(DATA.orientation.reperes),
-  changementDeCap: tableOuverte(DATA.orientation.changementDeCap.entries),
-  voirLaLumiere: tableOuverte(DATA.phares.voirLaLumiere),
-  drDeltas: tableOuverte(DATA.poursuite.drDeltas),
+  vitesseMax: tableOuverte(seaNavigation.vitesseMax.table),
+  reperes: tableOuverte(seaNavigation.orientation.reperes),
+  changementDeCap: tableOuverte(seaNavigation.orientation.changementDeCap.entries),
+  voirLaLumiere: tableOuverte(seaNavigation.phares.voirLaLumiere),
+  drDeltas: tableOuverte(seaNavigation.poursuite.drDeltas),
 }));
 
-export const WORK_PERIOD_HOURS = DATA.workPeriodHours;
-export const REPARATION = DATA.reparation;
+export const WORK_PERIOD_HOURS = seaNavigation.workPeriodHours;
+export const REPARATION = seaNavigation.reparation;
 /** Les vivres de la cale, dans l'ordre où l'équipage les mange, et le tonneau d'eau douce. MDG 14 l.238, l.248-252, l.263 */
-export const VIVRES_DE_CALE = { vivres: DATA.longsVoyages.vivresDeCale.map((v) => v.id), tonneau: DATA.longsVoyages.tonneauDeCale.id };
+export const VIVRES_DE_CALE = { vivres: seaNavigation.longsVoyages.vivresDeCale.map((v) => v.id), tonneau: seaNavigation.longsVoyages.tonneauDeCale.id };
 
 /** Bonus de Savoir (Océans) aux Tests de NAVIGATION en mer (MDG 13 l.20) : « le premier chiffre de leur score
  *  de Compétence » (36 → +3). 0 si la Compétence n'est pas ACQUISE (le bonus récompense une formation,
@@ -102,24 +70,24 @@ export function savoirOceansBonus(c: Combatant): number {
 /** Difficulté du Test de Voile/Ramer pour gagner `bonusM` (MDG 13 l.99-105) — `null` si impossible
  *  (ex. +2 M à la voile : « n/a »). PUR. */
 export function forcePaceDifficulty(bonusM: number, rig: 'voile' | 'avirons'): Difficulty | null {
-  const row = DATA.forcerLeRythme.find((r) => r.bonusM === bonusM);
+  const row = seaNavigation.forcerLeRythme.find((r) => r.bonusM === bonusM);
   return row?.[rig] ?? null;
 }
 
 /** Difficulté du Test d'Épuisement, `forced` = rythme forcé (MDG 13 l.111). PUR. */
 export function exhaustionDifficulty(forced: boolean): Difficulty {
-  return forced ? DATA.epuisement.forcedDifficulty : DATA.epuisement.difficulty;
+  return forced ? seaNavigation.epuisement.forcedDifficulty : seaNavigation.epuisement.difficulty;
 }
 
 // ── Vitesses maximum — « Ça va lâcher, capitaine ! » (MDG 13 l.121-142) ─────────────────────────────────
 
-export interface OverspeedRow { difficulty: Difficulty; per: Per; damage: number }
+export type OverspeedRow = Pick<FicheDeNavigation['vitesseMax']['table'][number], 'difficulty' | 'per' | 'damage'>;
 
 /** Ligne du tableau « Ça va lâcher, capitaine ! » pour une vitesse de `m` quand le M de conception est
  *  `baseM` (MDG 13 l.125 : « jusqu'à M+4 sans risquer de subir des Dégâts ») — `null` sous le seuil. PUR. */
 export function overspeedRow(baseM: number, m: number): OverspeedRow | null {
   const plus = m - baseM;
-  if (plus <= DATA.vitesseMax.safeBonus) return null;
+  if (plus <= seaNavigation.vitesseMax.safeBonus) return null;
   const row = findTableEntry(tables().vitesseMax, plus);
   return { difficulty: row.difficulty, per: row.per, damage: row.damage };
 }
@@ -132,26 +100,26 @@ export function overspeedDamage(baseDamage: number, sl: number): number {
 
 // ── Salissures (MDG 13 l.144-159) ───────────────────────────────────────────────────────────────────────
 
-export interface FoulingLevel { level: number; manDR: number; mMod: number; navDR: number; repairPctOfBase: number; desc: string }
+export type FoulingLevel = Omit<FicheDeNavigation['salissures']['levels'][number], 'source'>;
 
 /** Effets du niveau de Salissures courant (0 = coque propre → tout à 0). PUR. */
 export function foulingEffects(level: number): FoulingLevel {
   if (level <= 0) return { level: 0, manDR: 0, mMod: 0, navDR: 0, repairPctOfBase: 0, desc: '' };
-  const capped = Math.min(level, DATA.salissures.levels.length);
-  return DATA.salissures.levels.find((l) => l.level === capped)!;
+  const capped = Math.min(level, seaNavigation.salissures.levels.length);
+  return seaNavigation.salissures.levels.find((l) => l.level === capped)!;
 }
 
 /** Niveau de Salissures après le Test HEBDOMADAIRE (MDG 13 l.148), plafonné au dernier niveau du
  *  tableau. PUR. */
 export function weeklyFoulingLevel(level: number, success: boolean): { level: number; gained: boolean } {
-  const gained = !success && level < DATA.salissures.levels.length;
+  const gained = !success && level < seaNavigation.salissures.levels.length;
   return { level: gained ? level + 1 : level, gained };
 }
 
 // ── Orientation : Repères & Changement de cap (MDG 13 l.307-331) ────────────────────────────────────────
 
-export type OrientationOutcome = 'exact' | 'correct' | 'derive-mineure' | 'derive' | 'derive-majeure';
-export type CourseChangeOutcome = 'aucun' | 'retard' | 'quart-de-tour' | 'demi-tour';
+export type OrientationOutcome = FicheDeNavigation['orientation']['reperes'][number]['outcome'];
+export type CourseChangeOutcome = FicheDeNavigation['orientation']['changementDeCap']['entries'][number]['outcome'];
 
 export interface OrientationResult {
   outcome: OrientationOutcome;
@@ -168,7 +136,7 @@ export interface OrientationResult {
 export function orientationOutcome(dr: number, minorDriftBefore: boolean): OrientationResult {
   const row = findTableEntry(tables().reperes, dr);
   const rollCourseChange = row.outcome === 'derive' || row.outcome === 'derive-majeure' || (row.outcome === 'derive-mineure' && minorDriftBefore);
-  return { outcome: row.outcome, desc: row.desc, rollCourseChange, courseChangeBonus: row.outcome === 'derive-majeure' ? DATA.orientation.bonusDeDeriveMajeure : 0 };
+  return { outcome: row.outcome, desc: row.desc, rollCourseChange, courseChangeBonus: row.outcome === 'derive-majeure' ? seaNavigation.orientation.bonusDeDeriveMajeure : 0 };
 }
 
 export interface CourseChangeResult {
@@ -180,7 +148,7 @@ export interface CourseChangeResult {
 }
 
 /** Le dé du tableau CHANGEMENT DE CAP, lu à l'appel. */
-export const deDuChangementDeCap = (): DeDeTable => deDeLaTableTiree(DATA.orientation.changementDeCap);
+export const deDuChangementDeCap = (): DeDeTable => deDeLaTableTiree(seaNavigation.orientation.changementDeCap);
 
 /** Tirage du tableau CHANGEMENT DE CAP au dé de sa table (MDG 13 l.324-331) + côté de dérive (MDG 13 l.322 :
  *  « 1-5 tribord, 6-10 bâbord »). `bonus` = +2 d'une dérive majeure. PUR (RNG injecté). */
@@ -191,7 +159,7 @@ export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
     roll,
     outcome: row.outcome,
     delayPct: row.delayPct ?? 0,
-    side: d10(rng) <= DATA.orientation.coteDeLaDerive.tribordMax ? 'tribord' : 'babord',
+    side: d10(rng) <= seaNavigation.orientation.coteDeLaDerive.tribordMax ? 'tribord' : 'babord',
     desc: row.desc,
   };
 }
@@ -202,7 +170,7 @@ export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
  *  LUMIÈRE, MDG 13 l.339-346) — `null` au-delà de 15 milles (hors tableau : invisible). `clocher` → toutes
  *  les distances divisées par 2 (MDG 13 l.351). PUR. */
 export function lighthouseSpotDifficulty(milles: number, clocher = false): Difficulty | null {
-  const d = clocher ? milles * DATA.phares.clocher.distanceDiviseur : milles;
+  const d = clocher ? milles * seaNavigation.phares.clocher.distanceDiviseur : milles;
   const row = findTableEntry(tables().voirLaLumiere, d);
   return d > row.max ? null : row.difficulty;
 }
@@ -210,7 +178,7 @@ export function lighthouseSpotDifficulty(milles: number, clocher = false): Diffi
 /** Bonus d'ORIENTATION une fois le repère perçu : phare → « premier chiffre » de Savoir (Océans)
  *  (MDG 13 l.335, via `savoirOceansBonus`) ; clocher → +2 DR forfaitaires (MDG 13 l.351). PUR. */
 export function lighthouseOrientationDR(navigator: Combatant, clocher: boolean): number {
-  return clocher ? DATA.phares.clocher.orientationDR : savoirOceansBonus(navigator);
+  return clocher ? seaNavigation.phares.clocher.orientationDR : savoirOceansBonus(navigator);
 }
 
 // ── Longs voyages : milles par jour (MDG 15 l.53-78) ──────────────────────────────────────────────
@@ -219,9 +187,9 @@ export function lighthouseOrientationDR(navigator: Combatant, clocher: boolean):
  *  « voguer de nuit » impossible → ÷2 (MDG 15 l.76) ; `progressionDR` = total du Test d'équipage de
  *  Progression, ±10 %/DR (MDG 15 l.78). Plancher 0. PUR. */
 export function seaMilesPerDay(m: number, nightSailing: boolean, progressionDR = 0): number {
-  let miles = Math.max(0, m) * DATA.longsVoyages.millesParJourParM;
-  if (!nightSailing) miles /= DATA.longsVoyages.sansVoguerDeNuitDiviseur;
-  miles *= 1 + (DATA.longsVoyages.progressionPctParDR / 100) * progressionDR;
+  let miles = Math.max(0, m) * seaNavigation.longsVoyages.millesParJourParM;
+  if (!nightSailing) miles /= seaNavigation.longsVoyages.sansVoguerDeNuitDiviseur;
+  miles *= 1 + (seaNavigation.longsVoyages.progressionPctParDR / 100) * progressionDR;
   return Math.max(0, miles);
 }
 
@@ -229,12 +197,12 @@ export function seaMilesPerDay(m: number, nightSailing: boolean, progressionDR =
 
 /** Voile du Test de Navigation d'un Poursuivant dont aucun profil du bord ne porte Voile (donnée maison). MDG 13 l.376 */
 export function voileSansProfil(): number {
-  return DATA.poursuite.voileSansProfil;
+  return seaNavigation.poursuite.voileSansProfil;
 }
 
 /** Pénalité de Poursuite des bateaux lents (MDG 13 l.399 : M 3 → −1 DR ; M 2 → −2 ; M 1 → −3). PUR. */
 export function pursuitLowMPenalty(m: number): number {
-  return DATA.poursuite.lowMPenalty.find((r) => r.m === m)?.dr ?? (m >= 4 ? 0 : DATA.poursuite.lowMPenalty[DATA.poursuite.lowMPenalty.length - 1].dr);
+  return seaNavigation.poursuite.lowMPenalty.find((r) => r.m === m)?.dr ?? (m >= 4 ? 0 : seaNavigation.poursuite.lowMPenalty[seaNavigation.poursuite.lowMPenalty.length - 1].dr);
 }
 
 /** Distance parcourue ce Round de Poursuite (tableau MDG 13 l.378-397) : mètres normaux du résultat du Test
@@ -243,6 +211,6 @@ export function pursuitLowMPenalty(m: number): number {
  *  perd du terrain). PUR. */
 export function pursuitDistanceGain(baseM: number, dr: number): number {
   const metres = progressionMovement(baseM, dr) * 2; // M → mètres par Round (MDG 13 l.47-60 : « Mètres par Round » = 2×M)
-  const base = Math.max(1, Math.floor(metres / DATA.poursuite.distanceUnitM));
+  const base = Math.max(1, Math.floor(metres / seaNavigation.poursuite.distanceUnitM));
   return base + findTableEntry(tables().drDeltas, dr).delta;
 }

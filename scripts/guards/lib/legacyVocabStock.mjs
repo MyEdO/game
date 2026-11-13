@@ -217,13 +217,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/engine/combatFeatures/types.ts",
-    motif: "désormais",
-    ancre: "(Le +DR de Talent — Menaçant → Intimidation — est désormais la règle UNIVERSELLE `talentTestSLBonus`",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/corruption.ts",
     motif: "désormais",
     ancre: "sont désormais émis par le collecteur passif unifié (`passiveSkillSum`/`passiveTestMod`, engine/trauma).",

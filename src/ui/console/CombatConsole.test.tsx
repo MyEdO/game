@@ -3475,7 +3475,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3516,7 +3516,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)', () => {
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3613,7 +3613,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste', () => {
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-fabrique'), label: 'Geste fabriqué', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3662,7 +3662,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       return h;
     };
     const fabrique: ActionDef = {
-      id: idDeFixture('action', 'test-geste-2e-rechargement'), label: 'Geste de recharge', icon: 'drapeau/focalisation',
+      id: idDeFixture('action', 'test-geste-2e-rechargement'), type: 'actions', label: 'Geste de recharge', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'rechargement' }, gate: 'toujours',
       run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };

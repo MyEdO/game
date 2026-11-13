@@ -21,7 +21,8 @@
 // puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
 // (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), les avis
 // de licence de ce qu'il embarque sous `licences/` (`avis.mjs`, #4063 : le moteur, les paquets npm du bundle, les
-// assets du projet ; un avis qui manque fait échouer l'export), et les planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// assets du projet ; un avis qui manque fait échouer l'export), et les planches figées par le pont sur ces modèles
+// (`figerLesPlanches`, `deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
@@ -64,7 +65,7 @@ let assetsCharges = null
 /** Les assets que `--sonde`, `--rendus`, `--export`, `--bureau` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
 const assets = () => (assetsCharges ??= chargerAssets([
   "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
-  "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
+  "export { figerVuesDeLEcran, figerLesPlanches } from '/hotes/godot/recettes/ecran.ts';",
   "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
   "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
   "export { figerLeDecor } from '/hotes/godot/recettes/decor.ts';",
@@ -771,7 +772,7 @@ async function principal() {
   const modele = await modeleDExport(modeleDuPreset(readFileSync(join(PROJET, PRESETS), 'utf8')))
   const sortie = verdict(await exporter(await editeur(), { preset: 'Web', fichier: 'index.html', modele }, options.sortie, a, avisDesPaquets(bundle.modules)))
   if (sortie) return sortie
-  deposerLesPlanches(options.sortie)
+  deposerLesPlanches(options.sortie, a.figerLesPlanches(listage(a.DOSSIER_DES_MODELES)))
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return 0
 }

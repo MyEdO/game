@@ -242,8 +242,8 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             que la donnée compose, pour que `src/data` n'importe rien de `src/gameIso`
                             (#2884) — `materials.types.ts` (`DetailRecipe`, `MaterialRef` lus par le
                             rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
-                            `structureAppearance.types.ts` (`StructureAppearanceDef`, `WALL_PARTS`),
-                            `ambiance.types.ts` (`AmbianceDef`, `Visibility`)
+                            `structureAppearance.types.ts` (`WALL_PARTS`),
+                            `ambiance.types.ts` (`Visibility`)
                             VALEURS NEUVES de l'atelier qui ne lisent que schémas et donnée
                             (`valeursNeuves.ts`) : le défaut d'une union fermée est son premier membre, lu au schéma
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
@@ -714,11 +714,13 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
                             étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
                             `const RECETTE_RENDUE := true`.
-  etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
-                            `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
-                            (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run
-                            godot:etalons` exporte le jeu et refuse tout pixel d'écart entre une planche et son étalon
-                            (#3935, `.claude/rules/ecrans-godot.md`).
+  etalons/                  l'étalon de chaque planche (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des
+                            étalons validés). Une planche (un état de partie figé par le pont, que le jeu montre à
+                            `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`
+                            la dépose sous `<export>/planches/` (`planches.mjs`). `npm run godot:etalons` exporte le
+                            jeu et refuse tout pixel d'écart entre une planche et son étalon, dans le seul Chromium
+                            épinglé (`EPINGLE`, `planches.mjs`) sous Linux x86-64 ; le canari le joue (#3935,
+                            `.claude/rules/ecrans-godot.md`).
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).

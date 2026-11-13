@@ -268,7 +268,6 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/engine/character.ts | xp: opts.xpBonus ?? 0,': 'creation',
     'src/engine/character.ts | xp: number;': 'type',
     'src/engine/character.ts | xp: r.xp,': 'creation',
-    'src/data/pregens.ts | xp: number;': 'type',
     'src/data/pregens.ts | xp: d.xp,': 'creation',
     'src/data/schemas/defs/pregens.ts | xp: entier(0),': 'type',
     "src/data/schemas/defs/pregens.ts | xp: { label: 'Expérience actuelle' },": 'type',
