@@ -1708,23 +1708,21 @@ async function parcoursReglages() {
   assert.equal(volumes.length, 4, 'un volume par canal de son')
   const curseursDeVolume = async () => (await ecran()).curseurs.filter((c) => volumes.includes(c.element))
   const avant = await preferences()
-  let curseurs = await curseursDeVolume()
-  let crans = 0
+  const curseurs = await curseursDeVolume()
+  assert.deepEqual(curseurs.map((c) => c.element).sort(), [...volumes].sort(), 'les quatre curseurs de volume dans le cadre à l’ouverture du panneau')
+  for (const c of curseurs) assert.ok(c.gauche >= 0 && c.droite <= 1280 && c.y >= 0 && c.y <= 720, `${c.element} dans la page : ${JSON.stringify(c)}`)
+  await capturer('4081-reglages-volumes')
+  const [premier] = curseurs
   const tourner = async (sens) => {
     await marquer()
-    await molette(session, { surface: 'canvas', x: curseurs[0].gauche, y: curseurs[0].y }, sens * CRAN_DE_MOLETTE)
+    await molette(session, { surface: 'canvas', x: premier.gauche, y: premier.y }, sens * CRAN_DE_MOLETTE)
     await nouvelEcran()
-    curseurs = await curseursDeVolume()
   }
-  for (; crans < CRANS && curseurs.length < volumes.length; crans++) {
-    assert.ok(curseurs.length > 0, 'un curseur de volume à l’écran, où tourner la molette')
-    await tourner(1)
-  }
-  assert.deepEqual(curseurs.map((c) => c.element).sort(), [...volumes].sort(), 'les quatre curseurs de volume tiennent ensemble dans le panneau')
-  for (const c of curseurs) assert.ok(c.gauche >= 0 && c.droite <= 1280 && c.y >= 0 && c.y <= 720, `${c.element} dans la page : ${JSON.stringify(c)}`)
-  assert.deepEqual(await preferences(), avant, 'la molette sur un curseur défile le panneau, sans rien régler')
-  await capturer('4081-reglages-volumes')
-  for (; crans > 0; crans--) await tourner(-1)
+  await tourner(1)
+  const defile = (await curseursDeVolume()).find((c) => c.element === premier.element)
+  assert.ok(!defile || defile.y < premier.y, `la molette sur un curseur défile le panneau : ${JSON.stringify(defile)}`)
+  assert.deepEqual(await preferences(), avant, 'la molette sur un curseur ne règle rien')
+  await tourner(-1)
   await attendreLeBouton(oui.element)
   assert.equal((await preferences())['des-fixes'], false, 'les dés fixés à leur défaut')
   await capturer('3009-reglages-1-au-menu')

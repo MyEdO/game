@@ -55,6 +55,15 @@ const volume = <C extends CanalDeSon>(canal: C) => ({
 
 const TABLE = [
   {
+    id: 'son-coupe',
+    label: 'Couper le son',
+    kind: 'flag',
+    default: SON_COUPE_DEFAUT,
+    get: sonCoupe,
+    set: (v) => couperLeSon(v === true),
+  },
+  ...CANAUX_DE_SON.map(volume),
+  {
     id: 'combat-cadence',
     label: 'Cadence de combat',
     kind: 'mode',
@@ -73,15 +82,6 @@ const TABLE = [
     get: desFixes,
     set: (v) => setDesFixes(v === true),
   },
-  {
-    id: 'son-coupe',
-    label: 'Couper le son',
-    kind: 'flag',
-    default: SON_COUPE_DEFAUT,
-    get: sonCoupe,
-    set: (v) => couperLeSon(v === true),
-  },
-  ...CANAUX_DE_SON.map(volume),
 ] as const satisfies readonly FormeDePreference[];
 
 /** Les ids des préférences, dérivés de la table : la clé de persistance, et la clé des effets qu'un hôte déclare par
