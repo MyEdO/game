@@ -16,6 +16,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
+import { nomDe } from '../engine/nom';
 
 const INCONNU = t('vision.horsDeVue');
 
@@ -53,7 +54,7 @@ describe('siege-enceinte — la touche d’un assaillant', () => {
     const { banc, heros, cache } = siege();
     expect(cache, 'un assaillant hors de vue').toBeDefined();
     const res = frapper(banc, cache, heros, desDUneTouche(cache, heros), cache.weapons[0]);
-    const tete = t('touche.tete', { attaquant: INCONNU, cible: heros.label });
+    const tete = t('touche.tete', { attaquant: INCONNU, cible: nomDe(heros) });
     expect(res.log.startsWith(tete), res.log).toBe(true);
     expect(journal(banc).filter((l) => l.startsWith(tete)), journal(banc).join('\n')).toHaveLength(1);
     expect(journal(banc).filter((l) => l.includes(cache.label)), 'son nom n’est nulle part au journal').toEqual([]);
@@ -63,7 +64,7 @@ describe('siege-enceinte — la touche d’un assaillant', () => {
     const { banc, heros, vu } = siege();
     expect(vu, 'un assaillant en vue').toBeDefined();
     const res = frapper(banc, vu, heros, desDUneTouche(vu, heros), vu.weapons[0]);
-    const tete = t('touche.tete', { attaquant: vu.label, cible: heros.label });
+    const tete = t('touche.tete', { attaquant: nomDe(vu), cible: nomDe(heros) });
     expect(res.log.startsWith(tete), res.log).toBe(true);
     expect(journal(banc).filter((l) => l.startsWith(tete)), journal(banc).join('\n')).toHaveLength(1);
   });

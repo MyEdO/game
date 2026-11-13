@@ -12,6 +12,7 @@ import { ciblePsy } from '../engine/psych/ciblage';
 import { groupesPercus } from '../engine/groups';
 import { groupLabel } from '../data';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -108,7 +109,7 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
     expect(E.groups).toEqual(['cultiste']);
     expect(h.psychTraits, 'au-delà du Bonus de FM 1 : la Phobie de sa cause').toEqual([{ type: 'phobie', cible: ciblePsy.groupe('cultiste') }]);
     expect(h.terreursSubies).toEqual([]);
-    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(t('cf.phobieAcquise', { name: h.label, groupe: groupLabel('cultiste') }));
+    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(t('cf.phobieAcquise', { name: nomDe(h), groupe: groupLabel('cultiste') }));
   });
 
   it('un ennemi Immunité (Psychologie) n’est pas affecté', () => {

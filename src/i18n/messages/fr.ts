@@ -114,6 +114,15 @@ export const fr = {
   'contreSort.trace': 'Contre-sort de {name}',
   'contreSort.dissipe': 'le Sort est DISSIPÉ',
   'contreSort.insuffisant': "insuffisant — l'incantation se résout à DR {dr}",
+  // La ligne d'Incantation et de Focalisation (`resolveCasting`, `evaluateCasting`, `resolveFocus`, `engine/magic.ts`), les noms par `nomDe` (#4017).
+  'incantation.nonMaitrisee': '{name} ne maîtrise pas {competence} et ne peut pas incanter {sort}.',
+  'incantation.echec': '{name} échoue à incanter {sort}.',
+  'incantation.sousLeNi': '{name} incante {sort} mais sans assez de puissance (DR {dr} < NI {ni}).',
+  'incantation.lance': '{name} lance {sort} (DR {dr}).',
+  'focalisation.nonMaitrisee': '{name} ne maîtrise pas Focalisation.',
+  'focalisation.nonMaitriseeVent': '{name} ne maîtrise pas Focalisation ({vent}).',
+  'focalisation.reussie': '{name} focalise {sort} (+{dr} DR).',
+  'focalisation.echec': '{name} échoue à focaliser {sort}.',
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',

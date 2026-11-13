@@ -88,6 +88,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 /** Une journée du récapitulatif de voyage (audit M4) : progression + ce qui s'y est passé. */
 export interface TravelRecapDay {
@@ -466,7 +467,7 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
     }
     const seaPlan = garanti(buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts), routeId, 'plan de traversée (`refusDuDepartEnMer`)');
     set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain, ...quitterLeLieu });
-    log(get, set, [t('tf.departEnMer', { ship: seaPlan.vehicle!.label, to: to.label, km: route.km })]);
+    log(get, set, [t('tf.departEnMer', { ship: nomDe(seaPlan.vehicle!), to: to.label, km: route.km })]);
     runSeaDay(get, set);
     return;
   }
@@ -477,7 +478,7 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   const riverPlan = descenteJouee(get, route, mode) ? buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence }) : null;
   if (riverPlan) {
     set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode), ...quitterLeLieu });
-    log(get, set, [t('tf.departFluvial', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
+    log(get, set, [t('tf.departFluvial', { ship: nomDe(riverPlan.vehicle!), to: to.label, km: route.km })]);
     runRiverDays(get, set);
     return;
   }
@@ -1019,7 +1020,7 @@ function resolveMountedTravelDay(get: Get, set: Set, hoursToday: number, allure:
     const injury = injuries.get(o.mount.possession.uid) ?? o.mount.possession.mountInjury;
     if (o.dead || injury === 'patte-brisee') {
       abandoned.add(o.mount.possession.uid);
-      lines.push(t('tf.montureAbandonnee', { name: o.mount.hero.label, mount: possessionLabel(o.mount.possession) }));
+      lines.push(t('tf.montureAbandonnee', { name: nomDe(o.mount.hero), mount: possessionLabel(o.mount.possession) }));
     }
   }
   if (injuries.size || abandoned.size) {
@@ -1122,7 +1123,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
     });
     // Le jet est DÉJÀ affiché par la rangée `day.entries` (MultiRollList) du même recap — pas de
     // re-print du roll/target (#295 Lot 5) ; le verdict reste pour le journal général (surface SANS rangée).
-    out.lines.push(t('tf.marcheForceeRatee', { name: driver.actor.label, stupefiant: stupefiant ? t('tf.fragmentStupefiant') : '' }));
+    out.lines.push(t('tf.marcheForceeRatee', { name: nomDe(driver.actor), stupefiant: stupefiant ? t('tf.fragmentStupefiant') : '' }));
     out.lines.push(...forcedPaceBeastLines(res.animaux));
     if (stupefiant) {
       const pb = applyVehicleProblemToTravel(get, set, out);
@@ -1162,7 +1163,7 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
       // la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`), porteur fondu dans le libellé (la phrase
       // NOMME déjà le conducteur).
       out.lines.push(traceLineOf({
-        label: t('tf.repriseDeControle', { name: driver.actor.label }),
+        label: t('tf.repriseDeControle', { name: nomDe(driver.actor) }),
         roll: rt.roll, target: rt.target, success: rt.success,
         issue: rt.success ? t('tf.controleTenu') : t('tf.controlePerdu'),
       }));
@@ -1274,7 +1275,7 @@ function travelArrivalCare(get: Get, set: Set): string[] {
     const eff = p.nature === 'bete' ? mountIncidentEffects(p.mountInjury) : undefined;
     if (!eff || eff.notHealedByCare) return p; // séquelle hors de portée des soins d'étape (Patte brisée)
     const h = heroById.get(p.ownerId);
-    lines.push(t('tf.montureSoignee', { mount: possessionLabel(p), owner: h ? t('tf.fragmentDeCavalier', { name: h.label }) : '', soin: t(eff.preventsMount ? 'tf.montureGuerie' : 'tf.vehiculeRepare') }));
+    lines.push(t('tf.montureSoignee', { mount: possessionLabel(p), owner: h ? t('tf.fragmentDeCavalier', { name: nomDe(h) }) : '', soin: t(eff.preventsMount ? 'tf.montureGuerie' : 'tf.vehiculeRepare') }));
     touched = true;
     return { ...p, mountInjury: undefined };
   });
@@ -1290,7 +1291,7 @@ function applyEreintant(get: Get, set: Set): string[] {
   for (const h of party) {
     if (h.dead) continue;
     addCondition(h, 'extenue', 1);
-    lines.push(t('tf.detourEpuise', { name: h.label }));
+    lines.push(t('tf.detourEpuise', { name: nomDe(h) }));
   }
   set({ party: [...party] });
   get().avancerLHorloge(24 * 60); // un jour de plus sur la route
@@ -1402,11 +1403,11 @@ export const TABLES = {
             // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
             j.push(...applyHealWounds(h, h.wounds.max - h.wounds.current, {
               wake: false,
-              log: () => [h.wounds.current >= h.wounds.max ? t('tf.soinComplet', { name: h.label }) : t('tf.soinPartiel', { name: h.label })],
+              log: () => [h.wounds.current >= h.wounds.max ? t('tf.soinComplet', { name: nomDe(h) }) : t('tf.soinPartiel', { name: nomDe(h) })],
             }));
           }
           const n = stacks(h, 'extenue');
-          if (n > 0) { removeCondition(h, 'extenue', n); j.push(t('tf.plusExtenue', { name: h.label })); }
+          if (n > 0) { removeCondition(h, 'extenue', n); j.push(t('tf.plusExtenue', { name: nomDe(h) })); }
         }
         set({ party: [...party] });
       } else if (entry.kind === 'ereintant') {
@@ -1445,7 +1446,7 @@ export const TABLES = {
       if (!step.result) return;
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence, l'échec parle par son effet (`applyEreintant`).
-      if (step.result.success) return { consequences: freeCons([t('tf.survieReussie', { who: garanti(hero, step.actorId, 'survivant du péril').label })]) };
+      if (step.result.success) return { consequences: freeCons([t('tf.survieReussie', { who: nomDe(garanti(hero, step.actorId, 'survivant du péril')) })]) };
       return { consequences: freeCons(applyEreintant(get, set)) };
     },
     /** « Attaqués ! » (LDB 51 l.221) : Perception (+20) INFLUENÇABLE ; réussie → le groupe les voit venir (sans
@@ -1457,8 +1458,8 @@ export const TABLES = {
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // échec sans embuscade configurée (rien à ajouter) → aucune conséquence.
       const j: string[] = step.result.success
-        ? [t('tf.perceptionReussie', { who: garanti(hero, step.actorId, 'guetteur du péril').label })]
-        : configured ? [t('tf.perceptionDEmbuscade', { who: garanti(hero, step.actorId, 'guetteur du péril').label })] : [];
+        ? [t('tf.perceptionReussie', { who: nomDe(garanti(hero, step.actorId, 'guetteur du péril')) })]
+        : configured ? [t('tf.perceptionDEmbuscade', { who: nomDe(garanti(hero, step.actorId, 'guetteur du péril')) })] : [];
       if (configured) j.push(...markLandInterrupt(get, set, {
         kind: 'ambush', scene: String(step.meta?.ambushScene ?? ''), entry: String(step.meta?.ambushEntry ?? '') || undefined,
         encounter: String(step.meta?.ambushEnc ?? ''), noSurprise: step.result.success,
@@ -1479,7 +1480,7 @@ export const TABLES = {
       // `null` : plus personne ne peut tenter la Conduite d'attelage — pas de km suivant, pas de reprise de contrôle.
       const driver = forcedPaceDriver(get);
       let km = Number(m.km), hours = Number(m.hours);
-      const name = garanti(hero, step.actorId, 'conducteur').label;
+      const name = nomDe(garanti(hero, step.actorId, 'conducteur'));
       const plan = get().travelPlan!;
       const veh = vehicleTravel(plan.mode)!;
       const draft = mountProfileById(veh.draft!.montureId)!;
@@ -1558,7 +1559,7 @@ export const TABLES = {
       if (!step.result) return;
       const m = step.meta!;
       const finalKm = Number(m.finalKm), finalHours = Number(m.finalHours);
-      const name = garanti(hero, step.actorId, 'conducteur').label;
+      const name = nomDe(garanti(hero, step.actorId, 'conducteur'));
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
       const j = [t('tf.controleRepris', { name, issue: t(step.result.success ? 'tf.controleTenuPoint' : 'tf.controlePerduExclamation') })];
       if (step.result.success) { finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }); return { consequences: freeCons(j) }; }

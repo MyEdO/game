@@ -152,7 +152,7 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
 export function appliquerMortSubite(target: Combatant, log: string[]): void {
   target.wounds.current = 0;
   if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-  log.push(t('cf.effondrement', { name: target.label }));
+  log.push(t('cf.effondrement', { name: nomDe(target) }));
 }
 
 /** La Difficulté du Test qui retire l'État `id` quand sa pose n'en dicte aucune : le défaut de son Test
@@ -305,7 +305,7 @@ export function releaseConditionLocks(c: Combatant, act: import('./types').Condi
     if (inst.unlockBy == null || !actLifts(inst.unlockBy, act)) continue;
     delete inst.unlockBy; // le verrou tombe → removeCondition n'est plus inerte
     removeCondition(c, inst.id, inst.value); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
-    log.push(t('cond.lockReleased', { name: c.label, cond: conditionLabel(inst.id) }));
+    log.push(t('cond.lockReleased', { name: nomDe(c), cond: conditionLabel(inst.id) }));
     emit?.({ stateId: inst.id, change: 'loss', targetId: c.id });
   }
   return log;
@@ -503,14 +503,14 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
       c.conditions = portees; // la liste EXISTE dès qu'on y pose (porteur forgé sans `conditions`)
       addCondition(c, id, cibleN - porteN);
       c.conditions.find((x) => x.id === id)!.derivedFrom = { stacks: cibleN, ...(src ? { src } : {}) };
-      log.push(t('cond.derivedGain', { name: c.label, cond: conditionLabel(id), src: source }));
+      log.push(t('cond.derivedGain', { name: nomDe(c), cond: conditionLabel(id), src: source }));
       emit?.({ stateId: id, change: 'gain', targetId: c.id });
       continue;
     }
     retireEtat(c, id, porteN - cibleN, true); // la réconciliation EST la source du pion marqué : rien ne l'arrête
     const apres = c.conditions.find((x) => x.id === id);
     if (apres) apres.derivedFrom = cibleN > 0 ? { stacks: cibleN, ...(src ? { src } : {}) } : undefined;
-    log.push(t('cond.derivedLoss', { name: c.label, cond: conditionLabel(id), src: source }));
+    log.push(t('cond.derivedLoss', { name: nomDe(c), cond: conditionLabel(id), src: source }));
     emit?.({ stateId: id, change: 'loss', targetId: c.id });
   }
   return log;
@@ -598,6 +598,7 @@ function srcLabel(src: CodexTarget | undefined, nature: string): string {
 // avec le collecteur qui produit ces `PassiveMod` : les DEUX canaux (`skillMod`/`testMod` ici,
 // `charMod` là-bas) le lisent sans cycle d'import. Ré-exporté pour ses consommateurs.
 import { passivePartLine } from './trauma';
+import { nomDe } from './nom';
 export { passivePartLine };
 
 // `effectRef` (couture UNIQUE effet→fiche Codex) vit dans `types.ts`, à côté de la table
@@ -841,7 +842,7 @@ export function restrictingConditions(c: Combatant): { id: string; stacks: numbe
 export function refusVerrouDAction(c: Combatant): string | null {
   const verrou = restrictingConditions(c)[0];
   if (!verrou) return null;
-  return t('cs.stateLockFlee', { name: c.label, etat: findConditionById(verrou.id)?.label ?? verrou.id });
+  return t('cs.stateLockFlee', { name: nomDe(c), etat: findConditionById(verrou.id)?.label ?? verrou.id });
 }
 
 /** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Une seule vérité de
@@ -947,11 +948,11 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
   if (extended) {
     e.awaitingExtension = undefined;
     e.duration = { scale: 'rounds', left: 1 };
-    return [t('cond.effectExtended', { name: c.label, label: e.label })];
+    return [t('cond.effectExtended', { name: nomDe(c), label: e.label })];
   }
   const porte: string[] = []; // États PORTÉS par l'effet gelé (#1695) : leur départ se dit au même journal
   const removed = removeActiveEffects(c, (x) => x === e, undefined, porte);
-  return [...removed.map((x) => t('cond.effectExpire', { name: c.label, label: x.label })), ...porte];
+  return [...removed.map((x) => t('cond.effectExpire', { name: nomDe(c), label: x.label })), ...porte];
 }
 
 /**
@@ -977,21 +978,21 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
     }
     const porte: string[] = []; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
     const expired = removeActiveEffects(c, (e) => e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension, emit, porte);
-    for (const e of expired) log.push(t('cond.effectExpire', { name: c.label, label: e.label }));
+    for (const e of expired) log.push(t('cond.effectExpire', { name: nomDe(c), label: e.label }));
     log.push(...porte);
   }
   // États à DURÉE posés par un sort (« qui dure N Rounds ») : décrément, dissipation à 0.
   if (c.conditions.some((x) => x.roundsLeft != null)) {
     for (const x of c.conditions) if (x.roundsLeft != null) x.roundsLeft -= 1;
     const done = c.conditions.filter((x) => x.roundsLeft != null && x.roundsLeft <= 0);
-    for (const x of done) { log.push(t('cond.spellCondExpire', { name: c.label, cond: conditionLabel(x.id) })); emit?.({ stateId: x.id, change: 'loss', targetId: c.id }); }
+    for (const x of done) { log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) })); emit?.({ stateId: x.id, change: 'loss', targetId: c.id }); }
     c.conditions = c.conditions.filter((x) => !(x.roundsLeft != null && x.roundsLeft <= 0));
   }
   // Contrecoups d'incantation à durée en Rounds (tables d'Imparfaites/Colère, LDB 46/40).
   if (c.castPenalties?.some((p) => p.roundsLeft != null)) {
     for (const p of c.castPenalties) if (p.roundsLeft != null) p.roundsLeft -= 1;
     const done = c.castPenalties.filter((p) => p.roundsLeft != null && p.roundsLeft <= 0);
-    for (const p of done) log.push(t('cond.effectExpire', { name: c.label, label: p.label }));
+    for (const p of done) log.push(t('cond.effectExpire', { name: nomDe(c), label: p.label }));
     c.castPenalties = c.castPenalties.filter((p) => !(p.roundsLeft != null && p.roundsLeft <= 0));
   }
   // Un effet qui vient d'EXPIRER peut avoir porté (ou levé) un fait source d'État dérivé : la fenêtre de
@@ -1012,9 +1013,9 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
 export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { base: number; result: TestResult }[]): string[] {
   const res = rollTest(calme, 'facile', rng); // Calme Facile (+40), palier canonique
   out?.push({ base: calme, result: res });
-  if (res.success) return [t('cond.nightmareNone', { name: c.label })];
+  if (res.success) return [t('cond.nightmareNone', { name: nomDe(c) })];
   addCondition(c, COND.extenue);
-  return [t('cond.nightmare', { name: c.label })];
+  return [t('cond.nightmare', { name: nomDe(c) })];
 }
 
 /**
@@ -1030,12 +1031,12 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
   const r = d100(rng);
   if (isDoubleRoll(r)) {
     removeCondition(c, COND.hemorragique, 1); // coagulation (le double prime sur la mort)
-    const log = [t('cond.coagulate', { name: c.label, roll: r === 100 ? '00' : r })];
-    if (!hasCondition(c, COND.hemorragique)) { addCondition(c, COND.extenue); log.push(t('cond.lastWoundExhausted', { name: c.label })); } // tous retirés → 1 Exténué
+    const log = [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })];
+    if (!hasCondition(c, COND.hemorragique)) { addCondition(c, COND.extenue); log.push(t('cond.lastWoundExhausted', { name: nomDe(c) })); } // tous retirés → 1 Exténué
     return { died: false, log };
   }
-  if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: c.label, roll: r, threshold: 10 * n })] };
-  return { died: false, log: [t('cond.bleedSurvive', { name: c.label, roll: r, threshold: 10 * n })] };
+  if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n })] };
+  return { died: false, log: [t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n })] };
 }
 
 /** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).
@@ -1162,7 +1163,7 @@ export function tickDeath(c: Combatant): string[] {
   c.roundsAtZero = (c.roundsAtZero ?? 0) + 1;
   if (c.roundsAtZero > bonus(effectiveChar(c, 'endurance')) && !hasCondition(c, COND.inconscient)) {
     addCondition(c, COND.inconscient);
-    log.push(t('cond.unconscious', { name: c.label, rounds: c.roundsAtZero }));
+    log.push(t('cond.unconscious', { name: nomDe(c), rounds: c.roundsAtZero }));
   }
   return log; // la mort (dead) est finalisée par le store (avec sauvetage par Destin)
 }

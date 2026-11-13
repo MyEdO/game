@@ -22,6 +22,7 @@ import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
 import { spellOps } from '../engine/flowCore';
 import { findConditionById } from '../data';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 /** L'État `id` inflige-t-il des Dégâts à chaque fin de Round (un effet `onRoundEnd` porteur de `wounds`) ? */
 const degatsPeriodiques = (id: string): boolean =>
@@ -75,7 +76,7 @@ export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG, 
       const bd = bleedDeathRoll(c, rng); // mort par Hémorragique (10 %/pion, double = coagule)
       bd.log.forEach((l) => log.push(l));
       if (bd.died) {
-        log.push(fateSaveOrDie(c) ? t('upkeep.fateSaved', { name: c.label }) : t('upkeep.succumb', { name: c.label }));
+        log.push(fateSaveOrDie(c) ? t('upkeep.fateSaved', { name: nomDe(c) }) : t('upkeep.succumb', { name: nomDe(c) }));
         continue;
       }
       tickDeath(c).forEach((l) => log.push(l)); // LDB 18 l.15, en 'aa' aussi (#1595 c.6219559935)

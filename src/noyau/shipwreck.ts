@@ -87,7 +87,7 @@ function shorePlace(get: Get): MapPlace | undefined {
  */
 export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] } = {}): void {
   const vessel = get().vessel;
-  const shipName = vessel ? nomDuNavire(vessel) : garanti(get().travelPlan?.vehicle, get().travelPlan?.routeId, 'navire qui sombre').label;
+  const shipName = vessel ? nomDuNavire(vessel) : nomDe(garanti(get().travelPlan?.vehicle, get().travelPlan?.routeId, 'navire qui sombre'));
   const diff = rule('mer-naufrage-natation') as Difficulty;
   const shore = shorePlace(get);
   const aboardSet = opts.aboardIds ? new Set(opts.aboardIds) : null;
@@ -124,7 +124,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     // `outOfRencontre` seul (l'éjection du COMBAT que ce naufrage vient de résoudre) n'incapacite pas,
     // donc écarté du prédicat ; dead/inconscient/Mort Subite restent des voies RÉELLES d'incapacité.
     if (isOutOfAction({ ...h, outOfRencontre: false })) {
-      opening.push(t('wreck.unconscious', { name: h.label }));
+      opening.push(t('wreck.unconscious', { name: nomDe(h) }));
       return { ...h, dead: true };
     }
     swimmerIds.push(h.id);
@@ -227,7 +227,7 @@ export const TABLES = {
       const success = step.result.success;
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
       const line = t('wreck.applierLine', {
-        name: hero.label, test: swimTestLabel(diff),
+        name: nomDe(hero), test: swimTestLabel(diff),
         issue: success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
       });
       if (success) { hero.outOfRencontre = false; hero.exitReason = undefined; } else hero.dead = true;

@@ -18,6 +18,7 @@ import { createHero } from '../engine/character';
 import { possessionLabel, type Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -153,9 +154,9 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
     avecPartie({ ...etatInitialDuJeu(), party: [heros], possessions: [mule(heros.id, { kind: 'au-lieu', placeId: 'altdorf' })] }, (partie) => {
       const loin = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, 'pos-1'] });
       expect(partie.etat().possessions[0].items, 'l’objet a voyagé jusqu’à la mule laissée ailleurs').toEqual([]);
-      expect(lignesDuJournal(loin)).toEqual([t('pf.giveNotColocated', { from: heros.label, to: possessionLabel(partie.etat().possessions[0]), item: objet.label })]);
+      expect(lignesDuJournal(loin)).toEqual([t('pf.giveNotColocated', { from: nomDe(heros), to: possessionLabel(partie.etat().possessions[0]), item: objet.label })]);
       const soi = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, heros.id] });
-      expect(lignesDuJournal(soi)).toEqual([t('pf.giveSelf', { from: heros.label, item: objet.label })]);
+      expect(lignesDuJournal(soi)).toEqual([t('pf.giveSelf', { from: nomDe(heros), item: objet.label })]);
       expect(partie.etat().party[0].items!.filter((i) => i.uid === objet.uid)).toHaveLength(1);
     });
   });
@@ -238,7 +239,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
       const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const hors = vue.chars.find((c) => !c.inCareer)!;
       const dans = vue.chars.find((c) => c.inCareer)!;
-      expect(hors.refus, 'la vue offre un achat que le geste refuse').toBe(t('pf.charNeedsMentor', { name: heros.label, what: hors.label }));
+      expect(hors.refus, 'la vue offre un achat que le geste refuse').toBe(t('pf.charNeedsMentor', { name: nomDe(heros), what: hors.label }));
       const refuse = partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, hors.key] });
       expect(partie.etat().party[0].xp, 'le geste a dépensé des PX que la vue refusait').toBe(5000);
       expect(lignesDuJournal(refuse)).toEqual([hors.refus]);
@@ -253,7 +254,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const c = vue.chars.find((x) => x.inCareer)!;
-      expect(c.refus).toBe(t('pf.notEnoughXp', { name: heros.label, cost: c.nextCost }));
+      expect(c.refus).toBe(t('pf.notEnoughXp', { name: nomDe(heros), cost: c.nextCost }));
       expect(vue.refusPx(0)).toBeNull();
       const appel = partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, c.key] });
       expect(partie.etat().party[0].charAdvances?.[c.key] ?? 0, 'le geste a acheté ce que la vue refusait').toBe(heros.charAdvances?.[c.key] ?? 0);
@@ -441,7 +442,7 @@ describe('ouvrirLeMedecin — le verdict (`refusDeSoins`) est celui du geste', (
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
       const appel = partie.envoyer({ type: 'ouvrirLeMedecin', args: [heros.id] });
       expect(partie.etat().medic, 'l’infirmerie s’est ouverte sur un héros indemne').toBeFalsy();
-      expect(lignesDuJournal(appel)).toEqual([t('medic.rienASoigner', { name: heros.label })]);
+      expect(lignesDuJournal(appel)).toEqual([t('medic.rienASoigner', { name: nomDe(heros) })]);
       expect(refusDeSoins(partie.etat(), heros.id), 'l’écran lit le refus que rend le geste').toBe(lignesDuJournal(appel)[0]);
     });
   });

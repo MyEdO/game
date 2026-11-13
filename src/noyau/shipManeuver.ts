@@ -43,6 +43,7 @@ import { bus, EVT } from './bus';
 import { footprintTiles, footprintN } from './monde/footprint';
 import { applyShipCollision } from './monde/shipCollision';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
+import { nomDe } from '../engine/nom';
 
 /** Jet d'UN contributeur à son rôle : Test de la compétence du rôle (MDG 14). PUR (RNG injecté). Rend la LIGNE
  *  de la rangée — le jet, ou `ligneSansJet` avec le refus nommé (LDB 09 l.30 ; #2588 Q1). `null` si le
@@ -148,7 +149,7 @@ export interface ManeuverResult extends ShipManeuverOutcome {
   /** Valeur cible du Test de Navigation (affichage). */
   target?: number;
   /** Nom du barreur (journal). */
-  helmsman?: string;
+  helmsman?: PlayerText;
   /** Refus NOMMÉ d'une barre que personne ne peut tenir (LDB 09 l.30 ; #2588 Q1) : le Test n'a pas roulé. */
   refus?: PlayerText;
   /** Cases réellement parcourues par la coque (rempli à l'application, sinon 0). */
@@ -203,7 +204,7 @@ export function shipManeuverParams(ship: Combatant, milieu: MilieuDeNavigation):
 
 /** `ManeuverResult` du Test de Navigation d'un barreur SOLO (PUR, aucune mutation, aucun RNG) : `success`
  *  = `nav.success` (LDB 12 l.11) ; le Man entre au DR (MDG 13 l.119 ; MDG 12 l.50). */
-function deriveManeuver(params: ManeuverParams, ship: Combatant, nav: { sl: number; roll: number; target: number; success: boolean }, helmsman: string): ManeuverResult {
+function deriveManeuver(params: ManeuverParams, ship: Combatant, nav: { sl: number; roll: number; target: number; success: boolean }, helmsman: PlayerText): ManeuverResult {
   const { baseM, manoeuvre, extraDR } = params;
   const out = resolveShipManeuver(nav.sl, baseM, manoeuvre, extraDR + maneuverTestTypeDR(ship)); // barreur SOLO, hors Test d'équipage
   return { ...out, success: nav.success, navDR: nav.sl, roll: nav.roll, target: nav.target, helmsman, advanced: 0 };
@@ -212,7 +213,7 @@ function deriveManeuver(params: ManeuverParams, ship: Combatant, nav: { sl: numb
 /** Barre que personne ne peut tenir : aucun Test, donc rien que Man ni les modificateurs du Test ne
  *  modifient (MDG 12 l.50, MDG 13 l.119). La Progression (MDG 13 l.68-75) se lit au DR d'`ECHEC_SANS_JET`.
  *  `helmsman` : le barreur IMPOSÉ qui ne peut pas tenter, nommé au journal. LDB 09 l.30 ; #2588 Q1. */
-function maneuverSansJet(params: ManeuverParams, refus: PlayerText, helmsman?: string): ManeuverResult {
+function maneuverSansJet(params: ManeuverParams, refus: PlayerText, helmsman?: PlayerText): ManeuverResult {
   const out = resolveShipManeuver(ECHEC_SANS_JET.sl, params.baseM, 0);
   return { ...out, success: ECHEC_SANS_JET.success, navDR: ECHEC_SANS_JET.sl, ...(helmsman != null ? { helmsman } : {}), refus, advanced: 0 };
 }
@@ -233,8 +234,8 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
   const helm = helmsmanId ? (imposed && peutTenter(imposed, { skill: params.competence }) ? imposed : undefined) : bestHelmsman(crew, params.competence);
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
-  if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: params.competence }), imposed.label) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: params.competence }));
-  return deriveManeuver(params, ship, rollTest(testValue(helm, { skill: params.competence }), 'intermediaire', battleRng()), helm.label);
+  if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: params.competence }), nomDe(imposed)) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: params.competence }));
+  return deriveManeuver(params, ship, rollTest(testValue(helm, { skill: params.competence }), 'intermediaire', battleRng()), nomDe(helm));
 }
 
 /**
@@ -243,11 +244,11 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
  * M÷2 plancher). Renvoie les cases avancées. Logue le succès (via `virerLeNavire`) ou l'échec.
  */
 export function applyShipManeuver(get: Get, shipId: string, result: ManeuverResult, turnSteps: number): number {
-  const ship = inBattleId(get().battle, shipId);
+  const ship = garanti(inBattleId(get().battle, shipId), shipId, 'navire manœuvré');
   if (result.success) get().virerLeNavire(shipId, turnSteps); // vire + re-mappe les arcs + logue le nouveau cap
   else {
     if (result.refus != null) get().ecrireAuJournal(result.refus);
-    get().ecrireAuJournal(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: ship?.label ?? shipId, dr: result.dr }));
+    get().ecrireAuJournal(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: nomDe(ship), dr: result.dr }));
   }
   return get().avancerLeNavire(shipId, result.movement);
 }
@@ -273,8 +274,8 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       const next = rotateDir8(cur, turnSteps);
       set({ facing: { ...facing, [shipId]: next } });
       // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent facing[shipId].
-      const ship = inBattleId(battle, shipId);
-      get().ecrireAuJournal(t('store.shipTack', { ship: ship?.label ?? shipId, dir: next }));
+      const ship = garanti(inBattleId(battle, shipId), shipId, 'navire viré');
+      get().ecrireAuJournal(t('store.shipTack', { ship: nomDe(ship), dir: next }));
       bus.emit(EVT.SCENE_DIRTY);
     },
     avancerLeNavire: (shipId, cases) => {
@@ -308,7 +309,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         victim = undefined;
       }
       for (const { mobile, depart } of deplaces ?? []) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
-      if (moved > 0) get().ecrireAuJournal(t('store.avancerLeNavire', { ship: hull.label, n: moved, s: moved > 1 ? 's' : '', dir }));
+      if (moved > 0) get().ecrireAuJournal(t('store.avancerLeNavire', { ship: nomDe(hull), n: moved, s: moved > 1 ? 's' : '', dir }));
       else if (voulu > 0) refuserGeste(get, set, t('cs.refusFormationBloquee'));
       // Éperonnage (MDG 13) : on percute de la PROUE (avance vers l'avant) ; FRONTAL si la victime tient un cap
       // ~opposé (octant opposé ±1). Dégâts sur les DEUX coques par la langue unique (`applyShipCollision`→`applyOps`).

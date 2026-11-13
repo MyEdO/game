@@ -14,6 +14,7 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { t, type MsgKey } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 
@@ -28,7 +29,7 @@ export function refusDeGesteSurLeGroupe(s: { net: Pick<Jeu['net'], 'mode'> }): s
  *  geste (paramètres `name`, `cost`, et ceux que le geste ajoute), ou `null`. Verdict UNIQUE des dépenses
  *  sur la bourse d'un héros. */
 export function refusDeBourse(hero: Combatant, cout: Money, cle: MsgKey, params?: Parameters<typeof t>[1]): string | null {
-  return canAfford(bourseOf(hero), cout) ? null : t(cle, { ...params, name: hero.label, cost: formatMoney(cout) });
+  return canAfford(bourseOf(hero), cout) ? null : t(cle, { ...params, name: nomDe(hero), cost: formatMoney(cout) });
 }
 
 /** Somme des bourses des héros — SEULE source d'un affichage d'argent agrégé (il n'y a pas de bourse

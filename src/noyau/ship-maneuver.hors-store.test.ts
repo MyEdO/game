@@ -16,6 +16,7 @@ import { t } from '../i18n';
 import { setRule } from '../engine/policy';
 import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -293,7 +294,7 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
       expect(res.refus).toBe(attendu);
       applyShipManeuver(() => banc.getState(), 'ship', res, 2);
       expect(banc.getState().journal).toContain(attendu);
-      expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? sansVoile.label : t('shipManv.crewFallback'), ship: ship2().label, dr: res.dr }));
+      expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? nomDe(sansVoile) : t('shipManv.crewFallback'), ship: nomDe(ship2()), dr: res.dr }));
     }
   });
 

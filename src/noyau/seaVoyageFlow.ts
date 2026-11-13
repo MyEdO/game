@@ -130,6 +130,7 @@ import { referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
  *  injecte `crewTestSuccess` (socle unique, règle optionnelle `equipage-zero-dr-succes` comprise) dans
@@ -1176,7 +1177,7 @@ export function startFastVoyage(
   const weeks = Math.floor(days / SEA_WEEK_DAYS); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
-  log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
+  log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
   const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'equipage-voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'voyage/vague', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
@@ -1580,7 +1581,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
     for (const h of get().party) {
       if (h.dead) continue;
       if (isWeatherWarded(h)) { // protection magique : aucun Test à jouer
-        tell(get, set, [t('sv.wardedExposure', { name: h.label, what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
+        tell(get, set, [t('sv.wardedExposure', { name: nomDe(h), what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
         continue;
       }
       const resVal = testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
@@ -1827,13 +1828,13 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
     if (step.drCible != null) {
       let etape = { total: 0, done: step.drCible <= 0 };
       for (let i = 0; !etape.done && i < 20; i++) etape = extendedTestStep(etape.total, rollTest(value, difficulty, rng), step.drCible);
-      tell(get, set, [t('sv.engineStep', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
+      tell(get, set, [t('sv.engineStep', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
     } else {
       let t = rollTest(value, difficulty, rng);
       for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, difficulty, rng);
       lastDR = Math.max(0, t.sl);
       // Aucune rangée nulle part (équipage abstrait, hors modale) — le journal PORTE le jet (#295 Lot 5, gardé nominativement).
-      tell(get, set, [tr('sv.engineRestart', { name: eng.label, label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
+      tell(get, set, [tr('sv.engineRestart', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
     }
   }
   return lastDR;
@@ -1860,7 +1861,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
 
     const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' });
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.blastWave', { name: eng.label, dmg: b.compartmentDamage }), ...lines]);
+    tell(get, set, [t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage }), ...lines]);
   }
 
   // Moteur détruit : l'Amélioration Propulsion à vapeur saute (à ré-installer au chantier) → le navire
@@ -1915,9 +1916,9 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   if (eng && !p.success) {
     const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime });
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.scalded', { name: eng.label }), ...lines]);
+    tell(get, set, [t('sv.scalded', { name: nomDe(eng) }), ...lines]);
   } else if (eng) {
-    tell(get, set, [t('sv.dodgedSteam', { name: eng.label })]);
+    tell(get, set, [t('sv.dodgedSteam', { name: nomDe(eng) })]);
   }
   if (get().travelPlan?.sea) continueSeaDayFromPostProgression(get, set);
 }
@@ -2569,7 +2570,7 @@ export const TABLES = {
         if (!hero || !row.result || row.result.success) continue;
         const d = contractDisease('scorbut', battleRng());
         if (d) hero.diseases = [...(hero.diseases ?? []), d];
-        lignes.push({ text: t('sv.scurvyGot', { name: hero.label, soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
+        lignes.push({ text: t('sv.scurvyGot', { name: nomDe(hero), soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
       }
       touchParty(get, set);
       return { consequences: freeCons(lignes) };
@@ -2584,7 +2585,7 @@ export const TABLES = {
       for (const row of step.participants ?? []) {
         const hero = actorIn(get(), row.id);
         if (!hero || !row.result || row.result.success) continue;
-        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: hero.label }), tone: 'echec' });
+        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: nomDe(hero) }), tone: 'echec' });
       }
       touchParty(get, set);
       return { consequences: freeCons(lignes) };
@@ -2597,7 +2598,7 @@ export const TABLES = {
       const diseaseId = String(step.meta?.diseaseId ?? '');
       const j = step.result.success ? [] : applyContraction(hero, diseaseId, false, battleRng());
       touchParty(get, set);
-      return { consequences: freeCons(j.length ? [{ text: t('sv.waterDiseaseGot', { name: hero.label, disease: diseaseLabel(diseaseId) }), tone: 'echec' }] : []) };
+      return { consequences: freeCons(j.length ? [{ text: t('sv.waterDiseaseGot', { name: nomDe(hero), disease: diseaseLabel(diseaseId) }), tone: 'echec' }] : []) };
     },
     /** Tonneau d'eau — CONTAMINATION (MDG 14 l.209) : un porteur boit au tonneau, échoue son
      *  Test de Résistance Intermédiaire (+0) → le tonneau devient une source de contagion (effet visible
@@ -2619,7 +2620,7 @@ export const TABLES = {
         // Succès sans effet (rien à ajouter) → aucune conséquence.
         if (!hero || !row.result || row.result.success) continue;
         addCondition(hero, 'extenue');
-        lignes.push({ text: t('sv.exhaustionGot', { name: hero.label, diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'echec' });
+        lignes.push({ text: t('sv.exhaustionGot', { name: nomDe(hero), diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'echec' });
       }
       set({ party: [...get().party] });
       return { consequences: freeCons(lignes) };

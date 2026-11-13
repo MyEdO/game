@@ -36,6 +36,7 @@ import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
 
 export type TraumaKind = 'dechirure' | 'fracture';
+import { nomDe } from './nom';
 export type TraumaSeverity = 'mineur' | 'majeur';
 
 const LEG: HitLocation[] = ['jambeG', 'jambeD'];
@@ -285,9 +286,9 @@ export function fractureEndDifficulty(severity: string): Difficulty {
  * (et `criticalWounds` décrémenté) par `tickTraumaRecovery`. Partagé eager ⊥ cascade — zéro duplication.
  */
 export function applyFractureEnd(c: Combatant, success: boolean, severity: string, location: string, label: string): string[] {
-  if (success) return [tr('tra.fractureHealed', { name: c.label, label })];
+  if (success) return [tr('tra.fractureHealed', { name: nomDe(c), label })];
   c.traumas = avecSequelles(c.traumas, [fractureSequela(severity, location as HitLocation, c.bodyShape)]);
-  return [tr('tra.fractureSequela', { name: c.label, label })];
+  return [tr('tra.fractureSequela', { name: nomDe(c), label })];
 }
 
 /**
@@ -316,7 +317,7 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
       // reste chirurgicale (le moignon exige toujours une opération), débarrassée de son décompte d'escalade.
       remaining.push({ ...t, amputateAfterDays: undefined, amputateSequel: undefined });
       if (t.amputateSequel) remaining.push(...avecSequelles([...c.traumas, ...remaining], [traumaById(t.amputateSequel, undefined, t.location)]).slice(-1));
-      log.push(tr('tra.limbLostNoSurgery', { name: c.label, label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
+      log.push(tr('tra.limbLostNoSurgery', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
       continue;
     }
     if (t.recoveryDays == null) { remaining.push(t); continue; }
@@ -324,14 +325,14 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
     if (left > 0) {
       const next = { ...t, recoveryDays: left };
       const msg = downgradeTornMuscle(next, left, c.bodyShape);
-      if (msg) log.push(tr('tra.tornRemissionLine', { name: c.label, msg }));
+      if (msg) log.push(tr('tra.tornRemissionLine', { name: nomDe(c), msg }));
       remaining.push(next);
       continue;
     }
     // Résolu : la fracture/déchirure est retirée, la Blessure critique décomptée (l.222).
     if (c.criticalWounds) c.criticalWounds = Math.max(0, c.criticalWounds - 1);
     if (t.kind === 'fracture' && !t.fractureSet) fractureTests.push({ severity: t.severity ?? 'mineur', location: t.location ?? '', label: t.label });
-    else log.push(tr('tra.recovered', { name: c.label, label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
+    else log.push(tr('tra.recovered', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
   }
   c.traumas = remaining;
   // Test de fin de fracture (l.202/212) : le producteur NOMME ce qui est testé (« Test de Résistance »)
@@ -361,7 +362,7 @@ export function cureCriticalWounds(c: Combatant, n: number): string[] {
     if (left > 0 && t.kind != null) {
       left -= 1;
       if (c.criticalWounds) c.criticalWounds = Math.max(0, c.criticalWounds - 1);
-      log.push(tr('tra.curedMiraculously', { name: c.label, label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
+      log.push(tr('tra.curedMiraculously', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
     } else kept.push(t);
   }
   c.traumas = kept;
@@ -485,7 +486,7 @@ export function consolidateAmputations(c: Combatant): string[] {
       if (cumul.portee === 'localisation') posee.label = tr('tra.locSuffix', { label: cible.label, loc: locationLabel(loc, c.bodyShape) });
       kept.push(posee);
       const effet = sequelleEffet(cible);
-      log.push(tr(effet ? 'tra.cumulEscalated' : 'tra.cumulEscalatedPlain', { name: c.label, count: total, source: f.label, label: posee.label, effet }));
+      log.push(tr(effet ? 'tra.cumulEscalated' : 'tra.cumulEscalatedPlain', { name: nomDe(c), count: total, source: f.label, label: posee.label, effet }));
     }
   }
   c.traumas = kept;
@@ -502,7 +503,7 @@ export function receiveMedicalAid(c: Combatant): string[] {
   const awaiting = (c.traumas ?? []).filter((t) => t.awaitingMedicalAid);
   if (!awaiting.length) return [];
   for (const t of awaiting) t.awaitingMedicalAid = false;
-  return [tr('tra.medicalAid', { name: c.label })];
+  return [tr('tra.medicalAid', { name: nomDe(c) })];
 }
 
 /**
@@ -520,7 +521,7 @@ export function tickTraumaEscalation(c: Combatant): string[] {
     const fiche = traumaFicheById(t.perRound!.versTraumaId);
     const ajout = setTraumaCount(traumaById(fiche.id, undefined, t.location), fiche, t.perRound!.unites ?? 1);
     c.traumas = avecSequelles(c.traumas, [ajout]);
-    log.push(tr('tra.escalationTick', { name: c.label, label: fiche.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
+    log.push(tr('tra.escalationTick', { name: nomDe(c), label: fiche.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
   }
   const cons = consolidateAmputations(c);
   // Seuil d'escalade de la séquelle FRANCHI (« Si vous perdez tous vos doigts, vous perdez votre main ») :
@@ -633,7 +634,7 @@ export function settleHealedCriticals(c: Combatant): string[] {
     if (c.criticalWounds) c.criticalWounds = Math.max(0, c.criticalWounds - 1); // la Blessure critique est guérie (l.304)
     const scar = traumaById(g.scar, undefined, t.location);
     c.traumas = avecSequelles(c.traumas, [scar]).filter((x) => x !== t);
-    log.push(tr('tra.scarLeft', { name: c.label, label: scar.label }));
+    log.push(tr('tra.scarLeft', { name: nomDe(c), label: scar.label }));
   }
   return log;
 }
@@ -698,11 +699,11 @@ function armLocationHand(loc: HitLocation): Main | undefined {
 export function recoverDisabledLimb(c: Combatant, uid?: string): { penalty: import('./ops').GameOp[]; log: string[] } {
   const pool = recoverableTraumas(c);
   const t = uid === undefined ? pool[0] : pool.find((x) => x.uid === uid);
-  if (!t) return { penalty: [], log: [tr('tra.noLimbToRehab', { name: c.label })] };
+  if (!t) return { penalty: [], log: [tr('tra.noLimbToRehab', { name: nomDe(c) })] };
   c.traumas = (c.traumas ?? []).filter((x) => x !== t);
   const hand = armLocationHand(t.location);
   const penalty = (t.recoveryPenalty ?? []).map((o) => (hand && o.op === 'testMod' && o.characteristic === 'capacite-de-combat' ? { ...o, weaponHand: hand } : { ...o }));
-  return { penalty, log: [tr('tra.limbRestored', { name: c.label, label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })] };
+  return { penalty, log: [tr('tra.limbRestored', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })] };
 }
 
 /** Le personnage ne peut PAS manier d'arme à deux mains (amputation de main/bras, LDB 18 l.263) — sauf
@@ -736,10 +737,10 @@ export function surgeryTraumas(c: Combatant): Trauma[] {
 export function removeSurgicalTrauma(c: Combatant, uid?: string): string[] {
   const surg = surgeryTraumas(c);
   const t = uid === undefined ? surg[0] : surg.find((x) => x.uid === uid);
-  if (!t) return [tr('tra.noSurgicalWound', { name: c.label })];
+  if (!t) return [tr('tra.noSurgicalWound', { name: nomDe(c) })];
   c.traumas = (c.traumas ?? []).filter((x) => x !== t);
   if (!t.cosmetic && c.criticalWounds) c.criticalWounds = Math.max(0, c.criticalWounds - 1); // une cicatrice n'est pas une Blessure critique comptée (déjà décomptée à la guérison)
-  return [tr('tra.surgeryDone', { name: c.label, label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })];
+  return [tr('tra.surgeryDone', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })];
 }
 
 /** Le personnage a-t-il un trauma que la Compétence Guérison peut encore traiter ?
@@ -768,19 +769,19 @@ function eligibleForHeal(t: Trauma): boolean {
  */
 export function treatTrauma(c: Combatant, dr: number, success = true): string[] {
   const t = (c.traumas ?? []).find(eligibleForHeal);
-  if (!t) return [tr('tra.nothingTreatable', { name: c.label })];
+  if (!t) return [tr('tra.nothingTreatable', { name: nomDe(c) })];
   t.healAccelerated = true; // ce trauma a eu son jet de Guérison (l.222)
-  if (!success) return [tr('tra.treatFailed', { name: c.label, label: t.label })];
+  if (!success) return [tr('tra.treatFailed', { name: nomDe(c), label: t.label })];
   if (t.kind === 'fracture') {
     t.fractureSet = true;
-    return [tr('tra.fractureSet', { name: c.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })];
+    return [tr('tra.fractureSet', { name: nomDe(c), loc: locationLabel(t.location ?? 'corps', c.bodyShape) })];
   }
   if (t.severity === 'majeur') { // déchirure majeure : la Guérison n'accélère rien, elle DIAGNOSTIQUE (l.231)
-    return [tr('tra.tornDiagnosed', { name: c.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape), days: t.recoveryDays ?? 0 })];
+    return [tr('tra.tornDiagnosed', { name: nomDe(c), loc: locationLabel(t.location ?? 'corps', c.bodyShape), days: t.recoveryDays ?? 0 })];
   }
   const cut = 1 + Math.max(0, dr);
   t.recoveryDays = Math.max(0, (t.recoveryDays ?? 0) - cut);
-  return [tr('tra.recoveryShortened', { name: c.label, label: t.label, cut, left: t.recoveryDays })];
+  return [tr('tra.recoveryShortened', { name: nomDe(c), label: t.label, cut, left: t.recoveryDays })];
 }
 
 /** Une prothèse ÉQUIPÉE (portée — `items` avec `equipped`, LDB 73 « Enc 0 quand portées ») annule-t-elle

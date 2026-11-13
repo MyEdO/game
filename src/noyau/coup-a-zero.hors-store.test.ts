@@ -16,6 +16,7 @@ import { critiquesDuCoup, relanceLaLocalisation } from '../engine/critical';
 import { setRule } from '../engine/policy';
 import { t } from '../i18n';
 import { makeRNG } from '../engine/dice';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -76,7 +77,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     applyAttackResult(banc.getState, banc.setState, h, nav, canon, res);
     expect(enJeu('nav'), 'la coque à 0 reste au combat').toBeTruthy();
     expect(enJeu('nav')!.criticalWounds ?? 0, 'le Critique de navire est appliqué à la coque').toBe(avant + 1);
-    expect(journal()).not.toContain(t('cf.coqueSansCritique', { name: nav.label }));
+    expect(journal()).not.toContain(t('cf.coqueSansCritique', { name: nomDe(nav) }));
   });
 
   it('contrôle : un navire au-dessus de 0, coup sans double → pas de Critique', () => {
@@ -98,7 +99,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     applyAttackResult(banc.getState, banc.setState, h, dil, canon, touche(3, { critical: true, attackerRoll: 22 }));
     const apres = enJeu('dil')!;
     expect(apres.criticalWounds).toBe(avant);
-    expect(journal()).toContain(t('cf.coqueSansCritique', { name: dil.label }));
+    expect(journal()).toContain(t('cf.coqueSansCritique', { name: nomDe(dil) }));
   });
 
   it('verrou MSRC 07 l.46, l.74 : barge à 5/60, coup sans double qui en retire 56 → aucun Critique ; le suivant, si', () => {

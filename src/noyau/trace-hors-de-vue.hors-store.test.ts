@@ -5,11 +5,13 @@
 import { describe, expect, it } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { lancerLeScenario } from './lancementDeScenario';
-import { combattantEnVue } from './visionDuGroupe';
+import { caseEnVue, combattantEnVue } from './visionDuGroupe';
+import { discTiles } from './monde/zones';
+import { isStructure } from '../engine/structures';
 import { resolveActGates } from './combat/turnHooks';
 import { resolveFlowTest } from './combat/triggeredTest';
 import { jetsEnVue } from './jetsEnVue';
-import { appliquerLaRecharge, jetDeRecharge, openRoundEndCascade } from './combatFlow';
+import { appliquerLaRecharge, jetDeRecharge, openAttackCascade, openRoundEndCascade } from './combatFlow';
 import { draineEtLit } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { EMPTY_FLOW, type Flow } from '../engine/flowCore';
@@ -19,6 +21,14 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
+import { fenetreDAttaque } from './fenetreDAttaque';
+import { libelleDuDepot } from './interludeEnVue';
+import { createHero } from '../engine/character';
+import { formatMoney, fromBrass } from '../engine/money';
+import { applyShipManeuver, rollShipManeuver } from './shipManeuver';
+import { supersededLines, type PsychAffliction } from '../engine/psychology';
+import { psychologyLabel } from '../data';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 const INCONNU = t('vision.horsDeVue');
 
@@ -164,5 +174,97 @@ describe('sourceName de la psychologie — la Peur surmontée nomme sa source pa
   it('en vue : son nom', () => {
     const { lignes, nom } = ligneDeLaPeur('vu');
     expect(lignes.some((l) => l.includes(nom)), lignes.join('\n')).toBe(true);
+  });
+});
+
+describe('libelleDuDepot — le libellé d’un dépôt nomme son héros par `nomEnVue` sur l’état qu’il reçoit', () => {
+  it('l’état reçu fait foi, pas l’état publié que lit le nommeur', () => {
+    const banc = ouvrirLeBanc();
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    banc.setState({ party: [h], battle: null, interlude: null, bank: [], journal: [] });
+    const recu = { ...banc.getState(), party: [{ ...h, label: 'Hilde' }] } as unknown as Jeu;
+    const depot = { uid: 'd1', heroId: h.id, kind: 'planque', brass: 240, rate: 0 } as const;
+    expect(libelleDuDepot(recu, depot)).toBe(t('interlude.depot.planque', { heros: 'Hilde', montant: formatMoney(fromBrass(240)) }));
+  });
+});
+
+describe('fenetreDAttaque.attente — l’attente de la Défense nomme sa cible par `nomEnVue`', () => {
+  /** L'attente de la fenêtre d'attaque quand un assaillant, piloté au siège MJ, frappe au contact un autre assaillant
+   *  `en vue` ou non : la Défense de la cible, ennemie, se joue au siège MJ. */
+  function attenteDeLaDefense(enVue: boolean): { attente: string | null; nom: string } {
+    const s = siege();
+    s.banc.getState().fenetreValider('debutDuRound');
+    draineEtLit(s.banc.getState);
+    const etat = s.banc.getState() as unknown as Jeu;
+    const b = etat.battle!;
+    const armes = b.combatants.filter((c) => c.kind === 'ennemi' && !isStructure(c) && c.weapons.some((w) => w.type === 'melee'));
+    const cible = armes.find((c) => combattantEnVue(etat, c) === enVue)!;
+    const frappeur = armes.find((c) => c.id !== cible.id)!;
+    const arme = frappeur.weapons.find((w) => w.type === 'melee')!;
+    const voisine = discTiles(cible.pos!, 1, cible.pos!.z).find((p) => (p.x !== cible.pos!.x || p.y !== cible.pos!.y) && !b.combatants.some((c) => c.pos?.x === p.x && c.pos?.y === p.y) && caseEnVue(etat, p) === enVue)!;
+    frappeur.pos = { ...voisine, z: cible.pos!.z };
+    s.banc.setState({ net: { ...s.banc.getState().net, gmSeat: 0 }, battle: { ...b, turn: b.order.indexOf(frappeur.id), movementUsed: 0, movedPreAction: false, acted: false } });
+    expect(combattantEnVue(s.banc.getState() as unknown as Jeu, cible), 'la cible garde sa vue').toBe(enVue);
+    openAttackCascade(s.banc.getState, s.banc.setState, { attackerId: frappeur.id, targetId: cible.id, location: null, result: null, weaponUid: arme.uid }, 'Attaque', 'action/attaquer');
+    s.banc.getState().jetLancer('attaque');
+    return { attente: fenetreDAttaque(s.banc.getState() as unknown as Jeu)!.attente, nom: cible.label };
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { attente, nom } = attenteDeLaDefense(false);
+    expect(attente).toBe(t('defense.awaiting', { cible: INCONNU }));
+    expect(attente!.includes(nom), attente!).toBe(false);
+  });
+
+  it('en vue : son nom', () => {
+    const { attente, nom } = attenteDeLaDefense(true);
+    expect(attente).toBe(t('defense.awaiting', { cible: nom }));
+  });
+});
+
+describe('ManeuverResult.helmsman — l’échec de manœuvre d’un navire ennemi (l’IA navale, `maneuverShip`)', () => {
+  /** Le journal d’une barre qu’un navire ennemi, mis à l’eau à la case de `c` et imposé à sa propre barre, ne peut pas tenir. */
+  function journalDeLaBarre(c: Combatant, banc: ReturnType<typeof siege>['banc']): { lignes: string[]; navire: Combatant } {
+    const navire = combattantDeTest({ id: 'navire', label: 'Barge', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', pos: { ...c.pos! }, conditions: [], weapons: [] });
+    const b = banc.getState().battle!;
+    banc.setState({ battle: { ...b, combatants: [...b.combatants, navire] } });
+    expect(combattantEnVue(banc.getState() as unknown as Jeu, navire), 'le navire garde la vue de sa case').toBe(combattantEnVue(banc.getState() as unknown as Jeu, c));
+    const avant = banc.getState().journal.length;
+    applyShipManeuver(banc.getState, navire.id, rollShipManeuver(banc.getState, navire.id, navire.id)!, 2);
+    return { lignes: banc.getState().journal.slice(avant), navire };
+  }
+  const tete = (nom: string) => t('shipManv.failLine', { helmsman: nom, ship: nom, dr: 0 }).split(' (DR')[0];
+
+  it('hors de vue : le barreur et le navire se disent « Inconnu »', () => {
+    const { banc, cache } = siege();
+    const { lignes, navire } = journalDeLaBarre(cache, banc);
+    expect(lignes.some((l) => l.startsWith(tete(INCONNU))), lignes.join('\n')).toBe(true);
+    expect(lignes.some((l) => l.includes(navire.label)), lignes.join('\n')).toBe(false);
+  });
+
+  it('en vue : leur nom', () => {
+    const { banc } = siege();
+    const etat = banc.getState() as unknown as Jeu;
+    const vu = etat.battle!.combatants.find((c) => c.kind === 'heros' && c.pos)!;
+    const { lignes, navire } = journalDeLaBarre(vu, banc);
+    expect(lignes.some((l) => l.startsWith(tete(navire.label))), lignes.join('\n')).toBe(true);
+  });
+});
+
+describe('turn.psychSuperseded — l’affliction qu’un effet plus fort éclipse (`supersededLines`)', () => {
+  /** La ligne de l’Animosité de `c` que sa Peur éclipse. */
+  function ligneEclipsee(c: Combatant): string {
+    c.psychState = [{ type: 'animosite', active: true }, { type: 'peur', sourceId: 'source', indice: 1, calmeDR: 0 }] as PsychAffliction[];
+    return supersededLines(c)[0];
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { cache } = siege();
+    expect(ligneEclipsee(cache)).toBe(t('turn.psychSuperseded', { name: INCONNU, psych: psychologyLabel('animosite') }));
+  });
+
+  it('en vue : son nom', () => {
+    const { vu } = siege();
+    expect(ligneEclipsee(vu)).toBe(t('turn.psychSuperseded', { name: INCONNU, psych: psychologyLabel('animosite') }).replace(INCONNU, vu.label));
   });
 });

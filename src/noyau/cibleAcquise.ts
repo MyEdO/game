@@ -18,6 +18,7 @@ import { pushStep } from './cascade';
 import { choiceStep, surfaceOf } from './rollSeam';
 import { revealPurpose } from './combatEffects';
 import { nomDIndividu } from './monde/sceneNpc';
+import { nomDe } from '../engine/nom';
 
 /** Pose sur `c` le Trait acquis envers `cible` (`traitAcquis`, `grantPsychTrait`), en retire ceux qu'il remplace
  *  de sa fiche comme des suspensions de ses effets, désactive leur affliction (`desactiverLAfflictionSansTrait`),
@@ -30,7 +31,7 @@ export function poserLeTraitAcquis(get: Get, c: Combatant, type: TypeAcquis, cib
   for (const p of acquis.remplace) desactiverLAfflictionSansTrait(c, p);
   grantPsychTrait(c, acquis.type, cible);
   const groupe = libelleDeCible(cible, nomDIndividu(get()));
-  return t(type === 'phobie' ? 'cf.phobieAcquise' : acquis.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: c.label, groupe });
+  return t(type === 'phobie' ? 'cf.phobieAcquise' : acquis.type === 'haine' ? 'cs.haineGain' : 'cs.animositeGain', { name: nomDe(c), groupe });
 }
 
 /** Le Trait `type` que `c` acquiert : à choisir à une étape `cibleAcquise`, ajoutée à la séquence d'accueil,
@@ -44,7 +45,7 @@ export function acquerirLeTrait(get: Get, set: Set, c: Combatant, type: TypeAcqu
   pushStep(set, (i) => choiceStep({
     id: `cibleAcquise-${c.id}-${i}`,
     kind: 'cibleAcquise', actorId: c.id, icon: 'mecanique/psychologie',
-    label: t('step.cibleAcquise', { name: c.label }),
+    label: t('step.cibleAcquise', { name: nomDe(c) }),
     options: cibles.candidats.map((cible) => ({ key: cible, label: libelleDeCible(cible, nom), detail: psychologyLabel(traitAcquis(c, type, cible).type) })),
     defaultChoice: cibles.parDefaut,
     meta: { psychAcquis: type },

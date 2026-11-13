@@ -46,6 +46,7 @@ import { fireClockTriggers } from './clockHooks';
 import { bus, EVT } from './bus';
 
 import type { Get, Set } from './flowTypes';
+import { nomDe } from '../engine/nom';
 
 
 /** Purge les effets à durée d'HORLOGE arrivés à échéance (`untilTime` ≤ maintenant) : contrecoups
@@ -60,18 +61,18 @@ export function purgeClockEffects(get: Get, set: Set): string[] {
   for (const h of pool) {
     const exp = (h.castPenalties ?? []).filter((p) => p.untilTime != null && p.untilTime <= now);
     if (exp.length) {
-      for (const p of exp) expiredLog.push(t('upkeep.fades', { name: h.label, what: p.label }));
+      for (const p of exp) expiredLog.push(t('upkeep.fades', { name: nomDe(h), what: p.label }));
       h.castPenalties = h.castPenalties!.filter((p) => !(p.untilTime != null && p.untilTime <= now));
     }
     const porte: string[] = []; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'clock' && e.duration.until <= now, undefined, porte);
-    for (const e of fx) expiredLog.push(t('upkeep.fades', { name: h.label, what: e.label }));
+    for (const e of fx) expiredLog.push(t('upkeep.fades', { name: nomDe(h), what: e.label }));
     expiredLog.push(...porte);
     // États à durée d'HORLOGE (op `condition.durationHours` — Belladone : sommeil « 1d10+4 heures ») :
     // dissipés à l'échéance, même canal de purge que les effets actifs (LDB 72 l.18).
     const conds = (h.conditions ?? []).filter((x) => x.untilTime != null && x.untilTime <= now);
     if (conds.length) {
-      for (const x of conds) expiredLog.push(t('upkeep.condFades', { name: h.label, cond: conditionLabel(x.id) }));
+      for (const x of conds) expiredLog.push(t('upkeep.condFades', { name: nomDe(h), cond: conditionLabel(x.id) }));
       h.conditions = h.conditions.filter((x) => !(x.untilTime != null && x.untilTime <= now));
     }
     // Un effet d'HORLOGE qui vient d'expirer peut avoir suspendu un fait source d'État dérivé : la fenêtre
@@ -103,7 +104,7 @@ export function purgeAdventureEffects(get: Get, set: Set): string[] {
   for (const h of get().party) {
     const porte: string[] = [];
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'adventure', undefined, porte);
-    for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: h.label, what: e.label }));
+    for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: nomDe(h), what: e.label }));
     expiredLog.push(...porte);
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
@@ -224,7 +225,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
     if (missed > 0) {
       for (const h of party) {
         if (h.dead) continue;
-        lines.push(t('upkeep.sleepDeprived', { name: h.label, n: missed, s: missed > 1 ? 's' : '' }));
+        lines.push(t('upkeep.sleepDeprived', { name: nomDe(h), n: missed, s: missed > 1 ? 's' : '' }));
         lines.push(...applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }));
       }
     }

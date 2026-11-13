@@ -22,6 +22,7 @@ import { groupMatch, groupesDe } from '../../engine/groups';
 import { immuneToSpellDomain } from '../../engine/traits/dispatch';
 import { findSpellById } from '../../data';
 import { t } from '../../i18n';
+import { nomDe } from '../../engine/nom';
 
 export interface BattleZone {
   /** id STABLE de la zone authoree (`SceneEffectZone.id`), propage par `sceneZonesToBattle` — identite
@@ -209,7 +210,7 @@ export function crossZones(
   for (const z of zones ?? []) {
     if (!z.onCross?.length || z.crossTest) continue;
     if (!path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label })); continue; }
+    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label })); continue; }
     lines.push(`${mover.label} traverse ${z.label} !`);
     lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }));
   }

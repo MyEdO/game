@@ -385,8 +385,8 @@ export function suppressSupersededPsych(c: Combatant): PsychType[] {
 /** Les afflictions ÉCLIPSÉES par un effet dominant, SUPPRIMÉES puis NOMMÉES (`LDB 21 l.21`) — SOURCE
  *  UNIQUE de la queue partagée par les deux résolutions de Test psy (combat et rencontre) : elles
  *  suppriment et journalisent d'un seul geste au lieu de recomposer la même phrase chacune. */
-export function supersededLines(c: Combatant, name: string): string[] {
-  return suppressSupersededPsych(c).map((tp) => t('turn.psychSuperseded', { name, psych: psychologyLabel(tp) }));
+export function supersededLines(c: Combatant): string[] {
+  return suppressSupersededPsych(c).map((tp) => t('turn.psychSuperseded', { name: nomDe(c), psych: psychologyLabel(tp) }));
 }
 
 /** `self` porte-t-il « Sans Peur » (possédé, ou accordé sans spécialisation) contre la source `s` qu'il
@@ -470,7 +470,7 @@ export function spendResolveForPsychImmunity(c: Combatant): string | null {
   c.resolve = (c.resolve ?? 0) - 1;
   removeActiveEffects(c, (e) => e.effectId === EFFET_IMMUNITE_PSY);
   applyActiveEffect(c, { label: 'Détermination (immunité psy)', effectId: EFFET_IMMUNITE_PSY, bonus: 0, duration: { scale: 'rounds', left: 2 }, psychImmune: true });
-  return t('psy.determinationImmune', { name: c.label });
+  return t('psy.determinationImmune', { name: nomDe(c) });
 }
 
 /** Retire de TOUS les combattants les afflictions générées par la créature `deadId`, hors d'action : Peur, Terreur et

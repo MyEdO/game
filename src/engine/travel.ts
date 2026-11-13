@@ -226,11 +226,11 @@ export function forcedMarchTarget(c: Combatant): number {
  *  cascade) : échec → +1 Exténué (+1 si Surchargé, p.293). Mute `c` ; renvoie le journal + gagnés.
  *  Partagé par `forcedMarchTest` (eager) et l'applicateur de cascade « marche-forcee ». */
 export function applyForcedMarch(c: Combatant, success: boolean): { line: string; gained: number } {
-  if (success) return { line: t('trv.forcedMarchOk', { name: c.label }), gained: 0 };
+  if (success) return { line: t('trv.forcedMarchOk', { name: nomDe(c) }), gained: 0 };
   const overloaded = encumbrancePenalties(c).tier > 0;
   const n = overloaded ? 2 : 1;
   addCondition(c, 'extenue', n);
-  return { line: t('trv.forcedMarchFail', { name: c.label, n, over: overloaded ? t('trv.fragOverloaded') : '' }), gained: n };
+  return { line: t('trv.forcedMarchFail', { name: nomDe(c), n, over: overloaded ? t('trv.fragOverloaded') : '' }), gained: n };
 }
 
 /** Marche forcée (LDB 51 l.195) : voyager plus de `hoursPerDay` heures ce jour → Test de Résistance,
@@ -258,5 +258,5 @@ export function applyTravelFatigue(c: Combatant): string[] {
   const n = encumbrancePenalties(c).travelFatigue;
   if (n <= 0) return [];
   addCondition(c, 'extenue', n);
-  return [t('trv.fatigue', { name: c.label, n })];
+  return [t('trv.fatigue', { name: nomDe(c), n })];
 }

@@ -13,6 +13,7 @@ import { t } from '../i18n';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import { refusDeRompreUneFaveur, refuseSi } from './verrousDeFiche';
 import { refusDAcquitterUneFaveur } from './verdictsDInterlude';
+import { nomDe } from '../engine/nom';
 
 /** Crée une Faveur — primitive de création UNIQUE (contrepartie d'Activité/événement du Tableau,
  *  ou Effet d'éditeur `grantFavor`). */
@@ -44,8 +45,8 @@ export function settleFavorActivity(get: Get, set: Set, heroId: string, favorId:
   itl.perHero[heroId] = { ...st, left: st.left - 1, favorProgress: [...(st.favorProgress ?? []), favorId] };
   set({ interlude: { ...itl } });
   get().ecrireAuJournal(done
-    ? t('favor.settled', { name: h.label, level: favor.level, owedTo: favor.owedTo })
-    : t('favor.progressed', { name: h.label, level: favor.level, owedTo: favor.owedTo, progress, required }));
+    ? t('favor.settled', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo })
+    : t('favor.progressed', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo, progress, required }));
 }
 
 /** Remet à 0 la progression des Faveurs qui n'ont PAS reçu d'Activité cet interlude — appelé par
@@ -85,9 +86,9 @@ export function breakFavor(get: Get, set: Set, heroId: string, favorId: string):
   if (rule('faveur-rumeur-se-repand')) {
     h.careerLevel = Math.max(0, (h.careerLevel ?? 1) - 1);
     set({ party: [...get().party] });
-    get().ecrireAuJournal(t('favor.brokenRumor', { name: h.label, level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel }));
+    get().ecrireAuJournal(t('favor.brokenRumor', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel }));
   } else {
-    get().ecrireAuJournal(t('favor.brokenSilent', { name: h.label, level: favor.level, owedTo: favor.owedTo }));
+    get().ecrireAuJournal(t('favor.brokenSilent', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo }));
   }
 }
 

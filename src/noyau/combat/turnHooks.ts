@@ -110,7 +110,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
     }
     const res = rollSansPilote(get, c, rawCombatTestBase(c, { characteristic: char }), 'intermediaire', battleRng(), combatTestPenalty(c));
     out.lines.push(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
-    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: c.label })); }
+    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: nomDe(c) })); }
   }
   return out;
 }
@@ -134,7 +134,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry(testValue(enemy, { characteristic: 'force-mentale' }), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: 'frenesie' });
-    set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
+    set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: nomDe(enemy) }), enemy.id)] } });
   }
 }
 
@@ -153,7 +153,7 @@ export const TABLES = {
     // Étape `testDAgir` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
     testDAgir: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
-      if (step.result.success) return { consequences: freeCons([t('turn.testDAgirReussi', { name: hero.label })]) };
+      if (step.result.success) return { consequences: freeCons([t('turn.testDAgirReussi', { name: nomDe(hero) })]) };
       const choix = choiceStep({
         id: `choixDAgir-${hero.id}`, kind: 'choixDAgir', actorId: hero.id, icon: 'objet/consommable',
         label: t('turn.choixDAgir'),
@@ -165,7 +165,7 @@ export const TABLES = {
       });
       return {
         // LDB 71
-        consequences: freeCons([t('turn.testDAgirRate', { name: hero.label })]),
+        consequences: freeCons([t('turn.testDAgirRate', { name: nomDe(hero) })]),
         ...(choix ? { insert: [choix] } : {}),
       };
     },
@@ -176,10 +176,10 @@ export const TABLES = {
       if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet
       if (step.chosen === 'mouvement') {
         set({ battle: { ...battle, acted: true } });
-        return { consequences: freeCons([t('op.actionPerdue', { name: hero.label })]) };
+        return { consequences: freeCons([t('op.actionPerdue', { name: nomDe(hero) })]) };
       }
       set({ battle: { ...battle, movementUsed: mountMovement(battle, hero) } });
-      return { consequences: freeCons([t('op.mouvementPerdu', { name: hero.label })]) };
+      return { consequences: freeCons([t('op.mouvementPerdu', { name: nomDe(hero) })]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   crochetsDeCombat: [
@@ -195,7 +195,7 @@ export const TABLES = {
         if (adv >= 3) {
           campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
           (enemy.psychState ??= []).push({ type: 'frenesie' });
-          battle.log.push(ev('frenesie', t('turn.rageEnter', { name: enemy.label }), enemy.id));
+          battle.log.push(ev('frenesie', t('turn.rageEnter', { name: nomDe(enemy) }), enemy.id));
           set({ battle: { ...battle } });
           return;
         }
@@ -204,7 +204,7 @@ export const TABLES = {
         if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
         campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
         (enemy.psychState ??= []).push({ type: 'haine', cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
-        battle.log.push(ev('peur', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
+        battle.log.push(ev('peur', t('turn.rageHate', { name: nomDe(enemy), groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
         set({ battle: { ...battle } });
       },
     },

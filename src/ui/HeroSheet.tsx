@@ -18,6 +18,7 @@ import { axisDataFor, heroRoseAxes, heroStatusLabel, heroSubtitle } from './Char
 import { t } from '../i18n';
 import { Row } from './Layout';
 import { ModChips } from './RollLine';
+import { nomDe } from '../engine/nom';
 
 /** Rubriques du corps `HeroSheet`, dans l'ordre canonique du détail candidat (#417). Toutes par
  *  défaut — un appelant restreint via `sections` (ex. l'onglet Compétences & Talents de la fiche,
@@ -133,7 +134,7 @@ export function HeroSheet({
               </>}
             />
           </div>
-          <RoseAxes axes={heroRoseAxes(hero, axisIds)} size="medal" title={t('party.rose.title', { name: hero.label })} />
+          <RoseAxes axes={heroRoseAxes(hero, axisIds)} size="medal" title={t('party.rose.title', { name: nomDe(hero) })} />
         </Row>
       )}
 

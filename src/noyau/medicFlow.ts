@@ -42,6 +42,7 @@ import type { Jeu } from './etat';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
+import { nomDe } from '../engine/nom';
 
 /** Refus d'ouvrir l'infirmerie : la raison affichée, ou `null`. En combat, les soins passent par la
  *  console. Sur un patient DEMANDÉ (`heroId`) : il doit avoir de quoi être soigné (`isHealable`) et, sans
@@ -52,7 +53,7 @@ export function refusDeSoins(s: Pick<Jeu, 'battle' | 'party'>, heroId?: string, 
   if (enCombat || heroId == null) return enCombat;
   const patient = s.party.find((h) => h.id === heroId);
   if (!patient) return t('medic.patientIntrouvable');
-  if (!isHealable(patient)) return t('medic.rienASoigner', { name: patient.label });
+  if (!isHealable(patient)) return t('medic.rienASoigner', { name: nomDe(patient) });
   return npc || s.party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } })) ? null : t('medic.aucunSoigneur');
 }
 
@@ -93,9 +94,9 @@ function appliquerLaPasse(get: Get, set: Set): void {
   const verb = recovery ? t('medic.verbRecovery') : t('medic.verbSurgery');
   const harm = recovery ? 0 : battleRng().int(1, 10);
   if (!recovery) { loseWounds(patient, harm); addCondition(patient, 'hemorragique'); } // dégâts d'une passe de Chirurgie (LDB 10 l.184)
-  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: patient.label, dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
+  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: nomDe(patient), dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
-    log.push(t('medic.patientSinks', { patient: patient.label }));
+    log.push(t('medic.patientSinks', { patient: nomDe(patient) }));
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
     finishPlayerAction(get, set, log, 'soin');
     return;

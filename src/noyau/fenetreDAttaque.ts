@@ -33,6 +33,8 @@ import { difficultyText } from './difficultyText';
 import { libelleDuJet, libelleDuReglage } from './libelles';
 import { gesteDuReglage, type BasculeNommee, type ChoixNomme } from './reglages';
 import type { ReglageDu } from './reglagesDuJet';
+import { nomEnVue } from './visionDuGroupe';
+import { garanti } from '../lib/garanti';
 
 const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
 /** Les 6 localisations dans l'ordre des fenêtres de coup : la liste du moteur, permutée. */
@@ -266,7 +268,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       ? { genre: coup?.compte.critiques.length ? 'critique' : res.hit ? 'degats' : 'attaque', ligne: coup?.ligne ?? res.log }
       : null,
     defenseAttendue,
-    attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,
+    attente: res && defenseAttendue ? t('defense.awaiting', { cible: garanti(nomEnVue(s, cible.id), cible.id, 'cible de l’attaque') }) : null,
     // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
     critiqueALocaliser: res && pa.forcee && coup?.compte.relance
       ? choix('localisationDuCritique', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))

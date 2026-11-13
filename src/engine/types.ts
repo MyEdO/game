@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import type { EntreeDe } from '../data/datasets';
 import type * as structuresDef from '../data/schemas/defs/structures';
 import type * as vehiclesDef from '../data/schemas/defs/vehicles';
-import type { PlayerText } from '../i18n/playerText';
+import type { NonAffichable, PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
 import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
@@ -1275,7 +1275,7 @@ export interface Combatant {
   /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
    *  créateur, #2907) : son entrée de roster le retrouve, son `id` reste celui que l'état cite. */
   idDeRoster?: IdDeHerosDuRoster;
-  label: string;
+  label: string & Partial<NonAffichable>;
   kind: 'heros' | 'ennemi' | 'pnj';
   /** Ce combattant suit-il les règles de PERSONNAGE (#143) — axe DISTINCT du camp (`kind`, ci-dessus)
    *  ET du contrôle (`pilotedByHuman`/`controlsCombatant`, netOwnership.ts) : gouverne des mécaniques

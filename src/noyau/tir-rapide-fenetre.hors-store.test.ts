@@ -9,6 +9,7 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -23,8 +24,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
 const g = () => banc.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
-/** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal. */
-const tirsDe = (id: string) => g().battle!.log.filter((l) => l.text === t('cf.tirRapide', { name: id })).length;
+/** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal, que son acteur porte. */
+const tirsDe = (id: string) => g().battle!.log.filter((l) => l.actorId === id && l.text === t('cf.tirRapide', { name: nomDe(de(id)) })).length;
 const etape = () => { const c = g().pendingCascade; return c?.participants[c.cursor]; };
 
 /** Deux héros surfacés, deux tireurs de l'IA à Bout Portant (LDB 14 l.62 : la défense est permise).

@@ -19,7 +19,7 @@ describe('issue d’un Trait ciblé à la rencontre : le libellé, jamais l’id
   it.each([true, false])('réussite %s', (success) => {
     const texte = describeEncounterPsych({
       heroId: 'h', kind: cible!.id as PsychType, sourceId: 's', sourceName: fixtureText('S'), indice: 0, result: { success },
-    }, 'H');
+    }, fixtureText('H'));
     expect(texte).toContain(psychologyLabel(cible!.id));
     expect(texte).not.toContain(cible!.id);
   });

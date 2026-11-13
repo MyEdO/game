@@ -41,6 +41,7 @@ import { canFixDie, influencesLocally } from './netOwnership';
 import { VERBES_DE_JET, type RollVerb } from './flowVerbs';
 import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 /**
  * FENÊTRES D'INFLUENCE — prédicats PURS, écrits UNE fois, à côté des ops qui les exécutent
@@ -534,7 +535,7 @@ export function opReroll<P extends PendingBase>(
   if (!patch) return;
   if (free) {
     const label = consumeActiveFlag(actor, 'freeReroll');
-    get().ecrireAuJournal(t('roll.freeReroll', { name: actor.label, src: label ?? t('roll.blessingFallback') }));
+    get().ecrireAuJournal(t('roll.freeReroll', { name: nomDe(actor), src: label ?? t('roll.blessingFallback') }));
   } else {
     actor.fortune = (actor.fortune ?? 0) - 1;
   }
@@ -955,7 +956,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       // vit le dé — jamais la valeur saisie (le résolveur peut en appliquer une autre).
       const fresh = handlers.slotOf(get, pid);
       const applied = fresh ? handlers.picker?.(fresh, actor)?.roll : undefined;
-      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied })], 'information', { actorId: actor?.id });
+      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: nomDe(actor), n: applied }) : t('roll.dieFixed', { n: applied })], 'information', { actorId: actor?.id });
     },
     resister(get, set, pid) {
       if (!spec.caps?.resister) return;

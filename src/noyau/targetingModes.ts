@@ -65,6 +65,7 @@ import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleAct
 import { captureMoveSnapshot } from './monde/combatGeometry';
 import { displaceSmaller, applyZoneCrossings } from './combatPlacement';
 import type { IdDIntention } from './designations';
+import { nomDe } from '../engine/nom';
 
 export type HoverTargeting =
   | { kind: 'none' }
@@ -229,7 +230,7 @@ export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById
 export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { reason: 'arc' | 'range'; detail: PlayerText } | null {
   const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos!, target.pos!);
   const postes = bearingPostes(ship, side); // sur ce bord ET chargées (pas en cours de recharge, ch.12)
-  if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: ship.label, side }) };
+  if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: nomDe(ship), side }) };
   // PORTÉE : les BANDES du socle (`rangeBandModifier`, rangées de `portee-d-une-arme`, LDB 62 l.198-206).
   // En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
   // un seuil écrit ici : la pièce la plus longue du bord donne la Portée moyenne, le socle fait le reste.
@@ -237,7 +238,7 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   const gbf = () => bonusDeForce(ship); // paresseux : la portée navale est fixe (number) → BF jamais évalué
   const maxRange = Math.max(...postes.map((p) => effectiveRange(p.item.range, gbf) ?? 0)); // mètres — la plus longue pièce du bord
   if (maxRange && rangeBandModifier(combatDistance(ship, target), maxRange, mpt) == null)
-    return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: ship.label }) };
+    return { reason: 'range', detail: t('cs.refusBordeeHorsPortee', { ship: nomDe(ship) }) };
   return null;
 }
 
@@ -353,16 +354,16 @@ export function refusDAttaque(get: Get, active: Combatant, target: Combatant, op
   const horsDAgir = refusHorsDEtatDAgir(active) ?? refusVerrouDAction(active) ?? (option.cost.action ? refusPriereImposee(active) : null);
   if (horsDAgir) return { reason: 'hors-d-etat', texte: horsDAgir };
   const ft = isFrenzied(active) ? frenzyTarget(get, active) : null;
-  if (ft && ft.id !== target.id) return { reason: 'frenesie-cible', texte: t('cs.frenzyMustAttack', { name: active.label, foe: ft.label }) };
+  if (ft && ft.id !== target.id) return { reason: 'frenesie-cible', texte: t('cs.frenzyMustAttack', { name: nomDe(active), foe: nomDe(ft) }) };
   if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) {
-    return { reason: 'cible-gratuite', texte: t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }) };
+    return { reason: 'cible-gratuite', texte: t('cs.refusCibleGratuite', { name: nomDe(target), attaque: option.label }) };
   }
   if (!plan) return null;
   const depensee = option.cost.action && plan.kind !== 'attaque' ? refusActionDepensee(battle) : null;
   if (depensee) return { reason: 'action-depensee', texte: depensee };
   const gesteImpose = isFrenzied(active) || !option.cost.action;
   if (plan.kind !== 'attaque' && plan.kind !== 'bloque' && !approche && !gesteImpose) {
-    return { reason: 'approche-non-armee', texte: t('cs.refusApprocheNonArmee', { name: target.label }) };
+    return { reason: 'approche-non-armee', texte: t('cs.refusApprocheNonArmee', { name: nomDe(target) }) };
   }
   if (plan.kind === 'bloque') {
     const p = previewAttack(get, active, target, undefined, { weaponUid: option.weaponUid });
@@ -715,7 +716,7 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   get().orienterSelonLeChemin(active.id, [from, pt]);
   bus.emit(EVT.ANIM_MOVE, { id: active.id, path: [{ ...pt }] });
   if (mount) bus.emit(EVT.ANIM_MOVE, { id: mount.id, path: [{ ...pt }] });
-  set({ battle: { ...battle, action: null, reachable: new Map(), preview: null, log: [...battle.log, ev('deplacement', t('cs.teleport', { name: active.label }), active.id)] } });
+  set({ battle: { ...battle, action: null, reachable: new Map(), preview: null, log: [...battle.log, ev('deplacement', t('cs.teleport', { name: nomDe(active) }), active.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
 }
 
@@ -754,7 +755,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
     const c = inBattleId(battle, id);
     if (c) c.loseNextMovement = true;
   }
-  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: active.label, weapon: hull.label, n: dist, s: dist > 1 ? 's' : '' }), active.id)];
+  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: nomDe(active), weapon: nomDe(hull), n: dist, s: dist > 1 ? 's' : '' }), active.id)];
   set({ battle: { ...get().battle!, moveSnapshot: snapshot, movementUsed: mountMovement(get().battle!, active), action: null, reachable: new Map(), preview: null, log } });
   bus.emit(EVT.SCENE_DIRTY);
 }

@@ -47,6 +47,7 @@ import { addCondition } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
 import type { DiseaseDef, DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
+import { nomDe } from './nom';
 
 /** Unité d'un temps de maladie (incubation/durée). La base de calcul/stockage reste la MINUTE (`clock.ts`). */
 const UNIT_MINUTES: Record<DiseaseTime['unit'], number> = { days: MINUTES_PER_DAY, hours: 60, minutes: 1 };
@@ -336,15 +337,15 @@ function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: 
       if (r.etat === 'deja' && op.otherwise?.length) applyOnFailInline(c, op.otherwise, contractOnce, log, emit);
     } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease, op.symptomId, op.severity));
     else if (op.op === 'contractDisease') contractOnce(op.disease);
-    else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: c.label }) : t('op.mort', { name: c.label }));
+    else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: nomDe(c) }) : t('op.mort', { name: nomDe(c) }));
     else if (op.op === 'wounds') {
       const n = typeof op.amount === 'number' ? op.amount : 0; // burst = 1 Blessure directe (littéral) ; formules → voie différée
-      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.blessures', { name: c.label, n, mitig: '' })); }
+      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.blessures', { name: nomDe(c), n, mitig: '' })); }
     } else if (op.op === 'condition') {
       // Pose par la SOURCE UNIQUE (LDB 16 l.115 non-cumul, l.7 perte d'Avantage, déclencheur de gain).
       const valeur = typeof op.value === 'number' ? op.value : 1;
       addCondition(c, op.id.id, valeur);
-      log.push(t('op.etat', { name: c.label, v: c.conditions.find((x) => x.id === op.id.id)?.value ?? valeur, cond: conditionLabel(op.id.id) }));
+      log.push(t('op.etat', { name: nomDe(c), v: c.conditions.find((x) => x.id === op.id.id)?.value ?? valeur, cond: conditionLabel(op.id.id) }));
       emit?.({ stateId: op.id.id, change: 'gain', targetId: c.id });
     }
   }
@@ -370,7 +371,7 @@ export function aggravateDiseaseSymptom(
   if (!dz || !inst) return { etat: 'absent', log: [] };
   if (inst.severity === severity) return { etat: 'deja', log: [] };
   dz.symptoms = dz.symptoms.map((s) => (s === inst ? { ...s, severity } : s));
-  return { etat: 'aggrave', log: [t('dz.symptomAggravated', { name: c.label, symptom: symptomLabel(symptomId), disease: diseaseLabel(diseaseId) })] };
+  return { etat: 'aggrave', log: [t('dz.symptomAggravated', { name: nomDe(c), symptom: symptomLabel(symptomId), disease: diseaseLabel(diseaseId) })] };
 }
 
 /** Fait REDESCENDRE d'un échelon la sévérité de l'instance de symptôme `symptomId` de `diseaseId`,
@@ -398,7 +399,7 @@ export function attenuateDiseaseSymptom(
     ...(c.activeEffects ?? []).filter((e) => !(e.attenuatedSymptom?.disease === diseaseId && e.attenuatedSymptom?.symptomId === symptomId)),
     { label, bonus: 0, duration, attenuatedSymptom: { disease: diseaseId, symptomId } },
   ];
-  return { etat: 'aggrave', log: [t('dz.symptomAttenuated', { name: c.label, symptom: symptomLabel(symptomId), disease: diseaseLabel(diseaseId) })] };
+  return { etat: 'aggrave', log: [t('dz.symptomAttenuated', { name: nomDe(c), symptom: symptomLabel(symptomId), disease: diseaseLabel(diseaseId) })] };
 }
 
 /** Nombre d'ÉCHELONS d'atténuation ACTIFS sur l'instance `symptomId` de `diseaseId` — un par effet
@@ -427,7 +428,7 @@ export function grantDiseaseSymptom(
   const dz = (c.diseases ?? []).find((d) => d.id === diseaseId);
   if (!dz || dz.symptoms.some((s) => s.symptomId === symptomId)) return [];
   dz.symptoms = [...dz.symptoms, { symptomId, ...(severity ? { severity } : {}) }];
-  return [t('dz.symptomGained', { name: c.label, symptom: symptomLabel(symptomId), disease: diseaseLabel(diseaseId) })];
+  return [t('dz.symptomGained', { name: nomDe(c), symptom: symptomLabel(symptomId), disease: diseaseLabel(diseaseId) })];
 }
 
 /** Un symptôme (par id) porte-t-il la capacité `cap` (lue sur sa donnée) ? */
@@ -464,7 +465,7 @@ export function applyContraction(c: Combatant, diseaseName: string, success: boo
   const dz = contractDisease(diseaseName, rng, opts?.instant ? { incubation: 0 } : undefined);
   if (!dz) return [];
   c.diseases = [...(c.diseases ?? []), dz];
-  return [t('dz.contract', { name: c.label, disease: diseaseLabel(diseaseName) })];
+  return [t('dz.contract', { name: nomDe(c), disease: diseaseLabel(diseaseName) })];
 }
 
 /**
@@ -514,13 +515,13 @@ export function contractDiseaseOnce(
     const re = diseaseDefs()[name]?.reExposition;
     if (!re) return [];
     const days = rollDiseaseTime(re.prolonge, rng) / MINUTES_PER_DAY;
-    return prolongDisease(c, name, days) ? [t('dz.reExposed', { name: c.label, disease: diseaseLabel(name), days })] : [];
+    return prolongDisease(c, name, days) ? [t('dz.reExposed', { name: nomDe(c), disease: diseaseLabel(name), days })] : [];
   }
   if (opts?.contraction === false) return [];
   const dz = contractDisease(name, rng, opts?.incubation === 'raw' ? undefined : { incubation: 0 });
   if (!dz) return [];
   c.diseases = [...(c.diseases ?? []), dz];
-  return [t(opts?.message ?? 'dz.develop', { name: c.label, disease: diseaseLabel(name) })];
+  return [t(opts?.message ?? 'dz.develop', { name: nomDe(c), disease: diseaseLabel(name) })];
 }
 
 /** Bascule une maladie de l'INCUBATION à sa phase ACTIVE : la durée authorée prend la place du reste
@@ -532,7 +533,7 @@ export function declareDisease(c: Combatant, dz: Disease, rng: RNG): string[] {
   dz.phase = 'active';
   dz.minutesLeft = dz.durationMinutes;
   if (dz.symptoms.some((s) => findSymptomById(s.symptomId)?.visiblePassive?.length)) dz.blisterLocation = rollBlisterLocation(rng);
-  return [t('dz.symptomsOnset', { name: c.label, disease: diseaseLabel(dz.id) })];
+  return [t('dz.symptomsOnset', { name: nomDe(c), disease: diseaseLabel(dz.id) })];
 }
 
 /** Prolonge la DURÉE d'une maladie EN COURS de `days` jours. La durée active porte l'allonge ; si la
@@ -555,9 +556,9 @@ export function applyDiseaseGangrene(c: Combatant, diseaseName: string, success:
   dz.gangreneFails = (dz.gangreneFails ?? 0) + 1;
   if (dz.gangreneFails > be) {
     dz.gangreneLost = true;
-    return [t('dz.gangreneLost', { name: c.label })];
+    return [t('dz.gangreneLost', { name: nomDe(c) })];
   }
-  return [t('dz.gangreneProgress', { name: c.label, fails: dz.gangreneFails })];
+  return [t('dz.gangreneProgress', { name: nomDe(c), fails: dz.gangreneFails })];
 }
 
 /** Conséquence du Test « persistant » de fin de durée DIFFÉRÉ (l.162) : réussite → guérison ;
@@ -569,11 +570,11 @@ export function applyDiseasePersist(c: Combatant, diseaseName: string, success: 
   dz.endTestPending = undefined;
   const log: string[] = [];
   const remove = () => { c.diseases = (c.diseases ?? []).filter((d) => d !== dz); };
-  const cure = () => { remove(); log.push(t('dz.cured', { name: c.label, disease: diseaseLabel(dz.id) })); if (diseaseDefs()[dz.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), dz.id]; };
+  const cure = () => { remove(); log.push(t('dz.cured', { name: nomDe(c), disease: diseaseLabel(dz.id) })); if (diseaseDefs()[dz.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), dz.id]; };
   if (success) cure();
-  else if (sl <= -6) { remove(); log.push(t('dz.degenerate', { name: c.label, disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'infection-du-sang', rng)); }
-  else if (sl <= -2) { remove(); log.push(t('dz.infects', { name: c.label, disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'blessure-purulente', rng)); }
-  else { const extra = roll(1, 10, rng); dz.minutesLeft = extra * MINUTES_PER_DAY; log.push(t('dz.persists', { name: c.label, disease: diseaseLabel(dz.id), days: extra })); }
+  else if (sl <= -6) { remove(); log.push(t('dz.degenerate', { name: nomDe(c), disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'infection-du-sang', rng)); }
+  else if (sl <= -2) { remove(); log.push(t('dz.infects', { name: nomDe(c), disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'blessure-purulente', rng)); }
+  else { const extra = roll(1, 10, rng); dz.minutesLeft = extra * MINUTES_PER_DAY; log.push(t('dz.persists', { name: nomDe(c), disease: diseaseLabel(dz.id), days: extra })); }
   return log;
 }
 
@@ -616,7 +617,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
     const dz = contractDisease(name, rng, { incubation: 0 }); // « instantanée » depuis un autre symptôme (l.32)
     if (dz) {
       contracted.push(dz);
-      log.push(t('dz.develop', { name: c.label, disease: diseaseLabel(name) }));
+      log.push(t('dz.develop', { name: nomDe(c), disease: diseaseLabel(name) }));
     }
     return true;
   };
@@ -694,8 +695,8 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
           // La maladie muée quitte la liste dans les DEUX cas (pas de `survivors.push`) ; seule change la
           // ligne de journal : `into` déjà portée → rien n'apparaît, la porteuse cède simplement la place.
           log.push(contractOnce(mut.into)
-            ? t('dz.mutates', { name: c.label, from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) })
-            : t('dz.mutatesAbsorbed', { name: c.label, from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) }));
+            ? t('dz.mutates', { name: nomDe(c), from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) })
+            : t('dz.mutatesAbsorbed', { name: nomDe(c), from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) }));
           continue;
         }
       }
@@ -718,7 +719,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
         defer({ kind: 'maladie-persistance', label: t('dz.endStep', { disease: diseaseLabel(dz.id) }), test: TEST_RESISTANCE, difficulty: dz.persistDifficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: 'persistant' } });
         survivors.push(dz);
       } else {
-        log.push(t('dz.cured', { name: c.label, disease: diseaseLabel(dz.id) }));
+        log.push(t('dz.cured', { name: nomDe(c), disease: diseaseLabel(dz.id) }));
         snapshotInfectionResidual(c, dz); // Vers du Reik : la pénalité de Résistance survit et décroît −1/jour (l.138)
         if (diseaseDefs()[dz.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), dz.id]; // Vérole Urticante (l.97)
       }

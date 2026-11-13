@@ -34,6 +34,7 @@ import { refLabel, dataLabel, testSkillLabel } from '../data';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import monturesJson from '../data/montures.json';
 import type { MonturesData } from '../data/schemas/defs/montures';
+import { nomDe } from './nom';
 
 export type Allure = 'pas' | 'trot' | 'galop';
 export const ALLURES: readonly Allure[] = ['pas', 'trot', 'galop'];
@@ -197,9 +198,9 @@ export function resolveMountIncident(entry: TravelTableEntry, mount: PartyMount,
     out.riderTest = testDetail(testSkillLabel({ skill, characteristic }) ?? 'Test', base, tst);
     if (!tst.success) {
       out.riderFallM = eff.riderTest.fallM;
-      out.lines.push(t('mt.riderFalls', { name: mount.hero.label, metres: `${eff.riderTest.fallM}` }));
+      out.lines.push(t('mt.riderFalls', { name: nomDe(mount.hero), metres: `${eff.riderTest.fallM}` }));
     } else {
-      out.lines.push(t('mt.riderHolds', { name: mount.hero.label }));
+      out.lines.push(t('mt.riderHolds', { name: nomDe(mount.hero) }));
     }
   }
   out.injury = entry.id as MountInjury; // la séquelle persistée EST l'id de son incident

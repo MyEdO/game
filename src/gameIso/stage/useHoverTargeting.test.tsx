@@ -21,6 +21,7 @@ import { cleDeFixture } from '../../noyau/noyau.testkit';
 import { combatHighlightsView } from './highlightLayer';
 import { validTargets } from '../../noyau/targeting';
 import { frenzyTarget } from '../../noyau/combatFlow';
+import { nomDe } from '../../engine/nom';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -364,7 +365,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
     const foe = foeAPorteeDeCharge(active);
     expect(probeAim({ x: foe.pos!.x, y: foe.pos!.y }), 'témoin : le survol s’est bien tu').toBeNull();
     cliqueLaCase(foe.pos!);
-    expect(useGame.getState().refus?.texte).toBe(t('cs.refusApprocheNonArmee', { name: foe.label }));
+    expect(useGame.getState().refus?.texte).toBe(t('cs.refusApprocheNonArmee', { name: nomDe(foe) }));
   });
 
   it('ennemi À PORTÉE : carte de jet au pion (cible, arme, compétence), SANS verbe de manœuvre', () => {

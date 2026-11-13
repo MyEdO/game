@@ -28,6 +28,7 @@ import { RNG } from '../engine/dice';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { mirrorPools } from '../engine/advantagePool';
+import { nomDe } from '../engine/nom';
 
 /** Descripteur d'invocation = la charge utile de l'op `summon` du Flow (donnée éditable du sort) ;
  *  le discriminant `op` est superflu pour cette fonction dédiée → l'op complète s'assigne quand même. */
@@ -122,10 +123,10 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     placed.push(c);
   }
   set({ battle: { ...battle } });
-  if (!placed.length) return [t('summon.noRoom', { name: caster.label, ref: invoque })];
-  const name = placed[0].label;
+  if (!placed.length) return [t('summon.noRoom', { name: nomDe(caster), ref: invoque })];
+  const name = nomDe(placed[0]);
   const tag = hostile ? t('summon.fragHostile') : kind === 'heros' ? t('summon.fragAllies') : '';
-  return [t('summon.summons', { name: caster.label, n: placed.length, label: name, tag })];
+  return [t('summon.summons', { name: nomDe(caster), n: placed.length, label: name, tag })];
 }
 
 /**
@@ -148,5 +149,5 @@ export function purgeExpiredSummons(battle: BattleState, round: number): string[
   battle.combatants = battle.combatants.filter((c) => !goneIds.has(c.id));
   battle.order = battle.order.filter((id) => !goneIds.has(id));
   if (battle.baseOrder) battle.baseOrder = battle.baseOrder.filter((id) => !goneIds.has(id));
-  return gone.map((c) => t('summon.dispels', { name: c.label, label: nomDeSource(c.summon) }));
+  return gone.map((c) => t('summon.dispels', { name: nomDe(c), label: nomDeSource(c.summon) }));
 }

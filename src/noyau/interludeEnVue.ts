@@ -23,6 +23,7 @@ import { fenetreDuJeu } from './combatAuto';
 import { libelleDuChoix } from './libelles';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
+import { nomEnVue } from './visionDuGroupe';
 
 /** Un geste d'interlude : son nom, le verbe qui le joue, et pourquoi il ne se joue pas maintenant (`null` s'il se joue). */
 export interface GesteDInterlude { libelle: string; geste: GesteDuNoyau; refus: string | null }
@@ -114,8 +115,8 @@ function depotDuHeros(s: Etat, h: Combatant): DepotAFaire {
 }
 
 /** Le libellé d'un dépôt : son héros, son genre et son montant, et ce que rend un investissement. */
-export function libelleDuDepot(s: Pick<Jeu, 'party'>, d: NonNullable<Etat['bank']>[number]): string {
-  const heros = garanti(s.party.find((h) => h.id === d.heroId), d.heroId, 'héros du dépôt').label;
+export function libelleDuDepot(s: Jeu, d: NonNullable<Etat['bank']>[number]): string {
+  const heros = garanti(nomEnVue(s, d.heroId), d.heroId, 'héros du dépôt');
   const montant = formatMoney(fromBrass(d.brass));
   return d.kind === 'investir'
     ? t('interlude.depot.investir', { heros, montant, rendu: formatMoney(fromBrass(bankPayout('investir', d.brass, d.rate))), indice: d.rate })

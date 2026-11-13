@@ -21,6 +21,7 @@ import { libelleDeTest } from './jetsEnVue';
 import { libelleDuReglage } from './libelles';
 import { garanti } from '../lib/garanti';
 import { cibleDeLOperation, estOperation, HEAL_STAKE, refusDeLActeALInfirmerie } from './acteDeSoin';
+import { nomDe } from '../engine/nom';
 
 /** Les paramètres déclarés du soin `ph`, que l'annonce et le résolveur lisent tous deux. */
 export const parametresDuSoin = (ph: Pick<PendingHeal, 'test' | 'bandagesDe'>): ParametresDeSoin => ({ test: ph.test, bandages: ph.bandagesDe != null });
@@ -96,7 +97,7 @@ export function fenetreDuSoin(s: Jeu): { patientId: string; mode: ChoixNomme<Hea
       geste: gesteDuReglage('soins', 'bandages'), libelle: libelleDuReglage('soins', 'bandages'), choisie: ph.bandagesDe,
       options: [
         { valeur: null, libelle: t('heal.sansBandages'), refus: ph.bandagesDe == null ? null : refusDesBandages(s, null) },
-        ...porteurs.map((c) => ({ valeur: c.id, libelle: t('heal.bandagesDe', { name: c.label }), refus: c.id === ph.bandagesDe ? null : refusDesBandages(s, c.id) })),
+        ...porteurs.map((c) => ({ valeur: c.id, libelle: t('heal.bandagesDe', { name: nomDe(c) }), refus: c.id === ph.bandagesDe ? null : refusDesBandages(s, c.id) })),
       ],
     } : null,
   };

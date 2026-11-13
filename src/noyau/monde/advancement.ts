@@ -37,6 +37,7 @@ import { t } from '../../i18n';
 import { mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from '../depenseDePx';
 import { refusDepensePx } from '../verrousDeFiche';
 import type { Jeu } from '../etat';
+import { nomDe } from '../../engine/nom';
 
 export interface CharAdvanceRow {
   key: CharKey;
@@ -142,7 +143,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
   /** Refus d'une Augmentation : combat, puis mentor, puis PX — l'ordre de l'achat. */
   const refusDAugmentation = (inCareer: boolean, what: string, cost: number): string | null =>
     // LDB 07 l.89
-    refus ?? (mentorRequis(s, inCareer) ? t('pf.charNeedsMentor', { name: hero.label, what }) : refusPx(cost));
+    refus ?? (mentorRequis(s, inCareer) ? t('pf.charNeedsMentor', { name: nomDe(hero), what }) : refusPx(cost));
   /** Refus d'acquérir un Talent : combat, puis Maxi et Domaine (`refusDAcquerirLeTalent`), puis PX. */
   const refusDeTalent = (id: string, spec: string | undefined, cost: number): string | null =>
     refus ?? refusDAcquerirLeTalent(hero, id, spec) ?? refusPx(cost);

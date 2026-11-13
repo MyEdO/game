@@ -18,6 +18,7 @@ import { gameDay } from '../noyau/merchantFlow';
 import { refusDeSoins } from '../noyau/medicFlow';
 import { combatantRingDecor } from '../gameIso/builders/dynamicMarks';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { nomDe } from '../engine/nom';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
 const hero = (): Combatant =>
@@ -289,7 +290,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     // Soins : contrôle REFUSÉ, jamais masqué — il porte la raison de `refusDeSoins` (héros indemne).
     const soins = boutons(aside as HTMLElement).find((b) => b.texte.includes('Soins'))!;
     expect(soins).toMatchObject({ ferme: true, raison: refusDeSoins({ battle: null, party: [h] }, h.id) });
-    expect(soins.raison).toBe(t('medic.rienASoigner', { name: h.label }));
+    expect(soins.raison).toBe(t('medic.rienASoigner', { name: nomDe(h) }));
   });
 
   it('les jauges VIVENT : re-rendent au switch de héros et après un soin (valeur/teinte suivent `hero.wounds`)', () => {

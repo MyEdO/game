@@ -26,6 +26,7 @@ import type { Combatant, NavalTraitRef } from './types';
 import { SHIP_CRIT_SET, shipCritSet, type ShipCritSet, type ShipCritKey, type ShipCrewHit, type CrewTarget } from '../data/shipCriticals';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
+import { nomDe } from './nom';
 
 /** Clés de libellé des Localisations de bateau (MDG 13) — des CLÉS, jamais des textes résolus : une
  *  carte de phrases figée à l'évaluation du module ne suivrait pas `setLocale` (`src/i18n/index.ts`). */
@@ -285,7 +286,7 @@ export function applyHullCritical(
 
   if (hit.crewHit) {
     const marin = exposed[0]!;
-    lines.push(t('shipCrit.crewExpose', { name: marin.label })); // MDG 13 l.584
+    lines.push(t('shipCrit.crewExpose', { name: nomDe(marin) })); // MDG 13 l.584
     return { location: 'equipage', hullOps: [], shrapnel: [], extraHullCrits: [], marinId: marin.id, lines };
   }
 

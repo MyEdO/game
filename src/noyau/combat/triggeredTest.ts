@@ -665,7 +665,7 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
     pushChoice(ctx.set, (i) => ({
       id: `personneChoisie-${decideur.id}-${i}`,
       kind: 'personneChoisie', actorId: decideur.id, icon: 'mecanique/psychologie',
-      label: t('step.personneChoisie', { src: nomDeSource(oc), name: cible.label }),
+      label: t('step.personneChoisie', { src: nomDeSource(oc), name: nomDe(cible) }),
       options: candidates.map((p) => ({ key: p.id, label: dataLabel(p.label) })),
       defaultChoice: (auto ?? candidates[0]).id,
       meta: { feuilleEnvers: { kind: 'effet', effet: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc), differeLaSuite: true },
@@ -679,8 +679,8 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
 /** La ligne de journal qui dit la personne désignée pour `cible`, ou qu'il n'y en a aucune. */
 function ligneDeDesignation(cible: Combatant, personne: Personne | undefined, oc: Pick<OpsCtx, 'label'>): string {
   return personne
-    ? t('op.personneDesignee', { src: nomDeSource(oc), name: cible.label, personne: personne.label })
-    : t('op.personneAbsente', { src: nomDeSource(oc), name: cible.label });
+    ? t('op.personneDesignee', { src: nomDeSource(oc), name: nomDe(cible), personne: personne.label })
+    : t('op.personneAbsente', { src: nomDeSource(oc), name: nomDe(cible) });
 }
 
 /**
@@ -961,7 +961,7 @@ export const TABLES = {
       if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       const choisie = step.options?.find((o) => o.key === step.chosen)?.key;
       const cible = choisie === undefined ? undefined : ciblePsyLue(choisie);
-      const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: hero.label });
+      const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: nomDe(hero) });
       set(touchActors(get()));
       return { consequences: freeCons([ligne]) };
     },

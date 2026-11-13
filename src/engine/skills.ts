@@ -20,6 +20,7 @@ import { RULE_REF } from './ruleRefs';
 import { rule } from './policy';
 import { effectivePsychTraits, isPsychImmune, vise, type SourcePsy } from './psychology';
 import { maxBy } from './pick';
+import { nomDe } from './nom';
 
 /** Règles optionnelles « caractéristique alternative » (POINT UNIQUE de la famille) : la liaison
  *  règle ↔ compétence ↔ Caractéristique vit ENTIÈREMENT sur l'entrée de `skills.json`
@@ -207,7 +208,7 @@ export function refusPersonneNePeutTenter(quoi: QuoiRefuse): PlayerText {
 
 /** Refus NOMMÉ, décliné par ACTEUR, d'un Test qu'il ne peut pas tenter (`peutTenter`). LDB 09 l.30. */
 export function refusNePeutTenter(c: Combatant, quoi: QuoiRefuse): PlayerText {
-  return t('refus.nePeutTenter', { qui: c.label, quoi: quoiRefuse(quoi) });
+  return t('refus.nePeutTenter', { qui: nomDe(c), quoi: quoiRefuse(quoi) });
 }
 
 /** Le personnage a-t-il AU MOINS UNE Augmentation dans `skillId` (spécialisation ciblée si `spec`) ?

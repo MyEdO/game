@@ -16,6 +16,7 @@ import { chebyshev } from './grid';
 import { isStructure } from './structures';
 import { possesses } from './skills';
 import { objetDuTrapping } from './items';
+import { nomDe } from './nom';
 
 /** Id STABLE de la Compétence des actes de soin — source unique des sites qui la testent ou la lisent. */
 export const HEAL_SKILL = 'guerison';
@@ -220,16 +221,16 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
   const { wake = true, log: customLog } = opts;
   if (delta < 0) {
     const lost = loseWounds(target, -delta); // perte centralisée (−Avantage + À Terre à 0)
-    return [t('heal.backfire', { name: target.label, lost })];
+    return [t('heal.backfire', { name: nomDe(target), lost })];
   }
-  if (delta === 0) return customLog ? customLog(0) : [t('heal.nothing', { name: target.label })];
+  if (delta === 0) return customLog ? customLog(0) : [t('heal.nothing', { name: nomDe(target) })];
   const before = target.wounds.current;
   target.wounds.current = before + cappedHealAmount(target, delta);
   const healed = target.wounds.current - before;
   const log = customLog ? customLog(healed) : (healed > 0
-    ? [t('heal.gain', { name: target.label, n: healed, cur: target.wounds.current, max: target.wounds.max })]
-    : [t('heal.lodgedBlocks', { name: target.label })]);
-  if (wake && target.wounds.current > 0 && reprendreConnaissance(target)) log.push(t('heal.awake', { name: target.label }));
+    ? [t('heal.gain', { name: nomDe(target), n: healed, cur: target.wounds.current, max: target.wounds.max })]
+    : [t('heal.lodgedBlocks', { name: nomDe(target) })]);
+  if (wake && target.wounds.current > 0 && reprendreConnaissance(target)) log.push(t('heal.awake', { name: nomDe(target) }));
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
@@ -246,12 +247,12 @@ export function arretDHemorragie(target: Combatant, dr: number, success: boolean
 /** Applique l'arrêt d'Hémorragie (mutation). `dr` = DR du Test réussi. */
 export function applyStopBleed(target: Combatant, dr: number, p: ParametresDeSoin): string[] {
   const { removed, gainExtenue } = arretDHemorragie(target, dr, true, p);
-  if (removed <= 0) return [t('heal.bleedResists', { name: target.label })];
+  if (removed <= 0) return [t('heal.bleedResists', { name: nomDe(target) })];
   removeCondition(target, 'hemorragique', removed);
-  const log = [t('heal.bleedStopped', { name: target.label, n: removed })];
+  const log = [t('heal.bleedStopped', { name: nomDe(target), n: removed })];
   if (gainExtenue) {
     addCondition(target, 'extenue');
-    log.push(t('heal.bleedExtenue', { name: target.label }));
+    log.push(t('heal.bleedExtenue', { name: nomDe(target) }));
   }
   return log;
 }
@@ -271,7 +272,7 @@ export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: numbe
     const dz = contractDisease('infection-mineure', rng);
     if (dz && !(target.diseases ?? []).some((d) => d.id === dz.id)) {
       target.diseases = [...(target.diseases ?? []), dz];
-      log.push(t('heal.astoundingFail', { name: target.label }));
+      log.push(t('heal.astoundingFail', { name: nomDe(target) }));
     }
   }
   return { log, healed };
@@ -279,7 +280,7 @@ export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: numbe
 
 /** SOURCE UNIQUE de l'arrêt d'Hémorragie (Guérison) : applique si réussi, message d'échec sinon. */
 export function resolveBleedHeal(target: Combatant, sl: number, success: boolean, p: ParametresDeSoin): string[] {
-  return success ? applyStopBleed(target, sl, p) : [t('heal.bleedResists', { name: target.label })];
+  return success ? applyStopBleed(target, sl, p) : [t('heal.bleedResists', { name: nomDe(target) })];
 }
 
 /** Retrait d'une munition Empaleuse logée (LDB 62 l.250 : « Les flèches et les carreaux nécessitent
@@ -287,8 +288,8 @@ export function resolveBleedHeal(target: Combatant, sl: number, success: boolean
  *  la plus ancienne pion) ; un échec ne retire rien. */
 export function resolveExtractLodgedAmmo(target: Combatant, success: boolean): string[] {
   const before = lodgedAmmoCount(target);
-  if (before <= 0) return [t('heal.noLodged', { name: target.label })];
-  if (!success) return [t('heal.lodgedResists', { name: target.label })];
+  if (before <= 0) return [t('heal.noLodged', { name: nomDe(target) })];
+  if (!success) return [t('heal.lodgedResists', { name: nomDe(target) })];
   removeCondition(target, 'munition-logee', 1);
-  return [t('heal.lodgedRemoved', { name: target.label, left: before - 1 })];
+  return [t('heal.lodgedRemoved', { name: nomDe(target), left: before - 1 })];
 }

@@ -160,6 +160,7 @@ import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -327,8 +328,8 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
   if (!genuineExposureFail(hero, kind, row.result)) {
     const held = !row.result!.success; // échec de justesse tenu par la peau de phoque
     return { consequences: freeCons([held
-      ? t('rf.sealskinHeld', { name: hero.label })
-      : t('rf.exposureEndured', { name: hero.label, what: kind === 'froid' ? t('rf.cold') : t('rf.heat') })]) };
+      ? t('rf.sealskinHeld', { name: nomDe(hero) })
+      : t('rf.exposureEndured', { name: nomDe(hero), what: kind === 'froid' ? t('rf.cold') : t('rf.heat') })]) };
   }
   // Escalade CUMULATIVE (l.330/334) : le rang de l'échec est une DONNÉE DE LA RANGÉE, dotée à la
   // construction de la vague (`nextExposureWave`) — donc APRÈS les délestages de la vague précédente.
@@ -348,7 +349,7 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
   }) : undefined;
   if (heavy && drop) {
     return {
-      consequences: freeCons([t('rf.heatFailDrop', { name: hero.label, item: heavy.label })]),
+      consequences: freeCons([t('rf.heatFailDrop', { name: nomDe(hero), item: heavy.label })]),
       insert: [drop],
     };
   }
@@ -495,8 +496,8 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     } else {
       const before = h.wounds.current;
       const { wokeUp } = applyRecoveryDay(h, null);
-      if (h.wounds.current - before > 0) log.push(t('rf.recovered', { name: h.label, n: h.wounds.current - before }));
-      if (wokeUp) log.push(t('heal.awake', { name: h.label }));
+      if (h.wounds.current - before > 0) log.push(t('rf.recovered', { name: nomDe(h), n: h.wounds.current - before }));
+      if (wokeUp) log.push(t('heal.awake', { name: nomDe(h) }));
     }
     if (h.nightmares) {
       const st = monoStep({ id: `nm-${h.id}`, kind: 'cauchemar', actor: h, label: t('step.cauchemars'), icon: 'creature/hurlement',
@@ -805,15 +806,15 @@ export const TABLES = {
       const { wokeUp } = applyRecoveryDay(hero, { sl: row.result!.sl, success: row.result!.success });
       const j: string[] = [];
       const healed = hero.wounds.current - before;
-      if (healed > 0) j.push(t('rf.recovered', { name: hero.label, n: healed }));
-      else j.push(t('rf.noRecovery', { name: hero.label }));
-      if (wokeUp) j.push(t('heal.awake', { name: hero.label }));
+      if (healed > 0) j.push(t('rf.recovered', { name: nomDe(hero), n: healed }));
+      else j.push(t('rf.noRecovery', { name: nomDe(hero) }));
+      if (wokeUp) j.push(t('heal.awake', { name: nomDe(hero) }));
       return { consequences: freeCons(j) };
     }),
     cauchemar: bandeDeNuit((_get, _set, _band, row, hero) => {
-      if (row.result!.success) return { consequences: freeCons([t('rf.dreamless', { name: hero.label })]) };
+      if (row.result!.success) return { consequences: freeCons([t('rf.dreamless', { name: nomDe(hero) })]) };
       addCondition(hero, 'extenue'); // LDB 21 l.95 : Calme +40 raté → Exténué
-      return { consequences: freeCons([t('rf.nightmareFail', { name: hero.label })]) };
+      return { consequences: freeCons([t('rf.nightmareFail', { name: nomDe(hero) })]) };
     }),
     'abri-de-fortune': bandeDeNuit((get, _set, _band, row, hero) => {
       const sheltered = row.result!.success; // Survie en extérieur réussie → abri qui tient (ch.09 l.559)
@@ -821,7 +822,7 @@ export const TABLES = {
       const camperIds = String(row.meta?.campers ?? '').split(',').filter(Boolean);
       const count = exposureTestCount(severity, sheltered);
       return {
-        consequences: freeCons([sheltered ? t('rf.shelterOk', { name: hero.label }) : t('rf.shelterKo')]),
+        consequences: freeCons([sheltered ? t('rf.shelterOk', { name: nomDe(hero) }) : t('rf.shelterKo')]),
         insert: count > 0 ? buildExposureBand(get().party, camperIds, count) : [],
       };
     }),
@@ -832,7 +833,7 @@ export const TABLES = {
       if (step.chosen === 'jeter') {
         const name = dropHeaviestPossession(hero);
         // LDB 18 l.332
-        return { consequences: freeCons([t('rf.dropped', { name: hero.label, what: name ?? t('rf.fragHeaviest') })]), insert };
+        return { consequences: freeCons([t('rf.dropped', { name: nomDe(hero), what: name ?? t('rf.fragHeaviest') })]), insert };
       }
       return { consequences: freeCons(applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log), insert };
     },

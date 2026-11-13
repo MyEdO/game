@@ -174,10 +174,10 @@ export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: R
   let damage = 0;
   if (!success) {
     h.failures += 1;
-    if (h.failures === 1) log.push(t('prov.starving', { name: c.label }));
+    if (h.failures === 1) log.push(t('prov.starving', { name: nomDe(c) }));
     else {
       damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.342)
-      log.push(t('prov.wasting', { name: c.label, dmg: damage }));
+      log.push(t('prov.wasting', { name: nomDe(c), dmg: damage }));
     }
   } // réussite : aucune conséquence (le jet a déjà été montré dans l'étape — pas de bruit de journal)
   c.hunger = h;
@@ -219,7 +219,7 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
   }
 
   if (res.ate) {
-    if (h.days > 0 || h.failures > 0) res.log.push(t('prov.fedAgain', { name: c.label }));
+    if (h.days > 0 || h.failures > 0) res.log.push(t('prov.fedAgain', { name: nomDe(c) }));
     // Brouet : demi-ration → le jour suivant est couvert (LDB 10 l.139). Sinon, plus d'état de faim.
     c.hunger = brouet && res.rationConsumed ? { days: 0, tests: 0, failures: 0, coveredDay: true } : undefined;
     return res;
@@ -247,10 +247,10 @@ export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: R
     if (!t2.success) {
       h.failures += 1;
       if (h.failures === 1) {
-        res.log.push(t('prov.starving', { name: c.label }));
+        res.log.push(t('prov.starving', { name: nomDe(c) }));
       } else {
         res.damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.342)
-        res.log.push(t('prov.wasting', { name: c.label, dmg: res.damage }));
+        res.log.push(t('prov.wasting', { name: nomDe(c), dmg: res.damage }));
       }
     }
   }
@@ -278,10 +278,10 @@ export function applySoifTest(c: Combatant, success: boolean, be: number, rng: R
   let damage = 0;
   if (!success) {
     s.failures += 1;
-    if (s.failures === 1) log.push(t('prov.parched', { name: c.label }));
+    if (s.failures === 1) log.push(t('prov.parched', { name: nomDe(c) }));
     else {
       damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.340)
-      log.push(t('prov.dehydrating', { name: c.label, dmg: damage }));
+      log.push(t('prov.dehydrating', { name: nomDe(c), dmg: damage }));
     }
   }
   c.thirst = s;
@@ -302,7 +302,7 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   // la Soif est suspendue au même titre que la Faim (drapeau `noHunger`), compteurs purgés.
   if (hasWater || hasActiveFlag(c, 'noHunger')) {
     res.drank = true;
-    if (c.thirst && (c.thirst.days > 0 || c.thirst.failures > 0)) res.log.push(t('prov.quenched', { name: c.label }));
+    if (c.thirst && (c.thirst.days > 0 || c.thirst.failures > 0)) res.log.push(t('prov.quenched', { name: nomDe(c) }));
     c.thirst = undefined;
     return res;
   }
@@ -322,10 +322,10 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   }));
   if (!t2.success) {
     s.failures += 1;
-    if (s.failures === 1) res.log.push(t('prov.parched', { name: c.label }));
+    if (s.failures === 1) res.log.push(t('prov.parched', { name: nomDe(c) }));
     else {
       res.damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.340)
-      res.log.push(t('prov.dehydrating', { name: c.label, dmg: res.damage }));
+      res.log.push(t('prov.dehydrating', { name: nomDe(c), dmg: res.damage }));
     }
   }
   c.thirst = s;

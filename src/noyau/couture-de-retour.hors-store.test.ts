@@ -281,7 +281,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - v.cost;': 'moteur',
     'src/noyau/combatEffects.ts | env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));': 'gain',
     'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) + amount;': 'gain',
-    "src/noyau/partyFlow.ts | if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: clone.label, xp })); }": 'gain',
+    "src/noyau/partyFlow.ts | if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: nomDe(clone), xp })); }": 'gain',
     'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) - cost;': 'depense',
     'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) - tier.px;': 'depense',
     'src/noyau/interludeFlow.ts | depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) }));': 'depense',

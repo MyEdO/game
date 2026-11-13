@@ -38,6 +38,7 @@ import { dataLabel } from '../data';
 import { stepDetail, stepPsych, stepSansPeur } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { battleRng } from './battleRng';
+import { nomDe } from '../engine/nom';
 
 /** Forme d'un Test de Psychologie de rencontre résolu — conservée pour `describeEncounterPsych`
  *  (l'applier en construit une à partir de l'étape de cascade). */
@@ -197,7 +198,7 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
   // (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
   if (immune) {
     applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'psychologie', id: ep.kind } });
-    return freeCons([t('cf.immunitePsychologique', { name: hero.label })]);
+    return freeCons([t('cf.immunitePsychologique', { name: nomDe(hero) })]);
   }
   const res = psychResolution(ep.kind); // mode + conséquences en DONNÉES (psychology.json)
   const brise = r.success ? 0 : failConditionAmount(res.failAmount, ep.indice, r.sl);
@@ -210,7 +211,7 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
   };
   const phobie = res.mode === 'terreur' ? subirLaTerreur(get, set, hero, { etat: res.failCondition, nombre: brise }, sourcesDeLaScene(get()).find((n) => n.id === ep.sourceId)) : null;
   // Immunités croisées (LDB 21) : un effet psy dominant (Peur/Terreur) annule l'Animosité/Préjugé.
-  return freeCons([describeEncounterPsych(pe, hero.label), ...(phobie ? [phobie] : []), ...supersededLines(hero, hero.label)]);
+  return freeCons([describeEncounterPsych(pe, nomDe(hero)), ...(phobie ? [phobie] : []), ...supersededLines(hero)]);
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

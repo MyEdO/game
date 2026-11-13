@@ -15,6 +15,7 @@ import { effectiveTalents } from '../engine/talentEffects';
 import { t } from '../i18n';
 import { GatedAction } from './GatedAction';
 import { Row } from './Layout';
+import { nomDe } from '../engine/nom';
 
 /** Sous-titre d'ARCHÉTYPE : « Carrière — Espèce » (la CARRIÈRE en tête, c'est le concept du personnage
  *  en WFRP ; l'espèce suit, atténuée — arbitrage user 2026-07-13). Sans « (niv. N) » (bruit : tous
@@ -59,7 +60,7 @@ export function heroRoseAxes(hero: Combatant, axisIds: string[] = coreAxisIds())
 function RoseGlyph({ hero, axisIds, small }: { hero: Combatant; axisIds?: string[]; small?: boolean }) {
   return (
     <div className={`rose-glyph${small ? ' sm' : ''}`}>
-      <RoseAxes axes={heroRoseAxes(hero, axisIds)} size="glyph" title={t('party.rose.title', { name: hero.label })} />
+      <RoseAxes axes={heroRoseAxes(hero, axisIds)} size="glyph" title={t('party.rose.title', { name: nomDe(hero) })} />
     </div>
   );
 }
@@ -125,7 +126,7 @@ function PresentHandle({ hero, onPresent, className, children }: { hero: Combata
       className={`char-present${className ? ` ${className}` : ''}`}
       role="button"
       tabIndex={0}
-      aria-label={t('party.present.aria', { name: hero.label })}
+      aria-label={t('party.present.aria', { name: nomDe(hero) })}
       onClick={onPresent}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

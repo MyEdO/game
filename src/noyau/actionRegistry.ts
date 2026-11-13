@@ -64,6 +64,7 @@ import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
 import { postesPretsAFaireFeu } from './monde/shipBattery';
 import { nomEnVue } from './visionDuGroupe';
+import { nomDe } from '../engine/nom';
 
 /** Verdict d'un gate : l'indisponibilité PORTE SA RAISON (patron `GatedAction`, charte UI). */
 export interface ActionGate {
@@ -272,8 +273,8 @@ export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> =
     if (!focusSkillFor(active, spell)) {
       const wind = focusWindLabel(spell);
       return no(wind
-        ? t('agate.noFocusSkillWind', { name: active.label, wind })
-        : t('agate.noFocusSkill', { name: active.label }));
+        ? t('agate.noFocusSkillWind', { name: nomDe(active), wind })
+        : t('agate.noFocusSkill', { name: nomDe(active) }));
     }
     const bloque = castBlockedBy(active, 'focalisation');
     return bloque ? no(t('agate.focusBlocked', { reason: bloque })) : ok;

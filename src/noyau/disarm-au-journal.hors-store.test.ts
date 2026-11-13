@@ -6,6 +6,7 @@ import { seedBattleRng } from './battleRng';
 import { resolveCritique } from '../engine/critical';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import type { Combatant } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import type { RNG } from '../engine/dice';
 import { desEnSuite } from '../engine/dice.testkit';
 import { emptyScene } from './monde/scene';
@@ -75,7 +76,7 @@ describe('Main ensanglantée (aiHandGate) : l’arme qui glisse est nommée au j
       if (seed > 50) throw new Error('aucune graine d’échec');
     }
     const texts = banc.getState().battle!.log.map((e) => e.text);
-    expect(texts[texts.length - 1]).toBe('  ↳ Orque lâche Hachoir.');
+    expect(texts[texts.length - 1]).toBe(`  ↳ ${nomDe(orque)} lâche Hachoir.`);
     expect(orque.weapons.some((w) => w.uid === 's1')).toBe(false);
   });
 });

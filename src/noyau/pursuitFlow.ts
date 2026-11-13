@@ -309,7 +309,7 @@ function choixPoursuivants(get: Get, p: PursuitPayload, pris: PursuitPris): Buil
     actorId: camp[0].id,
     // LDB 15 l.94
     options: [
-      ...camp.map((h) => ({ key: `arreter:${h.id}`, label: t('opt.sarrete', { who: h.label }), detail: t('opt.sarreteDetail') })),
+      ...camp.map((h) => ({ key: `arreter:${h.id}`, label: t('opt.sarrete', { who: nomDe(h) }), detail: t('opt.sarreteDetail') })),
       { key: 'ignorer', label: t('opt.ignorer', { who: pris.laggard.label }), detail: t('opt.ignorerDetail') },
     ],
   });

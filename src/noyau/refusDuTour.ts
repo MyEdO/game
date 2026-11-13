@@ -12,6 +12,7 @@ import { isEngaged } from '../engine/engagement';
 import { prayerForActionBy } from '../engine/magic';
 import { mountMovement } from './mount';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 /** L'Action du Tour est dépensée. */
 export function refusActionDepensee(battle: Pick<BattleState, 'acted'>): string | null {
@@ -27,7 +28,7 @@ export function refusHorsDEtatDAgir(c: Combatant): string | null {
  *  coûte l'Action sans être une Prière est refusé. LDB 40 l.74 */
 export function refusPriereImposee(c: Combatant): string | null {
   const source = prayerForActionBy(c);
-  return source ? t('agate.prayerForAction', { name: c.label, source }) : null;
+  return source ? t('agate.prayerForAction', { name: nomDe(c), source }) : null;
 }
 
 /** Une coque n'a pas de corps de fantassin (`engine/vehicle.ts`). */

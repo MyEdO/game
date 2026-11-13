@@ -38,6 +38,7 @@ import { refusDePx } from './depenseDePx';
 import { bourseOf } from '../engine/bourse';
 import { aubeApresNuits } from '../engine/clock';
 import { garanti } from '../lib/garanti';
+import { nomDe } from '../engine/nom';
 
 /** L'état que lisent les verdicts d'interlude. */
 export type EtatDInterlude = Pick<Jeu, 'interlude' | 'party' | 'bank'>;
@@ -132,7 +133,7 @@ export function revenusDeLaPeriode(s: EtatDInterlude, heroId: string): { effets:
 export function blocageDeRevenus(s: EtatDInterlude, heroId: string): string | null {
   const h = s.party.find((x) => x.id === heroId);
   const bloquant = effetBloquantLesRevenus(s, heroId);
-  return h && bloquant ? t('if.incomeBlocked', { name: h.label, event: bloquant.label }) : null;
+  return h && bloquant ? t('if.incomeBlocked', { name: nomDe(h), event: bloquant.label }) : null;
 }
 
 /** L'Événement de la période qui interdit les Revenus à la Classe du héros, s'il en est un. LDB 22 */
@@ -156,8 +157,8 @@ export function refusDArtisanat(s: EtatDInterlude, heroId: string, trappingId?: 
   const refus = refusDuTirage(s, heroId);
   const h = herosDe(s, heroId);
   if (refus || !h) return refus;
-  if (h.craft) return t('if.craftBusy', { name: h.label, label: findTrappingById(h.craft.trappingId)?.label ?? h.craft.trappingId });
-  if (!metierOf(h)) return t('if.craftNoSkill', { name: h.label });
+  if (h.craft) return t('if.craftBusy', { name: nomDe(h), label: findTrappingById(h.craft.trappingId)?.label ?? h.craft.trappingId });
+  if (!metierOf(h)) return t('if.craftNoSkill', { name: nomDe(h) });
   if (trappingId == null) return null;
   const tr = findTrappingById(trappingId);
   if (!tr) return t('if.trappingUnknown', { id: trappingId });
@@ -176,7 +177,7 @@ export function optionDApprentissage(h: Combatant, talentId: string): LearnOptio
  *  `learnableTalents`. LDB 23 l.68 */
 function refusDuTalentAApprendre(h: Combatant, talentId: string): string | null {
   if (!findTalentById(talentId)) return t('if.talentUnknown', { id: talentId });
-  return optionDApprentissage(h, talentId) ? null : t('if.talentNonApprenable', { name: h.label, label: refLabel('talents', { id: talentId }) });
+  return optionDApprentissage(h, talentId) ? null : t('if.talentNonApprenable', { name: nomDe(h), label: refLabel('talents', { id: talentId }) });
 }
 
 /** Refus d'un Apprentissage particulier AVANT le tirage du tuteur : Activité, Talent à apprendre, PX, puis
@@ -204,7 +205,7 @@ export function refusDEntrainement(s: EtatDInterlude, heroId: string, cle: IdDEn
   const h = herosDe(s, heroId);
   if (refus || !h) return refus;
   const opt = optionDEntrainement(h, cle);
-  if (!opt) return t('if.entrainementUnknown', { name: h.label });
+  if (!opt) return t('if.entrainementUnknown', { name: nomDe(h) });
   return refusDePx(h, opt.xpCost) ?? refusDeBourse(h, fromBrass(opt.tutorMinBrass), 'if.tuteurMinKo');
 }
 
@@ -245,7 +246,7 @@ function refusDeDepot(s: EtatDeDepot, heroId: string, kind: GenreDeDepot, montan
   const refus = refusDActivite(s, heroId);
   const h = herosDe(s, heroId);
   if (refus || !h) return refus;
-  if (kind === 'investir' && actorStatus(h).tier === 'bronze') return t('if.bankTierKo', { name: h.label });
+  if (kind === 'investir' && actorStatus(h).tier === 'bronze') return t('if.bankTierKo', { name: nomDe(h) });
   if (kind === 'mecenat') {
     const def = activiteDeMecenat();
     if (!def || !activityAvailableAt(def, s.lieu)) return t('if.mecenatHorsLieu');
@@ -320,8 +321,8 @@ const SAVOIR_MAGIE = { id: 'savoir', spec: 'magie' } as const;
 
 /** Refus d'une cible : liste vide (`vide`), ou, la cible choisie (`choisie`), cible hors de la liste (`horsListe`). */
 function refusDeCible(h: Combatant, ids: string[], id: string | undefined, vide: MsgKey, horsListe: MsgKey, choisie: boolean): string | null {
-  if (!ids.length) return t(vide, { name: h.label });
-  return !choisie || (id != null && ids.includes(id)) ? null : t(horsListe, { name: h.label });
+  if (!ids.length) return t(vide, { name: nomDe(h) });
+  return !choisie || (id != null && ids.includes(id)) ? null : t(horsListe, { name: nomDe(h) });
 }
 
 /** Ops que pose une RÉUSSITE de l'Activité (`onSuccess`, bandes de succès ou sans `on` qu'un succès peut
@@ -351,16 +352,16 @@ function refusDeCibleDActivite(s: EtatDInterlude, h: Combatant, def: ActivityDef
 
 function refusDeCibleDuResolveur(s: EtatDInterlude, h: Combatant, def: ActivityDef, cibles: CiblesDActivite, opts: CiblesChoisies, choisie: boolean): string | null {
   switch (def.resolver) {
-    case 'craftExtended': return h.craft ? null : t('if.craftNone', { name: h.label });
+    case 'craftExtended': return h.craft ? null : t('if.craftNone', { name: nomDe(h) });
     case 'masterWeapon': return refusDeCible(h, cibles.armes.map((i) => i.uid), opts.itemUid, 'if.noWeaponToMaster', 'if.weaponNotTarget', choisie);
     case 'identify':
       return refusDeCible(h, cibles.artefacts.map((i) => i.uid), opts.itemUid, 'if.noArtefact', 'if.artefactNotTarget', choisie)
-        ?? (savoirDeLaMagie(h) ? null : t('if.noSavoirMagie', { name: h.label }));
+        ?? (savoirDeLaMagie(h) ? null : t('if.noSavoirMagie', { name: nomDe(h) }));
     case 'identifyByResearch': return refusDeCible(h, cibles.artefacts.map((i) => i.uid), opts.itemUid, 'if.noArtefact', 'if.artefactNotTarget', choisie);
     case 'memorizeDiscount': return refusDeCible(h, cibles.sorts.map((x) => x.spell.id), opts.spellId, 'if.noSpellToMemorize', 'if.spellNotTarget', choisie);
     case 'mecenat': {
       const dep = (s.bank ?? []).find((d) => d.uid === opts.depotId);
-      return dep?.kind === 'mecenat' && dep.heroId === h.id ? null : t('if.mecenatDepotKo', { name: h.label });
+      return dep?.kind === 'mecenat' && dep.heroId === h.id ? null : t('if.mecenatDepotKo', { name: nomDe(h) });
     }
     case 'reputation': {
       const { tier, standing } = actorStatus(h);
@@ -398,7 +399,7 @@ export function refusDeLActivite(s: EtatDeDepot, heroId: string, def: ActivityDe
   if (ouverture === 'horsCatalogue') return t('if.horsCatalogue', { label: def.label });
   if (ouverture === 'voie' && !def.tests?.length) return t('if.activiteSansCompetence', { label: def.label });
   if (!activityAvailableAt(def, s.lieu)) return t('if.placeOnly', { label: def.label });
-  if (def.resolver === 'dissensionEmeute' && !s.interlude?.perHero[heroId]?.dissensionReady) return t('if.dissensionNotReady', { name: h.label });
+  if (def.resolver === 'dissensionEmeute' && !s.interlude?.perHero[heroId]?.dissensionReady) return t('if.dissensionNotReady', { name: nomDe(h) });
   return null;
 }
 

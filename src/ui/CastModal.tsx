@@ -26,6 +26,8 @@ import { Row, Stack, grow } from './Layout';
 import { libelleDeTest, libelleDOppositionDeSort } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
 import { REGLAGE_DE_L_AXE, ciblesBasculees } from '../noyau/reglagesDuJet';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 
 /** Marque du pluriel FR, accordée sur la VALEUR (patron `plural(n)` des modales de navire) : le
  *  raccourci « (s) » du code laissait l'écran écrire « 1 pas … RESTANT(S) ». */
@@ -380,7 +382,7 @@ export function CastModal() {
                 // reste jamais muette) ; en PHASE 2, chacune porte sa déclaration, un « passe » étant
                 // éteint mais motivé, jamais un vide inexpliqué.
                 const situation = !part.declared
-                  ? (!owned ? t('declaration.attente', { name: actor.label }) : undefined)
+                  ? (!owned ? t('declaration.attente', { name: garanti(nomEnVue(st, actor.id), actor.id, 'contre-sorcier attendu') }) : undefined)
                   : part.declared === 'passer'
                     ? 'passe — ne tente pas la Dissipation ce Round'
                     : part.declared === 'soutenu' && grp

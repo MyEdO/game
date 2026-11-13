@@ -16,6 +16,8 @@ import type { RollSegOption } from './OptionChooser';
 import { t } from '../i18n';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
+import { nomEnVue } from '../noyau/visionDuGroupe';
+import { garanti } from '../lib/garanti';
 
 /** Enjeu servi par chaque phase de la chute. */
 const FALL_STAKE: Record<'choix' | 'jet', FlowStakeId> = { choix: 'chute-choix', jet: 'chute-test' };
@@ -71,7 +73,7 @@ export function FallModal() {
     const l = ligneDuTestNomme(c, p.test); // la ligne que le résolveur `fall` jette
     // La rangée DIT sa situation : attente d'un autre siège, sa déclaration, ou l'issue du Test.
     const situation = part.attempt === null
-      ? (owned ? null : t('declaration.attente', { name: c.label }))
+      ? (owned ? null : t('declaration.attente', { name: garanti(nomEnVue(useGame.getState(), c.id), c.id, 'tombant attendu') }))
       : part.attempt === false
         ? t(!part.interactive ? 'fall.situation.nonDebout' : part.suspendre ? 'fall.situation.suspendSansTest' : 'fall.situation.sauteSansTest', { metres: m })
         : r

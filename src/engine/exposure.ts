@@ -34,6 +34,7 @@ import { t } from '../i18n';
 import { rule } from './policy';
 import { RULE_REF } from './ruleRefs';
 import type { ModLine } from './combat';
+import { nomDe } from './nom';
 
 export type ExposureSeverity = 'clement' | 'difficile' | 'extreme';
 
@@ -168,16 +169,16 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
     }
     if (kind === 'chaleur') addCondition(c, 'extenue'); // « vous gagnez un État Exténué » (1ᵉʳ ET 2ᵉ échec, l.330)
     log.push(kind === 'froid'
-      ? (failures === 1 ? t('exp.shivers', { name: c.label }) : t('exp.frozen', { name: c.label }))
-      : (failures === 1 ? t('exp.heatstruck', { name: c.label }) : t('exp.overwhelmed', { name: c.label })));
+      ? (failures === 1 ? t('exp.shivers', { name: nomDe(c) }) : t('exp.frozen', { name: nomDe(c) }))
+      : (failures === 1 ? t('exp.heatstruck', { name: nomDe(c) }) : t('exp.overwhelmed', { name: nomDe(c) })));
     return { log, wounds: 0 };
   }
   const dmg = Math.max(1, rng.int(1, 10));
   loseWounds(c, dmg);
-  log.push(t('exp.wounds', { name: c.label, what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }));
+  log.push(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }));
   if (kind === 'froid' && c.wounds.current <= 0 && !hasCondition(c, 'inconscient')) {
     addCondition(c, 'inconscient');
-    log.push(t('exp.sinksFrozen', { name: c.label }));
+    log.push(t('exp.sinksFrozen', { name: nomDe(c) }));
   }
   return { log, wounds: dmg };
 }
@@ -195,7 +196,7 @@ export function exposureNight(
 ): { rolls: ExposureRoll[]; log: string[]; failures: number; wounds: number } {
   const kind = opts.kind ?? 'froid';
   if (isWeatherWarded(c)) {
-    return { rolls: [], log: [t('eff.meteoConjuree', { name: c.label, what: kind === 'froid' ? t('eff.protectionDuFroid') : t('eff.protectionDeLaChaleur') })], failures: 0, wounds: 0 };
+    return { rolls: [], log: [t('eff.meteoConjuree', { name: nomDe(c), what: kind === 'froid' ? t('eff.protectionDuFroid') : t('eff.protectionDeLaChaleur') })], failures: 0, wounds: 0 };
   }
   const rolls: ExposureRoll[] = [];
   const log: string[] = [];
@@ -210,13 +211,13 @@ export function exposureNight(
     const held = !res.success && skin > 0 && res.sl + skin >= 1;
     rolls.push({ base: target, target: res.target, roll: res.roll, sl: res.sl + (res.success ? 0 : skin), success: res.success || held });
     if (res.success) continue;
-    if (held) { log.push(t('exp.sealskinHeld', { name: c.label })); continue; }
+    if (held) { log.push(t('exp.sealskinHeld', { name: nomDe(c) })); continue; }
     failures++;
     const f = applyExposureFailure(c, failures, rng, kind);
     log.push(...f.log);
     wounds += f.wounds;
   }
-  if (kind === 'froid' && !hasCoat(c) && count > 0) log.push(t('exp.noCoat', { name: c.label, pen: Number(rule('exposition-sans-manteau')) }));
+  if (kind === 'froid' && !hasCoat(c) && count > 0) log.push(t('exp.noCoat', { name: nomDe(c), pen: Number(rule('exposition-sans-manteau')) }));
   return { rolls, log, failures, wounds };
 }
 

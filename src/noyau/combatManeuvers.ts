@@ -464,7 +464,7 @@ export function resolveManeuver(
   if (!battle || battle.over || !attacker.pos) return false;
   campSpend(get, attacker, spent); // dépense l'Avantage : réserve du camp (mode groupe AA 11 l.30-38) / le combattant (LDB)
   const rng = battleRng();
-  const lines: string[] = [t('manv.trigger', { name: attacker.label, label: def.label })];
+  const lines: string[] = [t('manv.trigger', { name: nomDe(attacker), label: def.label })];
   // Orientation du geste : l'attaquant vise le centre RÉELLEMENT résolu plus bas (la cible cliquée peut
   // être écartée — morte, hors portée — et le souffle recentré sur le plus proche). UNE écriture par
   // manœuvre ; cible = SOI (transformation) ou case identique ⇒ delta nul, facing inchangé ; population
@@ -490,7 +490,7 @@ export function resolveManeuver(
     let margin: number | undefined;
     if (drow) {
       const opp = resolveOpposed(atk ?? drow, drow);
-      if (!opp.attackerWins) { lines.push(t('manv.resists', { name: tgt.label })); floatTag(tgt, def.defense === 'init' ? t('fx.resists') : t('fx.dodge')); return; }
+      if (!opp.attackerWins) { lines.push(t('manv.resists', { name: nomDe(tgt) })); floatTag(tgt, def.defense === 'init' ? t('fx.resists') : t('fx.dodge')); return; }
       // Marge = DR net du vainqueur (+Avantage dépensé pour les manœuvres à Avantage VARIABLE, LDB 85 l.290).
       margin = opp.netSL + (def.modeDAvantage === 'variable' ? spent : 0);
     }
@@ -633,12 +633,12 @@ export function battementRemoval(dr: number): number {
  * MUTE `foe` (et la réserve). Ne consomme PAS l'Action (l'appelant pose `acted`). Ne touche pas `checkBattleOver`.
  */
 export function resolveBattement(get: Get, attacker: Combatant, foe: Combatant, atk: TestResult): string {
-  if (!atk.success) return t('manv.battementFail', { name: attacker.label, foe: foe.label });
+  if (!atk.success) return t('manv.battementFail', { name: nomDe(attacker), foe: nomDe(foe) });
   const removed = battementRemoval(atk.sl);
   const before = groupAdvantage() ? undefined : foe.advantage;
   campSpend(get, foe, removed); // retire de la réserve du camp adverse (mode groupe) / de l'Avantage du foe (LDB)
   const n = before != null ? before - foe.advantage : removed;
-  return t('manv.battement', { name: attacker.label, foe: foe.label, n });
+  return t('manv.battement', { name: nomDe(attacker), foe: nomDe(foe), n });
 }
 
 /** Distraire (`LDB 10 l.364` · `AA 13 l.51`) est-il déclarable par `attacker` contre `foe` ? Conditions
@@ -655,9 +655,9 @@ export function distraireEligible(attacker: Combatant, foe: Combatant): boolean 
  */
 export function resolveDistraire(attacker: Combatant, foe: Combatant, atk: TestResult, defRoll: TestResult): string {
   const opp = resolveOpposed(atk, defRoll);
-  if (!opp.attackerWins) return t('manv.distraireFail', { name: attacker.label, foe: foe.label });
+  if (!opp.attackerWins) return t('manv.distraireFail', { name: nomDe(attacker), foe: nomDe(foe) });
   foe.distractedRounds = 2; // jusqu'à la fin du PROCHAIN Round (2 franchissements de Round)
-  return t('manv.distraire', { name: attacker.label, foe: foe.label });
+  return t('manv.distraire', { name: nomDe(attacker), foe: nomDe(foe) });
 }
 
 /** Valeurs du Test opposé d'Athlétisme/Calme du Distraire (LDB 10 l.364) — SOURCE des jets de
@@ -771,7 +771,7 @@ export const TABLES = {
       if (step.result.success) {
         floatTag(hero, def.defense === 'init' ? t('fx.resists') : t('fx.dodge'));
         syncManeuver();
-        return { consequences: freeCons([t('manv.resists', { name: hero.label })]) };
+        return { consequences: freeCons([t('manv.resists', { name: nomDe(hero) })]) };
       }
       // L'attaquant l'emporte : on re-oppose le jet influencé du défenseur (reproduit `resolveOpposed` de la
       // cascade) pour la MARGE NETTE (RAW Regard : +1 DR/Avantage variable), puis on applique les effets.

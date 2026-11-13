@@ -53,6 +53,7 @@ import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FermetureDuJet } from './rollFlowFactory';
+import { nomDe } from '../engine/nom';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
  *  (même patron que les structures de siège `structureCombatant`) : `combatant.wounds.current` = Puissance
@@ -856,9 +857,9 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
         const healed = { ...hero, wounds: { ...hero.wounds } };
         applyOps(healed, [{ op: 'heal', amount: heal }], { idNeuf: get().forgerUnId, rng: battleRng() });
         set((s) => ecrireActeur(s, hero.id, (h) => ({ ...h, wounds: { ...healed.wounds } })));
-        lines.push(t('mbf.rallyHeal', { name: hero.label, heal, dr: pa.sl, be }));
+        lines.push(t('mbf.rallyHeal', { name: nomDe(hero), heal, dr: pa.sl, be }));
       } else {
-        lines.push(t('mbf.rallyFail', { name: hero.label }));
+        lines.push(t('mbf.rallyFail', { name: nomDe(hero) }));
       }
       next = { ...next, ralliedHeroes: uniq([...next.ralliedHeroes, hero.id]) };
     }

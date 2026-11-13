@@ -68,6 +68,7 @@ import { estOperation } from './acteDeSoin';
 import { lancerLActeDeSoin } from './medicFlow';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
+import { nomDe } from '../engine/nom';
 
 /** Re-dérive une attaque FIGÉE avec un jet d'attaquant modifié (Chance +1 DR / Résilience / dé
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
@@ -2448,8 +2449,8 @@ function refusDuContreSort(s: Jeu, pid: string): string | null {
   if (!pcs || !part) return null;
   if (counterspellDeclarePhase(pcs)) return t('declaration.attenteFenetre');
   const dissipe = pcs.participants.find((x) => x.id !== pid && x.result?.dispelled);
-  if (dissipe) return t('cs.refus.dejaDissipe', { name: garanti(actorIn(s, dissipe.id), dissipe.id, 'contre-sort').label });
-  return counterspellRolls(s, pcs, part) ? null : t('cs.refus.neLancePas', { name: garanti(actorIn(s, pid), pid, 'contre-sort').label });
+  if (dissipe) return t('cs.refus.dejaDissipe', { name: nomDe(garanti(actorIn(s, dissipe.id), dissipe.id, 'contre-sort')) });
+  return counterspellRolls(s, pcs, part) ? null : t('cs.refus.neLancePas', { name: nomDe(garanti(actorIn(s, pid), pid, 'contre-sort')) });
 }
 
 /** Consomme l'essai du Round (LDB 46 l.156) de CELUI qui chante, au moment de son jet, et pour un jet de GROUPE
@@ -2474,7 +2475,7 @@ export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<J
   if (test?.actorId === porteur.id && test.psychMod && test.roll == null) {
     return {
       patch: { pendingTest: { ...test, skillValue: test.skillValue - test.psychMod, target: test.target - test.psychMod, psychMod: 0, psychDetail: undefined } },
-      ligne: t('psy.determinationSocial', { name: porteur.label }),
+      ligne: t('psy.determinationSocial', { name: nomDe(porteur) }),
     };
   }
   const pc = s.pendingCascade;

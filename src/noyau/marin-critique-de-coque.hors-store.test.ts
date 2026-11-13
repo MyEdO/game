@@ -1,6 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Combatant, Weapon } from '../engine/types';
+import { nomDe } from '../engine/nom';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { toucheAuJetPose } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -83,7 +84,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
     expect(enJeu('marin').wounds.current).toBe(13 - attendu);
     expect(enJeu('marin').criticalWounds ?? 0).toBe(0);
     expect(enJeu('nav').criticalWounds ?? 0, "la coque ne prend pas le Critique d'Équipage").toBe(avantCoque);
-    expect(log.join('\n')).toContain('marin subit 8 Blessure(s).');
+    expect(log.join('\n')).toContain(`${nomDe(enJeu('marin'))} subit 8 Blessure(s).`);
     expect(log.join('\n')).not.toMatch(/perd 0 Blessure/);
   });
 

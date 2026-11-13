@@ -72,6 +72,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -207,7 +208,7 @@ export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
       hero.items = [...(hero.items ?? []), it];
       autoStowNewItem(hero, it); // #204 : rangement par défaut
       recomputeLoadout(hero);
-      lines.push(msg('if.orderDelivered', { name: hero.label, label: trappingLabelOf(o.trappingId) }));
+      lines.push(msg('if.orderDelivered', { name: nomDe(hero), label: trappingLabelOf(o.trappingId) }));
     }
   }
   const baseLeft = Math.min(3, w); // « 1/semaine, max 3 » (LDB 23 l.5)
@@ -232,23 +233,23 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   const st = itl?.perHero[hero.id];
   if (!itl || !st) return [];
   const ev = structuredClone(interludeEventFor(roll)); // #2097
-  const lines: string[] = [msg('if.eventLine', { name: hero.label, roll, label: ev.label, text: ev.desc })];
+  const lines: string[] = [msg('if.eventLine', { name: nomDe(hero), roll, label: ev.label, text: ev.desc })];
   let left = st.left;
   if (ev.fx?.loseActivity && !ev.fx.partyWide) left -= 1; // l'Événement de groupe ôte au dénouement de groupe
   // LDB 23 l.56 ; règle optionnelle `interlude-devoir-elfique` (LDB 23 l.54).
   const elfDuty = rule('interlude-devoir-elfique') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
   if (elfDuty) {
     left -= 1;
-    lines.push(msg('if.elfDuty', { name: hero.label }));
+    lines.push(msg('if.elfDuty', { name: nomDe(hero) }));
   }
   if (ev.fx?.fortuneMaxDelta) {
     hero.fortune = (hero.fortune ?? 0) + ev.fx.fortuneMaxDelta;
-    lines.push(msg('if.fortuneOmen', { name: hero.label, n: ev.fx.fortuneMaxDelta }));
+    lines.push(msg('if.fortuneOmen', { name: nomDe(hero), n: ev.fx.fortuneMaxDelta }));
   }
   let bank = get().bank ?? [];
   if (ev.fx?.stashRaided && bank.some((b) => b.heroId === hero.id && b.kind === 'planque')) {
     bank = bank.filter((b) => !(b.heroId === hero.id && b.kind === 'planque'));
-    lines.push(msg('if.stashRaided', { name: hero.label }));
+    lines.push(msg('if.stashRaided', { name: nomDe(hero) }));
   }
   itl.perHero[hero.id] = { ...st, eventRoll: roll, fx: ev.fx, left: Math.max(0, left), granted: Math.max(0, left), ...(elfDuty && { elfDuty }) };
   set({ interlude: { ...itl }, bank, party: [...get().party] });
@@ -435,7 +436,7 @@ function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atou
   h2.craft = { trappingId, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
   set({ party: [...get().party] });
   get().ecrireAuJournal(msg('if.craftStart', {
-    name: h.label, cost: formatMoney(fromBrass(materials)), label: t.label, dr: target.dr, skill: skillInstanceLabel(metier),
+    name: nomDe(h), cost: formatMoney(fromBrass(materials)), label: t.label, dr: target.dr, skill: skillInstanceLabel(metier),
   }));
 }
 
@@ -466,10 +467,10 @@ export function openRitualFocus(
 ): (Partial<PendingActivityFields> & { label: string }) | undefined {
   const id = spellId ?? h.ritual?.spellId;
   const sp = id ? findSpellById(id) : undefined;
-  if (!sp?.isRitual || !(h.spells ?? []).includes(sp.id)) { get().ecrireAuJournal(id ? t('if.rituelUnknown', { id }) : t('if.rituelNoSelection', { name: h.label })); return undefined; }
+  if (!sp?.isRitual || !(h.spells ?? []).includes(sp.id)) { get().ecrireAuJournal(id ? t('if.rituelUnknown', { id }) : t('if.rituelNoSelection', { name: nomDe(h) })); return undefined; }
   if (sp.cn == null) { get().ecrireAuJournal(t('if.rituelNoFormula', { label: sp.label, cnFrom: sp.ritual?.cnFrom ?? '?' })); return undefined; }
-  if (h.ritual && h.ritual.spellId !== sp.id) { get().ecrireAuJournal(t('if.rituelAlreadyStarted', { name: h.label, label: findSpellById(h.ritual.spellId)?.label ?? h.ritual.spellId })); return undefined; }
-  if (!focusSkillFor(h, sp)) { get().ecrireAuJournal(t('if.rituelNoFocusSkill', { name: h.label, label: sp.label })); return undefined; }
+  if (h.ritual && h.ritual.spellId !== sp.id) { get().ecrireAuJournal(t('if.rituelAlreadyStarted', { name: nomDe(h), label: findSpellById(h.ritual.spellId)?.label ?? h.ritual.spellId })); return undefined; }
+  if (!focusSkillFor(h, sp)) { get().ecrireAuJournal(t('if.rituelNoFocusSkill', { name: nomDe(h), label: sp.label })); return undefined; }
   if (!h.ritual) {
     const ni = ritualReduction(h, sp)?.cn ?? sp.cn;
     const drTarget = Math.ceil(ni / 2); // NI réduit de moitié en Activité (desc `accomplir-un-rituel`)
@@ -567,8 +568,8 @@ function mecenatPayout(get: Get, set: Set, h: Combatant, depotId: IdDeDepot, pay
   const payout = Math.floor((dep.brass * payoutPct) / 100);
   if (payout > 0) creditBourse(get, set, dep.heroId, fromBrass(payout));
   return [payout > 0
-    ? msg('if.mecenatPayout', { name: h.label, money: formatMoney(fromBrass(payout)), pct: payoutPct, invested: formatMoney(fromBrass(dep.brass)) })
-    : msg('if.mecenatLoss', { name: h.label, invested: formatMoney(fromBrass(dep.brass)) })];
+    ? msg('if.mecenatPayout', { name: nomDe(h), money: formatMoney(fromBrass(payout)), pct: payoutPct, invested: formatMoney(fromBrass(dep.brass)) })
+    : msg('if.mecenatLoss', { name: nomDe(h), invested: formatMoney(fromBrass(dep.brass)) })];
 }
 
 /** Issue d'un résolveur d'Activité : les lignes de journal + un `patch` de l'état d'interlude du
@@ -605,7 +606,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         brass = Math.max(0, Math.floor((brass * (100 + parEvenement.pct)) / 100));
         for (const { label, fx } of parEvenement.effets) lines.push(msg('if.eventRevenue', { event: label, sign: fx.revenuePct! > 0 ? '+' : '', pct: fx.revenuePct! }));
       }
-      lines.push(msg('if.incomeWeek', { name: h.label, money: formatMoney(fromBrass(brass)) }));
+      lines.push(msg('if.incomeWeek', { name: nomDe(h), money: formatMoney(fromBrass(brass)) }));
       return { lines, patch: { didRevenus: true, revenueBrass: st.revenueBrass + brass } };
     }
     case 'craftExtended': {
@@ -628,7 +629,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         h.craft = undefined;
         return {
           lines: [msg('if.craftDone', {
-            name: h.label, label: doneLabel,
+            name: nomDe(h), label: doneLabel,
             atouts: atL.length ? ` (${atL.join(', ')})` : '', defauts: dfL.length ? ` [${dfL.join(', ')}]` : '',
           })],
         };
@@ -636,7 +637,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const advanceLabel = trappingLabelOf(h.craft.trappingId);
       h.craft = { ...h.craft, drDone };
       return {
-        lines: [msg('if.craftProgress', { name: h.label, dr: drDone, target: h.craft.drTarget, label: advanceLabel })],
+        lines: [msg('if.craftProgress', { name: nomDe(h), dr: drDone, target: h.craft.drTarget, label: advanceLabel })],
       };
     }
     case 'ritualFocus': {
@@ -652,12 +653,12 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (done) {
         h.ritual = undefined;
         return {
-          lines: [t('if.rituelDone', { name: h.label, label })],
+          lines: [t('if.rituelDone', { name: nomDe(h), label })],
         };
       }
       h.ritual = { ...h.ritual, drDone };
       return {
-        lines: [msg('if.ritualProgress', { name: h.label, label, dr: drDone, target: h.ritual.drTarget })],
+        lines: [msg('if.ritualProgress', { name: nomDe(h), label, dr: drDone, target: h.ritual.drTarget })],
       };
     }
     case 'learnTalent': {
@@ -686,14 +687,14 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         // Achat jugé avant la confirmation (`refusDeConfirmerLActivite`) : sans Talent acquis, rien n'est débité.
         if (!r.ok) return { lines: [] };
         payTutor();
-        return { lines: [msg('if.learnTalentOk', { name: h.label, label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] };
+        return { lines: [msg('if.learnTalentOk', { name: nomDe(h), label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] };
       }
       depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) })); // PX perdus en vain (échec)
       const learnFails = { ...(st.learnFails ?? {}) };
       learnFails[talentId] = (learnFails[talentId] ?? 0) + 1; // clé = id stable du Talent, +10 à la reprise
       payTutor();
       return {
-        lines: [msg('if.learnTalentKo', { name: h.label, label: talentLabel })],
+        lines: [msg('if.learnTalentKo', { name: nomDe(h), label: talentLabel })],
         patch: { learnFails },
       };
     }
@@ -716,32 +717,32 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
           // +4 ou plus : sait s'il a des Particularités — le Stupéfiant (+6) les révèle TOUTES.
           it.magicKnown = true;
           delete it.suspectedQualities;
-          return { lines: [msg(isAstoundingSuccess(pa.success, pa.sl) ? 'if.identifyAstounding' : 'if.identifyImpressive', { name: h.label, item: it.label })] };
+          return { lines: [msg(isAstoundingSuccess(pa.success, pa.sl) ? 'if.identifyAstounding' : 'if.identifyImpressive', { name: nomDe(h), item: it.label })] };
         }
         if (pa.sl <= 1) {
           // 0 à +1 (Succès Minime) : identifie l'objet ET découvre UNE Particularité cachée (RAW).
           it.magicKnown = true;
           delete it.suspectedQualities;
-          return { lines: [msg('if.identifyMinimal', { name: h.label, item: it.label })] };
+          return { lines: [msg('if.identifyMinimal', { name: nomDe(h), item: it.label })] };
         }
         // +2 à +3 : identifie l'objet, connaît les Particularités visibles, pas les cachées.
-        return { lines: [msg('if.identifySuccess', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.identifySuccess', { name: nomDe(h), item: it.label })] };
       }
       // Échec : les rangs Impressionnant/Stupéfiant ancrent 1 / au moins 2 FAUSSES Particularités.
       if (isImpressiveFailure(pa.success, pa.sl)) {
         const fakes = falseQualities(it, isAstoundingFailure(pa.success, pa.sl) ? 2 : 1);
         if (fakes.length) {
           it.suspectedQualities = [...new Set([...(it.suspectedQualities ?? []), ...fakes])];
-          return { lines: [msg('if.identifyFakes', { name: h.label, item: it.label, fakes: fakes.join(msg('if.fakesJoin')) })] };
+          return { lines: [msg('if.identifyFakes', { name: nomDe(h), item: it.label, fakes: fakes.join(msg('if.fakesJoin')) })] };
         }
-        return { lines: [msg('if.identifyConfusedWeek', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.identifyConfusedWeek', { name: nomDe(h), item: it.label })] };
       }
       // -2 à -3 (Échec, l.50) : confond l'artefact avec un type d'objet SIMILAIRE (méprise sur sa nature ; pas de fausse Particularité).
       if (pa.sl <= -2) {
-        return { lines: [msg('if.identifyConfusedType', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.identifyConfusedType', { name: nomDe(h), item: it.label })] };
       }
       // 0 à -1 (Échec Minime, l.49) : incapable d'identifier, mais conscient de son échec, sans se tromper sur la nature.
-      return { lines: [msg('if.identifyFailAware', { name: h.label, item: it.label })] };
+      return { lines: [msg('if.identifyFailAware', { name: nomDe(h), item: it.label })] };
     }
     case 'wrathOfTheGods':
       // « réalisez un Test sur le Tableau de la Colère des Dieux […] à la place » (ACE 12 l.15) —
@@ -751,7 +752,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const it = (h.items ?? []).find((i) => i.uid === pa.itemUid);
       if (!it?.trappingId) return { lines: [] };
       h.masteredWeapons = [...new Set([...(h.masteredWeapons ?? []), it.trappingId])];
-      return { lines: [msg('if.masterWeapon', { name: h.label, item: it.label })] };
+      return { lines: [msg('if.masterWeapon', { name: nomDe(h), item: it.label })] };
     }
     case 'identifyByResearch': {
       // ACE 12 l.33-42 : ≥ +4 DR = étude en profondeur (plein potentiel + dangers) ; succès ≤ +3 =
@@ -762,11 +763,11 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         it.identified = true;
         it.magicKnown = true;
         delete it.suspectedQualities;
-        return { lines: [msg('if.researchDeep', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.researchDeep', { name: nomDe(h), item: it.label })] };
       }
       if (pa.success) {
         it.magicKnown = true;
-        return { lines: [msg('if.researchMain', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.researchMain', { name: nomDe(h), item: it.label })] };
       }
       return { lines: [] };
     }
@@ -784,37 +785,37 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // (op existant, MÊME canal que « Observer une cible »).
       if (!pa.chosenSkill) return { lines: [] };
       const skillLabel = refLabel('skills', pa.chosenSkill);
-      if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: h.label, skill: skillLabel })] };
+      if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: nomDe(h), skill: skillLabel })] };
       return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
     }
     case 'punchausen': {
       // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « vous recevez 2d10 pistoles et […]
       // vous pouvez inverser les dés sur un Test de Charme ou de Divertissement (Narration) » — même
       // canal de jeton que « Entraînement au Combat », SCOPÉ à la Compétence utilisée pour la vente.
-      if (!pa.success || !pa.chosenSkill) return { lines: [msg('if.punchausenKo', { name: h.label })] };
+      if (!pa.success || !pa.chosenSkill) return { lines: [msg('if.punchausenKo', { name: nomDe(h) })] };
       const pistoles = roll(2, 10, battleRng());
       const gain = fromBrass(pistoles * PA_PER_SC);
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
       const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) });
       creditBourse(get, set, h.id, gain); // revenu PERSO (vente du récit DE ce héros), pas partagé par tête
-      return { lines: [msg('if.punchausenOk', { name: h.label, money: formatMoney(gain) }), ...tokenLines] };
+      return { lines: [msg('if.punchausenOk', { name: nomDe(h), money: formatMoney(gain) }), ...tokenLines] };
     }
     case 'reputation': {
       // Réputation : le `statusMod` vaut « pour la prochaine aventure », il se pose à la clôture
       // (`closeOps`, appliqués par `cloreLInterlude`). LDB 23 l.228-234
-      const lines: string[] = [msg('if.reputationSpend', { name: h.label, money: formatMoney(fromBrass(pa.costBrass ?? 0)) })];
+      const lines: string[] = [msg('if.reputationSpend', { name: nomDe(h), money: formatMoney(fromBrass(pa.costBrass ?? 0)) })];
       const delta = isAstoundingSuccess(pa.success, pa.sl) ? 2 : pa.success ? 1 : isAstoundingFailure(pa.success, pa.sl) ? -1 : 0;
       payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(pa.costBrass ?? 0)), recipient: h.id, purpose: 'reputation' });
-      if (delta === 0) return { lines: [...lines, msg('if.reputationWasted', { name: h.label })] };
-      lines.push(msg('if.reputationAPoser', { name: h.label, delta: `${delta > 0 ? '+' : ''}${delta}` }));
+      if (delta === 0) return { lines: [...lines, msg('if.reputationWasted', { name: nomDe(h) })] };
+      lines.push(msg('if.reputationAPoser', { name: nomDe(h), delta: `${delta > 0 ? '+' : ''}${delta}` }));
       return { lines, closeOps: [{ op: 'statusMod', amount: delta }] };
     }
     case 'dissensionScout': {
       // Semer la dissension (LDB 23 l.236-248), 1ʳᵉ des DEUX Activités requises : Ragot Accessible
       // pour repérer les personnalités influentes du coin — débloque la 2ᵉ Activité (Charme) CETTE
       // interlude ; aucun effet mécanique en soi (pas de GameOp : la 2ᵉ Activité seule agit).
-      if (!pa.success) return { lines: [msg('if.dissensionScoutKo', { name: h.label })] };
-      return { lines: [msg('if.dissensionScoutOk', { name: h.label })], patch: { dissensionReady: true } };
+      if (!pa.success) return { lines: [msg('if.dissensionScoutKo', { name: nomDe(h) })] };
+      return { lines: [msg('if.dissensionScoutOk', { name: nomDe(h) })], patch: { dissensionReady: true } };
     }
     case 'dissensionEmeute': {
       // Semer la dissension, 2ᵉ Activité (Charme) : consomme `dissensionReady` dans TOUS les cas.
@@ -822,11 +823,11 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // foule contre la même cible » (l.244) — capacité NARRATIVE (aucune Difficulté chiffrée, « fixée
       // par le MJ selon la constitution de la foule ») : AUCUNE Scène de mobilisation de foule n'existe
       // dans le moteur pour porter cet appel à une future Scène — mesuré, non fabriqué (#508).
-      if (!pa.success) return { lines: [msg('if.dissensionRiotKo', { name: h.label })], patch: { dissensionReady: false } };
+      if (!pa.success) return { lines: [msg('if.dissensionRiotKo', { name: nomDe(h) })], patch: { dissensionReady: false } };
       return {
         lines: [
-          msg('if.dissensionRiotOk', { name: h.label }),
-          msg('if.dissensionRiotNote', { name: h.label }),
+          msg('if.dissensionRiotOk', { name: nomDe(h) }),
+          msg('if.dissensionRiotNote', { name: nomDe(h) }),
         ],
         patch: { dissensionReady: false },
       };
@@ -838,7 +839,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // HORS dégâts de combat) exigerait une couture « Blessure Critique isolée » absente du moteur
       // (les Blessures Critiques sont posées par la résolution de DÉGÂTS de combat, jamais hors
       // combat) — mesuré, non fabriqué (#510).
-      if (!pa.success) return { lines: [msg('if.contremaitreKo', { name: h.label })] };
+      if (!pa.success) return { lines: [msg('if.contremaitreKo', { name: nomDe(h) })] };
       const rng = battleRng();
       // Trois tirages de MONDE au dé de chaque table (`effectTableDie`) : ils sont la CONSÉQUENCE du
       // Test de Ragot déjà joué et surfacé (`pa`), pas une occasion de pose de plus.
@@ -848,7 +849,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const perso = tirer('contremaitre-personnalite');
       return {
         lines: [
-          msg('if.contremaitreOk', { name: h.label, lieu: ligneNommee(lieu, 'contremaitre-lieu'), objectif: ligneNommee(objectif, 'contremaitre-objectif'), perso: ligneNommee(perso, 'contremaitre-personnalite') }),
+          msg('if.contremaitreOk', { name: nomDe(h), lieu: ligneNommee(lieu, 'contremaitre-lieu'), objectif: ligneNommee(objectif, 'contremaitre-objectif'), perso: ligneNommee(perso, 'contremaitre-personnalite') }),
           msg('if.contremaitreNote'),
         ],
       };
@@ -900,7 +901,7 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
   const itl = get().interlude!;
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
   set({ interlude: { ...itl } });
-  get().ecrireAuJournal(msg('if.orderPlaced', { name: h.label, label: t.label, cost: formatMoney(fromBrass(price)) }));
+  get().ecrireAuJournal(msg('if.orderPlaced', { name: nomDe(h), label: t.label, cost: formatMoney(fromBrass(price)) }));
 }
 /** Entraînement (LDB 23 l.132-136) : « vous entraîner dans une Compétence ou une Caractéristique en
  *  dehors de votre Carrière » — PAS de Test (achat direct comme Passer commande/Banque). Coût en PX
@@ -937,7 +938,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
   });
   if (!accepte) return;
   if (!r.ok) {
-    get().ecrireAuJournal(t('if.entrainementRefused', { name: h.label, label: opt.label, reason: r.reason ?? '' }));
+    get().ecrireAuJournal(t('if.entrainementRefused', { name: nomDe(h), label: opt.label, reason: r.reason ?? '' }));
     return;
   }
   // Tuteur débité APRÈS les Augmentations : la Bourse se lit sur l'acteur écrit (`actorIn`).
@@ -945,7 +946,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
   const itl = get().interlude!;
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
   set({ interlude: { ...itl } });
-  get().ecrireAuJournal(t('if.entrainementDone', { name: h.label, label: opt.label, cost: r.cost, tutor: formatMoney(fromBrass(tutor)) }));
+  get().ecrireAuJournal(t('if.entrainementDone', { name: nomDe(h), label: opt.label, cost: r.cost, tutor: formatMoney(fromBrass(tutor)) }));
 }
 
 /** Applique le jet d'Activité confirmé (consomme l'Activité). CHEMIN UNIQUE data-driven :
@@ -1002,7 +1003,7 @@ function appliquerLActivite(get: Get, set: Set): void {
       ? matchOutcomes(def, { success: pa.success, sl: pa.sl, fumble })
       : pa.success && def.onSuccess?.length ? [{ ops: def.onSuccess }] : [])
       .map((b) => (b.ops ? { ...b, ops: opsCiblees(b.ops, pa.traitPsy) } : b));
-    if (fumble && def.outcomes?.some((b) => b.on === 'maladresse')) lines.push(msg('if.fumble', { name: h.label, roll: String(pa.roll) }));
+    if (fumble && def.outcomes?.some((b) => b.on === 'maladresse')) lines.push(msg('if.fumble', { name: nomDe(h), roll: String(pa.roll) }));
     for (const band of bands) {
       if (band.note) lines.push(band.note); // résultat VERBATIM de la table source
       // L'Activité est un geste délibéré : une issue sans objet pour le héros se DIT, `applyOps` la tait.
@@ -1021,7 +1022,7 @@ function appliquerLActivite(get: Get, set: Set): void {
           onCorruptionExposure: (level: ExposureLevel, nature?: NatureDInfluence) => {
             // LA PORTE du slot (#1282) : un Test de Corruption déjà affiché ne se fait plus écraser — celui-ci prend rang.
             poseCorruptionPending(get, set, expositionPending(h.id, level, nature));
-            return [msg('if.corruptionTest', { name: h.label, level })];
+            return [msg('if.corruptionTest', { name: nomDe(h), level })];
           },
         }));
       }
@@ -1085,7 +1086,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: GenreDeDep
   set({ interlude: { ...itl } });
   lines.push(msg(
     kind === 'investir' ? 'if.bankInvest' : kind === 'mecenat' ? 'if.bankMecenat' : 'if.bankStash',
-    { name: h.label, money: formatMoney(fromBrass(deposited)), rate: r },
+    { name: nomDe(h), money: formatMoney(fromBrass(deposited)), rate: r },
   ));
   // Un dépôt en banque réputée vérifie la faillite sous la période qui l'exige. LDB 22 l.111
   if (kind === 'investir' && verificationDeFaillite(get(), heroId)) {
@@ -1157,7 +1158,7 @@ function cloreLInterlude(get: Get, set: Set): void {
   for (const { heroId, niveau } of devis.retrogradations) {
     const h = get().party.find((x) => x.id === heroId)!;
     h.careerLevel = niveau;
-    lines.push(msg('if.careerDemotion', { name: h.label, level: niveau }));
+    lines.push(msg('if.careerDemotion', { name: nomDe(h), level: niveau }));
   }
   if (devis.gaspille > 0) lines.push(msg('if.moneyWasted', { money: formatMoney(fromBrass(devis.gaspille)) }));
   for (const g of devis.gaspillages) debitBourse(get, set, g.heroId, fromBrass(g.brass));

@@ -9,6 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { t as tr } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -36,7 +37,7 @@ describe('Destin sacrifié hors bataille (#3892) : LDB 17 l.29-32', () => {
     expect(H.wounds.current).toBe(avant.wounds);
     expect(H.criticalWounds ?? 0).toBe(avant.crits);
     expect(H.outOfRencontre).toBeFalsy();
-    expect(s.journal).toContain(tr('cs.fateDodge', { name: H.label }));
+    expect(s.journal).toContain(tr('cs.fateDodge', { name: nomDe(H) }));
   });
 
   it('« Meurs un autre jour » (l.31) : mis KO, Inconscient, vivant, un Destin de moins, aucune rencontre à quitter', () => {
@@ -51,7 +52,7 @@ describe('Destin sacrifié hors bataille (#3892) : LDB 17 l.29-32', () => {
     expect(H.dead).toBeFalsy();
     expect(H.outOfRencontre).toBeFalsy();
     expect(H.exitReason).toBeUndefined();
-    expect(s.journal).toContain(tr('cs.fateFlee', { name: H.label }));
+    expect(s.journal).toContain(tr('cs.fateFlee', { name: nomDe(H) }));
   });
 
   it('accepter le sort (l.29) : mort, le Destin intact', () => {
@@ -64,6 +65,6 @@ describe('Destin sacrifié hors bataille (#3892) : LDB 17 l.29-32', () => {
     expect(H.fate).toBe(avant.fate);
     expect(H.dead).toBe(true);
     expect(H.outOfRencontre).toBeFalsy();
-    expect(s.journal).toContain(tr('cs.succumb', { name: H.label }));
+    expect(s.journal).toContain(tr('cs.succumb', { name: nomDe(H) }));
   });
 });

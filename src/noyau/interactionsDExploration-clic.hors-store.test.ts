@@ -12,6 +12,7 @@ import { t } from '../i18n';
 import { cleActionJouee } from './monde/usable';
 import { ficheDEntite } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -49,7 +50,7 @@ describe('cliquerLaCase — intentions d’exploration jouées', () => {
     poser([figurant]);
     banc.setState({ pendingInteract: { id: 'autre', at: { x: 0, y: 0 } } } as never);
     banc.getState().cliquerLaCase(figurant.pos, figurant.id);
-    const who = ficheDEntite(figurant, presetDuNarratif(banc.getState().campaignNarratif)).label;
+    const who = nomDe(ficheDEntite(figurant, presetDuNarratif(banc.getState().campaignNarratif)));
     expect(banc.getState().journal[banc.getState().journal.length - 1]).toBe(t('exploration.figurantMuet', { who }));
     expect(banc.getState().pendingInteract).toBeNull();
   });

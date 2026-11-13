@@ -63,6 +63,7 @@ import { refuserGesteDuSiege } from './refusVisible';
 import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 const POSTE_ICON: Record<string, IconId> = {
   'plein-air': 'expedition/grand-air', approvisionnement: 'objet/consommable', 'recueillir-informations': 'expedition/rumeurs', 'rester-aux-aguets': 'interface/oeil',
@@ -339,7 +340,7 @@ function bilanDeLEtape(s: Jeu, stages: number) {
 
 /** Les lignes du bilan `b` : les rations, le camp, les cartes. */
 function lignesDuBilan(s: Jeu, b: NonNullable<ReturnType<typeof bilanDeLEtape>>): string[] {
-  const nom = (heroId: string) => garanti(s.party.find((h) => h.id === heroId), heroId, 'héros du bilan').label;
+  const nom = (heroId: string) => nomDe(garanti(s.party.find((h) => h.id === heroId), heroId, 'héros du bilan'));
   return [
     ...b.rations.map((heroId) => t('tp.rationFound', { name: nom(heroId) })),
     ...b.soins.map(({ heroId, n }) => t('tp.campCare', { name: nom(heroId), n })),
@@ -456,11 +457,11 @@ export const TABLES = {
     etapeExposition: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       const weatherLabel = String(step.meta?.weatherLabel ?? '');
-      if (step.meta?.warded) return { consequences: freeCons([t('eff.meteoConjuree', { name: hero.label, what: t('eff.protectionDuFroid') })]) };
+      if (step.meta?.warded) return { consequences: freeCons([t('eff.meteoConjuree', { name: nomDe(hero), what: t('eff.protectionDuFroid') })]) };
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence.
       if (step.result.success) return { consequences: freeCons([]) };
-      const j: string[] = [t('tp.exposureLine', { name: hero.label, weather: weatherLabel })];
+      const j: string[] = [t('tp.exposureLine', { name: nomDe(hero), weather: weatherLabel })];
       const prior = (hero.activeEffects ?? []).filter((e) => e.effectId === 'exposition-froid').length;
       const rank = prior >= 10 ? 3 : prior >= 3 ? 2 : 1;
       j.push(...applyExposureFailure(hero, rank, battleRng()).log);

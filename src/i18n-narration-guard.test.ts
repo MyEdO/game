@@ -380,8 +380,6 @@ export function narrationCount(raw: string): number {
  */
 const STOCK_FORMES_TARDIVES: EntreeDeSite[] = [
   { fichier: 'src/engine/character.ts', ref: 'affectation:`Talent de carrière « ${refKey(talentId, spec)} »`', occurrence: 1 },
-  { fichier: 'src/engine/magic.ts', ref: 'affectation:`${caster.label} échoue à incanter ${spell.label}.`', occurrence: 1 },
-  { fichier: 'src/engine/magic.ts', ref: 'affectation:`${caster.label} échoue à focaliser ${spell.label}.`', occurrence: 1 },
   { fichier: 'src/engine/miscast.ts', ref: 'return:\'Colère des dieux\'', occurrence: 1 },
   { fichier: 'src/engine/miscast.ts', ref: 'affectation:` [appliqué]`', occurrence: 1 },
   { fichier: 'src/engine/tables.ts', ref: 'return:`${borne(bas)} à ${borne(haut)}`', occurrence: 1 },

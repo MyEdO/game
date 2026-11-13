@@ -11,6 +11,7 @@ import { addCondition, hasCondition } from '../engine/conditions';
 import { resetRule, setRule } from '../engine/policy';
 import { markFixedDie } from './fixedDieMark';
 import { t as tr } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -51,6 +52,6 @@ describe('émissions du coup encaissé hors bataille (#3984)', () => {
     const s = banc.getState();
     expect(s.battle).toBeNull();
     expect(s.party.find((c) => c.id === demon.id)!.dead).toBe(true);
-    expect(s.journal).toContain(markFixedDie(tr('op.bannissement', { name: demon.label })));
+    expect(s.journal).toContain(markFixedDie(tr('op.bannissement', { name: nomDe(demon) })));
   });
 });

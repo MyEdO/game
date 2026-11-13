@@ -307,10 +307,7 @@ export const DESIGNATIONS = {
   IdDeDepot: {
     mot: 'id de dépôt',
     lire: (s) => s.bank.map((d) => d.uid),
-    nom: (s) => {
-      const { party } = s;
-      return indexe(s.bank, (d) => d.uid, (d) => libelleDuDepot({ party }, d));
-    },
+    nom: (s) => indexe(s.bank, (d) => d.uid, (d) => libelleDuDepot(s, d)),
   },
   IdDeSort: { mot: 'id de sort', lire: () => ids(spells), nom: (_s) => parLabel(spells) },
   IdDePanoplie: { mot: 'id de panoplie', lire: (s) => sansDoublon(ids(lesPanoplies(s))), nom: (s) => parLabel(lesPanoplies(s)) },

@@ -24,6 +24,7 @@ import { OPS_DIFFEREES } from './combatEffects';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -268,8 +269,8 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     expect(st.fuite!.foeId).toBe(frappeur.id);
     expect(st.fuite!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
     expect(st.outcome?.map((l) => l.text), 'l’étape DIT la fuite qu’elle complète, jamais une fenêtre vide').toEqual([
-      t('cs.fuiteReprise', { name: fuyard.label, foe: frappeur.label }),
-      t('cs.panic', { name: fuyard.label, broken: 2 }),
+      t('cs.fuiteReprise', { name: nomDe(fuyard), foe: nomDe(frappeur) }),
+      t('cs.panic', { name: nomDe(fuyard), broken: 2 }),
     ]);
     expect(st.reveal).toBeUndefined();
     expect(st.options).toBeUndefined();

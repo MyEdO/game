@@ -30,6 +30,7 @@ import type { Jeu, PendingInteract } from './etat';
 import type { RefusGeste } from './gesteDArete';
 import type { RoomFocus } from './monde/rooms';
 import type { Pt } from './monde/path';
+import { nomDe } from '../engine/nom';
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
@@ -142,7 +143,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
     return plan ? { kind: 'rejoindre', plan, pending: { id: ent.id, ...(seule ? { actionId: seule.id } : null), at: plan.dest } } : null;
   }
   if (ent?.kind === 'personnage') {
-    if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: ficheDEntite(ent, presetDe).label }) };
+    if (aPorteeDe(s.partyPos, ent)) return { kind: 'dire', message: t('exploration.figurantMuet', { who: nomDe(ficheDEntite(ent, presetDe)) }) };
     return marcherOu(sansChemin);
   }
   // DÉCOR qui OCCUPE sa case (`entityBlockedAt`, la règle d'`isWalkable`) : on s'en approche, sinon on le dit. Un décor

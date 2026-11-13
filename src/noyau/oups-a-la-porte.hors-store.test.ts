@@ -38,7 +38,7 @@ import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { markFixedDie } from './fixedDieMark';
-import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -520,35 +520,34 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
       attackerDetail: { roll: 33, success: false, sl: -2 },
       defenderDetail: { roll: 44, success: false, sl: -3 },
     } as unknown as AttackResult;
-    const maladresses = (label: string): number =>
-      (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Maladresse !`)).length;
-    const sauvegardes = (label: string): number =>
-      (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Sauvegarde Solide`)).length;
+    const maladresses = (c: Combatant): number =>
+      (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${nomDe(c)} — Maladresse !`)).length;
+    const sauvegardes = (c: Combatant): number =>
+      (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${nomDe(c)} — Sauvegarde Solide`)).length;
 
     const suspendu = applyAttackResult(banc.getState, banc.setState, frappeur, rival, armeAttaquant, res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } } });
     expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(OPS_DIFFEREES);
     // Ce que la suspension a figé : rien de la queue n'a joué devant le dé.
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(etapeCourante()!.actorId, 'le dé en vol est celui de l’ATTAQUANT').toBe(frappeur.id);
-    expect(maladresses(frappeur.label), 'même celle de l’attaquant attend son dé').toBe(0);
-    expect(maladresses(rival.label), 'la Maladresse du défenseur attend derrière ce dé').toBe(0);
+    expect(maladresses(frappeur), 'même celle de l’attaquant attend son dé').toBe(0);
+    expect(maladresses(rival), 'la Maladresse du défenseur attend derrière ce dé').toBe(0);
     expect(banc.getState().battle!.acted, 'l’Action du coup est consommée ; la suite n’a PAS joué').toBe(true);
 
     // À partir d'ici, chaque écriture de l'état est datée : on mesure l'ORDRE, pas seulement l'état final.
     const journalDesEcritures: { maladressesDuDefenseur: number; acted: boolean }[] = [];
     let suitesJouees = 0; // transitions « Action rendue » : une par exécution de la suite
     const stop = banc.subscribe((s, prev) => {
-      journalDesEcritures.push({ maladressesDuDefenseur: maladresses(rival.label), acted: !!s.battle?.acted });
+      journalDesEcritures.push({ maladressesDuDefenseur: maladresses(rival), acted: !!s.battle?.acted });
       if (prev.battle?.acted === true && s.battle?.acted === false) suitesJouees += 1;
     });
 
     poser(9); // le dé de casse de l'attaquant ; celui du défenseur suit, roulé au socle (aucun siège)
     expect(brisee(armeAttaquant), 'l’attaquant sauve son arme (LDB 60 l.30)').toBeFalsy();
-    expect(maladresses(frappeur.label), 'la Maladresse de l’attaquant s’applique, une fois').toBe(1);
-    expect(maladresses(rival.label), 'celle du défenseur la suit, une fois').toBe(1);
-    expect(sauvegardes(frappeur.label), 'un seul dé de casse par porteur').toBe(1);
-    // Aucune case n'est vue du groupe : la ligne de dé du rival le nomme du nom neutre (#4017).
-    expect(sauvegardes(t('vision.horsDeVue')), 'un seul dé de casse par porteur').toBe(1);
+    expect(maladresses(frappeur), 'la Maladresse de l’attaquant s’applique, une fois').toBe(1);
+    expect(maladresses(rival), 'celle du défenseur la suit, une fois').toBe(1);
+    expect(sauvegardes(frappeur), 'un seul dé de casse par porteur').toBe(1);
+    expect(sauvegardes(rival), 'un seul dé de casse par porteur').toBe(1);
     expect(banc.getState().battle!.acted, 'la suite (Action gratuite rendue) joue enfin').toBe(false);
     const premiereSuite = journalDesEcritures.findIndex((e) => !e.acted);
     expect(premiereSuite, 'la suite a bien laissé une trace datée').toBeGreaterThanOrEqual(0);
@@ -558,7 +557,7 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
     banc.getState().jetValider('cascade');
     expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
-    expect(maladresses(rival.label)).toBe(1);
+    expect(maladresses(rival)).toBe(1);
     expect(suitesJouees, 'aucune seconde exécution de la suite').toBe(1);
     stop();
   });

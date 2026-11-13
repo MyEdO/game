@@ -33,6 +33,7 @@ import type { PendingActivity } from './interludeFlow';
 import { estCibleType } from '../engine/psych/ciblage';
 import { psychologyLabel } from '../data';
 import { activityById, matchOutcomes } from '../engine/activities';
+import type { PlayerText } from '../i18n/playerText';
 import { isFumble } from '../engine/oups';
 import { isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
 import { bargainPct, bargainSellBonusPct, type BargainOutcome } from '../engine/bargain';
@@ -65,7 +66,7 @@ export function amazingTestLabel(pt: PendingTest): { success: boolean; text: str
 
 /** Psychologie À LA RENCONTRE, hors combat (couture C) : Trait ciblé social, Terreur ou Peur face à
  *  une source nommée. `name` = héros concerné. */
-export function describeEncounterPsych(pe: PendingEncounterPsych, name: string): string {
+export function describeEncounterPsych(pe: PendingEncounterPsych, name: PlayerText): string {
   const r = pe.result;
   if (!r) return '';
   if (estCibleType(pe.kind)) {

@@ -41,6 +41,7 @@ import { currentPort, devisDAchatEnPort, ouvrirLePort, vivresAchetables } from '
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
 import type { VivresDeCale } from '../engine/provisions';
 import { setVesselSchema, adjustVesselSchema } from '../data/schemas/defs-scenes/effets';
+import { nomDe } from '../engine/nom';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -730,7 +731,7 @@ describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, vale
     expect(coque().crewIds!.length).toBe(aBord + vague);
     expect(coque().reserveDAbordage!.restant).toBe(24 - 2 * vague);
     expect(coque().exitReason).toBeUndefined();
-    expect(JSON.stringify(get().battle!.log)).toContain(t('crew.vagueDAbordage', { ship: coque().label, n: vague, restant: 24 - 2 * vague }));
+    expect(JSON.stringify(get().battle!.log)).toContain(t('crew.vagueDAbordage', { ship: nomDe(coque()), n: vague, restant: 24 - 2 * vague }));
   });
 });
 
@@ -1197,7 +1198,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     expect(a.outOfRencontre).toBe(true);
     expect(a.exitReason).toBe('repousse');
     expect(b.outOfRencontre).toBeFalsy();
-    expect(log()).toContain(t('cf.repousse', { name: a.label }));
+    expect(log()).toContain(t('cf.repousse', { name: nomDe(a) }));
     aDemi(b);
     c.dead = true;
     expect(checkBattleOver(get, set)).toBe(true);

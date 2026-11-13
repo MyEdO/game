@@ -10,6 +10,7 @@ import { t } from '../i18n';
 import type { Jeu } from './etat';
 import { refusDepensePx } from './verrousDeFiche';
 import type { Combatant } from '../engine/types';
+import { nomDe } from '../engine/nom';
 
 
 /** Une Augmentation hors carrière exige-t-elle un mentor absent (règle `progression-mentor`, flag de
@@ -28,16 +29,16 @@ export function libelleAvecSpec(name: string, spec?: string): string {
  *  d'avancement ; le combat et les PX se refusent à part (`refusDepensePx`). */
 export function refusDAcquerirLeTalent(hero: Combatant, talentId: string, spec: string | undefined): string | null {
   const label = refLabel('talents', { id: talentId, spec });
-  if (talentMaxReached(hero, talentId, spec)) return t('pf.talentMaxed', { name: hero.label, label });
+  if (talentMaxReached(hero, talentId, spec)) return t('pf.talentMaxed', { name: nomDe(hero), label });
   if (spec == null || !findTalentById(talentId)?.grantsArcaneDomain) return null;
   const gate = arcaneDomainGate(hero, spec);
-  return gate.ok ? null : t('pf.refused', { name: hero.label, what: label, reason: gate.reason ?? '' });
+  return gate.ok ? null : t('pf.refused', { name: nomDe(hero), what: label, reason: gate.reason ?? '' });
 }
 
 /** Refus d'une dépense de `cost` PX que le héros n'a pas : la raison affichée, ou `null`. Verdict UNIQUE
  *  des achats de progression (en tête du geste, avant le moteur) et de la vue d'avancement. */
 export function refusDePx(hero: Combatant, cost: number): string | null {
-  return (hero.xp ?? 0) < cost ? t('pf.notEnoughXp', { name: hero.label, cost }) : null;
+  return (hero.xp ?? 0) < cost ? t('pf.notEnoughXp', { name: nomDe(hero), cost }) : null;
 }
 
 /** Contexte d'un changement de Carrière de `hero` vers (`newCareer`, `newLevel`) : complétion du niveau
@@ -57,5 +58,5 @@ export function refusDeChangerDeCarriere(
   s: Pick<Jeu, 'battle'>, hero: Combatant, newCareer: string, newLevel: number, completed: boolean,
 ): string | null {
   const v = validateCareerChange(hero, newCareer, newLevel, contexteDeChangement(hero, newCareer, newLevel, completed));
-  return refusDepensePx(s) ?? (v.ok ? refusDePx(hero, v.cost) : t('pf.careerRefused', { name: hero.label, reason: v.reason ?? '' }));
+  return refusDepensePx(s) ?? (v.ok ? refusDePx(hero, v.cost) : t('pf.careerRefused', { name: nomDe(hero), reason: v.reason ?? '' }));
 }

@@ -59,6 +59,7 @@ import { garanti } from '../lib/garanti';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { nomDe } from '../engine/nom';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {
@@ -230,7 +231,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   if (!hero || !pick || !def) { continueSeaActivitiesAfterCascade(get, set); return; }
   const invest = pick.investGold ?? 0;
   if (invest <= 0) {
-    noteSeaLine(get, set, [t('sact.tradeNoStake', { name: hero.label })]);
+    noteSeaLine(get, set, [t('sact.tradeNoStake', { name: nomDe(hero) })]);
     continueSeaActivitiesAfterCascade(get, set);
     return;
   }
@@ -315,16 +316,16 @@ export const TABLES = {
           recomputeLoadout(hero);
         }
         // MDG 15
-        j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
+        j.push(t('sact.chartOk', { name: nomDe(hero), gold: Math.max(0, step.result.sl) }));
         if (stashGold > 0) {
           const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
           set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'planque', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292
-          j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
+          j.push(t('sact.stash', { name: nomDe(hero), money: formatMoney(fromBrass(stashBrass)) }));
         }
       } else {
-        j.push(t('sact.chartKo', { name: hero.label }));
+        j.push(t('sact.chartKo', { name: nomDe(hero) }));
       }
       set({ party: [...get().party] });
       return { consequences: freeCons(j) };
@@ -353,7 +354,7 @@ export const TABLES = {
       const pct = opportunityTradePct(total);
       const back = Math.floor((investBrass * pct) / 100);
       distributeCredit(get, set, fromBrass(back));
-      const line = t('sact.tradeDone', { name: hero.label, stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
+      const line = t('sact.tradeDone', { name: nomDe(hero), stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
       noteSeaLine(get, set, [line]);
       continueSeaActivitiesAfterCascade(get, set);
       return { consequences: freeCons([line]) };

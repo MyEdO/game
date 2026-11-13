@@ -8,6 +8,7 @@ import { spawnEnemy } from './monde/spawn';
 import { applyCriticalToTarget, runEnemyAI } from './combatFlow';
 import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 
 /** Une coque qui n'est PAS un navire (`profilNavalDe` : pas de facette `ship`) — EDOC 07 l.334, MDG 13 l.656. */
 const diligence = (id = 'dil', pos = { x: 7, y: 5 }): Combatant => spawnEnemy({ vehicule: 'diligence' }, id, pos);
@@ -37,7 +38,7 @@ describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de 
     expect(mort).toBe(false);
     expect(dil.criticalWounds).toBe(avant.criticalWounds);
     expect(dil.conditions).toEqual(avant.conditions);
-    expect(log).toEqual([t('cf.coqueSansCritique', { name: dil.label })]);
+    expect(log).toEqual([t('cf.coqueSansCritique', { name: nomDe(dil) })]);
   });
 
   it("un navire qui avance sur une diligence ne résout aucune collision : aucune des deux coques n'encaisse", () => {

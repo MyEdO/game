@@ -42,6 +42,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { effectiveTalents } from '../engine/talentEffects';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import { nomDe } from '../engine/nom';
 
 /** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat, que joue `franchirLArete`, de
  *  l'ancrage à la case d'en face (`caseOpposee`). */
@@ -186,7 +187,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
   if (mode === 'battle') {
     for (const { c, m } of chutes) {
       if (m > 0) jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'heros', heroId: c.id, metres: m, to: p.to }]));
-      else { placeCombatant(c, scene, p.to); get().ecrireAuJournal(t('fall.jumpSafe', { name: c.label })); }
+      else { placeCombatant(c, scene, p.to); get().ecrireAuJournal(t('fall.jumpSafe', { name: nomDe(c) })); }
     }
     return;
   }
@@ -195,9 +196,9 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
   // cibles et de `collapseStructure`) : la séquence compte d'emblée chaque dé de la chute.
   for (const { c, m } of chutes) {
     if (m > 0) {
-      get().ecrireAuJournal(t('eff.chuteOuverte', { m, noms: c.label }));
+      get().ecrireAuJournal(t('eff.chuteOuverte', { m, noms: nomDe(c) }));
       ouvrirChute(set, c, m);
-    } else get().ecrireAuJournal(t('fall.jumpSafe', { name: c.label }));
+    } else get().ecrireAuJournal(t('fall.jumpSafe', { name: nomDe(c) }));
   }
 }
 
@@ -242,8 +243,8 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     const autoClimb = !!battle && hasAutoClimb(mover.traits);
     const plan = planClimb(scene, from, to, hasGrimpeur, battle ? mover.id : undefined, autoClimb);
     if (!plan) throw new Error('franchirLArete : l’arête d’escalade ne porte pas de grimpe');
-    if (plan.kind === 'impossible') return void refuserGeste(get, set, t('climb.tooHard', { name: mover.label }));
-    if (!isWalkable(scene, to.x, to.y, to.z ?? 0)) return void refuserGeste(get, set, t('climb.sommetInaccessible', { name: mover.label }));
+    if (plan.kind === 'impossible') return void refuserGeste(get, set, t('climb.tooHard', { name: nomDe(mover) }));
+    if (!isWalkable(scene, to.x, to.y, to.z ?? 0)) return void refuserGeste(get, set, t('climb.sommetInaccessible', { name: nomDe(mover) }));
     if (!battle) {
       poserLeGroupe(get, set, to); // monte (optimiste) ; l'échec du Test fera chuter au pied via l'Effet `fall`
       if (plan.kind === 'test') jouerFlowEntier(runFlow(get, set, plan.flow));
@@ -253,15 +254,15 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     // Grimpant `climbFullSpeed` (LDB 85 l.162) : coût NORMAL (1 case), pas la ½ vitesse du Talent
     // Grimpeur joueur (LDB 15 l.55, `climbMovementCost`) — chemin joueur strictement inchangé.
     const cost = hasClimbFullSpeed(mover.traits) ? 1 : climbMovementCost(metres, sceneMetresPerTile(scene));
-    if (movementRemaining(battle, mover) < cost) return void refuserGeste(get, set, t('climb.mouvementInsuffisant', { name: mover.label, cout: cost }));
+    if (movementRemaining(battle, mover) < cost) return void refuserGeste(get, set, t('climb.mouvementInsuffisant', { name: nomDe(mover), cout: cost }));
     // `surface` = Test requis → consomme l'Action (LDB 13 l.86-88) ; `ladder`/`auto` = sans Test → Mouvement seul.
-    if (plan.kind === 'test' && battle.acted) return void refuserGeste(get, set, t('climb.actionDejaPrise', { name: mover.label }));
-    if (arriveeOccupee(battle, mover, to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
+    if (plan.kind === 'test' && battle.acted) return void refuserGeste(get, set, t('climb.actionDejaPrise', { name: nomDe(mover) }));
+    if (arriveeOccupee(battle, mover, to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: nomDe(mover) }));
     placeCombatant(mover, scene, to); // hisse (optimiste) ; échec du Test → `fall` au pied
     const acted = plan.kind === 'test' ? true : battle.acted;
     // Résolution directe (Grimpant) : PAS un jet silencieux — il n'y a PAS de jet du tout, journalisé.
     const log = plan.kind === 'free' && plan.auto
-      ? [...battle.log, ev('deplacement', t('climb.auto', { name: mover.label }), mover.id)]
+      ? [...battle.log, ev('deplacement', t('climb.auto', { name: nomDe(mover) }), mover.id)]
       : battle.log;
     set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
@@ -277,14 +278,14 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     const { mobile: mover, scene, battle } = verdict;
     const plan = planFranchissement(scene, from, to);
     if (plan.kind !== 'fall') throw new Error(`franchirLArete : l'arête de chute ne planifie pas de chute (${plan.kind})`);
-    if (battle && arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
+    if (battle && arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: nomDe(mover) }));
     // Le pas, et l'allège d'une croisée (`mouvementDeLaChute`, patron de la `fenetre`).
     const cout = mouvementDeLaChute(plan, false, sceneMetresPerTile(scene));
-    if (battle && movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fall.mouvementInsuffisant', { name: mover.label, cout }));
+    if (battle && movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fall.mouvementInsuffisant', { name: nomDe(mover), cout }));
     const tombants = tombantsDe(get, battle, mover);
     // Membre VIVANT non debout : maison `chute-tombant-non-debout` (EDO 01 l.231, LDB 15 l.82).
     const nonDebout = tombants.find((c) => !estDebout(c));
-    if (nonDebout && rule('chute-tombant-non-debout') !== 'chute-pleine') return void refuserGeste(get, set, t('fall.refus.nonDebout', { name: nonDebout.label }));
+    if (nonDebout && rule('chute-tombant-non-debout') !== 'chute-pleine') return void refuserGeste(get, set, t('fall.refus.nonDebout', { name: nomDe(nonDebout) }));
     set({
       pendingFall: {
         test: testDeRegle('chute', 'tenter'),
@@ -308,10 +309,10 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
       return;
     }
     const cout = 1 + mouvementDeLAllege(plan.allege, sceneMetresPerTile(scene));
-    if (movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fenetre.mouvementInsuffisant', { name: mover.label, cout }));
-    if (arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
+    if (movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fenetre.mouvementInsuffisant', { name: nomDe(mover), cout }));
+    if (arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: nomDe(mover) }));
     placeCombatant(mover, scene, plan.to);
-    const log = [...battle.log, ev('deplacement', t('fenetre.enjambe', { name: mover.label }), mover.id)];
+    const log = [...battle.log, ev('deplacement', t('fenetre.enjambe', { name: nomDe(mover) }), mover.id)];
     set({ battle: { ...battle, log, action: null, movementUsed: (battle.movementUsed ?? 0) + cout, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
   },
