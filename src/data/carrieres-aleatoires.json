@@ -2634,7 +2634,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Humain",
-    "die": "d100",
     "colonne": "humain",
     "source": {
       "book": "mer-des-griffes",
@@ -2689,7 +2688,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Halfling",
-    "die": "d100",
     "colonne": "halfling",
     "source": {
       "book": "mer-des-griffes",
@@ -2724,7 +2722,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Nain",
-    "die": "d100",
     "colonne": "nain",
     "source": {
       "book": "mer-des-griffes",
@@ -2764,7 +2761,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Haut elfe",
-    "die": "d100",
     "colonne": "haut-elfe",
     "source": {
       "book": "mer-des-griffes",
@@ -2804,7 +2800,6 @@
     "type": "carrieres-aleatoires",
     "kind": "portion",
     "label": "Côtiers — Elfe sylvain",
-    "die": "d100",
     "colonne": "elfe-sylvain",
     "source": {
       "book": "mer-des-griffes",

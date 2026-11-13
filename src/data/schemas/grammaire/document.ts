@@ -131,7 +131,8 @@ export type EnveloppeDocument = Omit<z.infer<z.ZodObject<ReturnType<typeof envel
 /**
  * Vue TS d'un document à RANGÉES (`options.rangee`) : l'enveloppe, plus la charge que la fabrique
  * pose. Un def qui exporte la vue TS de son document la compose ICI — `DocumentARangees<z.infer<typeof
- * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: string }`).
+ * saRangee>>` —, sans jamais re-taper `entries` (un document à `deDeTirage` y ajoute `& { die: string }`, aux seuls cas qui le portent quand
+ * `espace.chargeParDiscriminant` le nomme).
  */
 export type DocumentARangees<L> = EnveloppeDocument & { entries: L[] };
 
@@ -195,8 +196,9 @@ export interface OptionsDocument {
    */
   readonly rangee?: z.ZodType<object>;
   /**
-   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis, `deDeTirageSchema`) avec sa
-   * méta FR (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
+   * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (`deDeTirageSchema`) avec sa
+   * méta FR (`META_CHARGE`), requis — ou porté par les seuls cas qui le nomment dans
+   * `espace.chargeParDiscriminant` (`refusDeCharge`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
    * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (inventaire
    * `STRUCTURES_DEFAUT`, `scripts/guards/lib/inventaireDeDette.mts`). Exige `rangee`.
    */
@@ -524,6 +526,9 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   // ses RANGÉES (`config`), dont la charge par discriminant se borne alors au parse de chaque rangée.
   const espaceDesRangees = famille === 'config' ? options.espace : undefined;
   const espaceDuDocument = famille === 'config' ? {} : espace;
+  /** Le dé est une clé de CHARGE par discriminant dès qu'un cas de `espace.chargeParDiscriminant` le nomme :
+   *  la fabrique le pose alors optionnel, et `refusDeCharge` l'exige des cas qui le déclarent, le refuse aux autres. */
+  const deParDiscriminant = Object.values(espaceDuDocument.chargeParDiscriminant ?? {}).some((cles) => cles.includes('die'));
   const refusDeRangee = espaceDesRangees && rangee && refusDeCharge(type, espaceDesRangees, rangee instanceof z.ZodObject ? Object.keys(rangee.shape) : []);
   const rangeeChargee = rangee && refusDeRangee
     ? nommerChamps((rangee as z.ZodObject<z.ZodRawShape>).superRefine((v, ctx) => refusDeRangee(v as Record<string, unknown>, ctx)), metaDesChamps(rangee) ?? {})
@@ -576,7 +581,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       : rangee
         ? marquerProduit(z.strictObject({
             ...complet.shape,
-            ...(deDeTirage ? { die: deDeTirageSchema } : {}),
+            ...(deDeTirage ? { die: deParDiscriminant ? deDeTirageSchema.optional() : deDeTirageSchema } : {}),
             entries: rangeesDeCharge(z.array(rangeeChargee!), espaceDesRangees),
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;

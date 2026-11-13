@@ -38,7 +38,9 @@ const LIBELLES_DE_KIND = { colonne: 'Colonne', portion: 'Portion', variante: 'Va
 
 /** Un document du tableau tel que le lit l'affinage du fichier : sa charge, bornée par sa sorte
  *  (`espace.chargeParDiscriminant`), y est encore celle de la donnée, que `refusDeCharge` nomme. */
-type Document = { id: string; die: string; kind: keyof typeof LIBELLES_DE_KIND; colonne?: string; carriere?: string; colonnes?: string[]; entries: z.output<typeof rangee>[] };
+type Document = { id: string; die?: string; kind: keyof typeof LIBELLES_DE_KIND; colonne?: string; carriere?: string; colonnes?: string[]; entries: z.output<typeof rangee>[] };
+/** Un document qui porte le dé de son tirage : une colonne, une variante (`chargeParDiscriminant`). */
+type DocumentADe = Document & { die: string };
 
 const nomDeRangee = (r: z.output<typeof rangee>) => `la rangée ${r.min}-${r.max} (${r.id})`;
 
@@ -66,12 +68,12 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    espace: { discriminant: 'kind', chargeParDiscriminant: { colonne: [], portion: ['colonne'], variante: ['carriere', 'colonnes'] } },
+    espace: { discriminant: 'kind', chargeParDiscriminant: { colonne: ['die'], portion: ['colonne'], variante: ['carriere', 'colonnes', 'die'] } },
     affinerDataset: (dataset) =>
-      couvertureDuDeParDocument<Document>(file, nomDeRangee, (t) => t.kind !== 'portion')(dataset).superRefine((v, ctx) => {
+      couvertureDuDeParDocument<DocumentADe>(file, nomDeRangee, (t: Document) => t.die !== undefined)(dataset).superRefine((v, ctx) => {
         const documents = v as Document[];
         const refus = (i: number, champ: string, message: string) => ctx.addIssue({ code: 'custom', path: [i, champ], message: `carrieres-aleatoires.json › ${documents[i].id} : ${message}.` });
-        const colonneDeBase = (id: string) => documents.find((d) => d.id === id && d.kind === 'colonne');
+        const colonneDeBase = (id: string) => documents.find((d): d is DocumentADe => d.id === id && d.kind === 'colonne' && d.die !== undefined);
         const vues = new Map<string, string>();
         for (const [i, p] of documents.entries()) {
           if (p.kind !== 'portion' || p.colonne === undefined) continue;

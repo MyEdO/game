@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { rollCareer } from './creation';
 import { deFixe, deMin } from './dice.testkit';
 import { makeRNG } from './dice';
-import { careersForSpecies, carrieresAleatoires, findSpeciesById, species, type SpeciesData } from '../data';
+import { careersForSpecies, carrieresAleatoires, findSpeciesById, species, tableDeCarrieres, type SpeciesData } from '../data';
 import { setDataset } from '../data/overrides';
 import { findTableEntry } from './tables';
 
@@ -87,6 +87,16 @@ describe('rollCareer — documents du Tableau des Classes et Carrières aléatoi
       const tires = new Set(Array.from({ length: 300 }, (_, i) => rollCareer(humain, false, makeRNG(i + 1)).ids[0]));
       expect(tires, 'un 1d10 n’atteint que les rangées de 1 à 10').toEqual(atteignables);
       expect(rollCareer(humain, false, deMin).roll).toBe(1);
+    } finally {
+      setDataset('carrieresAleatoires', imprimes);
+    }
+  });
+
+  it('avec la portion, la table se tire au dé de sa colonne, et suit sa surcharge (MDG 09 l.9)', () => {
+    const imprimes = [...carrieresAleatoires];
+    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === 'humain' && d.kind === 'colonne' ? { ...d, die: '2d50' } : d)));
+    try {
+      expect(tableDeCarrieres('humain', true).die).toMatchObject({ n: 2, sides: 50 });
     } finally {
       setDataset('carrieresAleatoires', imprimes);
     }

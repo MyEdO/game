@@ -3117,16 +3117,18 @@ export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDe
 /** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299), par `kind` : une colonne
  *  par colonne imprimée, les portions (MDG 09 l.9) et les variantes (AA 02 l.109-128) — app-owned éditable au
  *  Codex (`setDataset`), même référence. */
-export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesCarrieresAleatoires>> & { die: string } & (
-  | { kind: 'colonne' }
+export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesCarrieresAleatoires>> & (
+  | { kind: 'colonne'; die: string }
   | { kind: 'portion'; colonne: string }
-  | { kind: 'variante'; carriere: string; colonnes: string[] }
+  | { kind: 'variante'; die: string; carriere: string; colonnes: string[] }
 ))[];
 /** La colonne de base `id`, lue à l'appel. */
 export const colonneDeCarrieres = (id: string) =>
-  garanti(carrieresAleatoires.find((d) => d.id === id && d.kind === 'colonne'), id, 'colonne du Tableau des Classes et Carrières aléatoires');
+  garanti(carrieresAleatoires.find((d): d is Extract<(typeof carrieresAleatoires)[number], { kind: 'colonne' }> => d.id === id && d.kind === 'colonne'), id, 'colonne du Tableau des Classes et Carrières aléatoires');
 /** La portion qui remplace une étendue de la colonne `colonne` (MDG 09 l.9), lue à l'appel. */
 export const portionDeLaColonne = (colonne: string) => carrieresAleatoires.find((d) => d.kind === 'portion' && d.colonne === colonne);
+/** Le document dont le tirage de `d` lit le dé : `d` lui-même, ou la colonne dont la portion `d` est une tranche (MDG 09 l.9). */
+export const porteurDuDeDeCarrieres = (d: (typeof carrieresAleatoires)[number]) => (d.kind === 'portion' ? colonneDeCarrieres(d.colonne) : d);
 /** La table effective de la colonne `colonne`, avec ou sans sa portion, et son dé : lue par `rollCareer`. */
 export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: DeDeTable; entries: RangeeDe<typeof tableDesCarrieresAleatoires>[] } {
   const base = colonneDeCarrieres(colonne);

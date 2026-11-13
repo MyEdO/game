@@ -7,7 +7,7 @@ import carrieresAleatoiresJson from '../../carrieres-aleatoires.json';
 import speciesJson from '../../species.json';
 
 type Rangee = { id: string; min: number; max: number };
-type Colonne = { id: string; die: string; kind: string; colonne?: string; carriere?: string; colonnes?: string[]; entries: Rangee[] };
+type Colonne = { id: string; die?: string; kind: string; colonne?: string; carriere?: string; colonnes?: string[]; entries: Rangee[] };
 const clone = () => structuredClone(carrieresAleatoiresJson) as unknown as Colonne[];
 const doc = (docs: Colonne[], id: string) => docs.find((d) => d.id === id)!;
 const FICHIER = 'carrieres-aleatoires.json';
@@ -82,6 +82,18 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
     const docs = clone();
     delete doc(docs, 'cotiers-nain').colonne;
     expect(validateDataset(FICHIER, docs)).toMatch(/« cotiers-nain » \(kind « portion »\) exige « colonne »/);
+  });
+
+  it('REFUSE, en la nommant, une portion qui porte un dé : elle se tire au dé de sa colonne (MDG 09 l.9)', () => {
+    const docs = clone();
+    doc(docs, 'cotiers-humain').die = 'd100';
+    expect(validateDataset(FICHIER, docs)).toMatch(/« die » n’appartient qu’au\(x\) cas kind « colonne, variante » — refusée sur « cotiers-humain » \(kind « portion »\)/);
+  });
+
+  it('REFUSE, en la nommant, une colonne sans dé (LDB 05 l.214)', () => {
+    const docs = clone();
+    delete doc(docs, 'nain').die;
+    expect(validateDataset(FICHIER, docs)).toMatch(/« nain » \(kind « colonne »\) exige « die »/);
   });
 
   it('REFUSE, en la nommant, une variante sans `carriere`, et une sans `colonnes`', () => {
