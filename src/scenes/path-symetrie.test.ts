@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { diligenceCampaign, paquetDuJeu } from './campaign';
 import { emptyScene, isWalkable, type Scene, type WallSeg } from '../noyau/monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
-import { walkNeighbors, type Pt } from '../noyau/monde/path';
+import { reachable, tileKey, walkNeighbors, type MoveEnv, type Pt } from '../noyau/monde/path';
+import { plancherGrimpable } from '../noyau/monde/escalade.testkit';
 
 /**
  * SYMÉTRIE du franchissement — la marchabilité est une propriété de l'ARÊTE, pas du sens de parcours :
@@ -72,7 +73,7 @@ describe('path — le franchissement d’une arête est SYMÉTRIQUE', () => {
 function twoLayer(tuilesZ1: { x: number; y: number }[], murs: WallSeg[], videsZ0: { x: number; y: number }[] = []): Scene {
   const w = 4;
   const s = emptyScene('scene-test', w, 3);
-  const z1 = new Array(w * 3).fill('vide') as Terrain[];
+  const z1 = Array.from({ length: w * 3 }, (): Terrain => 'vide');
   for (const t of tuilesZ1) z1[t.y * w + t.x] = 'plancher';
   for (const v of videsZ0) s.layers[0].tiles[v.y * w + v.x] = 'vide' as Terrain;
   s.layers.push({ z: 1, tiles: z1 });
@@ -122,5 +123,31 @@ describe('path — le garde anti coupe-de-coin reste ENTIER dans les deux sens',
     expect(isWalkable(s, 2, 0, 1)).toBe(false); // le flanc n'existe QUE sous la couche d'arrivée
     expect(links(s, p, d)).toBe(true);
     expect(links(s, d, p)).toBe(true);
+  });
+});
+
+/** #4156 : le pas d'un Grimpant (`traverse`, LDB 85 l.160-162) franchit l'arête escaladable entre deux couches dans les
+ *  deux sens (LDB 15 l.57), sur `plancherGrimpable`. */
+describe('path — le pas d’un Grimpant (`traverse`) franchit l’arête escaladable dans les deux sens', () => {
+  const s = plancherGrimpable();
+  const env: MoveEnv = { blocked: new Set(), traverse: { climb: true, climbFullSpeed: true } };
+  /** Les voisins de pas de `a` : `reachable` à portée 1, le pas que partagent `reachable` et `distancesDeMarcheVers`. */
+  const cle = (p: Pt) => tileKey(p.x, p.y, p.z ?? 0);
+  const pas = (a: Pt) => [...reachable(s, a, 1, env).keys()].filter((k) => k !== cle(a));
+
+  it('le rez atteint le plancher, et le plancher atteint le rez', () => {
+    const duRez = [...reachable(s, { x: 2, y: 3, z: 0 }, 4, env).keys()];
+    const duHaut = [...reachable(s, { x: 2, y: 0, z: 1 }, 3, env).keys()];
+    expect(duRez).toContain(tileKey(2, 0, 1));
+    expect(duHaut).toContain(tileKey(2, 3, 0));
+  });
+
+  it('toute arête franchie par le pas l’est dans les deux sens', () => {
+    const uniques = surfaces(s).flatMap((a) => pas(a).filter((b) => {
+      const [x, y, z] = b.split(',').map(Number);
+      return !pas({ x, y, z }).includes(cle(a));
+    }).map((b) => `${cle(a)} -> ${b}`));
+    expect(pas({ x: 2, y: 0, z: 1 })).toContain(tileKey(2, 1, 0));
+    expect(uniques).toEqual([]);
   });
 });

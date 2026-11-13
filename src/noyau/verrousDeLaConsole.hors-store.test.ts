@@ -58,7 +58,7 @@ function auTour(id: string, tenu: (c: Combatant) => boolean): Partie {
 
 const contexte = (partie: Partie): ActionCtx => {
   const s = partie.etat();
-  return { active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
+  return { scene: s.scene, active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
 };
 
 /** L'attendu par entrée : `true` = un gate de l'entrée se FERME sous l'État, avec la raison de l'État ; `false` = aucun

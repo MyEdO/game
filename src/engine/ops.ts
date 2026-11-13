@@ -943,7 +943,8 @@ export type GameOp =
    *  1d`sides` UNE fois, applique les `ops` de CHAQUE palier dont `atLeast` est atteint (cumulatif).
    *  Les ops de palier voient `{rolled}` = la valeur du dé. UN seul jet partagé (≠ jets indépendants). */
   | { op: 'rollThreshold'; sides: number; thresholds: { atLeast: number; ops: GameOp[] }[] }
-  /** Tirage sur TABLE (`die` = dé de tirage, `deDeTirageSchema`) : lookup par fourchette `[min,max]` (`findTableEntry`, source
+  /** Tirage sur TABLE (`die` = dé de tirage des `entries` inline, `deDeTirageSchema` ; sous `tableId`, le dé est
+   *  celui de la table, jamais l'op — #1667) : lookup par fourchette `[min,max]` (`findTableEntry`, source
    *  unique), les `ops` de la rangée touchée sont appliquées avec le MÊME ctx. DEUX formes exclusives de
    *  la table : `entries` INLINE (authorées sur l'op) OU `tableId` = référence à `tables.json`
    *  (`findEffectTableById`, fail-fast) — jamais les deux (membres stricts d'`OP_DEFS.rollTable`). `mod` = modificateur
@@ -956,7 +957,7 @@ export type GameOp =
    *  la durée et refaire un jet sur le Tableau » — déclinable ; la durée se prolonge sur TOUS les pas
    *  alloués quel que soit le choix). Généralise tout « lancez 1dN [+ modif], consultez le tableau ». */
   | { op: 'rollTable'; die: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; entries: { min: number; max: number; ops: GameOp[] }[] }
-  | { op: 'rollTable'; die?: string; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
+  | { op: 'rollTable'; die?: never; mod?: number; addNegativeSL?: boolean; extraRollsPerStep?: number; tableId: string }
   /** Tirage d'une MUTATION sur une table de Corruption (`mutationTables.json`, par id `table`) —
    *  réutilise `rollMutation()` + `attachMutation()` (`corruption.ts`/`mutations.ts`). DURÉE identique à
    *  `grantTrait` (EDOC 13 l.276-277 « appliquez […] pour toute la durée du Sort ») : durée du contexte

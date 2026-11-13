@@ -33,7 +33,7 @@ import { canPushback } from '../../engine/qualities/dispatch';
 import { isOutOfAction, loseWounds, applyZeroWounds, isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { woundsFromHit } from '../../engine/woundsCalc';
-import { combatDistance } from '../monde/footprint';
+import { distanceDeCombat } from '../monde/footprint';
 import { porteeEnCases } from '../monde/combatGeometry';
 import { pushBackTiles } from '../combatPlacement';
 import { sceneMetresPerTile } from '../monde/scene';
@@ -70,7 +70,7 @@ function aurasCouvrant<T extends { radiusMeters: number }>(
       const aura = lire(e);
       if (!aura) continue;
       const r = porteeEnCases(aura.radiusMeters, mpt);
-      if (combatDistance(w, target) <= r && combatDistance(w, attacker) > r) out.push(aura);
+      if (distanceDeCombat(w, target) <= r && distanceDeCombat(w, attacker) > r) out.push(aura);
     }
   }
   return out;

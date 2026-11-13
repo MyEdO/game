@@ -99,7 +99,8 @@ export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos
  * (`stage/geste.ts:entiteDuGeste`) : l'homologue hors combat d'`intentionDuClicDeCase` (`combatOrParty.ts`). Chaque
  * variante nomme les verbes que l'hôte joue : `interagir` → `interagirAvecLEntite` ; `jouer` → `jouerAction` ; `rejoindre`
  * → `poserLInteraction(pending)` puis la marche du `plan` ; `marcher` → la marche du `plan` ; `dire` → `ecrireAuJournal` ;
- * `injoignable` → le refus qui nomme la case qu'aucun chemin n'atteint (`refuserGeste`) ; `annuler` (la case du groupe)
+ * `injoignable` → le refus qui nomme la case qu'aucun chemin n'atteint, et son étage dans une scène à plusieurs couches
+ * (`refuserGeste`) ; `annuler` (la case du groupe)
  * → rien que l'abandon du pending. Toute variante hors `rejoindre` pose d'abord `poserLInteraction(null)`.
  * `null` : rien ne se joue (hors exploration, dialogue ouvert, N offres à portée que la pastille sert, entité
  * utilisable injoignable), le pending et le survol restent.
@@ -124,7 +125,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
   const marcherOu = (sinon: IntentionDExploration): IntentionDExploration => (plan ? { kind: 'marcher', plan } : sinon);
   const sansChemin: IntentionDExploration = memeCase(s.partyPos, tuile)
     ? { kind: 'annuler' }
-    : { kind: 'injoignable', message: t('marche.aucunChemin', { x: tuile.x, y: tuile.y }) };
+    : { kind: 'injoignable', message: sc.layers.length > 1 ? t('marche.aucunCheminALEtage', { x: tuile.x, y: tuile.y, z: tuile.z ?? 0 }) : t('marche.aucunChemin', { x: tuile.x, y: tuile.y }) };
   const presetDe = presetDuNarratif(s.campaignNarratif);
   // MEUBLE À PLACES : il AJOUTE l'assise sans retirer d'affordance ; sans place servable, la chaîne des offres reprend
   // (son offre d'assise, `actionsDe`, le garde utilisable).

@@ -1,0 +1,93 @@
+{
+  "id": "dispersion",
+  "type": "dispersion",
+  "label": "Dispersion",
+  "die": "d10",
+  "entries": [
+    {
+      "id": "dispersion-1",
+      "min": 1,
+      "max": 1,
+      "depuis": "cible",
+      "dx": -1,
+      "dy": -1
+    },
+    {
+      "id": "dispersion-2",
+      "min": 2,
+      "max": 2,
+      "depuis": "cible",
+      "dx": 0,
+      "dy": -1
+    },
+    {
+      "id": "dispersion-3",
+      "min": 3,
+      "max": 3,
+      "depuis": "cible",
+      "dx": 1,
+      "dy": -1
+    },
+    {
+      "id": "dispersion-4",
+      "min": 4,
+      "max": 4,
+      "depuis": "cible",
+      "dx": -1,
+      "dy": 0
+    },
+    {
+      "id": "dispersion-5",
+      "min": 5,
+      "max": 5,
+      "depuis": "cible",
+      "dx": 1,
+      "dy": 0
+    },
+    {
+      "id": "dispersion-6",
+      "min": 6,
+      "max": 6,
+      "depuis": "cible",
+      "dx": -1,
+      "dy": 1
+    },
+    {
+      "id": "dispersion-7",
+      "min": 7,
+      "max": 7,
+      "depuis": "cible",
+      "dx": 0,
+      "dy": 1
+    },
+    {
+      "id": "dispersion-8",
+      "min": 8,
+      "max": 8,
+      "depuis": "cible",
+      "dx": 1,
+      "dy": 1
+    },
+    {
+      "id": "dispersion-9",
+      "min": 9,
+      "max": 9,
+      "depuis": "lanceur",
+      "dx": 0,
+      "dy": 0
+    },
+    {
+      "id": "dispersion-10",
+      "min": 10,
+      "max": 10,
+      "depuis": "cible",
+      "dx": 0,
+      "dy": 0
+    }
+  ],
+  "source": {
+    "book": "livre-de-base",
+    "page": 163,
+    "note": "Dispersion, LDB 14 l.142-151"
+  }
+}

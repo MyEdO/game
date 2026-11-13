@@ -24,7 +24,6 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel, testSkillLabel, weatherStakeRef, voyageStakeRef } from '../data';
 import { stageEncounterCategory } from '../engine/travelEncounter';
 import { encounterTable, rollEncounter, encounterDie, type EncounterCategory } from '../engine/travelTables';
-import { facesDuDe } from '../engine/tables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
@@ -32,7 +31,8 @@ import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
 import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, tableStep, type Consequence } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { toRecapLines } from './recapLine';
+import { toRecapLines, type RecapTone } from './recapLine';
+import { noteEvent } from './evenementDuJour';
 import { t, type MsgKey } from '../i18n';
 import { rule } from '../engine/policy';
 import {
@@ -351,6 +351,8 @@ function lignesDuBilan(s: Jeu, b: NonNullable<ReturnType<typeof bilanDeLEtape>>)
 /** Les catégories de Rencontre, une table tirable chacune. EDOC 8 l.186-233 */
 const CATEGORIES_DE_RENCONTRE = ['positives', 'fortuites', 'dangereuses'] as const satisfies readonly EncounterCategory[];
 const tableDeRencontre = (c: EncounterCategory) => `rencontres-${c}` as const;
+/** Le ton de l'événement du jour d'une Rencontre, par sa catégorie. EDOC 8 l.186-233 */
+const TON_DE_RENCONTRE: Record<EncounterCategory, RecapTone> = { positives: 'reussite', fortuites: 'neutre', dangereuses: 'echec' };
 
 /** Les tables tirables que ce module déclare (table `tablesTirables`) : une par catégorie de Rencontre. */
 export const TABLES_TIRABLES: readonly string[] = CATEGORIES_DE_RENCONTRE.map(tableDeRencontre);
@@ -426,17 +428,19 @@ export const TABLES = {
       if (bilan.pleinAir && jours.length) jours[jours.length - 1].pleinAir = true;
       const rencontre = bilan.rencontre ? tableStep({
         id: 'etape-rencontre', kind: 'etapeRencontre', worldOwner: true, icon: 'interface/attention', label: t(ENCOUNTER_KEY[bilan.rencontre]),
-        table: { tableId: tableDeRencontre(bilan.rencontre), spec: encounterDie() },
+        table: { tableId: tableDeRencontre(bilan.rencontre) },
         stake: voyageStakeRef('etape-rencontre'),
       }) : undefined;
       return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert: [...(rencontre ? [rencontre] : []), ...(bilan.pleinAir ? [] : buildExposureSteps(get(), plan.stage))] };
     },
-    /** La Rencontre tirée (EDOC 8 l.182-233) : sa ligne, et le repos complet d'un voyage tranquille. */
+    /** La Rencontre tirée (EDOC 8 l.182-233) : l'événement du jour (`noteEvent`), dont la ligne est la
+     *  conséquence de l'étape, et le repos complet d'un voyage tranquille. */
     etapeRencontre: (get, set, step) => {
       const tiree = step.table?.result;
-      const entree = tiree && CATEGORIES_DE_RENCONTRE.flatMap(encounterTable).find((e) => e.id === tiree.id);
-      if (!tiree || !entree) return;
-      const j = [...tiree.lines];
+      const categorie = CATEGORIES_DE_RENCONTRE.find((c) => tableDeRencontre(c) === step.table?.tableId);
+      const entree = tiree && categorie && encounterTable(categorie).find((e) => e.id === tiree.id);
+      if (!tiree || !categorie || !entree) return;
+      const j = [noteEvent(get, set, { title: entree.label, text: entree.desc, roll: tiree.die, tone: TON_DE_RENCONTRE[categorie] })];
       if (entree.stageOutcome === 'fullRecovery') {
         for (const h of get().party.filter((x) => !x.dead)) {
           // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
@@ -471,7 +475,7 @@ export const TABLES = {
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   tablesTirables: Object.fromEntries(CATEGORIES_DE_RENCONTRE.map((c) => [tableDeRencontre(c), {
     label: t(ENCOUNTER_KEY[c]),
-    get die() { return facesDuDe(encounterDie()); },
+    get die() { return encounterDie(); },
     get rows() { return encounterTable(c).map(({ id, min, max, label }) => ({ id, min, max, label })); },
     lines: (roll: number) => {
       const e = rollEncounter(c, roll);

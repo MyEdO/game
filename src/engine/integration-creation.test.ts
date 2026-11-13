@@ -9,6 +9,8 @@ import { rationCount, dailyFoodUpkeep } from './provisions';
 import { itemLabel } from './items';
 import { bonus } from './characteristics';
 import { dotationsDuHeros, emplacementsDeDotation } from './trappingChoices';
+import { adresseDeCreation } from './adresseDeCreation';
+import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
 
 /**
  * Verrouillage de l'INTÉGRATION création ↔ {Magie (Jalon 2), règles 2.5, Voyage #T2} :
@@ -112,5 +114,24 @@ describe('création ↔ dotation à branches non tranchée', () => {
 
   it('la branche 1 choisie donne le ciseau, et elle seule', () => {
     expect((artiste({ [adresse()]: 1 }).items ?? []).map((i) => i.trappingId).filter((id) => BRANCHES.includes(id!))).toEqual(['ciseau']);
+  });
+});
+
+/** INTÉGRATION création ↔ lot, joker de Groupe, joker à Atout : `createHero` → `resolveTrappingChoices` → `buildInventory`. */
+describe('création ↔ lot et jokers d’arme', () => {
+  const dot = adresseDeCreation.dotation;
+  const creer = (trappingChoices: Parameters<typeof createHero>[0]['trappingChoices']) =>
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: CARRIERE_FIXTURE, label: 'A', seed: 7, trappingChoices }));
+
+  it('le lot choisi donne chacun de ses membres, son compte compris', () => {
+    const items = creer({ [dot([5])]: 1 }).items ?? [];
+    expect(items.filter((i) => i.trappingId === 'arc')).toHaveLength(1);
+    expect(items.filter((i) => i.trappingId === 'fleche').reduce((n, i) => n + (i.qty ?? 1), 0)).toBe(10);
+  });
+
+  it('l’arme choisie d’un joker de Groupe entre au sac ; celle d’un joker à Atout porte l’Atout choisi', () => {
+    const items = creer({ [dot([6])]: 'grande-hache', [dot([7])]: 'rapiere', [dot([7, 0])]: 'solide' }).items ?? [];
+    expect(items.some((i) => i.trappingId === 'grande-hache')).toBe(true);
+    expect(items.find((i) => i.trappingId === 'rapiere')?.qualities.map((q) => q.id)).toContain('solide');
   });
 });

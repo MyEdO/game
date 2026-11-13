@@ -18,17 +18,17 @@
  * `positionValue`).
  *
  * Lot 4 — CONTEXTE D'ESCOUADE (`squad` en entrée, OPTIONNEL : absent → comportement Lot 3 inchangé) :
- * FEU CONCENTRÉ via le surnombre RAW (`outnumberEnvMelee` réutilise `outnumberMod`/LDB 14 avec le MÊME
- * décompte que la résolution `combatFlow.ts:428` → l'IA converge sur une cible que ses alliés encadrent),
+ * FEU CONCENTRÉ via le Surnombre (`outnumberEnvMelee` : `outnumberMod` et `effectifAuContactParmi`, LDB 14 l.110),
  * ÉVITEMENT du DANGER (`dangerAt` : danger-map des héros, l'ennemi fuit les cases exposées) et COHÉSION
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
 import { Combatant, Weapon } from '../../engine/types';
-import { Scene, sceneMetresPerTile, heightAt } from './scene';
-import { reachable, flyReachable, manhattan, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
+import { Scene, sceneMetresPerTile } from './scene';
+import { positionPosee } from './spawn';
+import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
 import { chebyshev } from '../../engine/grid';
-import { footprintChebyshev, footprintN, combatDistance } from './footprint';
-import { verticalTiles } from './relief';
+import { footprintChebyshev, footprintN, distanceDeContact } from './footprint';
+import { effectifAuContactParmi } from '../combat/surnombre';
 import { makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../../engine/combat';
@@ -142,8 +142,8 @@ export interface EnemyTurnInput {
    *  l.91). ABSENT = aucun bonus de flanc (graceful : tests purs / scène sans orientation). */
   facing?: Record<string, Dir8>;
   /** ESCOUADE (Lot 4) : les ALLIÉS de l'ennemi encore en action et posés (l'ennemi lui-même EXCLU),
-   *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (surnombre RAW en
-   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution, `effectifAuContact`, `noyau/combat/surnombre.ts`) et
+   *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (`effectifAuContactParmi`,
+   *  LDB 14 l.110) et
    *  à la COHÉSION légère (ne pas s'isoler / ne pas bloquer l'allié). ABSENT = comportement Lot 3 STRICTEMENT
    *  inchangé (le golden et les fixtures sans escouade restent identiques). */
   squad?: Combatant[];
@@ -175,7 +175,13 @@ export interface EnemyTurnInput {
    *  (Charge, Course) : une case n'est donc évaluée qu'UNE fois pour toute la décision. ABSENT (tests
    *  purs) = un mémo local à l'appel est créé — mêmes verdicts, mémoïsation seulement moins large. */
   losMemo?: LosMemo;
+  /** MÉMO des distances à fermer de la DÉCISION en cours, par cible (`distanceAFermer`) : posé et repassé comme
+   *  `losMemo`. ABSENT (tests purs) = un mémo local à l'appel. */
+  memoDesApproches?: MemoDesApproches;
 }
+
+/** Distance qui reste à fermer depuis une case (clé) vers une cible, ou `null` sans route vers le contact. */
+export type MemoDesApproches = Map<string, ((k: string) => number | undefined) | null>;
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 // POIDS DES HEURISTIQUES (Lot 3) — centralisés et commentés pour régler le RESSENTI sans toucher au
@@ -562,15 +568,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // (Chebyshev). Source unique partagée avec le héros et la résolution → symétrie héros/ennemi.
   const mr = meleeReachTiles(enemy.weapons);
   const mpt = sceneMetresPerTile(scene); // m/case de la scène (échelle RAW, défaut 2) → convertit la hauteur en cases
-  // Z-AWARE (relief métrique) : la séparation VERTICALE réelle (Δhauteur ÷ m/case, `verticalTiles`) borne la
-  // portée par le bas — un ennemi au sol ne frappe pas un héros sur la muraille même 2D-adjacent. La case
-  // candidate `a` se mesure à SA surface (`heightAt`, comme `placeCombatant`) ; `b` (une cible posée) porte
-  // la sienne. Même décompte vertical que `combatDistance`.
-  const withinMelee = (a: Pt, b: Pt & { h?: number }) =>
-    Math.max(chebyshev(a, b), verticalTiles(heightAt(scene, a.x, a.y, a.z ?? 0), b.h ?? 0, mpt)) <= mr;
+  // Au contact depuis la case candidate `a`, l'ennemi posé là (`positionPosee`), mesuré par `distanceDeContact`.
+  const withinMelee = (a: Pt, h: Combatant) =>
+    distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, footprintN(enemy), a) }, h, mpt) <= mr;
   // Au CONTACT par empreinte (LDB 15 l.12) : un grand ennemi touche depuis n'importe quelle de ses tuiles.
-  // `combatDistance` plie empreinte ET Δhauteur (même `mpt`) → s'aligne sur la grille d'engagement de la résolution.
-  const inMelee = (h: Combatant) => combatDistance(enemy, h, mpt) <= mr;
+  // `distanceDeContact` plie empreinte ET Δhauteur (même `mpt`) → s'aligne sur la grille d'engagement de la résolution.
+  const inMelee = (h: Combatant) => distanceDeContact(scene, enemy, h, mpt) <= mr;
 
   // Possède-t-il un sort OFFENSIF jouable (data-driven : Projectile ou op de dégât/contrôle hostile) ? Si
   // oui, il LANCE plutôt que de tirer (parité avec l'ancien `offensiveSpell == null` du gate de tir).
@@ -630,8 +633,52 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // Cases atteignables ce tour (inclut la case de départ à distance 0). Vol (LDB 85 l.433) :
   // ligne directe, seules les cases d'atterrissage doivent être praticables et libres.
-  const reach = (flying ? flyReachable : reachable)(scene, pos, movement, { blocked, foot: footprintN(enemy), noStop: input.noStop, traverse });
+  const envDeMarche = { blocked, foot: footprintN(enemy), noStop: input.noStop, traverse };
+  const reach = (flying ? flyReachable : reachable)(scene, pos, movement, envDeMarche);
   const hereKey = tileKey(pos.x, pos.y, pos.z ?? 0);
+
+  // Un combattant qui PORTE une arme à distance (ou un sort offensif) se positionne en TIREUR : il vise sa
+  // PORTÉE de tir, pas le contact — même s'il garde une arme de mêlée de secours. La mêlée au contact (cible
+  // adjacente) et le tir en portée restent gérés par `canShoot`/le candidat mêlée direct ; seule l'APPROCHE/REPOSITION
+  // d'un hybride hors de portée vise sa distance de tir.
+  const isShooterOrCaster = canCast || canShoot || hasAnyOffensiveSpell || hasRanged;
+
+  // Distance qui reste à FERMER depuis une case (clé) vers `target`, celle de l'attaque que l'approche prépare : la route
+  // de marche jusqu'au contact pour qui frappera en mêlée (l'instance sur plusieurs tours de `bestAdjacentReachable`, la
+  // Charge ; vol : ligne directe, LDB 85 l.433), la distance droite pour qui tire ou lance. `null` : aucune route vers
+  // le contact. Une passe par cible et par décision (`distancesDeMarcheVers`).
+  const aFermer: MemoDesApproches = input.memoDesApproches ?? new Map();
+  const distanceAFermer = (target: Combatant): ((k: string) => number | undefined) | null => {
+    const vue = aFermer.get(target.id);
+    if (vue !== undefined) return vue;
+    const t = target.pos!;
+    let mesure: ((k: string) => number | undefined) | null;
+    if (isShooterOrCaster) mesure = (k) => manhattan(tileFromKey(k), t);
+    else {
+      const ne = footprintN(enemy), nt = footprintN(target);
+      const contacts: Pt[] = [];
+      for (const { z } of scene.layers)
+        for (let y = t.y - mr - ne + 1; y <= t.y + nt - 1 + mr; y++)
+          for (let x = t.x - mr - ne + 1; x <= t.x + nt - 1 + mr; x++) {
+            const a = pointDeCase(x, y, z);
+            if (withinMelee(a, target)) contacts.push(a);
+          }
+      if (flying) mesure = contacts.length ? (k) => Math.min(...contacts.map((c) => chebyshev(tileFromKey(k), c))) : null;
+      else {
+        const route = distancesDeMarcheVers(scene, contacts, envDeMarche);
+        // Départ où l'empreinte ne tient pas (`walkReachableFrom`) : la marche en sort par ses voisins de pas (`reach` à 1).
+        let depart = route.vers(hereKey);
+        if (depart === undefined) for (const [k, d] of reach) {
+          const r = d === 1 ? route.vers(k) : undefined;
+          if (r !== undefined && (depart === undefined || r + 1 < depart)) depart = r + 1;
+        }
+        const departConnu = depart;
+        mesure = departConnu === undefined ? null : (k) => (k === hereKey ? departConnu : route.vers(k));
+      }
+    }
+    aFermer.set(target.id, mesure);
+    return mesure;
+  };
 
   // ANTI-IMMOBILISME (combat ENGAGÉ, fidélité LDB 13 l.114) : si la perception ne montre AUCUNE cible
   // (lumière/Ligne de Vue) mais que des adversaires EXISTENT, l'ennemi avance d'un cran vers le plus
@@ -642,17 +689,22 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const shootableStructureInView = hasRanged && !reloadNeeded
     && (input.structures ?? []).some((st) => st.pos && los.clear(pos, { ...structureAimCell(pos, st), z: pos.z }));
   if (heroes.length === 0 && !shootableStructureInView) {
-    const closest = [...adversaires].filter((h) => h.pos).sort((a, b) => manhattan(pos, a.pos!) - manhattan(pos, b.pos!))[0];
+    // Le plus proche par la distance à fermer ; sans route vers aucun, rien à approcher.
+    let closest: { c: Combatant; mesure: (k: string) => number | undefined; reste: number } | null = null;
+    for (const c of adversaires) {
+      const mesure = c.pos ? distanceAFermer(c) : null;
+      const reste = mesure?.(hereKey);
+      if (mesure && reste !== undefined && (!closest || reste < closest.reste)) closest = { c, mesure, reste };
+    }
     if (!closest) return forced({ kind: 'fin' });
     let to: Pt | null = null;
     let bestD: number | null = null;
     for (const k of reach.keys()) {
-      if (k === hereKey) continue;
-      const t = tileFromKey(k);
-      const d = manhattan(t, closest.pos!);
-      if (bestD == null || d < bestD) { bestD = d; to = t; }
+      const d = closest.mesure(k);
+      if (k === hereKey || d === undefined) continue;
+      if (bestD == null || d < bestD) { bestD = d; to = tileFromKey(k); }
     }
-    return forced(to ? { kind: 'deplacement', to, thenTargetId: closest.id } : { kind: 'fin' });
+    return forced(to ? { kind: 'deplacement', to, thenTargetId: closest.c.id } : { kind: 'fin' });
   }
 
   // Fuite (Brisé / Bestial blessé). `preferHidden` (Brisé, LDB 16 l.52 « hors de vue de l'ennemi ») :
@@ -684,7 +736,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const clearable = restrictingConditions(enemy).find((rc) => rc.stacks <= resolve);
     if (!clearable) return null;
     const reachableFoe = adjacentFoes.length > 0 || shootableHeroes.length > 0
-      || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h.pos!)));
+      || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h)));
     if (!isEngaged(enemy) && !reachableFoe) return null; // ni Engagé ni cible joignable → se cacher vaut mieux
     return { kind: 'depenseDeRessource', resource: 'determination', via: 'retirerEtat', id: clearable.id };
   };
@@ -725,9 +777,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Un héros est « frappable ce tour » en mêlée s'il est déjà adjacent OU si une
   // case atteignable lui est adjacente.
   const meleeReachableNow = (h: Combatant): boolean => {
-    if (withinMelee(pos, h.pos!)) return true;
+    if (withinMelee(pos, h)) return true;
     for (const k of reach.keys()) {
-      if (withinMelee(tileFromKey(k), h.pos!)) return true;
+      if (withinMelee(tileFromKey(k), h)) return true;
     }
     return false;
   };
@@ -756,16 +808,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   };
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
-  /** FEU CONCENTRÉ via SURNOMBRE (RAW, LDB 14) — MÊME `outnumberMod` et MÊME décompte que la résolution
-   *  (`effectifAuContact`, `src/noyau/combat/surnombre.ts`) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
-   *  (l'attaquant lui-même, qui SERA au contact en frappant). Renvoie le `ModLine` du bonus de toucher
-   *  (+20 à 2c1, +40 à 3+c1) sous forme d'`env` injecté DANS `expectedDamage` (mêlée UNIQUEMENT — le
-   *  surnombre RAW est mêlée-only, cf. combatFlow:425 qui ne sert que `attackEnv` de mêlée). Aucun
-   *  modificateur inventé : on réutilise la fonction du moteur. Squad vide → null (pas d'env). */
+  /** FEU CONCENTRÉ : le Surnombre (LDB 14 l.110) de la résolution de mêlée, `outnumberMod` sur
+   *  `effectifAuContactParmi` de l'escouade, plus l'attaquant, qui sera au contact en frappant. Injecté dans
+   *  l'`env` de mêlée d'`expectedDamage`. Escouade vide → aucun `env`. */
   const outnumberEnvMelee = (target: Combatant): ModLine[] | undefined => {
     if (squad.length === 0) return undefined;
-    const adj = squad.filter((c) => c.pos && combatDistance(c, target) <= 1).length;
-    const onm = outnumberMod(adj + 1); // +1 = l'attaquant courant (parité avec `effectifAuContact`)
+    const onm = outnumberMod(effectifAuContactParmi(scene, squad, target, enemy.kind) + 1);
     return onm ? [onm] : undefined;
   };
 
@@ -827,14 +875,6 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   /** Bonus de POSITIONNEMENT d'une case d'arrivée `to` pour attaquer `target` (Lot 3) : flanc/dos +
    *  gain de couvert pour soi + respect de la portée préférée (tireur/lanceur reste à distance+LdV ;
    *  mêlée au contact). Lot 4 : − danger-map (cases exposées) + cohésion (ne pas s'isoler de l'escouade). PUR. */
-  // Un combattant qui PORTE une arme à distance (ou un sort offensif) se positionne en TIREUR : il vise sa
-  // PORTÉE de tir, pas le contact — même s'il garde une arme de mêlée de secours. L'ancien `&& !hasMeleeWeapon`
-  // déclassait à tort les HYBRIDES (chasseur fronde+dague, arbalétrier+épée) en mêleeurs dès qu'ils étaient
-  // hors de portée de tir → ils CHARGEAIENT au contact au lieu de s'approcher à distance de tir (retour
-  // playtest 2026-06-27 : « le chasseur charge à l'arme simple alors qu'il a une fronde »). La mêlée au
-  // contact (cible adjacente) et le tir en portée restent gérés par `canShoot`/le candidat mêlée direct ;
-  // seule l'APPROCHE/REPOSITION d'un hybride hors de portée change (il vise sa distance de tir).
-  const isShooterOrCaster = canCast || canShoot || hasAnyOffensiveSpell || hasRanged;
   // Empoignade (LDB 14 l.161) : Empoigné au DÉBUT de son tour, son Action EST le Test opposé de Force — une
   // créature Empoignée ne peut PAS prendre d'action normale (cast/tir/mêlée), son tour est VERROUILLÉ sur la
   // lutte. Préempte donc le scoring (comme `isActionLocked`). « Briser » (Avantage STRICTEMENT supérieur,
@@ -895,7 +935,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
         ? (castRange == null || d <= castRange)
         : (maxWeaponRange === 0 || rangeBandModifier(d, maxWeaponRange, mpt) != null);
       if (d > mr && seesFrom && inShootRange) v += Weff.preferredRange; // garde la distance ET la ligne de tir
-    } else if (withinMelee(to, target.pos!)) {
+    } else if (withinMelee(to, target)) {
       v += Weff.preferredRange; // mêlée : au contact
     }
     // ÉVITEMENT du DANGER (Lot 4) : pénalise une case exposée à la menace des héros (danger-map). Calibré
@@ -908,15 +948,17 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return v;
   };
 
-  // Meilleure case d'APPROCHE vers une cible — énumère PLUSIEURS cases pertinentes (adjacentes à la
-  // cible, et la case qui réduit le plus la distance) plutôt qu'une seule (Lot 3 : laisse le scoring
-  // arbitrer position vs distance). Renvoie une liste de candidats `(to, utilité de position)`.
-  const approachCandidates = (target: Combatant): { to: Pt; posV: number }[] => {
-    const out: { to: Pt; posV: number }[] = [];
+  /** Candidats d'APPROCHE de `target` (Lot 3 : chaque case atteignable, le scoring arbitre) : utilité d'attaque `atk`
+   *  + positionnement − route qui reste jusqu'au contact. Aucun sans route. */
+  const approcheDe = (target: Combatant, atk: number): Candidate[] => {
+    const mesure = distanceAFermer(target);
+    if (!mesure) return [];
+    const out: Candidate[] = [];
     for (const k of reach.keys()) {
-      if (k === hereKey) continue; // ne pas « bouger » sur place
+      const reste = mesure(k);
+      if (k === hereKey || reste === undefined) continue; // ne pas « bouger » sur place
       const to = tileFromKey(k);
-      out.push({ to, posV: positionValue(to, target) });
+      out.push({ action: { kind: 'deplacement', to, thenTargetId: target.id }, kind: 'deplacement', utility: atk + positionValue(to, target) - Weff.approachDist * reste, targetId: target.id, coord: to });
     }
     return out;
   };
@@ -1071,12 +1113,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       // Cible déjà au contact → frappe (position déjà acquise, pas de bonus de déplacement).
       candidates.push({ action: { kind: 'melee', targetId: t.id }, kind: 'melee', utility: attackUtility(t, { kind: 'melee', weapon: meleeWeapon }), targetId: t.id, coord: t.pos ?? null });
     } else if (!committingPrep && !attackableNow(t)) {
-      // Cible non attaquable ce tour → candidats d'APPROCHE : utilité d'attaque + positionnement − distance.
-      const atk = targetUtility(t);
-      for (const { to, posV } of approachCandidates(t)) {
-        const u = atk + posV - Weff.approachDist * manhattan(to, t.pos!);
-        candidates.push({ action: { kind: 'deplacement', to, thenTargetId: t.id }, kind: 'deplacement', utility: u, targetId: t.id, coord: to });
-      }
+      // Cible non attaquable ce tour → candidats d'APPROCHE : utilité d'attaque + positionnement − route restante.
+      candidates.push(...approcheDe(t, targetUtility(t)));
     }
   }
 
@@ -1105,10 +1143,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       // Utilité d'attaque de CETTE structure : elle ne dépend pas de la case d'arrivée — une seule fois par cible.
       const atkSt = attackUtility(st, { kind: 'melee', weapon: meleeWeapon });
       if (inMelee(st)) candidates.push({ action: { kind: 'melee', targetId: st.id }, kind: 'melee', utility: atkSt, targetId: st.id, coord: st.pos! });
-      else if (!committingPrep) for (const { to, posV } of approachCandidates(st)) {
-        const u = atkSt + posV - Weff.approachDist * manhattan(to, st.pos!);
-        candidates.push({ action: { kind: 'deplacement', to, thenTargetId: st.id }, kind: 'deplacement', utility: u, targetId: st.id, coord: to });
-      }
+      else if (!committingPrep) candidates.push(...approcheDe(st, atkSt));
     }
   }
 

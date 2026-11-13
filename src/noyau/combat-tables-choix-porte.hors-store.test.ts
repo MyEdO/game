@@ -174,7 +174,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     // en `'table'` puis, le dé tombé, en `'choix'`. Aucune autre combinaison de formes n'est ouverte.
     const st = tableStep({
       id: 'x', kind: 'deviation', label: fixtureText('Blessure critique'), actorId: 'a',
-      table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
+      table: { tableId: STRUCTURE_CRIT_TABLE },
       options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }],
       defaultChoice: 'devier',
       stake: combatStakeRef('critique-severite'),
@@ -189,7 +189,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     // Un `defaultChoice` étranger aux voies est REFUSÉ à la porte (calque de `choiceStep`).
     expect(() => tableStep({
       id: 'y', kind: 'deviation', label: fixtureText('Blessure critique'), actorId: 'a',
-      table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
+      table: { tableId: STRUCTURE_CRIT_TABLE },
       options: [{ key: 'subir', label: fixtureText('Subir') }], defaultChoice: 'devier',
       stake: combatStakeRef('critique-severite'),
     })).toThrow(/defaultChoice/);
@@ -284,7 +284,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     // @ts-expect-error une révélation est une FORME (dé + lignes de tirage), pas un affichage nu
     expect(() => displayStep({ ...base, reveal: { kind: 'critique', title: 't', lines: [], subjectId: 'a' } })).not.toThrow();
     // @ts-expect-error un tirage à poser passe par `tableStep` (il a son cycle et son enjeu)
-    expect(() => displayStep({ ...base, table: { tableId: 't', spec: { n: 1, sides: 100 } } })).not.toThrow();
+    expect(() => displayStep({ ...base, table: { tableId: 't' } })).not.toThrow();
     // @ts-expect-error une décision passe par `choiceStep` (elle a un porteur et un défaut)
     expect(() => displayStep({ ...base, options: [{ key: 'k', label: 'l' }] })).not.toThrow();
   });
@@ -297,7 +297,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     const contrebande = {
       id: 'x', kind: 'x', label: 'x', actorId: 'a',
       reveal: { kind: 'critique', title: 't', lines: [], subjectId: 'a' },
-      table: { tableId: 't', spec: { n: 1, sides: 100 } },
+      table: { tableId: 't' },
       options: [{ key: 'k', label: 'l' }],
       target: 40,
     } as never;

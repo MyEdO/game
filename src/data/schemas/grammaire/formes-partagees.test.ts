@@ -95,6 +95,23 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ pick: 1, of: [{ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] }).success).toBe(true);
   });
 
+  it('accepte un lot d’objets ou de possessions comme option d’un « 1 parmi »', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'arme-simple' }, { lot: [{ id: 'arc' }, { id: 'fleche', count: { fixed: 10 } }] }] }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ lot: [{ id: 'cheval-de-monte', type: 'creature' }, { id: 'selle-et-harnais' }] }, { id: 'diligence', type: 'vehicle' }] }).success).toBe(true);
+  });
+
+  it('refuse un lot hors d’un « 1 parmi », un lot d’un seul membre, un membre de lot à Atout au choix', () => {
+    expect(trappingRefSchema.safeParse({ lot: [{ id: 'arc' }, { id: 'fleche' }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }] }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc', qualityChoice: true }, { id: 'fleche' }] }] }).success).toBe(false);
+  });
+
+  it('accepte un joker d’arme restreint à un Groupe d’armes, et un joker à Atout au choix ; refuse un Groupe d’armure', () => {
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'deux-mains' } }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', qualityChoice: true }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ wildcard: 'arme', groupe: { id: 'plate' } }).success).toBe(false);
+  });
+
   it('refuse un « 2 parmi » : `brancheChoisie` ne retient qu’une branche', () => {
     expect(trappingRefSchema.safeParse({ pick: 2, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(false);
   });
@@ -125,6 +142,13 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
     expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
     expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { text: 'Déjeuner' }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
     expect(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+  });
+
+  it('une Classe nommée qui porte un joker d’arme, simple, à Groupe ou à Atout, ou un lot dans un « 1 parmi », est refusée', () => {
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme' }])), 'joker simple').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', groupe: { id: 'deux-mains' } }])), 'joker à Groupe').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', qualityChoice: true }])), 'joker à Atout').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ lot: [{ id: 'arc' }, { id: 'fleche' }] }, { id: 'dague' }] }])), 'lot').toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 });
 

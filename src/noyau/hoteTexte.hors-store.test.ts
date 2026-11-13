@@ -35,7 +35,7 @@ function auTourDUnHeros(): Partie {
 
 const contexte = (partie: Partie): ActionCtx => {
   const s = partie.etat();
-  return { active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
+  return { scene: s.scene, active: activeCombatant(s.battle!)!, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime };
 };
 
 describe('Partie.lancer — le lancement d’un scénario est un appel de la partie', () => {

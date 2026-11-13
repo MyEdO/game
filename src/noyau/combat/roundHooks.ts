@@ -23,7 +23,7 @@ import { inBattleId } from '../monde/combatants';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
 import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
-import { combatDistance } from '../monde/footprint';
+import { distanceDeCombat } from '../monde/footprint';
 import { sceneMetresPerTile } from '../monde/scene';
 import { rule } from '../../engine/policy';
 import { rollWindsOfMagic, hasSecondeVue } from '../../engine/windsOfMagic';
@@ -311,9 +311,7 @@ export const TABLES = {
       phase: 'onRoundEnd',
       order: 50,
       run: ({ get, battle }) => {
-        // Portée HEIGHT/Z-AWARE (#805) : `combatDistance` (footprint.ts) mesure en cases le max(horizontal,
-        // vertical converti via `verticalTiles`/`pos.h`) — même patron que le mono-cible (combatFlow). Une
-        // aura d'un étage n'atteint plus l'ennemi directement au-dessus/dessous (case vide entre les niveaux).
+        // Portée de l'aura : `distanceDeCombat` (footprint.ts), relief compris (#805).
         const mpt = sceneMetresPerTile(get().scene);
         for (const c of battle.combatants) c.auraMods = undefined; // recalcul intégral chaque Round
         for (const src of battle.combatants) {
@@ -330,7 +328,7 @@ export const TABLES = {
               // `affects` absent ou `all` = aucun filtre de camp (Perturbant, LDB 85 l.262 : « Toute personne »).
               if (aura.affects === 'ennemis' && sameCamp) continue;
               if (aura.affects === 'allies' && !sameCamp) continue;
-              if (combatDistance(src, c, mpt) * mpt <= rangeM) c.auraMods = [...(c.auraMods ?? []), ...projected];
+              if (distanceDeCombat(src, c, mpt) * mpt <= rangeM) c.auraMods = [...(c.auraMods ?? []), ...projected];
             }
           }
         }

@@ -1,13 +1,15 @@
 /**
  * LA PERSISTANCE DES RÈGLES MAISON sur le `Stockage` d'un hôte (#3041) : le jeu persisté se pose élagué (#1463 LD.1,
  * #2404), le stockage est réécrit élagué et le TÉMOIN des retraits écrit dans le même stockage, consommé une fois par
- * `prendreLeTemoinDesReglesMaison` ; une surcharge se pose et se persiste sous le verrou de combat de l'état passé
- * (`reglesMaisonMutables`), refusée en combat. Un stockage absent ou qui lève ne casse aucun geste.
+ * `prendreLeTemoinDesReglesMaison` ; une surcharge se pose et se persiste sous le verrou de l'état passé
+ * (`reglesMaisonMutables`), refusée en combat et chez un invité, dont le stockage reste intact. Un stockage absent ou
+ * qui lève ne casse aucun geste.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { chargerLesReglesMaison, prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleMaison } from './reglesMaison';
 import { loadRuleOverrides, OPTIONAL_RULES, rule, type OptionalRule } from '../engine/policy';
-import type { Jeu } from '../noyau/index';
+import { initialNet, reglesMaisonMutables, type Jeu } from '../noyau/index';
+import { t } from '../i18n';
 import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
 
 const CLE = 'wfrp4.house-rules';
@@ -17,9 +19,12 @@ const MODE = OPTIONAL_RULES.find((r): r is Extract<OptionalRule, { kind: 'mode' 
 const PARAM = OPTIONAL_RULES.find((r): r is Extract<OptionalRule, { kind: 'param' }> => r.kind === 'param')!;
 const AUTRE_MODE = MODE.options.find((o) => o !== MODE.default)!;
 
-const HORS_COMBAT: Pick<Jeu, 'battle'> = { battle: null };
-const EN_COMBAT = { battle: { over: null } } as unknown as Pick<Jeu, 'battle'>;
-const COMBAT_FINI = { battle: { over: 'victoire' } } as unknown as Pick<Jeu, 'battle'>;
+type Verrou = Pick<Jeu, 'battle' | 'net'>;
+const HORS_COMBAT: Verrou = { battle: null, net: initialNet() };
+const EN_COMBAT = { battle: { over: null }, net: initialNet() } as unknown as Verrou;
+const COMBAT_FINI = { battle: { over: 'victoire' }, net: initialNet() } as unknown as Verrou;
+const CHEZ_L_HOTE: Verrou = { battle: null, net: { ...initialNet(), mode: 'hote', roomCode: 'ABCDEF' } };
+const CHEZ_L_INVITE: Verrou = { battle: null, net: { ...initialNet(), mode: 'invite', mySeat: 1, roomCode: 'ABCDEF' } };
 
 const persiste = (s: ReturnType<typeof stockageEnMemoire>): unknown => JSON.parse(s.contenu.get(CLE)!);
 
@@ -126,6 +131,24 @@ describe('le réglage d’une règle maison sous le verrou de l’état passé',
     const s = stockageEnMemoire();
     reglerUneRegleMaison(s, COMBAT_FINI, FLAG.id, !FLAG.default);
     expect(rule(FLAG.id)).toBe(!FLAG.default);
+  });
+
+  it('chez un invité : le verrou rend sa raison ; la surcharge et la remise au défaut sont REFUSÉES, son stockage intact', () => {
+    expect(reglesMaisonMutables(CHEZ_L_INVITE)).toEqual({ mutable: false, reason: t('houseRules.lockedForGuest') });
+    const s = stockageEnMemoire();
+    reglerUneRegleMaison(s, HORS_COMBAT, FLAG.id, !FLAG.default);
+    reglerUneRegleMaison(s, CHEZ_L_INVITE, MODE.id, AUTRE_MODE);
+    remettreUneRegleMaison(s, CHEZ_L_INVITE, FLAG.id);
+    expect([rule(FLAG.id), rule(MODE.id)]).toEqual([!FLAG.default, MODE.default]);
+    expect(persiste(s)).toEqual({ [FLAG.id]: !FLAG.default });
+  });
+
+  it('hors d’un invité, les verdicts du verrou sont ceux du combat : partie locale, hôte d’une session, combat en cours', () => {
+    expect(reglesMaisonMutables(HORS_COMBAT)).toEqual({ mutable: true, reason: '' });
+    expect(reglesMaisonMutables(CHEZ_L_HOTE)).toEqual({ mutable: true, reason: '' });
+    expect(reglesMaisonMutables(COMBAT_FINI)).toEqual({ mutable: true, reason: '' });
+    expect(reglesMaisonMutables(EN_COMBAT)).toEqual({ mutable: false, reason: t('houseRules.lockedInBattle') });
+    expect(reglesMaisonMutables({ ...CHEZ_L_HOTE, battle: EN_COMBAT.battle })).toEqual({ mutable: false, reason: t('houseRules.lockedInBattle') });
   });
 
   it('un stockage qui lève : la surcharge reste effective pour la session', () => {

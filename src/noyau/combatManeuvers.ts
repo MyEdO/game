@@ -46,7 +46,8 @@ import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
 type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
-import { combatDistance } from './monde/footprint';
+import { distanceDeContact } from './monde/footprint';
+import type { Scene } from './monde/scene';
 import { type Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { combatantsWithinRadius } from './monde/combatGeometry';
@@ -114,7 +115,7 @@ export function applyManeuverEffects(
 
 /** Adversaire ADJACENT, encore actif, plus petit que `c` d'au moins `ecart` catégories de Taille.
  *  `targetId` borne la recherche à une cible précise (clic du joueur). LDB 85 l.387 */
-export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: number, targetId?: string): Combatant | undefined {
+export function cibleDEcartDeTaille(scene: Scene | null, battle: BattleState, c: Combatant, ecart: number, targetId?: string): Combatant | undefined {
   return battle.combatants.find(
     (t) =>
       (targetId ? t.id === targetId : true) &&
@@ -122,7 +123,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
       !isOutOfAction(t) &&
       !!t.pos &&
       !!c.pos &&
-      combatDistance(c, t) <= 1 &&
+      distanceDeContact(scene, c, t) <= 1 &&
       sizeGap(c.size, t.size) >= ecart,
   );
 }
@@ -145,9 +146,9 @@ export const gratuitesRestantes = (c: Combatant, kind: AttackKind, a?: Pick<Crea
 
 /** `target` est-elle une cible VALIDE de l'attaque gratuite `kind` de `c` ? SOURCE UNIQUE du survol, du
  *  clic et de l'IA. LDB 85 l.387 */
-export function freeAttackTargetOk(battle: BattleState, c: Combatant, kind: AttackKind, target: Combatant): boolean {
+export function freeAttackTargetOk(scene: Scene | null, battle: BattleState, c: Combatant, kind: AttackKind, target: Combatant): boolean {
   const ecart = attaqueNaturelle(c.traits ?? [], kind)?.def.ecartDeTailleMin;
-  return ecart == null || !!cibleDEcartDeTaille(battle, c, ecart, target.id);
+  return ecart == null || !!cibleDEcartDeTaille(scene, battle, c, ecart, target.id);
 }
 
 /** Icône par type de manœuvre (id du registre `src/data/icons/` — la hotbar rend `<Icon id>`).
@@ -236,7 +237,7 @@ export function grappleActionEligible(mover: Combatant, foe: Combatant): boolean
 /** Attaques que le héros ACTIF peut lancer MAINTENANT — UNE liste à coût (Arme d'abord, puis gratuites/
  *  zone abordables, mutation Tentacule). Subsume l'attaque d'arme implicite ET la garde de Frénésie.
  *  Source : `active.weapons` (Arme) + `attaquesNaturelles` (gratuites) + les prédicats existants. */
-export function availableAttacks(active: Combatant, battle: BattleState): AttackOption[] {
+export function availableAttacks(scene: Scene | null, active: Combatant, battle: BattleState): AttackOption[] {
   // KIND-AGNOSTIQUE (un ennemi conduit par le MJ a le MÊME jeu d'attaques qu'un héros — bac-à-sable). Seul un
   // NAVIRE (`kind:'heros'`/`ennemi`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
   // vide → l'option 'arme' planterait `attackPlan`) — ses « attaques » sont la Manœuvre + la Bordée via ses postes.
@@ -256,7 +257,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   //     variable ; Action si trigger='action') ; une manœuvre d'écart de Taille exige sa cible au contact.
   for (const a of attaquesNaturelles(active.traits ?? [])) {
     if (a.kind === 'arme' || a.trigger === 'charge') continue;
-    if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
+    if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(scene, battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
     const cout = freeAttackCost(battle, active, a.def); // LDB 85 l.387 ; LDB 85 l.314
     const prix = cout.advantage;
     const minAdv = a.modeDAvantage === 'variable' ? 1 : prix;
@@ -319,9 +320,9 @@ export function attaqueImmediate(a: AttackOption): boolean {
  *  repli sur 'arme' si périmée). `undefined` = mode
  *  non-attaque (cast/heal/focus/…) ou aucune attaque abordable. SOURCE UNIQUE partagée par le clic (store)
  *  et le survol (targeting). */
-export function selectedAttackOption(active: Combatant, battle: BattleState): AttackOption | undefined {
+export function selectedAttackOption(scene: Scene | null, active: Combatant, battle: BattleState): AttackOption | undefined {
   if (battle.action !== null) return undefined; // l'attaque ne vit qu'en mode neutre (cast/heal/… = leurs propres modes)
-  const opts = availableAttacks(active, battle);
+  const opts = availableAttacks(scene, active, battle);
   const want = battle.selectedAttack ?? 'arme';
   return opts.find((o) => o.id === want) ?? opts.find((o) => o.id === 'arme'); // armée, repli sur l'Arme si périmée
 }

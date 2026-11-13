@@ -6,7 +6,7 @@
 import type { IconId } from './icons/types';
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
-import { t } from '../i18n';
+import { listeEt, t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
@@ -54,6 +54,7 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET } from './shipCriticals';
 import structureCriticalsJson from './structure-criticals.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
+import { rule, ruleDef } from '../engine/policy';
 import type * as stakesDef from './schemas/defs/stakes';
 import type * as careersDef from './schemas/defs/careers';
 import type * as disponibiliteDef from './schemas/defs/disponibilite';
@@ -115,6 +116,7 @@ import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoir
 import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-aleatoires';
 import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
 import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
+import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-nature';
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
@@ -185,6 +187,7 @@ import oupsJson from './oups.json';
 import talentsAleatoiresJson from './talents-aleatoires.json';
 import carrieresAleatoiresJson from './carrieres-aleatoires.json';
 import especesAleatoiresJson from './especes-aleatoires.json';
+import mutationNatureJson from './mutation-nature.json';
 import cargaisonsAleatoiresJson from './cargaisons-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
@@ -801,10 +804,6 @@ export interface SpeciesData {
   /** Profil standard du PNJ de l'espèce (`LDB 77 l.7`) — réf à `creatures.json`, posée par espèce.
    *  Absent = aucun profil standard (`gnomes`). */
   profilStandard?: { id: string };
-  /** Seuil d100 de mutation PHYSIQUE (LDB 19 l.78-81 : d100 ≤ seuil → corps, sinon esprit) :
-   *  Elfe 0, Nain 5, Halfling 10, Humain 50. Ogre 10 (ADE II « Ogres et Mutations »). ABSENT = défaut
-   *  Humain (50) — le Gnome y est rattaché par NADJ « Gnomes et Corruption » (« mutent comme les humains »). */
-  mutationBodyMax?: number;
   /** Trait RACIAL de l'espèce (#572) — MÊME forme posée que les Traits de créature du bestiaire
    *  (`TraitPose`, jamais une glose de règle en `desc`) : Ogre porte
    *  `{id:'ogre'}` (ADE2 « Ogres et Mutations » l.708 « Un Lourd Fardeau », encombrance/consommation
@@ -2757,20 +2756,37 @@ export const colonneDeCarrieres = (id: string) =>
   garanti(carrieresAleatoires.find((d) => d.id === id && d.kind === 'colonne'), id, 'colonne du Tableau des Classes et Carrières aléatoires');
 /** La portion qui remplace une étendue de la colonne `colonne` (MDG 09 l.9), lue à l'appel. */
 export const portionDeLaColonne = (colonne: string) => carrieresAleatoires.find((d) => d.kind === 'portion' && d.colonne === colonne);
+/** Le document dont le tirage de `d` lit le dé : `d` lui-même, ou la colonne dont la portion `d` est une tranche (MDG 09 l.9). */
+export const porteurDuDeDeCarrieres = (d: (typeof carrieresAleatoires)[number]) => (d.colonne !== undefined ? colonneDeCarrieres(d.colonne) : d);
 /** La table effective de la colonne `colonne`, avec ou sans sa portion, et son dé : lue par `rollCareer`. */
 export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: DeDeTable; entries: RangeeDe<typeof tableDesCarrieresAleatoires>[] } {
   const base = colonneDeCarrieres(colonne);
   return { die: deDeLaTableTiree(base), entries: tableAvecPortion(base.entries, avecPortion ? portionDeLaColonne(colonne)?.entries : undefined) };
 }
-/** Les carrières que le tirage de `tiree` offre en plus à l'espèce `sp`, admises à sa race (`races`) : celles qui
- *  se choisissent à sa place (`aLaPlaceDe`, ADE I 07 l.11-23), puis celles de sa variante portée par la colonne
- *  de `sp` (AA 02 l.109-128). */
-export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] {
-  const admise = (c: CareerData | undefined) => c?.races?.includes(sp.refChar) === true;
-  const substitutions = careers.filter((c) => c.aLaPlaceDe === tiree && admise(c)).map((c) => c.id);
-  const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree && d.colonnes?.some((c) => c === sp.refCareer));
-  const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admise(findCareerById(id)));
-  return [...substitutions, ...variantes];
+/** Carrière OUVERTE : sans `gatedByRule`, ou sa règle optionnelle active. ADE I 07 l.9 */
+export const carriereOuverte = (c: CareerData) => !c.gatedByRule || !!rule(garanti(ruleDef(c.gatedByRule.id), c.gatedByRule.id, 'règle optionnelle').id);
+/** Carrière admise au tirage de `sp` : ouverte, et sa race dans `races`. */
+const admiseAuTirage = (c: CareerData | undefined, sp: SpeciesData) => c !== undefined && carriereOuverte(c) && c.races?.includes(sp.refChar) === true;
+/** Les carrières que l'espèce `sp` peut choisir à la place de `tiree` (`aLaPlaceDe`, bornée à `especesALaPlaceDe`), admises
+ *  au tirage. ADE I 07 l.9-23 ; Middenheim 09 l.57 ; AA 05 l.135-140 ; VDM 03 l.11 */
+export function substitutionsDe(tiree: string, sp: SpeciesData): string[] {
+  return careers.filter((c) => c.aLaPlaceDe?.id === tiree && (c.especesALaPlaceDe?.some((e) => e === sp.id) ?? true) && admiseAuTirage(c, sp)).map((c) => c.id);
+}
+/** La table de variante de la carrière `tiree` pour l'espèce `sp` : celle qui porte `tiree`, quand la colonne de `sp`
+ *  est un tableau du Livre de base (`tableauDuLdb`). AA 02 l.109-128 ; VDM 03 l.17-31 */
+export function varianteDe(tiree: string, sp: SpeciesData): (typeof carrieresAleatoires)[number] | undefined {
+  if (!colonneDeCarrieres(sp.refCareer).tableauDuLdb) return undefined;
+  return carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree);
+}
+/** Un jet de carrière : son d100 et la carrière tirée, puis le second lancer sur sa variante (`varianteDe`) s'il a été
+ *  fait. AA 02 l.109-113 ; VDM 03 l.17-19 */
+export interface JetDeCarriere { roll: number; id: string; second?: { roll: number; id: string } }
+/** Ce que le jet `jet` offre à l'espèce `sp` : la carrière qu'il désigne, puis ses substitutions (`substitutionsDe`).
+ *  Le second lancer désigne la carrière qu'il atteint si elle est admise au tirage de `sp`, sinon la tirée.
+ *  AA 02 l.109-113 ; VDM 03 l.17-19 ; ADE I 07 l.9-23 */
+export function offreDuJet(sp: SpeciesData, jet: { id: string; second?: { id: string } }): string[] {
+  const finale = jet.second && admiseAuTirage(findCareerById(jet.second.id), sp) ? jet.second.id : jet.id;
+  return [finale, ...substitutionsDe(finale, sp)];
 }
 /** Les documents du Tableau des Races aléatoires, un par table imprimée (LDB 04 l.93-101 ; NADJ 14 l.66-75 ;
  *  ADE II 02 l.112-121), chaque rangée l'espèce nominale de sa race — app-owned éditable au Codex (`setDataset`),
@@ -2784,6 +2800,17 @@ export function tableDesRacesAleatoires(races: ReadonlySet<RaceKey>): (typeof es
     return r.size === races.size && [...races].every((x) => r.has(x));
   });
   return garanti(tables.length === 1 ? tables[0] : undefined, [...races].join(', '), `table unique du Tableau des Races aléatoires (${tables.length} trouvée(s)) pour les races`);
+}
+/** Les documents du tableau corps ou esprit de la mutation, un par race (LDB 19 l.76-81 ; ADE II 02 l.172-177 ;
+ *  NADJ 15 l.173) — app-owned éditable au Codex (`setDataset`), même référence ; chaque rangée tire l'une des deux
+ *  natures (`affinerDataset` de `schemas/defs/mutation-nature.ts`). */
+export const mutationNature = datasetDe<typeof tableauDeLaNatureDeMutation>(mutationNatureJson);
+/** Le document de la race d'une espèce (`id` STABLE, ou clé de race d'apparence que porte un PNJ), lu à
+ *  l'appel ; sans race couverte, celui de la race `humain`. LDB 19 l.76-81 */
+export function natureDeMutationDe(speciesId: string | undefined): (typeof mutationNature)[number] {
+  const race = findSpeciesById(speciesId)?.refChar ?? speciesId;
+  const doc = mutationNature.find((d) => d.race === race) ?? mutationNature.find((d) => d.race === 'humain');
+  return garanti(doc, race ?? 'humain', 'document de la nature de la mutation pour la race');
 }
 /** Les documents du Tableau des cargaisons, un par voie et colonne saisonnière (MDG 15 l.404-418 ; MSRC 13
  *  l.69-78) — app-owned éditable au Codex (`setDataset`), même référence. */
@@ -2905,12 +2932,6 @@ export const DEFAULT_RACE_ID: string = datasetDe<typeof speciesRaceDef>(speciesR
 export function especeDApparence(rulesId: string | undefined): EspeceDApparence {
   return (rulesId ?? DEFAULT_RACE_ID) as EspeceDApparence;
 }
-/** Seuil d100 de mutation PHYSIQUE d'une espèce par `id` (LDB 19 l.78-81). Défaut **50** = colonne
- *  Humain (LDB) — couvre aussi le Gnome (NADJ « Gnomes et Corruption » : « mutent comme les humains »)
- *  et toute espèce hors Tableau. Les valeurs ≠ 50 (Elfe 0, Nain 5, Halfling 10, Ogre 10) sont en donnée. */
-export function mutationBodyMaxForSpecies(id: string | undefined): number {
-  return findSpeciesById(id)?.mutationBodyMax ?? 50;
-}
 
 /** Affichage SINGULIER de l'espèce d'un INDIVIDU (« Humain (Reiklander) ») : les `label` du catalogue
  *  nomment une CATÉGORIE au pluriel, un personnage est un individu (B1). Lu sur la STRUCTURE de l'espèce :
@@ -2923,18 +2944,21 @@ export function speciesSingular(speciesId: string | undefined): PlayerText {
   return sp.variant ? dataLabel(`${race} (${sp.variant})`) : race;
 }
 /** Les carrières que le tirage de `sp` peut offrir sur sa table effective (`tableDeCarrieres`), avec ou sans sa
- *  portion : les rangées, et ce que leur tirage offre en plus (`carrieresOffertesAvec`). */
+ *  portion : l'offre de chaque rangée (`offreDuJet`), sans second lancer ou avec chaque rangée de sa variante (`varianteDe`). */
 export function carrieresTirables(sp: SpeciesData, avecPortion: boolean): CareerData[] {
-  const ids = new Set(tableDeCarrieres(sp.refCareer, avecPortion).entries.flatMap((r) => [r.id, ...carrieresOffertesAvec(r.id, sp)]));
+  const ids = new Set(tableDeCarrieres(sp.refCareer, avecPortion).entries.flatMap(({ id }) => [
+    ...offreDuJet(sp, { id }),
+    ...(varianteDe(id, sp)?.entries ?? []).flatMap((second) => offreDuJet(sp, { id, second })),
+  ]));
   return careers.filter((c) => ids.has(c.id));
 }
 /**
  * Carrières accessibles à une espèce (Tableau des Classes et Carrières aléatoires, LDB 05
  * l.197+, l.360) : celles que son tirage offre, avec ou sans le remplacement (`carrieresTirables`).
- * `ignoreRestrictions` = LDB 05 l.314-316.
+ * `ignoreRestrictions` = LDB 05 l.314-316 : toutes les carrières ouvertes (`carriereOuverte`).
  */
 export function careersForSpecies(sp: SpeciesData, ignoreRestrictions = false): CareerData[] {
-  if (ignoreRestrictions) return careers;
+  if (ignoreRestrictions) return careers.filter(carriereOuverte);
   const ids = new Set([false, true].flatMap((avecPortion) => carrieresTirables(sp, avecPortion).map((c) => c.id)));
   return careers.filter((c) => ids.has(c.id));
 }
@@ -3156,11 +3180,18 @@ export function findStarById(id: string | null | undefined): StarData | undefine
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
 }
-/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`distance` hors « Mains nues »
- *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE. */
+/** Le Groupe d'armes d'une arme : `weaponGroup`, qui prime, sinon `subType`. AA 10 l.178-193 */
+export function groupeDeLArme<G>(arme: { weaponGroup?: G | null; subType?: G | null }): G | undefined {
+  return arme.weaponGroup ?? arme.subType ?? undefined;
+}
+/** Familles de catalogue qui ne sont pas des armes portées : les pièces servies (#156) et les munitions. */
+const FAMILLES_HORS_ARMES_PORTEES: ReadonlySet<string> = new Set(['armes-de-siege', 'munitions']);
+/** ARMES choisissables `{ id, label, groupe }` : toute Possession `melee`/`distance` hors « Mains nues »
+ *  (`TrappingData.unarmed`) et hors des familles de catalogue `FAMILLES_HORS_ARMES_PORTEES` (`subType`), triée au
+ *  libellé. `id` = `trappingId` STABLE ; `groupe`, son Groupe d'armes (`groupeDeLArme`). */
 export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed)
-  .map((t) => ({ id: t.id, label: t.label }))
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed && !FAMILLES_HORS_ARMES_PORTEES.has(t.subType?.id ?? ''))
+  .map((t) => ({ id: t.id, label: t.label, groupe: groupeDeLArme(t)?.id }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
@@ -3249,8 +3280,9 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
  *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU somme d'argent (`Somme`) —
  *  OU mention par nature (`DotationDeMention`) — OU « 1 parmi »
- *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
- *  (`wildcard`, ex. `{wildcard:'arme'}`). `pick`/`wildcard` sont des EMPLACEMENTS, résolus par
+ *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`), dont une option peut être un lot d'objets ou de
+ *  possessions dotés ensemble (`LotDeDotation`) — OU joker d'arme (`JokerDArme`), de tout le catalogue ou d'un Groupe
+ *  d'armes, son Atout au choix compris. `pick`/`wildcard` sont des EMPLACEMENTS, résolus par
  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
  *  restent tels quels et ne produisent aucun objet.
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
@@ -3258,14 +3290,22 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
 export type { DotationDePossession, DotationDeMention, Somme };
+/** Un objet du catalogue doté tel quel, sans emplacement. */
+type ObjetDote = RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; valeur?: Somme };
+/** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, son Atout au choix. */
+export type JokerDArme = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: true };
+/** Objets et possessions dotés ensemble, option d'un « 1 parmi ». */
+export type LotDeDotation = { lot: (ObjetDote | DotationDePossession)[] };
 export type TrappingRef =
-  | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true; valeur?: Somme })
+  | (ObjetDote & { qualityChoice?: true })
   | { text: string; count?: CountSpec }
   | DotationDePossession
   | Somme
   | DotationDeMention
-  | { pick: 1; of: TrappingRef[] }
-  | { wildcard: string };
+  | { pick: 1; of: BrancheDeDotation[] }
+  | JokerDArme;
+/** Une option d'un « 1 parmi » de dotation : une dotation, ou un lot. */
+export type BrancheDeDotation = TrappingRef | LotDeDotation;
 /** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni somme, ni mention, ni texte, ni emplacement ? */
 export const estDotationDObjet = (ref: TrappingRef): ref is Extract<TrappingRef, { id: string; type?: never }> => 'id' in ref && !('type' in ref);
 /** La dotation est-elle une somme d'argent ? */
@@ -3517,25 +3557,28 @@ export function advancementLabel(category: string, a: AdvancementRef): PlayerTex
 export function advancementBaseId(a: AdvancementRef): string | undefined {
   return 'id' in a ? a.id : undefined;
 }
-/** Libellé d'affichage d'une `TrappingRef` : « Marteau », « Pamphlétaire (3) », « Chiffon (1d10) »,
- *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
+/** Libellé d'affichage d'une dotation ou d'une option de « 1 parmi » (`BrancheDeDotation`) : « Marteau », « Pamphlétaire (3) »,
+ *  « Chiffon (1d10) », « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
  *  `RefDesignee` — `LDB 08 l.1130`), « Bijoux valant 3d10 couronnes d'or » (`valeur`), somme d'argent
- *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), ou joker
- *  « Arme (au choix) ». SOURCE UNIQUE (Codex, créateur, marchand, inventaire). */
-export function trappingRefLabel(ref: TrappingRef): PlayerText {
+ *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), lot
+ *  « Arc et Flèche (10) », ou joker « Arme (au choix) », « Arme du groupe Deux-mains (au choix) ». SOURCE UNIQUE
+ *  (Codex, créateur, marchand, inventaire). */
+export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
   if ('pick' in ref) return libelleDuParmi(ref.pick, ref.of.map(trappingRefLabel));
-  if ('wildcard' in ref) return ref.wildcard === 'arme' ? t('ref.armeAuChoix') : t('ref.jokerAuChoix', { base: ref.wildcard });
+  if ('lot' in ref) return dataLabel(listeEt(ref.lot.map(trappingRefLabel)));
   if (estDotationDArgent(ref)) return dataLabel(libelleDeLaSomme(ref));
-  const base = 'text' in ref
-    ? ref.text
-    : estMention(ref)
-      ? ref.label
-      : !('type' in ref)
-        ? refLabel('trappings', ref)
-        : ref.type === 'vehicle'
-          ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
-          : dataLabel(findCreatureById(ref.id)?.label, ref.id);
-  const count = ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
+  const base = 'wildcard' in ref
+    ? (ref.groupe ? t('ref.armeDuGroupeAuChoix', { groupe: dataLabel(findWeaponGroupById(ref.groupe.id)?.label, ref.groupe.id) }) : t('ref.armeAuChoix'))
+    : 'text' in ref
+      ? ref.text
+      : estMention(ref)
+        ? ref.label
+        : !('type' in ref)
+          ? refLabel('trappings', ref)
+          : ref.type === 'vehicle'
+            ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
+            : dataLabel(findCreatureById(ref.id)?.label, ref.id);
+  const count = 'count' in ref && ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
   if ('qualityChoice' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
   const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
   const libelle = base + count + quality;

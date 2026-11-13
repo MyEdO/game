@@ -236,7 +236,7 @@ const nomDePossession = (s: Jeu): Nommer => indexe(s.possessions, (p) => p.uid, 
 const lignesDuButin = (s: Jeu) => [...(s.pendingLoot?.gear ?? []), ...(s.pendingVictory?.gear ?? [])];
 const lesAttaques = (s: Jeu) => {
   const actif = s.battle ? activeCombatant(s.battle) : undefined;
-  return actif && s.battle ? availableAttacks(actif, s.battle) : [];
+  return actif && s.battle ? availableAttacks(s.scene, actif, s.battle) : [];
 };
 const lesRamassables = (s: Jeu) =>
   (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif), s.objetsAuSol));
