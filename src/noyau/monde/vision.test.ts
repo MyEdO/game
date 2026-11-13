@@ -2,7 +2,17 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../../engine/items';
 import { combattantDeTest } from '../../engine/combattantDeTest.testkit';
-import { computeVisible, computeLightField, ambientScalar, baseSightTiles, combatantLights, darkSightTiles, mapLights, rayonEnCases, type LightField } from './vision';
+import {
+  computeVisible,
+  computeLightField,
+  ambientScalar,
+  baseSightTiles,
+  combatantLights,
+  darkSightTiles,
+  mapLights,
+  rayonEnCases,
+  type LightField,
+} from './vision';
 import { Scene, WallSeg, emptyScene, sceneMetresPerTile, wallBetween } from './scene';
 import { couvertDArete, losClear } from './lineOfSight';
 import { pathTo } from './path';

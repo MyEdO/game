@@ -3,7 +3,16 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
-import { cibleEtendueSchema, difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
+import {
+  cibleEtendueSchema,
+  difficultySchema,
+  enumNomme,
+  hitLocationSchema,
+  maisonSchema,
+  plageOuverteSchema,
+  sourceRefSchema,
+  formulaSchema,
+} from '../grammaire/valeurs';
 import { executeesDe, flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 import { idDe, refs } from '../grammaire/ref';
 

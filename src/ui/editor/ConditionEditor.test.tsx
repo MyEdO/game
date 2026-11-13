@@ -8,7 +8,14 @@ import { catalogueSpecs, entreeOuverte, estSpecialisable, idsDe } from '../../da
 import { EMPTY_FLOW, type Condition } from '../../engine/flowCore';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  hasWhatSchema,
+  partyWhoSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { familleDesEffets } from '../../data/schemas/grammaire/mecanique';
 import { noeudDuChamp } from '../../data/schemas/validate';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';

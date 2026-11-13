@@ -3,8 +3,18 @@ import { existsSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import viteConfig from '../vite.config';
-// @ts-expect-error - module ESM JS (pas de types)
-import { PLAGE_PORTS, PORT_DEV_DERIVE, PORT_DEV_PRINCIPAL, PORT_PREVIEW_DERIVE, PORT_PREVIEW_PRINCIPAL, estArbrePrincipal, normaliserRacine, portDev, portPreview } from '../scripts/port-dev.mjs';
+import {
+  PLAGE_PORTS,
+  PORT_DEV_DERIVE,
+  PORT_DEV_PRINCIPAL,
+  PORT_PREVIEW_DERIVE,
+  PORT_PREVIEW_PRINCIPAL,
+  estArbrePrincipal,
+  normaliserRacine,
+  portDev,
+  portPreview,
+  // @ts-expect-error - module ESM JS (pas de types)
+} from '../scripts/port-dev.mjs';
 
 /**
  * Garde-fou ISOLATION DE WORKTREE — tout chemin de fichier déclaré par la config de test

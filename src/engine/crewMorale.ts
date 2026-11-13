@@ -15,9 +15,11 @@
  * modificateurs de Moral ; `findTableEntry` classe le score dans sa bande.
  */
 import crewMoraleJson from '../data/crew-morale.json';
-import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
+import type * as crewMoraleDef from '../data/schemas/defs/crew-morale';
+import { datasetDe, type DatasetDe } from '../data/datasets';
+import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { tirerSigne, type EffetSigne, type RNG } from './dice';
+import { tirerSigne, type RNG } from './dice';
 import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
 import { bestForTests, refusNePeutTenter } from './skills';
 import type { PlayerText } from '../i18n/playerText';
@@ -32,41 +34,16 @@ import type { ModLine } from './combat';
 import type { PairedSense } from './ops';
 import { precipitationTestMods } from './seaWeather';
 
+const MORAL = datasetDe<typeof crewMoraleDef>(crewMoraleJson);
 /** Facteur de Moral (MODIFICATEURS DE MORAL, MDG 14). */
-export interface MoraleFactor {
-  /** id STABLE (slug) — toute réf passe par lui, jamais le `label`. */
-  id: string;
-  label: string;
-  effect: EffetSigne;
-  /** Multiplicateur de SOLDE si ce facteur est un CHOIX de paie du Conseil de bord (donnée MAISON,
-   *  cf. `payChoices`). Absent = facteur circonstanciel, pas un choix offert au capitaine. */
-  wageMul?: number;
-  /** Choix de paie mis en AVANT au Conseil de bord (action principale de la modale) — donnée MAISON,
-   *  comme `wageMul` : le tableau MDG 14 ne hiérarchise pas les lignes « La paie … ». */
-  recommendedPay?: boolean;
-  /** Le seul vivre que l'équipage mange quand ce facteur s'applique. MDG 14 l.166 */
-  vivreSeul?: { id: string };
-}
-
+export type MoraleFactor = DatasetDe<typeof crewMoraleDef>['factors'][number];
 /** Bande d'effet du Moral (EFFETS DU MORAL, MDG 14). */
-export interface MoraleBand extends BandeOuverte {
-  id: string;
-  /** Titre de bande verbatim (MDG 14 l.187-202). */
-  label: string;
-  /** ±DR aux Tests de Commandement du capitaine. */
-  captainCmdDR: number;
-  /** ±DR à TOUS les Tests d'équipage. */
-  crewTestDR: number;
-  /** Relâche à terre : 1d100 par membre ; ≤ ce seuil → il ne revient pas (absent si aucune désertion). */
-  desertionRoll?: number;
-  /** Texte d'effet verbatim. */
-  desc: string;
-}
+export type MoraleBand = DatasetDe<typeof crewMoraleDef>['bands'][number];
 
 /** Moral de départ d'un nouvel équipage / nouveau capitaine (MDG 14). */
-export const moraleBase = (): number => crewMoraleJson.base;
-export const MORALE_FACTORS: MoraleFactor[] = crewMoraleJson.factors as MoraleFactor[];
-export const MORALE_BANDS: MoraleBand[] = crewMoraleJson.bands as MoraleBand[];
+export const moraleBase = (): number => MORAL.base;
+export const MORALE_FACTORS = MORAL.factors;
+export const MORALE_BANDS = MORAL.bands;
 
 /** Les bandes telles que `findTableEntry` les lit (`tableOuverte`) : « 101 ou plus » et « 50 ou moins »
  *  (MDG 14 l.188, l.199) sont ouvertes. */

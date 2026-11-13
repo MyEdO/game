@@ -46,7 +46,17 @@ import type { Combatant } from '../../../engine/types';
 import type { View } from '../../facing';
 import type { Rot } from '../../../geometry/iso';
 import type { Dir8 } from '../../../geometry/dir8';
-import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type WallSide } from '../../../noyau/monde/scene';
+import {
+  doorIsOpen,
+  heightAt,
+  porteAuteur,
+  porteEnJeu,
+  structureIsDown,
+  tuilesEffondreesSignature,
+  type LectureDArete,
+  type Scene,
+  type WallSide,
+} from '../../../noyau/monde/scene';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { SUN_ELEVATION_DEG } from '../../../noyau/monde/soleil';
 

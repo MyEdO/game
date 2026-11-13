@@ -26,7 +26,7 @@
  * `note` nomme l'image et les décisions d'adaptation.
  */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
 import { recordDIds, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
@@ -75,11 +75,14 @@ const metaDesChampsDuPreset = {
 
 type Chemin = (string | number)[];
 
+/** Les champs d'un preset que les règles lisent, au type de leur schéma. */
+type ChampsDuPreset = z.infer<z.ZodObject<typeof champs>>;
+
 /** Aucune chose portée deux fois : aucun objet tenu sur `prises` puis `objets`, un objet porté pouvant revenir dans
  *  `objets` en autant d'exemplaires ; aucune pièce sur l'ensemble de la tenue, les `pieces` puis les pièces de chaque
  *  exemplaire d'objet (`piecesDeLObjet`). L'issue va à l'élément qui la porte la seconde fois. Rend les pièces portées. */
 function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet<string> {
-  const e = v as Pick<PresetDePersonnage, 'tenue' | 'pieces' | 'objets' | 'prises'>;
+  const e = v as Pick<ChampsDuPreset, 'tenue' | 'pieces' | 'objets' | 'prises'>;
   const pieces = new Map<string, string>();
   const tenus = new Map<string, string>();
   const deuxFois = (path: Chemin, id: string, deja: string) => ctx.addIssue({ code: 'custom', path, message: `« ${id} » est porté deux fois : déjà par ${deja}.` });
@@ -111,7 +114,7 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet
 
 /** Chaque clé de `rangementsObjets` est un des `objets` : un objet tenu ou absent ne se range pas. */
 function rangerSesObjets(v: unknown, ctx: z.RefinementCtx): void {
-  const e = v as Pick<PresetDePersonnage, 'objets' | 'rangementsObjets'>;
+  const e = v as Pick<ChampsDuPreset, 'objets' | 'rangementsObjets'>;
   const portes = new Set<string>(e.objets ?? []);
   for (const id of Object.keys(e.rangementsObjets ?? {}))
     if (!portes.has(id)) ctx.addIssue({ code: 'custom', path: ['rangementsObjets', id], message: `« ${id} » se range sans être un des objets portés.` });
@@ -119,7 +122,7 @@ function rangerSesObjets(v: unknown, ctx: z.RefinementCtx): void {
 
 /** Chaque clé de `variantesPieces` est une des pièces `portees`, et sa valeur une variante de cette pièce. */
 function varierSesPieces(v: unknown, portees: ReadonlySet<string>, ctx: z.RefinementCtx): void {
-  const e = v as Pick<PresetDePersonnage, 'variantesPieces'>;
+  const e = v as Pick<ChampsDuPreset, 'variantesPieces'>;
   for (const [piece, variante] of Object.entries(e.variantesPieces ?? {})) {
     const path = ['variantesPieces', piece];
     if (!portees.has(piece)) ctx.addIssue({ code: 'custom', path, message: `« ${piece} » prend une variante sans être une des pièces portées.` });
@@ -163,8 +166,3 @@ export const meta = doc.meta;
 
 export const exposition = doc.exposition;
 
-/** VUE TS d'une entrée. */
-export type PresetDePersonnage = Omit<EnveloppeDocument, 'type' | 'source'> & {
-  type: 'presets-de-personnage';
-  source: NonNullable<EnveloppeDocument['source']>;
-} & z.infer<z.ZodObject<typeof champs>>;

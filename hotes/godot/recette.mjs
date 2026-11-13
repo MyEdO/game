@@ -3913,7 +3913,42 @@ async function parcoursPreset() {
   }
 }
 
-const PARCOURS = { reglages: parcoursReglages, combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, roster: parcoursRoster, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision, murs: parcoursMurs }
+const PARCOURS = {
+  reglages: parcoursReglages,
+  combat: parcoursCombat,
+  critique: parcoursCritique,
+  fin: parcoursFin,
+  dialogue: parcoursDialogue,
+  document: parcoursDocument,
+  incantation: parcoursIncantation,
+  soin: parcoursSoin,
+  voyage: parcoursVoyage,
+  marche: parcoursMarche,
+  repos: parcoursRepos,
+  repit: parcoursRepit,
+  ouvrage: parcoursOuvrage,
+  bataille: parcoursBataille,
+  exploration: parcoursExploration,
+  relief: parcoursRelief,
+  etage: parcoursEtage,
+  regards: parcoursRegards,
+  meteo: parcoursMeteo,
+  vehicule: parcoursVehicule,
+  cadrages: parcoursCadrages,
+  bord: parcoursBord,
+  brume: parcoursBrume,
+  fiche: parcoursFiche,
+  inventaire: parcoursInventaire,
+  creation: parcoursCreation,
+  campagne: parcoursCampagne,
+  roster: parcoursRoster,
+  editeur: parcoursEditeur,
+  atelier: parcoursAtelier,
+  composition: parcoursComposition,
+  preset: parcoursPreset,
+  vision: parcoursVision,
+  murs: parcoursMurs,
+}
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_DU_PARCOURS)), [], 'chaque parcours déclare ses jeux au lot (`JEUX_DU_PARCOURS`)')
 

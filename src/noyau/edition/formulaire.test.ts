@@ -14,12 +14,41 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
-import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, porteursDuProjet, projetAvecLePorteur, type AccesDuPorteur, type CadreDuPorteur, type ProjetDEdition, type Sel } from '../sceneEditLecture';
+import {
+  choixDuChamp,
+  ecritureOfferte,
+  formulaireDe,
+  porteurDeLaPortee,
+  porteurDeLaSel,
+  porteurDuProjet,
+  porteursDuProjet,
+  projetAvecLePorteur,
+  type AccesDuPorteur,
+  type CadreDuPorteur,
+  type ProjetDEdition,
+  type Sel,
+} from '../sceneEditLecture';
 import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
-import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
+import {
+  bornesAuPoint,
+  champDeLElement,
+  champsDeclares,
+  champsDuRecord,
+  champsOfferts,
+  choixDuNoeud,
+  cleOfferte,
+  elementDuNoeud,
+  formeAuPoint,
+  inferFields,
+  kindDuNoeud,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  type FieldDesc,
+} from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';

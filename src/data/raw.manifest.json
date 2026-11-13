@@ -97,7 +97,7 @@
     "type": "raw.manifest",
     "label": "Humeur de Manann et événements en mer (MDG)",
     "ticket": "#1652",
-    "bloque": "Blindage : il s'installe dans tout port, pas seulement sur un chantier naval spécialisé (MDG 12 l.230), #4052. Le facteur « La nourriture ne se résume pas à de simples rations de base » (MDG 14 l.156) n'a pas de lecteur : la nourriture fraîche de la cale ne pourrit pas (MDG 14 l.238). L'équipage, un effectif, ne contracte pas le scorbut : la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), #4058."
+    "bloque": "Le facteur « La nourriture ne se résume pas à de simples rations de base » (MDG 14 l.156) n'a pas de lecteur : la nourriture fraîche de la cale ne pourrit pas (MDG 14 l.238). L'équipage, un effectif, ne contracte pas le scorbut : la soupe de chou de la cale n'a pas de mangeur (MDG 14 l.230, l.271), #4058."
   },
   {
     "id": "4e/maladies#maladie-type",
@@ -111,7 +111,7 @@
     "type": "raw.manifest",
     "label": "Test d'incantation",
     "ticket": "#1456",
-    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:60`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
+    "bloque": "Lanceur de sorts (au choix) du Tableau des effets de l'Allure démoniaque (EDOC 13 l.245) : l'argument reste le joker `au choix` (`ARG_JOKER`, `src/data/schemas/grammaire/reference.ts:90`) ; aucun choix de Domaine n'est offert au porteur à l'octroi"
   },
   {
     "id": "4e/activites#tableau-des-evenements-d100",

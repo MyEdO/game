@@ -92,7 +92,16 @@ import {
   entreesDe, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, indexEmprunte, listerImage, patchsParChemin, shaDe, refusDeGit,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
-import { SUBSTANTIVE_MIN_LINES, TRAILERS, apportDeLaResolution, apportsDesTickets, estFichierEcran, messagePorte, sectionDe, sectionDeLivraison } from '../guards/lib/livraison.mjs'
+import {
+  SUBSTANTIVE_MIN_LINES,
+  TRAILERS,
+  apportDeLaResolution,
+  apportsDesTickets,
+  estFichierEcran,
+  messagePorte,
+  sectionDe,
+  sectionDeLivraison,
+} from '../guards/lib/livraison.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'

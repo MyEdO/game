@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, consolidateAmputations, setTraumaCount, traumaCumulOps, traumaCharPenalties, traumaFicheById, permanentAmputations, avecSequelles, type SequelleNeuve } from './trauma';
+import {
+  traumaById,
+  consolidateAmputations,
+  setTraumaCount,
+  traumaCumulOps,
+  traumaCharPenalties,
+  traumaFicheById,
+  permanentAmputations,
+  avecSequelles,
+  type SequelleNeuve,
+} from './trauma';
 import type { Combatant, HitLocation } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 

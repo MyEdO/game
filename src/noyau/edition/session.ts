@@ -9,7 +9,18 @@
  * Godot la reçoit par le pont.
  */
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
+import type {
+  ArchitectureBody,
+  ArchitectureStorey,
+  BuildingMass,
+  FacadeFeature,
+  RoofDefaults,
+  Scene,
+  SceneEntity,
+  SceneStationAnchor,
+  WallSecret,
+  WallSeg,
+} from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import { inventaireApres, type IntentionDObjet } from '../../engine/items';
@@ -20,8 +31,100 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, projetSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, type PatchDeZone, type Pt } from '../sceneEdit';
-import { DOCUMENTS, FORMULAIRES, accesDe, cheminOffert, entiteDeLaSelection, formeDuPorteur, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDeDocument, type SorteDePorteur, type Tool, type DocumentDuProjet } from '../sceneEditLecture';
+import {
+  addArchitectureBody,
+  addArchitecturePart,
+  addBuildingMass,
+  addFacadeFeature,
+  addRoofExclusion,
+  patchBuildingMass,
+  poseToitureDuCorps,
+  rectFrom,
+  removeRoofExclusion,
+  addLayer,
+  patchSceneRoofDefaults,
+  removeSceneFlag,
+  resizeGrid,
+  setNorthDeg,
+  setReliefDefault,
+  setSceneFlags,
+  setSceneLabel,
+  setSceneRest,
+  setSceneScalaires,
+  type ScalairesDeScene,
+  addProjectScene,
+  deleteProjectScene,
+  duplicateProjectScene,
+  renameScene,
+  type ProjectScenes,
+  addMember,
+  addStoreyAbove,
+  patchArchitectureBody,
+  patchArchitectureStorey,
+  patchFacadeFeature,
+  patchFacadeSection,
+  removeFacadeFeature,
+  setFacadeSectionZ,
+  assoirALaPlace,
+  deleteSel,
+  dupliquerLEntite,
+  poserUneTroupe,
+  coucheEcrite,
+  editEntity,
+  editEntry,
+  ECRITURES_DES_PORTEURS,
+  projetSansLePorteur,
+  pasteEntity,
+  sansVide,
+  patchMember,
+  patchWall,
+  patchZone,
+  propRefPatch,
+  removeLayer,
+  removeMember,
+  renameEffectZone,
+  avecLaValeurDuPorteur,
+  avecLAdresseRescellee,
+  type EcritureDeValeur,
+  type RefusDeValeur,
+  type Segment,
+  renameEntry,
+  setPosteCrew,
+  setPosteEngine,
+  setPosteSide,
+  addStation,
+  patchStation,
+  removeStation,
+  setSceneMusic,
+  type PatchDeZone,
+  type Pt,
+} from '../sceneEdit';
+import {
+  DOCUMENTS,
+  FORMULAIRES,
+  accesDe,
+  cheminOffert,
+  entiteDeLaSelection,
+  formeDuPorteur,
+  porteurDeLaPortee,
+  porteurDeLaSel,
+  porteurDuProjet,
+  selDuPorteur,
+  selPos,
+  selZ,
+  etageSuivant,
+  poigneeDeLaSelection,
+  segmentDeLaSelection,
+  type CadreDuPorteur,
+  type DonneeDuPorteur,
+  type Layers,
+  type ProjetDEdition,
+  type Sel,
+  type SorteDeDocument,
+  type SorteDePorteur,
+  type Tool,
+  type DocumentDuProjet,
+} from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -36,7 +139,23 @@ import { memoByDeps } from '../monde/sceneMemo';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
 import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } from './historique';
-import { appuyer, appuyerSurLaCarte, appuyerSurLePlanDuLieu, glisser, glisserSurLaCarte, glisserSurLePlanDuLieu, relacher, relacherSurLaCarte, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type EffetSurLaCarte, type EffetSurLePlanDuLieu, type GesteEnCours, type PointDeCarte } from './pointeur';
+import {
+  appuyer,
+  appuyerSurLaCarte,
+  appuyerSurLePlanDuLieu,
+  glisser,
+  glisserSurLaCarte,
+  glisserSurLePlanDuLieu,
+  relacher,
+  relacherSurLaCarte,
+  saisirLaPoignee,
+  type ContexteDuPointeur,
+  type EffetDuPointeur,
+  type EffetSurLaCarte,
+  type EffetSurLePlanDuLieu,
+  type GesteEnCours,
+  type PointDeCarte,
+} from './pointeur';
 import { orienterRoute, retirerPoi } from '../worldMapEdit';
 import type { MapPlace, WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';

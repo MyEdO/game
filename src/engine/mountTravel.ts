@@ -33,7 +33,8 @@ import { t, type MsgKey } from '../i18n';
 import { refLabel, dataLabel, testSkillLabel } from '../data';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import monturesJson from '../data/montures.json';
-import type { MonturesData } from '../data/schemas/defs/montures';
+import type * as monturesDef from '../data/schemas/defs/montures';
+import { datasetDe, type EntreeDe } from '../data/datasets';
 
 export type Allure = 'pas' | 'trot' | 'galop';
 export const ALLURES: readonly Allure[] = ['pas', 'trot', 'galop'];
@@ -46,9 +47,9 @@ export const ALLURE_KMH_PER_M: Record<Allure, number> = { pas: 1.5, trot: 2.5, g
 
 /** Une ligne de la table EDOC (M + Endurance + « trotte ou pas ») liée aux créatures possédables (Possession
  *  `nature: 'bete'`, SOCLE POSSESSIONS #617/#618). */
-export type MountProfile = MonturesData[number];
+export type MountProfile = EntreeDe<typeof monturesDef>;
 
-export const MOUNT_PROFILES = monturesJson as MonturesData;
+export const MOUNT_PROFILES = datasetDe<typeof monturesDef>(monturesJson);
 const montureParId = indexParId('montures', MOUNT_PROFILES);
 const montureParCreature = memoParVersion('montures', () =>
   new Map<string, MountProfile>(MOUNT_PROFILES.flatMap((p) => p.creatureIds.map((c) => [c, p] as const))),

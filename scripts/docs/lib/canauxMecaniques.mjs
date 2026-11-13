@@ -41,9 +41,9 @@ function membres(decl, sf) {
   return out
 }
 
-/** Le schéma `S` qu'un alias de type infère (`type X = z.infer<typeof S>`), ou `null`. */
+/** Le schéma `S` qu'un alias de type infère (`type X = z.infer<typeof S>` ou `z.output<typeof S>`), ou `null`. */
 export function schemaInfere(alias, sf) {
-  return /^z\.infer<typeof (\w+)>$/.exec(plat(alias.type.getText(sf)))?.[1] ?? null
+  return /^z\.(?:infer|output)<typeof (\w+)>$/.exec(plat(alias.type.getText(sf)))?.[1] ?? null
 }
 
 /** Les champs de l'objet zod (`z.strictObject({…})` ou `z.object({…})`, le premier atteint) que déclare la constante

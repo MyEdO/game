@@ -521,7 +521,7 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
  */
 describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’action dans le rendu)', () => {
   const FABRIQUÉE: ActionDef = {
-    id: idDeFixture('action', 'geste-fabrique'), label: 'Geste fabriqué', icon: 'action/monter-en-selle', surface: 'pastille-entite',
+    id: idDeFixture('action', 'geste-fabrique'), type: 'actions', label: 'Geste fabriqué', icon: 'action/monter-en-selle', surface: 'pastille-entite',
     gate: 'toujours', candidates: 'armes-a-distance', coutAction: 'gratuit',
   };
 

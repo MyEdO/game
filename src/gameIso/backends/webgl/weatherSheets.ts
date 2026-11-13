@@ -22,7 +22,7 @@
  * lumière et le semis.
  */
 import * as THREE from 'three';
-import type { WeatherBrumeDef } from '../../../data/ambiance.types';
+import type { WeatherBrumeDef } from '../../../data';
 import { openSkyRuns, positionsDeNappe, sceneGroundSpan, type OpenRun } from '../../../noyau/monde/meteo';
 import type { Scene } from '../../../noyau/monde/scene';
 import { withRenderRank } from './renderRanks';

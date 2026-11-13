@@ -12,7 +12,17 @@ import { AVAILABILITIES } from '../engine/types';
 import { formatMoney } from '../engine/money';
 import { isShieldTrapping } from '../engine/items';
 import { findTrappingById, merchantFamilies } from '../data/index';
-import { catalogEntryOf, contexteDAchat, devisDeVente, devisDuPanier, prixDeLigne, refusDAjout, sellGain, sellRefusal, type MerchantState } from './merchantFlow';
+import {
+  catalogEntryOf,
+  contexteDAchat,
+  devisDeVente,
+  devisDuPanier,
+  prixDeLigne,
+  refusDAjout,
+  sellGain,
+  sellRefusal,
+  type MerchantState,
+} from './merchantFlow';
 import { totalDesBourses } from './bourseFlow';
 import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX, type AxeDe, type ChoixDesFenetres } from './choixDesFenetres';

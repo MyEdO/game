@@ -33,7 +33,28 @@
 // `--veiller <run>` suit le run nommé par `--detache` (`veillerLeTrain`), sans rien jouer ; `--depuis <seq>`
 // la ré-arme après la dernière transition `#<seq>` lue ; `--constat` la reprend après la sortie de sa veille
 // (#2493), depuis la dernière transition du journal.
-import { optionsDe, idDeRun, runDe, runEnVol, lancementDe, journalVide, journalInitial, modeDuLog, ouvrirLog, CODE_BORNE_DEPASSEE, entameDuRun, ligneDePublication, codeDeVerdict, cheminsDeJournal, lireJournal, lancementNpm, verdictDeTrace, chuteMoteur, raisonDeLErreur, refusDOptions } from './publicationDonnee.mjs'
+import {
+  optionsDe,
+  idDeRun,
+  runDe,
+  runEnVol,
+  lancementDe,
+  journalVide,
+  journalInitial,
+  modeDuLog,
+  ouvrirLog,
+  CODE_BORNE_DEPASSEE,
+  entameDuRun,
+  ligneDePublication,
+  codeDeVerdict,
+  cheminsDeJournal,
+  lireJournal,
+  lancementNpm,
+  verdictDeTrace,
+  chuteMoteur,
+  raisonDeLErreur,
+  refusDOptions,
+} from './publicationDonnee.mjs'
 import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, existsSync, mkdirSync, readFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'

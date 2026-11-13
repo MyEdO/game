@@ -19,7 +19,7 @@ import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
 import type { Pt } from './path';
-import { wallOnSight, type Scene, type SceneEntity } from './scene';
+import { plafondDe, wallOnSight, type Scene, type SceneEntity } from './scene';
 import { isStructure } from '../../engine/structures';
 import { chebyshev } from '../../engine/grid';
 import { verticalTiles } from './relief';
@@ -158,13 +158,18 @@ function horizontalDeContact(scene: Scene | null, a: Combatant, b: Combatant, aP
   return best;
 }
 
+/** Le plafond (m) d'une empreinte de côté `n` posée en `p` : le plus haut des plafonds de ses cases (`plafondDe`). */
+function plafondDeLEmpreinte(scene: Scene, p: Pt, n: number): number {
+  return Math.max(...footprintTiles(p, n).map((t) => plafondDe(scene, { ...t, z: p.z ?? 0 })));
+}
+
 /** Distance de CONTACT, en cases : celle de tout ce qui dit « au contact » (Allonge, adjacence, Surnombre).
- *  `Infinity` quand le plafond du plus bas (`pos.plafond`) n'est pas plus haut que le sol du plus haut, ou quand une
- *  arête pleine sépare les deux empreintes (`horizontalDeContact`). Sans scène, aucune arête. LDB 13 l.114 ;
- *  LDB 15 l.12. */
+ *  `Infinity` quand le plafond du plus bas (`plafondDeLEmpreinte`, lu à la scène) n'est pas plus haut que le sol du
+ *  plus haut, ou quand une arête pleine sépare les deux empreintes (`horizontalDeContact`). Sans scène, ni plafond ni
+ *  arête. LDB 13 l.114 ; LDB 15 l.12. */
 export function distanceDeContact(scene: Scene | null, a: Combatant, b: Combatant, mpt = 2): number {
   if (!a.pos || !b.pos) return Infinity;
-  const [bas, haut] = (a.pos.h ?? 0) <= (b.pos.h ?? 0) ? [a.pos, b.pos] : [b.pos, a.pos];
-  if ((bas.plafond ?? Infinity) <= (haut.h ?? 0)) return Infinity;
+  const [bas, posBas, posHaut] = (a.pos.h ?? 0) <= (b.pos.h ?? 0) ? [a, a.pos, b.pos] : [b, b.pos, a.pos];
+  if (scene && plafondDeLEmpreinte(scene, posBas, footprintN(bas)) <= (posHaut.h ?? 0)) return Infinity;
   return Math.max(horizontalDeContact(scene, a, b, a.pos, b.pos), verticalTiles(a.pos.h ?? 0, b.pos.h ?? 0, mpt));
 }

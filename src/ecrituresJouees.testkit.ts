@@ -6,7 +6,17 @@
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
  */
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
-import { editer, idDeLaSceneEditee, ouvrirLEdition, projetEdite, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
+import {
+  editer,
+  idDeLaSceneEditee,
+  ouvrirLEdition,
+  projetEdite,
+  sceneEditee,
+  type GesteDEdition,
+  type Scene,
+  type Segment,
+  type SessionDEdition,
+} from './noyau/index';
 import { accesDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type SorteDePorteur } from './noyau/sceneEditLecture';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';

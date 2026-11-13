@@ -1,7 +1,8 @@
 /**
  * LE SERVEUR DE L'EXPORT WEB (#3086, `pont/CONTRAT.md`, section « Atelier 3D ») : `GET modeles/listage.json` rend
  * `{ manifestes, osDesRigides, erreurs, forme }`, les seuls manifestes validés contre leur GLB, de chacun les os qui
- * portent ses meshes rigides et la forme `glb`, en `no-store` ; `GET modeles/<fichier>` sert le fichier en `no-store`,
+ * portent ses meshes rigides et la forme `glb`, en `no-store`, calculé au lancement puis à nouveau quand un fichier du
+ * dossier change ; `GET modeles/<fichier>` sert le fichier en `no-store`,
  * 404 hors du dossier ou absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans
  * `erreurs`, le serveur continue. `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes
  * fichiers sans les GLB ni leur fiche d'import, le même listage en forme `scene`, et fait fabriquer la scène de chaque
@@ -82,6 +83,16 @@ describe('servir', () => {
   it('le listage rend, de chaque manifeste validé, les os qui portent ses meshes rigides', async () => {
     const { osDesRigides } = await (await fetch(`${await demarrer()}modeles/${LISTAGE}`)).json();
     expect(osDesRigides).toEqual({ humanoide: [], epee: ['root'], masse: ['root'] });
+  });
+
+  it('un modèle déposé après le lancement entre au listage suivant', async () => {
+    const vivant = join(racine, 'vivant');
+    cpSync(modeles, vivant, { recursive: true });
+    const url = await demarrer(vivant);
+    const lister = async () => Object.keys((await (await fetch(`${url}modeles/${LISTAGE}`)).json()).manifestes).sort();
+    expect(await lister()).toEqual(['epee', 'humanoide', 'masse']);
+    deposerModeleDeTest(vivant, 'hache', { ...elementSchema3('humanoide'), cle: { apparence: 'hache' } }, GLB_D_ELEMENT);
+    expect(await lister()).toEqual(['epee', 'hache', 'humanoide', 'masse']);
   });
 
   it('un fichier du dossier est servi en no-store', async () => {

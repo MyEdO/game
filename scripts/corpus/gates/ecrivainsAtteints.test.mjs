@@ -76,6 +76,8 @@ const ATTENDU = {
     'scripts/guards/lib/lint-parite.test.mjs',
     'scripts/guards/lib/lint.testkit.mjs',
     'scripts/guards/lib/lintStage.mjs',
+    // #3821 : fixtures sous un `mkdtempSync` d'os.tmpdir(), `oxlint --fix` y joue, `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/nomsParLigneLint.test.mjs',
     // +1 le 2026-10-19 (#2724) : `fichiersLus` copie les fichiers mesurés sous un `mkdtempSync` d'os.tmpdir(), retiré
     // par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/lib/bancLister.mjs',

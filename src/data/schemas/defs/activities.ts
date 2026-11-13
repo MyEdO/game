@@ -8,7 +8,17 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison, difficultySchema, enumNomme, equipeSchema, formulaSchema, formuleSansTirageSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
+import {
+  blocageDeLivraison,
+  difficultySchema,
+  enumNomme,
+  equipeSchema,
+  formulaSchema,
+  formuleSansTirageSchema,
+  foyerDeRegleSchema,
+  moneyPartialSchema,
+  stakeFormSchema,
+} from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec, refs } from '../grammaire/ref';
 

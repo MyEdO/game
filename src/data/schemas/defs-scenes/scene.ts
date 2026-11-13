@@ -21,11 +21,33 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { ouReserve, roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, equipeSchema, idDIconeSchema, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
+import {
+  amateurSchema,
+  cell2Schema,
+  deckCoverSchema,
+  difficultySchema,
+  dir8Schema,
+  entityAppearanceSchema,
+  enumNomme,
+  equipeSchema,
+  idDIconeSchema,
+  moneyPartialSchema,
+  pointDuPlanSchema,
+  settlementSchema,
+} from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema, variante } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
-import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, DIALOGUES_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, PORTEES_DE_LA_SCENE, ptSchema, wallSideSchema } from './communs';
+import {
+  competenceChiffreeSchema,
+  couvreSchema,
+  customStatblockSchema,
+  DIALOGUES_DE_LA_SCENE,
+  PERSONNAGES_DE_LA_SCENE,
+  PORTEES_DE_LA_SCENE,
+  ptSchema,
+  wallSideSchema,
+} from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { champsDeChoix } from '../grammaire/choixDeCreation';
