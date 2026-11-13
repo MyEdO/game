@@ -1254,4 +1254,62 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
     const vu = jouer(s, { geste: 'avertissement', rang });
     expect([vu.document, vu.sel]).toEqual(['carte', { type: 'place', id: 'x' }]);
   });
+
+  /** Le point `(x, y)` du plan de la carte, en unités de la position d'un lieu, sa case la partie entière. */
+  const pt = (x: number, y: number) => ({ case: { x: Math.floor(x), y: Math.floor(y) }, f: { x, y } });
+  /** `x` et `y`, sans route. */
+  const DEUX_LIEUX: WorldMap = { ...RELIEE, routes: [] };
+  const lieuxDe = (s: SessionDEdition) => carte(s).places.map((p) => [p.id, p.pos]);
+
+  it('à la sélection, l’appui sur un lieu le sélectionne, son glissé le pose au point, borné, sur un seul cran ; un clic sans glissé n’écrit rien ; l’appui sur une route la sélectionne, sur le fond plus rien', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
+    const clic = jouer(s, { geste: 'appui', point: pt(20.5, 20.5) }, { geste: 'relache', point: pt(20.5, 20.5) });
+    expect([clic.sel, clic.historique]).toEqual([{ type: 'place', id: 'x' }, s.historique]);
+    const glisse = jouer(s, { geste: 'appui', point: pt(20.5, 20.5) }, { geste: 'glisse', point: pt(30.4, 25) });
+    expect([lieuxDe(glisse), glisse.historique.passe.length]).toEqual([[['x', { x: 30, y: 25 }], ['y', { x: 60, y: 20 }]], s.historique.passe.length + 1]);
+    const loin = jouer(glisse, { geste: 'glisse', point: pt(150, -5) }, { geste: 'relache', point: pt(150, -5) });
+    expect([lieuxDe(loin)[0], loin.historique.passe.length, loin.geste]).toEqual([['x', { x: 98, y: 4 }], s.historique.passe.length + 1, null]);
+    expect(carte(jouer(loin, { geste: 'annuler' }))).toEqual(RELIEE);
+    expect(jouer(s, { geste: 'appui', point: pt(40, 20.5) }).sel).toEqual({ type: 'route', id: 'r' });
+    expect(jouer(s, { geste: 'appui', point: pt(20, 20) }, { geste: 'relache', point: pt(20, 20) }, { geste: 'appui', point: pt(40, 60) }).sel).toBeNull();
+  });
+
+  it('à l’outil Lieu, l’appui sur le fond pose un lieu neuf au point, lié à la première scène, sélectionné sur un cran ; sur un lieu, il le sélectionne', () => {
+    const s = jouer(ouvert(DEUX_LIEUX), { geste: 'document', document: 'carte' }, { geste: 'outil', outil: { mode: 'lieu' } });
+    const pose = jouer(s, { geste: 'appui', point: pt(70.6, 80.2) });
+    expect([pose.sel, carte(pose).places[2], pose.historique.passe.length]).toEqual([{ type: 'place', id: 'lieu-0' }, { id: 'lieu-0', label: expect.any(String), pos: { x: 71, y: 80 }, scene: { id: 'bourg' } }, s.historique.passe.length + 1]);
+    const sur = jouer(s, { geste: 'appui', point: pt(60, 20) });
+    expect([sur.sel, sur.historique]).toEqual([{ type: 'place', id: 'y' }, s.historique]);
+  });
+
+  it('à l’outil Chemin, une route se tire d’un lieu à un autre : son bout suit le pointeur, le relâché sur l’autre lieu la pose, sélectionnée sur un cran ; relâchée sur le fond, rien', () => {
+    const s = jouer(ouvert(DEUX_LIEUX), { geste: 'document', document: 'carte' }, { geste: 'outil', outil: { mode: 'chemin' } });
+    const tiree = jouer(s, { geste: 'appui', point: pt(20, 20) }, { geste: 'glisse', point: pt(45, 33) });
+    expect([tiree.geste, tiree.historique]).toEqual([{ sorte: 'liaison', depuis: 'x', bout: { x: 45, y: 33 } }, s.historique]);
+    const posee = jouer(tiree, { geste: 'relache', point: pt(60.5, 19.5) });
+    expect([posee.sel, carte(posee).routes, posee.historique.passe.length, posee.geste]).toEqual([{ type: 'route', id: 'trajet-0' }, [{ id: 'trajet-0', a: { id: 'x' }, b: { id: 'y' }, km: 10, modes: ['pied'] }], s.historique.passe.length + 1, null]);
+    const perdue = jouer(tiree, { geste: 'relache', point: pt(40, 60) });
+    expect([perdue.historique, perdue.geste]).toEqual([s.historique, null]);
+  });
+
+  it('sans sélection sur la carte, nommer et identifier sont sans objet : la scène garde son nom et son identifiant ; supprimer retire la carte du projet sur un cran, la scène redevenant ouverte', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
+    expect(jouer(s, { geste: 'nommer', nom: 'Autre' })).toBe(s);
+    expect(jouer(s, { geste: 'identifier', id: 'autre' })).toBe(s);
+    const retiree = jouer(s, { geste: 'supprimer' });
+    expect([retiree.document, projetEdite(retiree).worldMap, retiree.historique.passe.length]).toEqual(['scene', undefined, s.historique.passe.length + 1]);
+    expect(carte(jouer(retiree, { geste: 'annuler' }))).toEqual(RELIEE);
+  });
+
+  it('le sens d’une route s’oriente depuis l’une de ses extrémités ou dans les deux sens, sur un cran, refusé quand une autre route de la paire l’offre déjà', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    const depuisX = jouer(s, { geste: 'sens', depuis: 'x' });
+    expect([carte(depuisX).routes[0].from, depuisX.historique.passe.length, depuisX.sel]).toEqual([{ id: 'x' }, s.historique.passe.length + 1, { type: 'route', id: 'r' }]);
+    expect(jouer(depuisX, { geste: 'sens', depuis: 'x' }), 'déjà dans ce sens').toBe(depuisX);
+    const retour = jouer(depuisX, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'y' } }, { geste: 'ajouter', sorte: 'route', avec: 'x' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    expect(carte(retour).routes[1].from).toEqual({ id: 'y' });
+    expect(jouer(retour, { geste: 'sens', depuis: null }), 'le retour est déjà offert').toBe(retour);
+    expect(jouer(retour, { geste: 'sens', depuis: 'y' })).toBe(retour);
+    expect(carte(jouer(depuisX, { geste: 'sens', depuis: null })).routes[0].from).toBeUndefined();
+  });
 });

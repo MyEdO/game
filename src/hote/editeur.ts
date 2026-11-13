@@ -27,12 +27,14 @@ import {
   findSpellById, listesDeSorts, sortsImprimes,
   aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
   PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition,
+  OUTILS_DE_LA_CARTE, UNITES_DU_PLAN_DE_CARTE, orienterRoute, type OutilDeLaCarte, type PlanDeLaCarte, type SorteDeDocument,
 } from '../noyau/index';
 import { pluriel, t, type MsgKey } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from '../lib/objet.mjs';
-import { elementsDesGestes, ligne, SANS_BORNE, type Bouton, type Choix, type Formulaire, type Ligne } from './elements';
+import { elementsDesGestes, ligne, SANS_BORNE, type Bouton, type Choix, type Formulaire, type Ligne, type Plan } from './elements';
+import { planDeLaCarte } from './ecran';
 import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
 
 /**
@@ -138,7 +140,11 @@ export interface ZonesDeLEditeur {
   /**
    * un choix des outils : sélection, terrain, hauteur, murs, volée, crénelage, décor, personnage, navire, emplacement
    * de siège, départ des héros, entrée, architecture, zone, gomme ; l'actif pressé ; le navire refusé, la raison dite,
-   * dans une scène qui n'est pas à l'échelle des ponts (`aLEchelleDesPonts`)
+   * dans une scène qui n'est pas à l'échelle des ponts (`aLEchelleDesPonts`). Sur la carte du monde ouverte, ceux de
+   * son plan (`OUTILS_DE_LA_CARTE`) : `outil/select`, l'appui sur un lieu le sélectionne et son glissé le déplace
+   * (`majLieu`, borné, un cran pour le glissé), sur une route la sélectionne ; `outil/lieu`, l'appui sur le fond pose
+   * un lieu neuf au point (`ajouterLieu`), sélectionné ; `outil/chemin`, l'appui sur un lieu tire une route que le
+   * relâché sur un autre lieu pose (`lierLieux`), sélectionnée
    */
   'editeur.outils': Choix[];
   /**
@@ -202,11 +208,15 @@ export interface ZonesDeLEditeur {
    */
   'editeur.pointee': Ligne[];
   /**
-   * la logique de la scène éditée : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique` : le
-   * déclencheur, le dialogue, la rencontre), la ligne `logique/<sorte>` qui compte ses porteurs, puis, s'il en a, chacun en liste par
+   * la logique du document ouvert : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique`) et vit
+   * dans ce document (le déclencheur, le dialogue, la rencontre de la scène ; le lieu et la route de la carte du
+   * monde), la ligne `logique/<sorte>` qui compte ses porteurs, puis, s'il en a, chacun en liste par
    * son identifiant, pressé s'il est sélectionné, qui joue `{ geste: 'selectionner', porteur: { sorte, id } }` ; puis,
    * quand sa sorte se crée (`creer`, `ECRITURES_DES_PORTEURS`), « Ajouter », `{ geste: 'ajouter', sorte }`, qui pose un
-   * porteur neuf et le sélectionne (le dialogue : `addDialogue` ; la rencontre : `addEncounter`)
+   * porteur neuf et le sélectionne (le dialogue : `addDialogue` ; la rencontre : `addEncounter` ; le lieu, au centre
+   * de la carte : `ajouterLieu`) ; de la route, à la place, `logique/route/ajouter/<lieu>`, « Relier à <lieu> », pour
+   * chaque lieu que le lieu sélectionné rejoint par une route neuve (`avecs`, `lierLieux`), `{ geste: 'ajouter',
+   * sorte: 'route', avec }`
    */
   'editeur.logique': (Choix | Ligne | Bouton)[];
   /**
@@ -333,6 +343,13 @@ export interface ZonesDeLEditeur {
    * montures, la liste des membres sans « Retirer », « Monter » ni « Ajouter » ; la supprimer, refusé avec sa raison
    * comme un dialogue, ou tant qu'une embuscade de route la lance, la route dite (`removeEncounter`, `embuscadesDeLaRencontre`).
    *
+   * La carte du monde ouverte, sans sélection : le formulaire tiré du schéma de son porteur singulier (`{ sorte: 'carte',
+   * id }`), puis `carte/retirer`, « Retirer du projet », `{ geste: 'supprimer' }`, qui retire la carte du projet sur un
+   * cran et rouvre la scène. D'un lieu : son formulaire tiré du schéma, sa position exceptée, qui se glisse au plan ; le
+   * supprimer, ses routes avec lui. D'une route : son sens, `route/sens/deux` ou `route/sens/<lieu>`, le courant pressé,
+   * chacun refusé quand une autre route de la paire l'offre déjà, `{ geste: 'sens', depuis }` (`depuis` nul : les deux
+   * sens, `orienterRoute`) ; son formulaire tiré du schéma ; la supprimer.
+   *
    * D'une zone : la poignée qui la redimensionne ; d'un déclencheur, le formulaire qui le renomme ; d'une zone d'effet,
    * le formulaire qui la nomme et celui qui change son identifiant, sa nature (non déclarée, intérieur ou extérieur),
    * sa forme (rectangle ou disque), son emprise au pinceau et l'aire rendue entière, refusée sans découpe, si elle
@@ -438,6 +455,16 @@ export interface ZonesDeLEditeur {
    * l'ouverture, dits en alerte
    */
   'editeur.calque': (Choix | Ligne | Bouton)[];
+  /**
+   * la carte du monde ouverte (`{ geste: 'document', document: 'carte' }`) : son plan `carte/plan`, un `Plan` dont
+   * chaque point est un lieu à sa position exacte (`MapPlace.pos` ÷ `UNITES_DU_PLAN_DE_CARTE`, dans le cadre 0..1),
+   * le lieu sélectionné en `alerte`, et chaque trait une route, la sélectionnée en `reussite` ; pendant qu'une route
+   * se tire à l'outil Chemin, le point `brouillon/route`, sans nom, au bout du pointeur et le trait `brouillon/route`
+   * qui l'y mène depuis son lieu de départ, en `reussite`. Les gestes du pointeur sur ce plan
+   * (`{ geste: appui | glisse | relache, point }`) portent `point.f`, le point du cadre multiplié par
+   * `UNITES_DU_PLAN_DE_CARTE`, et `point.case`, sa partie entière (`PointDeCarte`) ; vide sur un autre document
+   */
+  'editeur.carte': Plan[];
 }
 
 /** Ce que l'éditeur repère sur la carte de la couche éditée : une entité (sa sorte, `kind`) ou une entrée, son id, sa
@@ -522,7 +549,7 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
  *  aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
-  if (outil.mode === 'selection' || outil.mode === 'gomme' || outil.mode === 'entree' || (outil.mode === 'entite' && outil.kind === 'heroStart')) return [];
+  if (outil.mode === 'selection' || outil.mode === 'gomme' || outil.mode === 'entree' || outil.mode === 'lieu' || outil.mode === 'chemin' || (outil.mode === 'entite' && outil.kind === 'heroStart')) return [];
   if (outil.mode === 'escalier') return optionsDeLaVolee(s, outil.toZ);
   if (outil.mode === 'zone') {
     return [choix('zones', t('ecran.editeur.zones'),
@@ -1581,19 +1608,24 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   return elements;
 }
 
-/** La zone Logique de la session `s` : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique`), le compte
- *  de ses porteurs dans la scène éditée, chacun en liste, pressé s'il est sélectionné, qui le sélectionne ; « Ajouter »
- *  quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`). #3606 décision 7 */
+/** La zone Logique de la session `s` : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique`) et vit dans
+ *  le document ouvert (`accesDe`), le compte de ses porteurs, chacun en liste, pressé s'il est sélectionné, qui le
+ *  sélectionne ; quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`), « Ajouter », ou, de la sorte
+ *  qui se crée avec l'identifiant qu'offre la sélection (`avecs`), un bouton par identifiant offert. #3606 décision 7 */
 function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const choisi = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
-  return (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((sorte) => FORMULAIRES[sorte].logique).flatMap((sorte) => {
+  return (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((sorte) => FORMULAIRES[sorte].logique && accesDe(sorte).document === s.document).flatMap((sorte) => {
     const ids = porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s)).map((d) => d.id);
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
+    const { creer, avecs } = ECRITURES_DES_PORTEURS[sorte];
+    const ajouts = !creer ? []
+      : avecs ? avecs(projetEdite(s), idDeLaSceneEditee(s), s.sel).map((avec) => bouton(`logique/${sorte}/ajouter/${avec}`, t(texte('.avec'), { avec }), { geste: 'ajouter', sorte, avec }))
+        : [bouton(`logique/${sorte}/ajouter`, t(texte('.ajouter')), { geste: 'ajouter', sorte })];
     return [
       ligne(`logique/${sorte}`, t(texte(''), { n: ids.length })),
       ...(ids.length ? [choix(`logique/${sorte}/liste`, t(texte('.choisir')), ids.map((id) =>
         bouton(`logique/${sorte}/${id}`, id, { geste: 'selectionner', porteur: { sorte, id } }, choisi?.sorte === sorte && choisi.id === id)), 'liste')] : []),
-      ...(ECRITURES_DES_PORTEURS[sorte].creer ? [bouton(`logique/${sorte}/ajouter`, t(texte('.ajouter')), { geste: 'ajouter', sorte })] : []),
+      ...ajouts,
     ];
   });
 }
@@ -1650,12 +1682,28 @@ function membresDeLaRencontre(s: SessionDEdition, enc: DonneeDuPorteur['rencontr
   ];
 }
 
+/** Les éléments propres de la route `route` de la session `s` : son sens, dans les deux sens ou depuis l'une de ses
+ *  extrémités, le courant pressé, chacun refusé quand une autre route de la paire l'offre déjà (`orienterRoute`), qui
+ *  joue `{ geste: 'sens', depuis }`. #3606 */
+function sensDeLaRoute(s: SessionDEdition, route: DonneeDuPorteur['route']): Choix[] {
+  const carte = projetEdite(s).worldMap!;
+  const nom = (id: string) => carte.places.find((p) => p.id === id)?.label ?? id;
+  const sens = [null, route.a.id, route.b.id].map((depuis) => {
+    const courant = (route.from?.id ?? null) === depuis;
+    const refus = !courant && orienterRoute(carte, route.id, depuis) === carte ? t('ecran.editeur.route.sens.pris') : null;
+    return bouton(`route/sens/${depuis ?? 'deux'}`, depuis === null ? t('ecran.editeur.route.sens.deux') : t('ecran.editeur.route.sens.depuis', { lieu: nom(depuis) }), { geste: 'sens', depuis }, courant, refus);
+  });
+  return [choix('route/sens', t('ecran.editeur.route.sens'), sens)];
+}
+
 /** Les éléments propres de l'inspecteur d'un porteur qui se liste à la zone Logique (`FORMULAIRES`, `logique`), par
- *  sorte : les nœuds d'un dialogue (`noeudsDuDialogue`), les membres d'une rencontre (`membresDeLaRencontre`) ; sans
+ *  sorte : les nœuds d'un dialogue (`noeudsDuDialogue`), les membres d'une rencontre (`membresDeLaRencontre`), le sens
+ *  d'une route (`sensDeLaRoute`) ; sans
  *  entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme elle (`inspecteurDeZone`). */
 const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[] } = {
   dialogue: noeudsDuDialogue,
   rencontre: membresDeLaRencontre,
+  route: sensDeLaRoute,
 };
 
 /** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique
@@ -1673,7 +1721,9 @@ const INSPECTEURS_DES_SINGULIERS: { readonly [S in SorteDePorteur]?: (s: Session
 /** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, d'un
  *  autre porteur de formulaire du projet (`inspecteurDeLaLogique`), d'un ouvrage d'architecture ou de l'arête
  *  sélectionnée ; sans elle, celui du porteur singulier du document ouvert (`porteurDeLaSel`), le sien propre
- *  (`INSPECTEURS_DES_SINGULIERS`), sinon son formulaire tiré du schéma (`formulaireDuPorteur`) ; rien sans lui. */
+ *  (`INSPECTEURS_DES_SINGULIERS`), sinon son formulaire tiré du schéma (`formulaireDuPorteur`), puis, quand sa sorte se
+ *  retire par la table (la carte du monde), le bouton qui le retire du projet, refusé avec sa raison
+ *  (`refusDeRetrait`) ; rien sans lui. */
 export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const ent = entiteDeLaSelection(scene, s.sel);
@@ -1689,7 +1739,9 @@ export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bout
   if (architecture.length) return architecture;
   if (s.sel) return inspecteurDArete(s);
   if (!porteur || !donnee) return [];
-  return INSPECTEURS_DES_SINGULIERS[porteur.sorte]?.(s) ?? formulaireDuPorteur(s, porteur, donnee);
+  const retrait = ECRITURES_DES_PORTEURS[porteur.sorte].retirer
+    ? [bouton(`${porteur.sorte}/retirer`, t('ecran.editeur.singulier.retirer'), { geste: 'supprimer' }, false, refusDeRetrait(s))] : [];
+  return [...(INSPECTEURS_DES_SINGULIERS[porteur.sorte]?.(s) ?? formulaireDuPorteur(s, porteur, donnee)), ...retrait];
 }
 
 /** Les pas des réglettes de la grille, en cases, de l'échelle, en mètres par case, et du nord, en degrés. */
@@ -1927,10 +1979,10 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * et le chemin pris ; l'ouverture le rend aussi quand elle a retiré des calques d'un autre format.
  * @contrat Éditeur
  */
-/** Les zones de l'éditeur de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de l'outil ; le
- *  navire, sur le premier type et le premier cap. Les couches et la case pointée se lisent sur la vue de la scène
- *  (`vueDeLaScene`), ses navires posés par leurs ponts. */
-export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
+/** Les zones propres à la scène ouverte de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de
+ *  l'outil ; le navire, sur le premier type et le premier cap. Les couches et la case pointée se lisent sur la vue de
+ *  la scène (`vueDeLaScene`), ses navires posés par leurs ponts. */
+function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
   const scene = sceneEditee(s);
   const terrain = s.outil.mode === 'terrain' ? s.outil.terrain : terrainIds()[0];
   const outil = s.outil;
@@ -1968,26 +2020,87 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
       bouton('couche/retirer', t('ecran.editeur.couche.retirer'), { geste: 'retirerCouche' }, false,
         s.z === 0 ? t('ecran.editeur.couche.rez') : scene.layers.some((l) => l.z === s.z) ? null : t('ecran.editeur.couche.ponts')),
     ],
-    'editeur.historique': [
-      bouton('annuler', t('ecran.editeur.annuler'), { geste: 'annuler' }, false, s.historique.passe.length ? null : t('ecran.editeur.rien.annuler')),
-      bouton('retablir', t('ecran.editeur.retablir'), { geste: 'retablir' }, false, s.historique.futur.length ? null : t('ecran.editeur.rien.retablir')),
-    ],
     'editeur.presse': presse(s),
-    'editeur.fichier': [
-      bouton('enregistrer', t('ecran.editeur.enregistrer'), { geste: 'enregistrer' }, false, refusDEnregistrer(s)),
-      bouton('tester', t('ecran.editeur.tester'), { geste: 'tester' }),
-      ...DOCUMENTS_DU_MENU.map((document) => bouton(`document/${document}`, t(`ecran.editeur.document.${document}`), { geste: 'document', document }, s.document === document)),
-    ],
     'editeur.pointee': [
       ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(vue, p.x, p.y, p.z)), hauteur: heightAt(vue, p.x, p.y, p.z) }))] : []),
       ...ligneDuParapet(s),
       ...ligneDeLArete(s),
       ...ligneDeLaSelection(s),
     ],
+    'editeur.calque': zoneDuCalque(s),
+  };
+}
+
+/** Les libellés des outils de la carte du monde (`OUTILS_DE_LA_CARTE`), sous `ecran.editeur.outil.`. */
+const LIBELLES_DES_OUTILS_DE_LA_CARTE: { readonly [O in OutilDeLaCarte]: string } = { selection: 'select', lieu: 'lieu', chemin: 'chemin' };
+
+/** Le brouillon de la route tirée sur le plan de la carte : l'id de son bout et de son trait. */
+const BROUILLON_DE_ROUTE = 'brouillon/route';
+
+/** Le plan de la carte du monde ouverte de la session `s` (`PlanDeLaCarte`) : chaque lieu à sa position exacte dans le
+ *  cadre (`UNITES_DU_PLAN_DE_CARTE`), le sélectionné « ici », chaque route, la sélectionnée « depuis ici », et la route
+ *  tirée en cours, de son lieu de départ à son bout. */
+function planDeLEdition(s: SessionDEdition): PlanDeLaCarte {
+  const carte = projetEdite(s).worldMap!;
+  const route = s.geste?.sorte === 'liaison' ? s.geste : null;
+  const auCadre = (pos: { x: number; y: number }) => ({ x: pos.x / UNITES_DU_PLAN_DE_CARTE, y: pos.y / UNITES_DU_PLAN_DE_CARTE });
+  const choisi = (type: 'place' | 'route', id: string) => s.sel?.type === type && s.sel.id === id;
+  return {
+    lieux: [
+      ...carte.places.map((p) => ({ id: p.id, nom: p.label, ...auCadre(p.pos), ici: choisi('place', p.id), trajets: [] })),
+      ...(route ? [{ id: BROUILLON_DE_ROUTE, nom: '', ...auCadre(route.bout), ici: false, trajets: [] }] : []),
+    ],
+    routes: [
+      ...carte.routes.map((r) => ({ route: r.id, de: r.a.id, vers: r.b.id, depuisIci: choisi('route', r.id) })),
+      ...(route ? [{ route: BROUILLON_DE_ROUTE, de: route.depuis, vers: BROUILLON_DE_ROUTE, depuisIci: true }] : []),
+    ],
+  };
+}
+
+/** Les zones propres à la carte du monde ouverte de la session `s` : son nom, ses outils (`OUTILS_DE_LA_CARTE`), l'actif
+ *  pressé, et son plan (`planDeLEdition`, `planDeLaCarte`). */
+function zonesDeLaCarte(s: SessionDEdition): Partial<ZonesDeLEditeur> {
+  const carte = projetEdite(s).worldMap!;
+  const outils = OUTILS_DE_LA_CARTE.map((mode) => bouton(`outil/${LIBELLES_DES_OUTILS_DE_LA_CARTE[mode]}`, t(`ecran.editeur.outil.${LIBELLES_DES_OUTILS_DE_LA_CARTE[mode]}` as MsgKey), { geste: 'outil', outil: { mode } }, s.outil.mode === mode));
+  return {
+    'editeur.titre': [ligne('carte', carte.label || carte.id)],
+    'editeur.outils': [choix('outils', t('ecran.editeur.outils'), outils)],
+    'editeur.carte': [planDeLaCarte('carte/plan', planDeLEdition(s), () => [])],
+  };
+}
+
+/** Les zones propres au document ouvert, par document : la scène (`zonesDeLaScene`), la carte du monde
+ *  (`zonesDeLaCarte`) ; le narratif, aucune. */
+const ZONES_DES_DOCUMENTS: { readonly [K in SorteDeDocument]: (s: SessionDEdition) => Partial<ZonesDeLEditeur> } = {
+  scene: zonesDeLaScene,
+  carte: zonesDeLaCarte,
+  narratif: () => ({}),
+};
+
+/** Chaque zone de l'éditeur, vide : celles qu'un document ne montre pas le restent. */
+const ZONES_VIDES: ZonesDeLEditeur = {
+  'editeur.titre': [], 'editeur.scenes': [], 'editeur.outils': [], 'editeur.options': [], 'editeur.couches': [], 'editeur.historique': [], 'editeur.presse': [],
+  'editeur.fichier': [], 'editeur.pointee': [], 'editeur.logique': [], 'editeur.inspecteur': [], 'editeur.validation': [], 'editeur.calque': [], 'editeur.carte': [],
+};
+
+/** Les zones de l'éditeur de la session `s` : l'historique, le menu Fichier, la logique, l'inspecteur et la validation,
+ *  communs aux documents, puis celles du document ouvert (`ZONES_DES_DOCUMENTS`), les autres vides (`ZONES_VIDES`). */
+export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
+  return {
+    ...ZONES_VIDES,
+    'editeur.historique': [
+      bouton('annuler', t('ecran.editeur.annuler'), { geste: 'annuler' }, false, s.historique.passe.length ? null : t('ecran.editeur.rien.annuler')),
+      bouton('retablir', t('ecran.editeur.retablir'), { geste: 'retablir' }, false, s.historique.futur.length ? null : t('ecran.editeur.rien.retablir')),
+    ],
+    'editeur.fichier': [
+      bouton('enregistrer', t('ecran.editeur.enregistrer'), { geste: 'enregistrer' }, false, refusDEnregistrer(s)),
+      bouton('tester', t('ecran.editeur.tester'), { geste: 'tester' }),
+      ...DOCUMENTS_DU_MENU.map((document) => bouton(`document/${document}`, t(`ecran.editeur.document.${document}`), { geste: 'document', document }, s.document === document)),
+    ],
     'editeur.logique': logique(s),
     'editeur.inspecteur': inspecteurDeLaSession(s),
     'editeur.validation': validation(s),
-    'editeur.calque': zoneDuCalque(s),
+    ...ZONES_DES_DOCUMENTS[s.document](s),
   };
 }
 
@@ -2057,7 +2170,7 @@ function defautSuivi(s: SessionDEdition): ZoneDeLEdition[] {
  *  d'abord ; `undefined` si aucun ne le joue. */
 export function boutonDeLEdition(z: Partial<ZonesDeLEditeur>, edition: unknown): Bouton | undefined {
   const cle = jsonCanonique({ edition });
-  const jouant = Object.values(z).flat().flatMap((e: Ligne | Choix | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : []))
+  const jouant = Object.values(z).flat().flatMap((e: Ligne | Choix | Bouton | Formulaire | Plan) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : []))
     .filter((b) => jsonCanonique(b.jeu) === cle);
   return jouant.find((b) => !b.refus) ?? jouant[0];
 }

@@ -1393,19 +1393,28 @@ function routeEcrite(projet: ProjetDEdition, _sceneId: string, avant: MapRoute, 
 const lieuDeLaSel = (projet: ProjetDEdition, depuis: Sel): MapPlace | undefined =>
   (depuis?.type === 'place' ? projet.worldMap?.places.find((p) => p.id === depuis.id) : undefined);
 
-/** Le projet `projet` où un lieu neuf est posé au centre des bornes de sa carte (`ajouterLieu`), sous un identifiant
- *  qu'aucun de ses lieux ne porte (`nextEntityId`) ; `undefined` sans carte. #3606 */
+/** La carte `carte` où un lieu neuf est posé à `pos` (`ajouterLieu`, borné et décalé), sous un identifiant qu'aucun de
+ *  ses lieux ne porte (`nextEntityId`), lié à la première des scènes `scenes`. #3606 */
+export function lieuNeuf(carte: WorldMap, pos: MapPlace['pos'], scenes: readonly { id: string }[]): { carte: WorldMap; id: string } {
+  const id = nextEntityId('lieu', carte.places.map((p) => p.id));
+  return { carte: ajouterLieu(carte, id, pos, scenes), id };
+}
+
+/** Le centre des bornes de la carte (`BORNES_DE_CARTE`). */
+const CENTRE_DE_CARTE = { x: (BORNES_DE_CARTE.x.min + BORNES_DE_CARTE.x.max) / 2, y: (BORNES_DE_CARTE.y.min + BORNES_DE_CARTE.y.max) / 2 };
+
+/** Le projet `projet` où un lieu neuf est posé au centre des bornes de sa carte (`lieuNeuf`) ; `undefined` sans carte.
+ *  Le pointeur, lui, le pose au point appuyé. #3606 */
 function lieuCree(projet: ProjetDEdition): { projet: ProjetDEdition; id: string } | undefined {
   const carte = projet.worldMap;
   if (!carte) return undefined;
-  const id = nextEntityId('lieu', carte.places.map((p) => p.id));
-  const centre = { x: (BORNES_DE_CARTE.x.min + BORNES_DE_CARTE.x.max) / 2, y: (BORNES_DE_CARTE.y.min + BORNES_DE_CARTE.y.max) / 2 };
-  return { projet: DOCUMENTS.carte.ecrire(projet, '', ajouterLieu(carte, id, centre, projet.scenes)), id };
+  const pose = lieuNeuf(carte, CENTRE_DE_CARTE, projet.scenes);
+  return { projet: DOCUMENTS.carte.ecrire(projet, '', pose.carte), id: pose.id };
 }
 
-/** La route neuve que `lierLieux` pose du lieu sélectionné par `depuis` au lieu `vers` de la carte `carte`, sous un
- *  identifiant qu'aucune de ses routes ne porte (`nextEntityId`) ; `undefined` si elle la refuse. */
-function routeLiee(carte: WorldMap, depuis: string, vers: string): { carte: WorldMap; id: string } | undefined {
+/** La route neuve que `lierLieux` pose du lieu `depuis` au lieu `vers` de la carte `carte`, sous un identifiant
+ *  qu'aucune de ses routes ne porte (`nextEntityId`) ; `undefined` si elle la refuse. */
+export function routeLiee(carte: WorldMap, depuis: string, vers: string): { carte: WorldMap; id: string } | undefined {
   const id = nextEntityId('trajet', carte.routes.map((r) => r.id));
   const liee = lierLieux(carte, id, depuis, vers);
   return liee === carte ? undefined : { carte: liee, id };
@@ -1437,7 +1446,7 @@ function routeCreee(projet: ProjetDEdition, _sceneId: string, depuis: Sel, avec?
  *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`) ; d'une route,
  *  son écriture (`routeEcrite`), sa création depuis le lieu
  *  sélectionné vers l'un de ceux qu'il rejoint (`routeCreee`, `lieuxAJoindre`) et son retrait (`supprimerRoute`) ; de la
- *  carte, son écriture (`majCarte`). Les écrivains de la scène y sont relevés au projet (`deLaScene`). */
+ *  carte, son écriture (`majCarte`) et son retrait du projet, qui n'offre plus de voyage. Les écrivains de la scène y sont relevés au projet (`deLaScene`). */
 export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { ecrire: remplace('zone') },
   declencheur: { ...deLaScene({ renommer: renameTrigger, retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }) }), ecrire: remplace('declencheur') },
@@ -1461,13 +1470,19 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
     avecs: lieuxAJoindre,
     retirer: (projet, _sceneId, id) => surLaCarte(projet, (carte) => supprimerRoute(carte, id)),
   },
-  carte: { ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majCarte(carte, patchEntre(avant, apres) as PatchDeCarte)) }) },
+  carte: {
+    ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majCarte(carte, patchEntre(avant, apres) as PatchDeCarte)) }),
+    retirer: (projet) => {
+      const { worldMap: _carte, ...sans } = projet;
+      return sans;
+    },
+  },
 };
 
 /** Le projet `projet`, où la scène `sceneId` est montrée, sans le porteur `porteur`, retiré par la table de sa sorte
  *  (`ECRITURES_DES_PORTEURS`, `retirer`) ; ou son refus : celui que la table dit (`refusDeRetirer`), sinon la première
- *  faute du parse de son document (`DOCUMENTS`, `schema`) que le document d'avant ne portait pas (`fauteNeuve`), dite.
- *  `undefined` : sa sorte ne se retire pas par la table. */
+ *  faute du parse de son document (`DOCUMENTS`, `schema`) que le document d'avant ne portait pas (`fauteNeuve`), dite ;
+ *  un document retiré avec son porteur singulier n'en porte aucune. `undefined` : sa sorte ne se retire pas par la table. */
 export function projetSansLePorteur(projet: ProjetDEdition, sceneId: string, porteur: { sorte: SorteDePorteur; id: string }): { ok: true; valeur: ProjetDEdition } | { ok: false; regle: string } | undefined {
   const { retirer, refusDeRetirer } = ECRITURES_DES_PORTEURS[porteur.sorte];
   if (!retirer) return undefined;
@@ -1475,7 +1490,8 @@ export function projetSansLePorteur(projet: ProjetDEdition, sceneId: string, por
   if (refus !== undefined) return { ok: false, regle: refus };
   const apres = retirer(projet, sceneId, porteur.id);
   const document = DOCUMENTS[accesDe(porteur.sorte).document] as { lire: (p: ProjetDEdition, id: string) => unknown; schema: unknown };
-  const faute = fauteNeuve(document.schema, document.lire(projet, sceneId), document.lire(apres, sceneId));
+  const lu = document.lire(apres, sceneId);
+  const faute = lu === undefined ? undefined : fauteNeuve(document.schema, document.lire(projet, sceneId), lu);
   return faute === undefined ? { ok: true, valeur: apres } : { ok: false, regle: faute };
 }
 

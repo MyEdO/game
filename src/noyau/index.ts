@@ -78,7 +78,9 @@ export { couronnesDuMonde, matieresDeDecor, retraitDuMonde, toitsDuMonde, volume
 export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, refusDeLaValeur, refusDeRetrait, idDeLaSceneEditee, projetEdite, sceneEditee, vueDeLaScene, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, BORNES_DE_LA_TROUPE, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, groupesDuLieu, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type SessionDEdition } from './edition/session';
-export { FORMULAIRES, accesDe, formulaireDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type DonneeDuPorteur, type SorteDePorteur } from './sceneEditLecture';
+export { OUTILS_DE_LA_CARTE, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte } from './edition/pointeur';
+export { orienterRoute } from './worldMapEdit';
+export { FORMULAIRES, accesDe, formulaireDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, type DonneeDuPorteur, type SorteDeDocument, type SorteDePorteur } from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
 export { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';

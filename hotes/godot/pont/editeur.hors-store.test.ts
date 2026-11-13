@@ -16,7 +16,7 @@ import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Re
 import type { MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
 import type { AreteDessinee, RetraitDuMonde, Scene } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
-import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
+import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -54,7 +54,7 @@ function editionDe(r: Reponse): Edition {
 
 /** Le bouton d'id `id` des zones de l'éditeur, posé seul ou parmi les valeurs d'un choix. */
 function boutonDe(e: Edition, id: string): Bouton {
-  const b = Object.values(e.vue.zones).flat().flatMap((el: Ligne | Choix | Bouton | Formulaire) => (el.type === 'bouton' ? [el] : el.type === 'choix' || el.type === 'liste' ? el.valeurs : [])).find((v) => v.id === id);
+  const b = Object.values(e.vue.zones).flat().flatMap((el: Ligne | Choix | Bouton | Formulaire | Plan) => (el.type === 'bouton' ? [el] : el.type === 'choix' || el.type === 'liste' ? el.valeurs : [])).find((v) => v.id === id);
   if (!b) throw new Error(`aucun bouton ${id}`);
   return b;
 }
@@ -524,6 +524,64 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect(ids(carte).filter((id) => /^valeur\/[^/]+(\/ajouter)?$/.test(id))).toEqual(['valeur/label', 'valeur/background', 'valeur/params/ajouter']);
     const scene = presser(boutonDe(carte, 'document/scene'));
     expect([boutonDe(scene, 'document/scene').presse, ids(scene)]).toEqual([true, ids(e)]);
+  });
+
+  /** Le geste du pointeur au point `(u, v)` du cadre du plan de la carte (`UNITES_DU_PLAN_DE_CARTE`). */
+  const surLePlan = (geste: 'appui' | 'glisse' | 'relache', u: number, v: number) =>
+    ({ edition: { geste, point: { case: { x: Math.floor(u * 100), y: Math.floor(v * 100) }, f: { x: u * 100, y: v * 100 } } } });
+  const planDe = (x: Edition) => x.vue.zones['editeur.carte'][0] as Plan;
+  const choisi = (x: Edition) => planDe(x).points.find((p) => p.ton === 'alerte')?.id;
+
+  it('la carte ouverte montre son plan, ses outils, ses lieux et ses routes à la zone Logique, les zones de la scène vides ; l’outil Lieu pose un lieu au point appuyé', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const e = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const logique = (x: Edition) => x.vue.zones['editeur.logique'].map((el) => el.id);
+    expect([e.vue.zones['editeur.carte'], logique(e).filter((id) => /^logique\/(lieu|route)/.test(id))]).toEqual([[], []]);
+    const carte = presser(boutonDe(e, 'document/carte'));
+    const z = carte.vue.zones;
+    expect([z['editeur.scenes'], z['editeur.options'], z['editeur.couches'], z['editeur.presse'], z['editeur.pointee'], z['editeur.calque']]).toEqual([[], [], [], [], [], []]);
+    expect((z['editeur.outils'][0] as Choix).valeurs.map((b) => [b.id, b.presse])).toEqual([['outil/select', true], ['outil/lieu', false], ['outil/chemin', false]]);
+    expect(logique(carte).filter((id) => !/^logique\/(lieu|route)/.test(id)), 'la logique de la scène ne s’y liste pas').toEqual([]);
+    const lieux = (z['editeur.logique'].find((el) => el.id === 'logique/lieu/liste') as Choix).valeurs.map((b) => b.libelle);
+    const plan = planDe(carte);
+    expect(plan.id).toBe('carte/plan');
+    expect(plan.points.map((p) => p.id), 'chaque lieu de la liste est un point du plan').toEqual(lieux);
+    expect(plan.traits.every((tr) => lieux.includes(tr.de) && lieux.includes(tr.vers))).toBe(true);
+    const lieu = presser(boutonDe(carte, 'outil/lieu'));
+    const pose = editionDe(appel('editer', surLePlan('appui', 0.85, 0.15)));
+    const neuf = choisi(pose)!;
+    expect([lieux.includes(neuf), planDe(pose).points.find((p) => p.id === neuf)]).toEqual([false, { type: 'point', id: neuf, nom: expect.any(String), x: 0.85, y: 0.15, ton: 'alerte', elements: [] }]);
+    expect([boutonDe(lieu, 'outil/lieu').presse, boutonDe(pose, 'annuler').refus]).toEqual([true, null]);
+  });
+
+  it('à l’outil Chemin, la route tirée se montre au plan jusqu’au pointeur puis se pose sur le lieu relâché ; son sens s’oriente à l’inspecteur ; « Relier à » la double depuis un lieu ; sans sélection, la carte se retire du projet', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const pointer = (geste: 'appui' | 'glisse' | 'relache', u: number, v: number) => editionDe(appel('editer', surLePlan(geste, u, v)));
+    const carte = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'document/carte'));
+    presser(boutonDe(carte, 'outil/lieu'));
+    pointer('appui', 0.85, 0.15);
+    const neuf = choisi(pointer('relache', 0.85, 0.15))!;
+    const depart = planDe(carte).points[0];
+    presser(boutonDe(carte, 'outil/chemin'));
+    pointer('appui', depart.x, depart.y);
+    const tiree = pointer('glisse', 0.7, 0.2);
+    expect([planDe(tiree).points.find((p) => p.id === 'brouillon/route'), planDe(tiree).traits.find((tr) => tr.id === 'brouillon/route')])
+      .toEqual([{ type: 'point', id: 'brouillon/route', nom: '', x: 0.7, y: 0.2, ton: 'neutre', elements: [] }, { id: 'brouillon/route', de: depart.id, vers: 'brouillon/route', ton: 'reussite' }]);
+    const posee = pointer('relache', 0.85, 0.15);
+    const route = planDe(posee).traits.find((tr) => tr.ton === 'reussite')!;
+    expect([route.de, route.vers, planDe(posee).points.some((p) => p.id === 'brouillon/route')]).toEqual([depart.id, neuf, false]);
+    expect(valeursDeLInspecteur(posee, 'route/sens').map((b) => [b.id, b.presse])).toEqual([['route/sens/deux', true], [`route/sens/${depart.id}`, false], [`route/sens/${neuf}`, false]]);
+    const orientee = presser(boutonDe(posee, `route/sens/${neuf}`));
+    expect(valeursDeLInspecteur(orientee, 'route/sens').find((b) => b.presse)?.id).toBe(`route/sens/${neuf}`);
+    const depuis = presser(boutonDe(orientee, `logique/lieu/${depart.id}`));
+    const retour = presser(boutonDe(depuis, `logique/route/ajouter/${neuf}`));
+    expect(planDe(retour).traits.filter((tr) => [tr.de, tr.vers].sort().join() === [depart.id, neuf].sort().join())).toHaveLength(2);
+    const sans = presser(boutonDe(retour, 'route/supprimer'));
+    expect(sans.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => id.endsWith('/supprimer') || id.endsWith('/retirer'))).toEqual(['carte/retirer']);
+    const retiree = presser(boutonDe(sans, 'carte/retirer'));
+    expect([boutonDe(retiree, 'document/scene').presse, retiree.vue.zones['editeur.carte']]).toEqual([true, []]);
   });
 });
 

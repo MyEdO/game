@@ -1338,7 +1338,9 @@ export function creerPont(stockage: Stockage | null) {
      * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`,
      * `src/scenes/campaign.ts`), le texte de son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de
      * l'index des chapitres du `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
-     * `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement, d'un chargement de planche ou
+     * `src/noyau/edition/session.ts`), un geste du pointeur sur le plan du document ouvert (la case et le point de la
+     * scène ; sur la carte du monde, le point du cadre du plan `editeur.carte` multiplié par `UNITES_DU_PLAN_DE_CARTE`, sa
+     * case la partie entière), l'issue d'un enregistrement, d'un chargement de planche ou
      * de celui du chapitre attendu (refusée en `validation` hors d'une attente, ou d'un autre chapitre), ou celui que
      * porte un bouton des zones de l'éditeur, un qui l'offre sans refus d'abord ; ou `{ type: 'nommer' | 'identifier' |
      * 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
@@ -1355,7 +1357,9 @@ export function creerPont(stockage: Stockage | null) {
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
      * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
      * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
-     * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas
+     * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas ; la carte ouverte, le
+     * pointeur la sélectionne, glisse un lieu, en pose un à l'outil Lieu et tire une route à l'outil Chemin, et les zones
+     * propres à la scène se vident
      */
     editer(json) {
       const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));

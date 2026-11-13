@@ -510,7 +510,8 @@ interface FormulaireDuPorteur<D> {
   sel?: TypeDeSelParId;
   schema: unknown;
   portee?: Warning['scope'];
-  /** Le porteur se liste à la zone Logique de l'éditeur, qui le sélectionne ; sinon il s'atteint sur la carte. */
+  /** Le porteur se liste à la zone Logique de l'éditeur quand son document est ouvert, qui le sélectionne ; sinon il
+   *  s'atteint sur le plan. */
   logique?: true;
   champs: (donnee: D, cadre: CadreDuPorteur) => CheminsOfferts;
   choix?: (donnee: D, chemin: readonly Segment[], cadre: CadreDuPorteur) => readonly ChoixDuContexte[] | undefined;
@@ -809,8 +810,8 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   dialogue: { acces: { document: 'scene', collection: 'dialogues' }, sel: 'dialogue', schema: dialogueSchema, portee: 'dialogue', logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
   rencontre: { acces: { document: 'scene', collection: 'encounters' }, sel: 'encounter', schema: encounterDefSchema, portee: 'encounter', logique: true, champs: champsDeLaRencontre },
   scene: { acces: { document: 'scene' }, schema: sceneSchema, champs: () => [['startMessage']] },
-  lieu: { acces: { document: 'carte', collection: 'places' }, sel: 'place', schema: mapPlaceSchema, portee: 'worldMap', champs: champsDuLieu, choix: choixDuLieu },
-  route: { acces: { document: 'carte', collection: 'routes' }, sel: 'route', schema: mapRouteSchema, portee: 'worldMap', champs: () => CHAMPS_DE_LA_ROUTE, choix: choixDeLaRoute },
+  lieu: { acces: { document: 'carte', collection: 'places' }, sel: 'place', schema: mapPlaceSchema, portee: 'worldMap', logique: true, champs: champsDuLieu, choix: choixDuLieu },
+  route: { acces: { document: 'carte', collection: 'routes' }, sel: 'route', schema: mapRouteSchema, portee: 'worldMap', logique: true, champs: () => CHAMPS_DE_LA_ROUTE, choix: choixDeLaRoute },
   carte: { acces: { document: 'carte' }, schema: worldMapSchema, portee: 'worldMap', champs: () => [['label'], ['background'], ['params']] },
 };
 
