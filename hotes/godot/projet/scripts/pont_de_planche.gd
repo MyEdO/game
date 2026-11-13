@@ -15,10 +15,16 @@ extends PontDuNoyau
 ## démarre, et un geste qu'on y presse est une panne, la planche ne servant pas les gestes. `&monde=sans` ne dessine
 ## pas le monde 3D sous l'écran (`Viewport.disable_3d`) : l'image ne dépend alors que de l'interface. Godot publie à la
 ## page `globalThis.wfrpPlancheMontree`, le nom de la planche une fois son écran publié et ses portraits pris (`CALME_S`
-## sans écran neuf), `null` tant qu'elle ne l'est pas. Le banc des étalons (`hotes/godot/etalons.mjs`) le lit.
+## sans écran neuf), `null` tant qu'elle ne l'est pas. Godot expose aussi à la page
+## `globalThis.wfrpMontrerLaPlanche(nom, rendre)` (`PontDuNoyau.exposer`) : l'écran à l'écran retiré, `rendre` reçoit
+## `""` et la planche `nom` est montrée dans le jeu déjà lancé par le même chemin que `?planche=<nom>`,
+## `wfrpPlancheMontree` passé à `null` dès la demande puis à `nom` une fois montrée. Le banc des étalons
+## (`hotes/godot/etalons.mjs`) les lit.
 
 const DOSSIER := "planches"
 const COMBAT := "res://scenes/Combat.tscn"
+## Le dossier des polices de l'hôte (`art/police.tres`).
+const POLICES := "res://polices"
 ## Le temps sans écran publié (s) après lequel la planche est dite montrée, ses portraits pris.
 const CALME_S := 0.5
 
@@ -34,8 +40,23 @@ func _ready() -> void:
 	_calme.one_shot = true
 	add_child(_calme)
 	_calme.timeout.connect(_constater_le_calme)
+	exposer("wfrpMontrerLaPlanche", _demander)
 	_publier_la_planche_montree(false)
 	_montrer(parametre("planche"))
+
+
+## La planche `nom` montrée à la demande de la page, l'écran de la précédente retiré avant qu'elle soit lue, et les
+## glyphes que ses polices ont rastérisés oubliés : rangés dans l'ordre où l'écran d'avant les a demandés, ils
+## dessineraient le texte autrement que dans un jeu neuf.
+func _demander(nom: String, rendre: Callable) -> void:
+	_calme.stop()
+	_publier_la_planche_montree(false)
+	get_tree().unload_current_scene()
+	for police in ResourceLoader.list_directory(POLICES):
+		if police.ends_with(".ttf"):
+			(load(POLICES.path_join(police)) as FontFile).clear_cache()
+	rendre.call("")
+	_montrer(nom)
 
 
 ## La planche `nom` lue et montrée par le combat, sans son monde 3D à `&monde=sans` ; illisible, une panne le dit et le

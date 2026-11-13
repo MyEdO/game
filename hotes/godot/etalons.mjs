@@ -1,17 +1,22 @@
 // LE BANC DES ÉTALONS (#3935) : chaque planche de l'export Web de l'hôte Godot (`<export>/planches/`, déposées par
 // `construire.mjs --export`, `planches.mjs`) montrée dans un Chrome sans GPU, à la vue de référence (`VUE_REFERENCE`,
-// `scripts/recette/lib.mjs`), sans son monde 3D (`?planche=<nom>&monde=sans`, `projet/scripts/pont_de_planche.gd`, un
-// navigateur neuf par planche, deux planches de front par `enFileBornee`), capturée une fois dite montrée
-// (`wfrpPlancheMontree`), et comparée pixel à pixel à son étalon `etalons/<nom>.png`. Avant toute capture, le navigateur
+// `scripts/recette/lib.mjs`), sans son monde 3D (`&monde=sans`, `projet/scripts/pont_de_planche.gd`), capturée une fois
+// dite montrée (`wfrpPlancheMontree`), et comparée pixel à pixel à son étalon `etalons/<nom>.png`. Les planches se
+// répartissent entre `--ouvriers` jeux lancés de front (`OUVRIERS` par défaut), celles d'un même scénario dans le même
+// jeu (`repartir`), qui montre la première à son adresse (`?planche=<nom>`) et chaque suivante à la demande
+// (`wfrpMontrerLaPlanche`) : le lancement se paie une fois par jeu, et la photo d'un corps (`StudioDePortraits`) une
+// fois par jeu. L'image d'une planche ne dépend que d'elle, montrée seule ou à la suite. Avant toute capture, le navigateur
 // lancé et la plateforme passent l'épingle (`refusDuNavigateur` : `Chrome/<EPINGLE.chrome>` sous Linux x86-64), sinon
 // le banc sort en 1. Un étalon qu'aucune planche de l'export ne porte, un pixel d'écart, un étalon absent ou d'une autre
-// taille, ou une erreur de la page, dont une méthode du pont que la planche ne sert pas, sort en 1. Le rapport
-// (`--rapport <dossier>`) garde le rendu de chaque planche, sa capture avec le monde, et une page qui les range près de
-// leur étalon, l'écart en surimpression ; il dit de chaque étalon s'il est celui que l'utilisateur a validé
-// (`valides.json` : son empreinte). Le rapport, le journal et le code de sortie suivent l'ordre des noms.
+// taille, ou une erreur de la page, dont une méthode du pont que la planche ne sert pas, sort en 1 ; une erreur de la page
+// va à la planche montrée quand elle tombe. Le rapport (`--rapport <dossier>`) garde le rendu de chaque planche, sa
+// capture avec le monde (un navigateur neuf par planche), et une page qui les range près de leur étalon, l'écart en
+// surimpression ; il dit de chaque étalon s'il est celui que l'utilisateur a validé (`valides.json` : son empreinte).
+// Le rapport, le journal et le code de sortie suivent l'ordre des noms ; le journal dit le temps de chaque planche,
+// de sa demande à sa capture.
 //
 //   npm run godot:etalons                                                     l'export, puis le banc qui compare
-//   node hotes/godot/etalons.mjs --web <export> [--rapport <dossier>] [--planche <nom>]...
+//   node hotes/godot/etalons.mjs --web <export> [--ouvriers <n>] [--rapport <dossier>] [--planche <nom>]...
 //   node hotes/godot/etalons.mjs --web <export> --poser [--planche <nom>]...   écrit le rendu comme étalon
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -19,14 +24,23 @@ import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
-import { VUE_REFERENCE, consoleGuard, launchSession, sleep, waitFor } from '../../scripts/recette/lib.mjs'
+import { VUE_REFERENCE, consoleGuard, evaluate, launchSession, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 import { DOSSIER_DES_ETALONS, VALIDES, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 
+/** Les jeux lancés de front par défaut. */
+const OUVRIERS = 2
+
 const { values: o } = parseArgs({
-  options: { web: { type: 'string' }, poser: { type: 'boolean' }, rapport: { type: 'string' }, planche: { type: 'string', multiple: true } },
+  options: {
+    web: { type: 'string' }, poser: { type: 'boolean' }, rapport: { type: 'string' }, planche: { type: 'string', multiple: true },
+    ouvriers: { type: 'string', default: String(OUVRIERS) },
+  },
 })
-if (!o.web) throw new Error('usage : node hotes/godot/etalons.mjs --web <dossier de l’export> [--poser] [--rapport <dossier>] [--planche <nom>]...')
+const ouvriers = Number(o.ouvriers)
+if (!o.web || !Number.isSafeInteger(ouvriers) || ouvriers < 1) {
+  throw new Error('usage : node hotes/godot/etalons.mjs --web <dossier de l’export> [--ouvriers <n ≥ 1>] [--poser] [--rapport <dossier>] [--planche <nom>]...')
+}
 
 /** Le temps laissé à l'écran, la planche dite montrée, avant sa capture. */
 const POSE_MS = 400
@@ -49,6 +63,18 @@ function ecart(a, b) {
 }
 
 const empreinte = (png) => createHash('sha256').update(png).digest('hex')
+
+/** Les planches `noms` en `ouvriers` suites au plus, une par jeu lancé : celles d'un même scénario (`scenarios`, par
+ *  nom) dans la même suite, chaque scénario, du plus fourni au moins fourni, versé à la suite la moins longue ; dans une
+ *  suite, l'ordre de `noms`. */
+function repartir(noms, scenarios, ouvriers) {
+  const parScenario = Map.groupBy(noms, (nom) => scenarios[nom])
+  const suites = Array.from({ length: Math.min(ouvriers, parScenario.size) }, () => [])
+  for (const groupe of [...parScenario.values()].sort((a, b) => b.length - a.length)) {
+    suites.reduce((courte, suite) => (suite.length < courte.length ? suite : courte)).push(...groupe)
+  }
+  return suites.map((suite) => suite.sort((a, b) => noms.indexOf(a) - noms.indexOf(b)))
+}
 
 /** La page du rapport : chaque planche, son verdict, son étalon, son rendu en surimpression de différence, et sa capture
  *  avec le monde. */
@@ -86,29 +112,55 @@ async function comparer() {
   const valides = JSON.parse(readFileSync(VALIDES, 'utf8'))
   if (o.rapport) mkdirSync(o.rapport, { recursive: true })
   const srv = await servir({ web: o.web })
-  /** La capture de la planche `nom` une fois montrée, dans un navigateur neuf, les erreurs de sa page versées à
-   *  `erreurs` ; avec son monde, une fois vêtu chaque corps de `bases` (par id de combattant, l'id de sa base,
-   *  `vue.corps.combattants`). */
-  const capturer = async (nom, bases, erreurs) => {
+  const lire = (nom) => JSON.parse(readFileSync(join(planches, `${nom}.json`), 'utf8'))
+  const montree = (session, nom) => waitFor(session, `globalThis.wfrpPlancheMontree === ${JSON.stringify(nom)}`, { timeoutMs: 180000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  const capture = async (session) => Buffer.from((await session.rpc('Page.captureScreenshot', { format: 'png' })).data, 'base64')
+  /** Par planche de `suite`, sa capture sans son monde, les erreurs de la page tombées pendant qu'elle était montrée, et
+   *  son temps (ms) de sa demande à sa capture : dans un même navigateur, la première à son adresse, chaque suivante à
+   *  la demande. */
+  const montrerALaSuite = async (suite) => {
+    const session = await lancer()
+    const garde = consoleGuard(session)
+    const captures = []
+    let vues = 0
+    try {
+      for (const [i, nom] of suite.entries()) {
+        const debut = Date.now()
+        if (i === 0) await session.rpc('Page.navigate', { url: `${srv.url}index.html?planche=${nom}&recette=1&monde=sans` })
+        else await evaluate(session, `new Promise((rendre) => wfrpMontrerLaPlanche(${JSON.stringify(nom)}, rendre))`)
+        await montree(session, nom)
+        await sleep(POSE_MS)
+        const rendu = await capture(session)
+        const erreurs = garde.errors().slice(vues)
+        vues += erreurs.length
+        captures.push([nom, { rendu, erreurs, duree: Date.now() - debut }])
+      }
+      return captures
+    } finally {
+      await session.close()
+    }
+  }
+  /** La capture de la planche `nom` avec son monde, dans un navigateur neuf, une fois vêtu chaque corps de `bases` (par id
+   *  de combattant, l'id de sa base, `vue.corps.combattants`), les erreurs de sa page versées à `erreurs`. */
+  const capturerLeMonde = async (nom, bases, erreurs) => {
     const session = await lancer()
     const garde = consoleGuard(session)
     try {
-      await session.rpc('Page.navigate', { url: `${srv.url}index.html?planche=${nom}&recette=1${bases ? '' : '&monde=sans'}` })
-      await waitFor(session, `globalThis.wfrpPlancheMontree === ${JSON.stringify(nom)}`, { timeoutMs: 180000, evaluerMs: FIL_DE_LA_PAGE_MS })
-      if (bases) await waitFor(session, `Object.entries(wfrpEcran.corps).every(([id, c]) => c.base === (${JSON.stringify(bases)}[id] ?? null))`, { timeoutMs: 300000, evaluerMs: FIL_DE_LA_PAGE_MS })
+      await session.rpc('Page.navigate', { url: `${srv.url}index.html?planche=${nom}&recette=1` })
+      await montree(session, nom)
+      await waitFor(session, `Object.entries(wfrpEcran.corps).every(([id, c]) => c.base === (${JSON.stringify(bases)}[id] ?? null))`, { timeoutMs: 300000, evaluerMs: FIL_DE_LA_PAGE_MS })
       await sleep(POSE_MS)
-      return Buffer.from((await session.rpc('Page.captureScreenshot', { format: 'png' })).data, 'base64')
+      return await capture(session)
     } finally {
       erreurs.push(...garde.errors())
       await session.close()
     }
   }
-  /** La ligne du rapport de la planche `nom` et les erreurs de ses pages ; l'étalon posé avec `--poser`. */
-  const juger = async (nom) => {
-    const { titre, reponses: { demarrer } } = JSON.parse(readFileSync(join(planches, `${nom}.json`), 'utf8'))
+  /** La ligne du rapport de la planche `nom` montrée à la suite (sa capture, ses erreurs, son temps,
+   *  `montrerALaSuite`) ; l'étalon posé avec `--poser`. */
+  const juger = async (nom, { rendu, erreurs, duree }) => {
+    const { titre, reponses: { demarrer } } = lire(nom)
     const chemin = join(DOSSIER_DES_ETALONS, `${nom}.png`)
-    const erreurs = []
-    const rendu = await capturer(nom, null, erreurs)
     if (o.poser) writeFileSync(chemin, rendu)
     const etalon = existsSync(chemin) ? readFileSync(chemin) : null
     const { pixels, boite } = etalon ? ecart(rendu, etalon) : { pixels: -1, boite: '' }
@@ -118,18 +170,20 @@ async function comparer() {
       writeFileSync(join(o.rapport, `${nom}.rendu.png`), rendu)
       if (etalon) writeFileSync(join(o.rapport, `${nom}.etalon.png`), etalon)
       const bases = Object.fromEntries(Object.entries(demarrer.vue.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
-      writeFileSync(join(o.rapport, `${nom}.monde.png`), await capturer(nom, bases, erreurs))
+      writeFileSync(join(o.rapport, `${nom}.monde.png`), await capturerLeMonde(nom, bases, erreurs))
     }
-    return { nom, titre, verdict, valide, erreurs }
+    return { nom, titre, verdict, valide, erreurs, duree }
   }
+  const suites = repartir(noms, Object.fromEntries(noms.map((nom) => [nom, lire(nom).parametres.scenario])), ouvriers)
   let lignes
   try {
-    lignes = await enFileBornee(noms.map((nom) => () => juger(nom)), { deFront: 2 })
+    const montrees = new Map((await enFileBornee(suites.map((suite) => () => montrerALaSuite(suite)), { deFront: suites.length })).flat())
+    lignes = await enFileBornee(noms.map((nom) => () => juger(nom, montrees.get(nom))), { deFront: ouvriers })
   } finally {
     srv.fermer()
   }
   if (o.rapport) writeFileSync(join(o.rapport, 'index.html'), pageDuRapport(lignes))
-  for (const l of lignes) console.log(`[etalons] ${l.nom} : ${l.verdict}${l.valide ? ', validé' : ''}`)
+  for (const l of lignes) console.log(`[etalons] ${l.nom} : ${l.verdict}${l.valide ? ', validé' : ''} (${(l.duree / 1000).toFixed(1)} s)`)
   const erreurs = lignes.flatMap((l) => l.erreurs.map((e) => ({ nom: l.nom, ...e })))
   for (const e of erreurs) console.log(`[etalons] console de ${e.nom} :`, e.level, e.text)
   const fautes = lignes.filter((l) => l.verdict !== 'conforme').length
