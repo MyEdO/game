@@ -17,7 +17,7 @@
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
 import { datasetDe, type EntreeDe } from '../data/datasets';
 import type * as reglesOptionnellesDef from '../data/schemas/defs/reglesOptionnelles';
-import { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
+import { valeurConforme, type FormeDeControle } from '../data/schemas/defs/reglesOptionnelles';
 import { bumperDataset, indexParId } from '../data/versionDataset';
 import type { IdsParEspace, ValeurDeRegle } from '../data/schemas/_ids.generated';
 import { t } from '../i18n';
@@ -25,13 +25,13 @@ import { t } from '../i18n';
 /** Id d'une règle optionnelle : l'espace `reglesOptionnelles.json` de `IdsParEspace` — un id retiré du dataset ne compile plus. */
 export type RegleOptionnelleId = IdsParEspace['reglesOptionnelles.json'];
 
-/** Une règle optionnelle du registre, au type de son schéma (`data/schemas/defs/reglesOptionnelles.ts`). L'ACTION
- *  attachée (`action`) est rendue sous sa rangée quand la règle vaut `when` ; son `run` nomme l'action du store, que
- *  le moteur n'appelle jamais : la vue la résout génériquement sur le store (`HouseRulesModal`). */
-export type OptionalRule = EntreeDe<typeof reglesOptionnellesDef>;
+/** Une règle optionnelle du registre, au type de son schéma (`data/schemas/defs/reglesOptionnelles.ts`) et à la forme
+ *  de son contrôle, que ce schéma refuse incomplète (`ecartsDeLaRegle`). L'ACTION attachée (`action`) est rendue
+ *  sous sa rangée quand la règle vaut `when` ; son `run` nomme l'action du store, que le moteur n'appelle jamais : la
+ *  vue la résout génériquement sur le store (`HouseRulesModal`). */
+export type OptionalRule = EntreeDe<typeof reglesOptionnellesDef> & FormeDeControle;
 
-/** Forme du contrôle qu'une règle optionnelle fait auto-rendre au panneau in-game : `flag` =
- *  interrupteur, `param` = nombre borné, `mode` = choix parmi `options`. */
+/** Le genre du contrôle d'une règle optionnelle (`FormeDeControle`). */
 export type RuleKind = OptionalRule['kind'];
 
 /** Valeur d'une règle optionnelle SANS sa règle — surcharges stockées, persistées ou saisies, que `valeurConforme`
@@ -45,7 +45,7 @@ export type RuleValue = OptionalRule['default'];
  * tableau que le module JSON (singleton ESM) : une édition au Compendium (`setDataset`, splice en
  * place) est vue en direct par le moteur.
  */
-export const OPTIONAL_RULES = datasetDe<typeof reglesOptionnellesDef>(reglesOptionnellesJson);
+export const OPTIONAL_RULES = datasetDe<typeof reglesOptionnellesDef>(reglesOptionnellesJson) as OptionalRule[];
 
 const regleParId = indexParId('reglesOptionnelles', OPTIONAL_RULES);
 const overrides = new Map<string, RuleValue>();

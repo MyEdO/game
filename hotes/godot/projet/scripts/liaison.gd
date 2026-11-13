@@ -4,6 +4,7 @@
 ## désactive), un nombre, un nom (le ton en variation du thème). Une liste de valeurs nommées remplit une liste
 ## déroulante (`OptionButton`) : chaque libellé, chaque refus désactivé et dit à son survol, la valeur pressée
 ## choisie ; ou une rangée de cases (`FlowContainer`), une case par valeur, cochée quand elle est pressée. `cacher_si_nul` : le contrôle se cache quand le champ vaut `null`. Un champ absent de l'élément est une faute de la scène.
+## Une pose ne joue rien : celle d'un `Range` (bornes, pas, valeur) n'émet aucun signal, même quand la valeur s'y cale.
 class_name Liaison
 extends Node
 
@@ -26,6 +27,16 @@ func poser(element: Dictionary) -> void:
 	if cible is FlowContainer and valeur is Array:
 		_cocher(cible, valeur)
 		return
+	if cible is Range:
+		cible.set_block_signals(true)
+		_ecrire(cible, valeur)
+		cible.set_block_signals(false)
+	else:
+		_ecrire(cible, valeur)
+
+
+## `valeur` écrite dans la propriété de `cible`, convertie d'après son type.
+func _ecrire(cible: Node, valeur: Variant) -> void:
 	match typeof(cible.get(propriete)):
 		TYPE_STRING:
 			cible.set(propriete, "" if valeur == null else str(valeur))

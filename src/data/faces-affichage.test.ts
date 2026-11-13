@@ -27,18 +27,31 @@ describe('faces d’affichage : le texte FR de la donnée', () => {
   });
 
   it('dotation : branches, joker d’arme, Atout au choix', () => {
-    const choix: TrappingRef = { choice: [{ id: 'dague' }, { id: 'baton-de-combat' }] };
+    const choix: TrappingRef = { pick: 1, of: [{ id: 'dague' }, { id: 'baton-de-combat' }] };
     expect(trappingRefLabel(choix)).toBe('Dague ou Bâton de combat');
     expect(trappingRefLabel({ wildcard: 'arme' })).toBe('Arme (au choix)');
     expect(trappingRefLabel({ id: 'dague', qualityChoice: true })).toBe('Dague (qualité au choix)');
+  });
+
+  it('dotation : lot, joker d’un Groupe d’armes, joker à Atout au choix', () => {
+    expect(trappingRefLabel({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }, { id: 'fleche', count: { fixed: 10 } }] }] })).toBe('Dague ou Arc et Flèche (10)');
+    expect(trappingRefLabel({ wildcard: 'arme', groupe: { id: 'deux-mains' } })).toBe('Arme du groupe Deux-mains (au choix)');
+    expect(trappingRefLabel({ wildcard: 'arme', qualityChoice: true })).toBe('Arme (au choix) (qualité au choix)');
   });
 });
 
 describe('faces d’affichage : le liant suit SA clé de message', () => {
   it('`ref.ou` change le liant de toutes les alternatives', () => {
     catalogue['ref.ou'] = 'or';
-    expect(trappingRefLabel({ choice: [{ id: 'dague' }, { id: 'baton-de-combat' }] })).toBe('Dague or Bâton de combat');
+    expect(trappingRefLabel({ pick: 1, of: [{ id: 'dague' }, { id: 'baton-de-combat' }] })).toBe('Dague or Bâton de combat');
     expect(choixLabel('skills', 'corps-a-corps', ['fleau', 'deux-mains'])).toBe('Corps à corps (Fléau or Deux-mains)');
+  });
+
+  it('`ref.armeDuGroupeAuChoix`, `liste.et`', () => {
+    catalogue['ref.armeDuGroupeAuChoix'] = '{groupe} weapon (any)';
+    catalogue['liste.et'] = '{debut} and {fin}';
+    expect(trappingRefLabel({ wildcard: 'arme', groupe: { id: 'deux-mains' } })).toBe('Deux-mains weapon (any)');
+    expect(trappingRefLabel({ pick: 1, of: [{ id: 'dague' }, { lot: [{ id: 'arc' }, { id: 'fleche' }] }] })).toBe('Dague ou Arc and Flèche');
   });
 
   it('`ref.motAuChoix`, `ref.armeAuChoix`, `ref.qualiteAuChoix`, `ref.talentsAleatoires`', () => {
@@ -49,6 +62,7 @@ describe('faces d’affichage : le liant suit SA clé de message', () => {
     expect(choixLabel('skills', 'savoir', true)).toBe('Savoir (Any)');
     expect(trappingRefLabel({ wildcard: 'arme' })).toBe('Weapon (any)');
     expect(trappingRefLabel({ id: 'dague', qualityChoice: true })).toBe('Dague (any quality)');
+    expect(trappingRefLabel({ wildcard: 'arme', qualityChoice: true })).toBe('Weapon (any) (any quality)');
     expect(advancementLabel('talents', { random: 3 })).toBe('3 random Talents');
   });
 });

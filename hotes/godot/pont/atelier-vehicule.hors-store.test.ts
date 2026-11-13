@@ -8,7 +8,7 @@ import { erreurDe, modelesCommites, servirLesModeles, suiteDe, table } from './p
 import type { VehiculeDeLAtelier } from './pont';
 import { findCouleurById } from '../../../src/noyau/index';
 
-const COMMITES = modelesCommites();
+const COMMITES = await modelesCommites();
 
 describe('le véhicule de l’atelier (`vehicule`)', () => {
   const atelier = table().appel;

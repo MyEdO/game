@@ -15,12 +15,13 @@
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
+import { nomDe } from '../engine/nom';
 import type { IconId } from '../data/icons';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
-import { findTableEntry } from '../engine/tables';
+import { findTableEntry, type DeDeTable } from '../engine/tables';
 import type { CascadeStep, CascadeStepMeta, PendingCascade, ReprisePilote, RowSurface, CascadeRoll, BatchParticipant, CascadeAggregate, CascadeSecondRead, CascadeDeDecl, CascadeDeTirage, CascadeDeResult, CascadeTableDecl, CascadeTableResult, OpposedRowFreeze, StepEvaluation, SeuilDeSauvegarde } from './pendings';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t, type MsgKey } from '../i18n';
@@ -185,8 +186,9 @@ export interface TableStepCtx {
 export interface TableStepDef {
   /** Libellé de la table (rangée `TableRollLine`). */
   label: string;
-  /** Faces du dé (défaut 100) — une déclaration d'étape peut le surcharger. */
-  die?: number;
+  /** Le dé de la table, LU SUR SA DONNÉE (`engine/tables.deDeLaTableTiree`) — seul porteur du dé d'une
+   *  étape à table : la déclaration n'en porte aucun (#1667). */
+  die: DeDeTable;
   rows: TableStepRow[];
   /** Lignes d'affichage de la ligne atteinte par le dé EFFECTIF (formatage du moteur de domaine).
    *
@@ -264,10 +266,23 @@ function declVivante<T extends CascadeDeTirage>(s: Jeu, decl: T, actorId: string
   return { ...decl, mod: (decl.mod ?? 0) + live };
 }
 
-/** LES DÉS d'un tirage sur TABLE : la déclaration l'emporte, la table donne son défaut, d100 sinon —
- *  seul endroit où le repli de la table s'exprime, lu par le résolveur comme par les bornes de saisie. */
-export function tableSpec(decl: CascadeTableDecl): DiceSpec {
-  return decl.spec ?? { n: 1, sides: tableStepDef(decl.tableId)?.die ?? 100 };
+/** LA TABLE d'un tirage déclaré — refus NOMMÉ quand elle manque, jamais un repli sur une autre table ni
+ *  un dé deviné. Une table RETIRÉE de la donnée rend IRRÉSOLUBLE toute cascade persistée sur son id ;
+ *  aucune migration de sauvegarde (`.claude/memory/user-arbitrage-saves-reset-pas-migration.md`). */
+function tableDuTirage(decl: CascadeTableDecl): TableStepDef {
+  const def = tableStepDef(decl.tableId);
+  if (!def) {
+    throw new Error(
+      `table d'étape « ${decl.tableId} » introuvable — jamais déclarée (tablesTirables) ou table retirée de la donnée.`,
+    );
+  }
+  return def;
+}
+
+/** LES DÉS d'un tirage sur TABLE : ceux de la table (#1667), lus par le résolveur comme par les bornes
+ *  de saisie. */
+export function tableSpec(decl: CascadeTableDecl): DeDeTable {
+  return tableDuTirage(decl).die;
 }
 
 /** PLAGE des dés NATURELS que ce `DiceSpec` peut sortir : `n` dés de `sides` faces, totalisés — de `n`
@@ -330,15 +345,7 @@ export function rollTableStep(decl: CascadeTableDecl, rng: RNG, ctx?: TableStepC
  *    se déclare (`clamp`, table dont le RAW borne par le bas) ; le plafond reste un fail-fast.
  */
 export function lireEnTable(decl: CascadeTableDecl, de: CascadeDeResult, ctx?: TableStepCtx): CascadeTableResult {
-  const def = tableStepDef(decl.tableId);
-  // Une table RETIRÉE de la donnée (saison, seuil d'espèce, Tableau de Corruption) rend IRRÉSOLUBLE
-  // toute cascade persistée sur son id : le refus est NOMMÉ, jamais un repli sur une autre table.
-  // Aucune migration de sauvegarde (`.claude/memory/user-arbitrage-saves-reset-pas-migration.md`).
-  if (!def) {
-    throw new Error(
-      `rollTableStep : table d'étape « ${decl.tableId} » introuvable — jamais déclarée (tablesTirables) ou table retirée de la donnée.`,
-    );
-  }
+  const def = tableDuTirage(decl);
   const lo = def.rows[0].min;
   const hi = def.rows[def.rows.length - 1].max;
   const die = decl.clamp ? Math.max(de.total, lo) : de.total;
@@ -712,18 +719,21 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
     const refus = refusSansJet(row);
     if (refus != null) { out.push(refus); continue; }
     if (!estJete(row.result)) continue;
+    const porteur = actorIn(get(), row.id);
     out.push(traceLineOf({
-      who: actorIn(get(), row.id)?.label ?? row.id,
+      ...(porteur ? { who: nomDe(porteur) } : {}),
       label: row.label ?? step.rollLabel ?? undefined,
       ...row.result,
       ...lectureDeTrace(step, row.result),
     }));
   }
   const refusMono = refusSansJet(step);
+  const acteurDuPas = step.actorId ? actorIn(get(), step.actorId) : undefined;
+  const whoDuPas = acteurDuPas ? { who: nomDe(acteurDuPas) } : {};
   if (unwitnessed && !step.participants && refusMono != null) out.push(refusMono);
   if (unwitnessed && !step.participants && estJete(step.result) && stepInteraction(step) === 'jet') {
     out.push(traceLineOf({
-      ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
+      ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.result,
       ...lectureDeTrace(step, step.result),
@@ -733,7 +743,7 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
   // journal pour SEULE surface. Le total (et son unité) y figure : c'est lui qui fait la conséquence.
   if (unwitnessed && !step.participants && step.de?.result) {
     out.push(traceDieLineOf({
-      ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
+      ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.de.result,
       ...(step.de.unite ? { unite: step.de.unite } : {}),
@@ -843,7 +853,7 @@ export function refusDuDeDEtape(s: Pick<Jeu, 'pendingCascade'>, stepId: string):
 export function tirerLeDeDEtape(s: Jeu, get: Get, cur: CascadeStep): CascadeStep | null {
   if (cur.de) {
     const de = liveDeDecl(s, cur);
-    return deStepResolved(cur, de, roulerDe(de, specDeEtape(de), battleRng()));
+    return deStepResolved(cur, de, roulerDe(de, de.spec, battleRng()));
   }
   if (!cur.table) return null;
   const table = liveTableDecl(s, cur);
@@ -852,17 +862,8 @@ export function tirerLeDeDEtape(s: Jeu, get: Get, cur: CascadeStep): CascadeStep
 
 /** Les faces du dé de l'étape `cur` et son dé NATUREL tombé (`null` avant le tirage) ; `null` sans dé. */
 export function deDEtape(cur: CascadeStep): { roll: number | null; max: number } | null {
-  if (cur.de) return { roll: cur.de.result?.roll ?? null, max: plageNaturelle(specDeEtape(cur.de)).max };
+  if (cur.de) return { roll: cur.de.result?.roll ?? null, max: plageNaturelle(cur.de.spec).max };
   return cur.table ? { roll: cur.table.result?.roll ?? null, max: tableStepNaturalRange(cur.table).max } : null;
-}
-
-/** LES DÉS d'un dé NU — la déclaration les porte TOUJOURS : sa porte les EXIGE au type
- *  (`rollSeam.DieStepSpec.spec`). Aucun repli d100 ici, à la différence d'une TABLE (qui a le sien,
- *  `tableSpec`) : un dé nu sans dés est un montage HORS PORTE, et le deviner en d100 rendrait un
- *  tirage que personne n'a déclaré. */
-export function specDeEtape(decl: CascadeDeTirage): DiceSpec {
-  if (!decl.spec) throw new Error('specDeEtape : dé NU sans `spec` — déclaration montée hors porte (`rollSeam.dieStep` l\'exige).');
-  return decl.spec;
 }
 
 /** Étape à dé NU RÉSOLUE : la déclaration qui a tiré + son résultat. Jumeau PUR de `tableStepPosee`
@@ -870,12 +871,6 @@ export function specDeEtape(decl: CascadeDeTirage): DiceSpec {
  *  rien ne se dérive d'un total qui EST la conséquence). */
 export function deStepResolved(step: CascadeStep, decl: CascadeDeDecl, result: CascadeDeResult): CascadeStep {
   return { ...step, de: { ...decl, result } };
-}
-
-/** Faces du dé d'un tirage sur table — vue de `tableSpec` pour les appelants qui ne veulent que les
- *  faces (bornes d'une saisie, libellé). */
-export function tableStepDie(decl: CascadeTableDecl): number {
-  return tableSpec(decl).sides;
 }
 
 /** PLAGE des dés NATURELS que CE tirage sur table peut sortir — `plageNaturelle` appliquée aux dés
@@ -902,11 +897,11 @@ export function naturalRollForTableRow(decl: CascadeTableDecl, row: TableStepRow
  *  `mod` compris) — sans quoi une saisie extrême sous `mod` sortirait de la plage et ferait lever
  *  `rollTableStep` en pleine modale. */
 function clampTableNatural(decl: CascadeTableDecl, roll: number): number {
-  const def = tableStepDef(decl.tableId);
+  const def = tableDuTirage(decl);
   const mod = decl.mod ?? 0;
-  const plage = tableStepNaturalRange(decl);
-  const lo = def ? Math.max(plage.min, def.rows[0].min - mod) : plage.min;
-  const hi = def ? Math.min(plage.max, def.rows[def.rows.length - 1].max - mod) : plage.max;
+  const plage = plageNaturelle(def.die);
+  const lo = Math.max(plage.min, def.rows[0].min - mod);
+  const hi = Math.min(plage.max, def.rows[def.rows.length - 1].max - mod);
   return Math.min(Math.max(Math.floor(roll), lo), hi);
 }
 
@@ -920,7 +915,7 @@ export function poserLeDeDEtape(s: Jeu, get: Get, cur: CascadeStep, roll: number
   if (cur.committed) return null;
   if (cur.de) {
     const live = liveDeDecl(s, cur);
-    const spec = specDeEtape(live);
+    const spec = live.spec;
     const de: CascadeDeDecl = { ...live, forcedRoll: clampNaturel(spec, roll) };
     return deStepResolved(cur, de, roulerDe(de, spec, battleRng()));
   }
@@ -1649,7 +1644,7 @@ function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCas
     resolue = tableStepResolved(st, decl, rollTableStep(decl, battleRng(), { get }), get);
   } else if (interaction === 'de') {
     const de = liveDeDecl(get(), st);
-    resolue = deStepResolved(st, de, roulerDe(de, specDeEtape(de), battleRng()));
+    resolue = deStepResolved(st, de, roulerDe(de, de.spec, battleRng()));
   } else {
     resolue = { ...st, result: roulerDeEtape(st.target!, battleRng(), st.evaluation) };
   }
@@ -1807,7 +1802,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
     // DÉ NU sans influence (#1508) : même résolveur ET même composition de déclaration que la modale.
     if (stepInteraction(steps[i]) === 'de') {
       const de = liveDeDecl(get(), steps[i]);
-      steps = steps.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, specDeEtape(de), battleRng())) : x));
+      steps = steps.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, de.spec, battleRng())) : x));
     }
     if (stepInteraction(steps[i]) === 'batch') {
       steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i]) } : x));
@@ -1980,7 +1975,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // goulot (`commitStep`) en dérive sa ligne de dé.
     if (stepInteraction(cur[i]) === 'de') {
       const de = liveDeDecl(get(), cur[i]);
-      cur = cur.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, specDeEtape(de), battleRng())) : x));
+      cur = cur.map((x, k) => (k === i ? deStepResolved(x, de, roulerDe(de, de.spec, battleRng())) : x));
       unwitnessed = true;
     }
     if (stepInteraction(cur[i]) === 'batch') {

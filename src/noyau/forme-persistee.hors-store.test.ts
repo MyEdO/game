@@ -144,8 +144,8 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(applierDe('maladie-test-quotidien'), 'l’applier du cycle de maladie doit exister').toBeDefined();
   });
 
-  it('les jets en attente sauvés portent le nom figé (#1882, #1906)', () => {
-    const approche = { combatantId: 'H', sourceId: 'E', sourceName: 'Ogre', intent: { kind: 'entity' as const, id: 'E' }, result: null };
+  it('le jet d’Approche en attente se sauve tel quel (#1882, #1906)', () => {
+    const approche = { combatantId: 'H', sourceId: 'E', intent: { kind: 'entity' as const, id: 'E' }, result: null };
     const s = snapshotSave({ ...etatInitialDuJeu(), pendingApproach: approche as never }, 'x');
     expect((s.data as { pendingApproach?: unknown }).pendingApproach, 'la forme neuve est PERSISTÉE').toEqual(approche);
   });

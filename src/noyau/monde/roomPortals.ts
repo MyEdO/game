@@ -9,6 +9,7 @@ import {
 } from './scene';
 import { pointDeCase, tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
 import { memoByRef } from './sceneMemo';
+import { aretesA } from './wallIndex';
 import { occupiedRoomIds, roomsByTile } from './rooms';
 import { parUnitesDeCode } from '../../lib/ordre.mjs';
 
@@ -26,24 +27,12 @@ export interface RoomPortal {
   to: Pt;
 }
 
-/** Clé canonique d'une ARÊTE — UNE seule dans ce module : elle identifie aussi bien un accès (dans
- *  son `id`) qu'un segment de mur dans l'index ci-dessous. */
+/** Clé d'une ARÊTE dans l'`id` d'un accès. */
 const edgeKey = (x: number, y: number, side: WallSeg['side'], z: number) => `${z}:${x},${y}:${side}`;
 
-/** Segments de mur indexés PAR ARÊTE — bâti une fois par scène (`memoByRef`, patron canonique) au lieu
- *  d'un balayage linéaire des murs à chaque arête candidate. Premier segment RENCONTRÉ gagné : c'est
- *  exactement ce que rendait la recherche linéaire quand deux segments partagent une arête. */
-const wallsByEdge = memoByRef((scene: Scene): ReadonlyMap<string, WallSeg> => {
-  const index = new Map<string, WallSeg>();
-  for (const wall of scene.walls ?? []) {
-    const key = edgeKey(wall.x, wall.y, wall.side, wall.z ?? 0);
-    if (!index.has(key)) index.set(key, wall);
-  }
-  return index;
-});
-
+/** Le premier segment de l'arête dans l'ordre du document, lu à l'index d'arêtes (`aretesA`). */
 function wallAt(scene: Scene, edge: RoomPortal['edge'], z: number): WallSeg | undefined {
-  return wallsByEdge(scene).get(edgeKey(edge.x, edge.y, edge.side, z));
+  return aretesA(scene, edge.x, edge.y, edge.side, z)[0];
 }
 
 /** Nature de l'ACCÈS que porte une arête, tranchée sur le prédicat CANONIQUE d'ouverture

@@ -36,6 +36,7 @@ script = ExtResource("2_zone")
 source = "reglages.avis"
 
 [node name="Defilement" type="ScrollContainer" parent="Cadre/Pile"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0

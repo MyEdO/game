@@ -535,7 +535,7 @@ describe('careerLevels.trappings — dotations textuelles nommées', () => {
         for (const n of items) {
           if (!isObj(n)) continue;
           if ('text' in n) sites.push(siteIntegrite('dotation-texte', 'src/data/careerLevels.json', niveau.id, 'trappings.text', '', String(n.text)));
-          if (Array.isArray(n.choice)) walk(n.choice);
+          if (Array.isArray(n.of)) walk(n.of);
         }
       };
       walk(niveau.trappings);
