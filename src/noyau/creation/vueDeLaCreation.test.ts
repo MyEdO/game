@@ -5,8 +5,8 @@
 import { describe, it, expect } from 'vitest';
 import { carrieresOffertes, draftSpecies, newDraft, rollDraftCareer, withCareer, withCoastalSwap, withSpecies, type CreatorDraft } from './brouillon';
 import { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, rubriquesDeLaPage, type RubriqueDeCreation } from './vueDeLaCreation';
-import { carrieresAleatoires, offreDuJet, species, varianteDe } from '../../data';
-import { setDataset } from '../../data/overrides';
+import { carrieresAleatoires, especesAleatoires, offreDuJet, species, talentsAleatoires, varianteDe } from '../../data';
+import { setDataset, type DatasetKey } from '../../data/overrides';
 import { rollCareer } from '../../engine/creation';
 import { deFixe, deMin } from '../../engine/dice.testkit';
 
@@ -126,5 +126,31 @@ describe('le second lancer : un geste offert au jet dont la carrière a une vari
   it('absent sur un jet dont la carrière n’a pas de variante', () => {
     const sans = premierJetOu((d) => !aUneVariante(d));
     expect(rubriquesDeLaPage(sans, 'career').filter((r) => r.id.startsWith('variante/'))).toEqual([]);
+  });
+});
+
+describe('les tirages disent le dé de leur table, jamais un littéral (#3578)', () => {
+  const libelle = (d: CreatorDraft, page: Parameters<typeof rubriquesDeLaPage>[1]) => rubrique(rubriquesDeLaPage(d, page), 'tirage').libelle;
+  const sousLeDeDe = <K extends DatasetKey>(cle: K, documents: Parameters<typeof setDataset<K>>[1], corps: () => void) => {
+    const imprimes = [...documents];
+    setDataset(cle, imprimes.map((x) => (typeof x === 'object' && 'die' in x ? { ...x, die: 'd10' } : x)));
+    try { corps(); } finally { setDataset(cle, imprimes); }
+  };
+  const humain = () => withSpecies(newDraft(1), 'humains-reiklander');
+
+  it('sans surcharge, le dé imprimé', () => {
+    expect(libelle(newDraft(1), 'species')).toBe('Race au 1d100 (+20 PX)');
+    expect(libelle(humain(), 'career')).toBe('Carrière au 1d100 (+50 PX)');
+    expect(libelle(rollDraftCareer(humain()), 'career')).toBe('Carrière au 1d100');
+    expect(libelle(humain(), 'skills.talents')).toBe('Tirer 3 Talents au 1d100');
+  });
+
+  it('sous un dé posé au Codex, le dé de la table tirée', () => {
+    sousLeDeDe('especesAleatoires', especesAleatoires, () => expect(libelle(newDraft(1), 'species')).toBe('Race au 1d10 (+20 PX)'));
+    sousLeDeDe('carrieresAleatoires', carrieresAleatoires, () => {
+      expect(libelle(humain(), 'career')).toBe('Carrière au 1d10 (+50 PX)');
+      expect(libelle(rollDraftCareer(humain()), 'career')).toBe('Carrière au 1d10');
+    });
+    sousLeDeDe('talentsAleatoires', talentsAleatoires, () => expect(libelle(humain(), 'skills.talents')).toBe('Tirer 3 Talents au 1d10'));
   });
 });

@@ -19,12 +19,12 @@ import {
 } from './brouillon';
 import {
   advancementLabel, careerLabelFor, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
-  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, varianteDe,
+  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, tableDeCarrieres, talentsAleatoiresDie, varianteDe,
   trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
-import { speciesAllowed, XP_CAREER_FIRST, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
+import { randomSpeciesTable, speciesAllowed, XP_CAREER_FIRST, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
 import { refKey, talentMaxReached } from '../../engine/careerSlots';
 import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
@@ -142,15 +142,16 @@ export function famillesDEspeces(): { race: SpeciesData['refChar']; famille: str
 
 const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFor({ career: id, appearance: { sex: d.apparence.sex } });
 
-/** 1) La race (LDB 04 l.87-101) : le d100, puis la famille et sa lignée. */
+/** 1) La race (LDB 04 l.87-101) : le tirage, puis la famille et sa lignée. */
 function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   const sp = draftSpecies(d);
   const familles = famillesDEspeces();
   const famille = sp && familles.find((f) => f.race === sp.refChar);
+  const die = formatDice(randomSpeciesTable().die);
   return [
     d.speciesRoll
-      ? jet('tirage', t('crea.vue.tirageEspece'), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => species.find((s) => s.id === id)!.label)))
-      : gesteDe('tirage', t('crea.vue.tirerEspece', { px: XP_SPECIES_ACCEPTED }), geste('tirerLEspece')),
+      ? jet('tirage', t('crea.vue.tirageEspece', { die }), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => species.find((s) => s.id === id)!.label)))
+      : gesteDe('tirage', t('crea.vue.tirerEspece', { die, px: XP_SPECIES_ACCEPTED }), geste('tirerLEspece')),
     choix('famille', t('crea.vue.race'), familles.map((f) => option(f.famille, geste('espece', sp && f === famille ? sp.id : f.especes[0].id), f === famille))),
     ...(famille && famille.especes.length > 1 ? [choix('lignee', t('crea.vue.lignee'), famille.especes.map((s) => option(s.variant ?? s.label, geste('espece', s.id), s === sp)))] : []),
     ...(sp ? [valeur('espece', sp.label, null, sp.desc ?? null)] : []),
@@ -158,7 +159,7 @@ function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** 2) La carrière (LDB 05 l.204-212) : le d100 et ses relances, le second lancer offert à chaque jet dont la carrière
+/** 2) La carrière (LDB 05 l.204-212) : le tirage et ses relances, le second lancer offert à chaque jet dont la carrière
  *  a une variante (AA 02 l.109-111 ; VDM 03 l.17-19), les carrières tirées, la classe puis la carrière, les
  *  restrictions de race et les Côtiers (MDG 09 l.9). */
 function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
@@ -168,17 +169,18 @@ function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
   const sp = draftSpecies(d);
   const tirees = sp ? [...new Set(d.careerRolls.flatMap((r) => offreDuJet(sp, r)))] : [];
   const relance = careerXpDuProchainJet(d);
+  const die = sp ? formatDice(tableDeCarrieres(sp.refCareer, d.coastalSwap).die) : null;
   return [
-    ...(d.careerRolls.length
+    ...(!die ? [] : d.careerRolls.length
       ? [
-          jet('tirage', t('crea.vue.tirageCarriere'), d.careerRolls.map((r) => (r.second ? t('crea.vue.jetEtSecondLancer', { jet: r.roll, second: r.second.roll }) : String(r.roll))).join(t('crea.vue.separateur'))),
+          jet('tirage', t('crea.vue.tirageCarriere', { die }), d.careerRolls.map((r) => (r.second ? t('crea.vue.jetEtSecondLancer', { jet: r.roll, second: r.second.roll }) : String(r.roll))).join(t('crea.vue.separateur'))),
           gesteDe('relance', relance ? t('crea.vue.deuxJetsDePlus', { px: relance }) : t('crea.vue.relancerCarriere'), geste('tirerLaCarriere')),
           ...d.careerRolls.flatMap((r, i) => (sp && !r.second && varianteDe(r.id, sp)
             ? [gesteDe(`variante/${i}`, t('crea.vue.secondLancer', { carriere: libelleDeCarriere(d, r.id) }), geste('tirerLaVariante', i))]
             : [])),
           choix('tirees', t('crea.vue.tirees'), tirees.map((id) => option(libelleDeCarriere(d, id), geste('carriere', id), id === d.careerId))),
         ]
-      : [gesteDe('tirage', t('crea.vue.tirerCarriere', { px: XP_CAREER_FIRST }), geste('tirerLaCarriere'))]),
+      : [gesteDe('tirage', t('crea.vue.tirerCarriere', { die, px: XP_CAREER_FIRST }), geste('tirerLaCarriere'))]),
     choix('classe', t('crea.vue.classe'), classes.flatMap((cl) => {
       const premiere = offertes.find((c) => c.class.id === cl.id);
       return premiere ? [option(libelleDeClasse(cl.id), geste('carriere', cl.id === classe ? d.careerId : premiere.id), cl.id === classe)] : [];
@@ -229,7 +231,7 @@ function pageDesCaracteristiques(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** 3bis) Le signe astral (ADE II 3) : le d100, puis le signe. */
+/** 3bis) Le signe astral (ADE II 3) : le tirage, puis le signe. */
 function pageDuSigne(d: CreatorDraft): RubriqueDeCreation[] {
   const signe = findStarById(d.star);
   return [
@@ -286,7 +288,7 @@ function pageDesCompetencesDeCarriere(d: CreatorDraft): RubriqueDeCreation[] {
 const descDuTalent = (id: string): string | null => findTalentById(id)?.desc ?? null;
 const memeRef = (a: RefDesignee | undefined, b: RefDesignee): boolean => !!a && refKey(a.id, a.spec) === refKey(b.id, b.spec);
 
-/** 4c) Les Talents (LDB 05 l.484, l.535 ; LDB 10 l.714) : ceux de race (acquis, « A ou B », tirés au d100, leur
+/** 4c) Les Talents (LDB 05 l.484, l.535 ; LDB 10 l.714) : ceux de race (acquis, « A ou B », tirés, leur
  *  relance et leur utilisation), le Talent de carrière, les sorts de Magie mineure qu'un Talent inclut. */
 function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
   const n = speciesTalentRandomCount(d);
@@ -298,7 +300,7 @@ function pageDesTalents(d: CreatorDraft): RubriqueDeCreation[] {
       const retenue = d.speciesTalentChoices[e.adresse];
       return choix(`option/${e.adresse}`, advancementLabel('talents', e.ref), e.options.map((o) => option(advancementLabel('talents', o), geste('talentDEspece', e.adresse, o), !!retenue && cleDOption(retenue) === cleDOption(o))));
     }),
-    ...(n && !d.talentsRolled ? [gesteDe('tirage', t('crea.vue.tirerTalents', { n }), geste('tirerLesTalents'))] : []),
+    ...(n && !d.talentsRolled ? [gesteDe('tirage', t('crea.vue.tirerTalents', { n, die: formatDice(talentsAleatoiresDie()) }), geste('tirerLesTalents'))] : []),
     ...speciesTalentRandomDrawn(d).flatMap((x) => {
       const nom = refLabel('talents', { id: x.ref.id });
       return [
