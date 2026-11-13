@@ -43,6 +43,7 @@ interface PossessionCommon {
 export interface NavalPossessionState {
   morale: ShipMoraleState;
   fouling?: { level: number; lastWeek: number };
+  reparationTemporaire?: true;
   manann?: ManannMood;
   saboteurDR?: number;
   criticals?: string[];

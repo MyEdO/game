@@ -202,6 +202,14 @@
         "sides": 10
       }
     },
+    "enduranceDifficulty": "accessible",
+    "failDamage": {
+      "dice": {
+        "n": 1,
+        "sides": 10,
+        "plus": -4
+      }
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 30,
