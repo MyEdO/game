@@ -32,7 +32,7 @@ const DECOR_DE_L_OBJET_AU_SOL = 'bourse';
 const objetsDe = (c: Carrier): ItemInstance[] => (c.kind === 'heros' ? (c.hero.items ?? []) : c.possession.items);
 
 /** Le nom d'un porteur. */
-const nomDuPorteur = (c: Carrier): string => (c.kind === 'heros' ? nomDe(c.hero) : possessionLabel(c.possession));
+export const nomDuPorteur = (c: Carrier): string => (c.kind === 'heros' ? nomDe(c.hero) : possessionLabel(c.possession));
 
 /** Pourquoi l'objet `uid` ne se pose pas au sol hors combat, `null` s'il se pose : en combat, l'inventaire de la fiche
  *  est fermé (`refusDInventaire`) ; personne ne le porte ; aucune scène ; son porteur n'est pas avec le groupe ; une arme

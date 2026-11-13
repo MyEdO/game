@@ -7,6 +7,7 @@
  * (`engine/travel.transportCost`). Le billet payé vit dans `billetEnMain` jusqu'à son dernier tronçon ;
  * l'issue de son Marchandage dans `marchandagesDeBillet` (un Test par billet).
  */
+import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { cleDeBillet, lieuDuGroupe, otherEnd, type MapRoute, type RouteBillet, type WorldMap } from './worldMap';
 import { billetImplicite, type TarifDePassage, type TravelMode } from '../engine/travel';
@@ -121,7 +122,7 @@ export function marchanderLeBillet(get: Get, set: Set, routeId: string, vehicule
   if (!offre || offre.couvert || !offre.vendeurPresetId || offre.issue) return;
   const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`, presetDuNarratif(get().campaignNarratif));
   if (!vendeur) return;
-  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, { skill: { id: 'marchandage' } }), portrait: vendeur });
+  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: nomDe(vendeur), valeur: skillBaseValue(vendeur, { skill: { id: 'marchandage' } }), portrait: vendeur });
 }
 
 export function creerActionsDuBillet(get: Get, set: Set) {

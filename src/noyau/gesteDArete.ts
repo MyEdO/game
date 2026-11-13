@@ -117,7 +117,7 @@ function porteurDeCombat(s: Jeu, battle: BattleState): VerdictGeste {
   const tour = mobileDuTour(s, battle);
   if (!('refus' in tour)) return tour;
   if (!tour.mobile) return refus(REFUS_DU_TOUR[tour.refus]);
-  const vars = { name: tour.mobile.label };
+  const vars = { name: nomDe(tour.mobile) };
   // `canMove` refuse deux cas : Mouvement épuisé, ou Mouvement → Action → Mouvement (`mount.ts:canMove`).
   if (tour.refus === 'mouvementEpuise' && movementRemaining(battle, tour.mobile) > 0) {
     return refus('geste.refus.mouvementEntrelace', vars);
@@ -143,7 +143,7 @@ export function gesteDArete(s: Jeu): GesteOuvert | RefusGeste {
 export function refusDuTestDeChute(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
   if (!b?.acted) return null;
-  return refus('fall.actionDejaPrise', { name: garanti(inBattleId(b, tombantId), tombantId, 'sauteur').label });
+  return refus('fall.actionDejaPrise', { name: nomDe(garanti(inBattleId(b, tombantId), tombantId, 'sauteur')) });
 }
 
 /** Se suspendre d'abord coûte, en combat, le Mouvement de `mouvementDeLaChute` : refusé quand le
@@ -154,7 +154,7 @@ export function refusDeLaSuspension(s: Jeu, tombantId: string): RefusGeste | nul
   if (!b || !s.pendingFall || !s.scene) return null;
   const c = garanti(inBattleId(b, tombantId), tombantId, 'sauteur');
   const cout = mouvementDeLaChute(s.pendingFall, true, sceneMetresPerTile(s.scene));
-  return movementRemaining(b, c) < cout ? refus('fall.suspension.mouvementInsuffisant', { name: c.label, cout }) : null;
+  return movementRemaining(b, c) < cout ? refus('fall.suspension.mouvementInsuffisant', { name: nomDe(c), cout }) : null;
 }
 
 /** Le mobile peut-il accomplir un geste déplaçant MAINTENANT ? (sélecteur de store, valeur primitive). */

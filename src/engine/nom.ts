@@ -5,6 +5,7 @@
  */
 import type { Combatant } from './types';
 import type { PlayerText } from '../i18n/playerText';
+import { libelleOuAbsence, type NatureAbsente } from '../data';
 
 /** Le nom du combattant `id` tel que le groupe le connaît ; `null` quand il ne le porte pas. */
 export type Nommeur = (id: string) => string | null;
@@ -22,4 +23,9 @@ export function poserLeNommeur(fn: Nommeur | undefined): Nommeur | undefined {
 export function nomDe(c: Combatant): PlayerText {
   // eslint-disable-next-line murs/marques -- #4017 : minteur de `PlayerText` — le nom d'un combattant que le groupe connaît, ou le nom neutre du catalogue que rend le nommeur.
   return (nommeur?.(c.id) ?? c.label) as PlayerText;
+}
+
+/** Le nom de `c` quand il est là, sinon l'absence du catalogue (`libelleOuAbsence`) pour l'`id` cherché. */
+export function nomOuAbsence(c: Combatant | undefined, nature: NatureAbsente, id: string): PlayerText {
+  return c ? nomDe(c) : libelleOuAbsence(undefined, nature, id);
 }

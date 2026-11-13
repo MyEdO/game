@@ -123,6 +123,7 @@ export const fr = {
   'focalisation.nonMaitriseeVent': '{name} ne maîtrise pas Focalisation ({vent}).',
   'focalisation.reussie': '{name} focalise {sort} (+{dr} DR).',
   'focalisation.echec': '{name} échoue à focaliser {sort}.',
+  'focalisation.forcee': '{name} force la focalisation (Résilience).',
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',
@@ -1509,6 +1510,7 @@ export const fr = {
   'op.argent.perd': 'perd',
   'op.armeNaturelleAccordee': "{name} gagne l'attaque naturelle {weapon} (Dégâts {dmg}{quals}) ({src}).",
   'op.armeAccordee': '{name} invoque {item} (Dégâts {dmg}{quals}) ({src}).',
+  'op.polymorphie': "{name} prend la forme d'un(e) {creature} (F/E/Ag/Dex et Traits de la créature, PB recalculés) ; elle ne peut ni parler ni incanter, et conserve les PB perdus en reprenant sa vraie forme.",
   'op.protectionDIncantation': '{name} : les Sorts visant la zone ({radius} m) subissent {sign}{n} en Langue (Magick) ({src}).',
   'op.bouclierAntiFleches': '{name} dresse un bouclier anti-flèches sur {diametre} m de diamètre : les projectiles organiques qui y entrent sont détruits ({src}).',
   'op.bouclierAntiFlechesCouvert': '{name} est sous le bouclier anti-flèches.',
@@ -1665,6 +1667,7 @@ export const fr = {
   // L'Effet d'auteur ANNONCE la chute ; ce que chacun encaisse se dit à la résolution de SON dé
   // (étape à dé nu ouverte par `ouvrirChute`, #1508).
   'eff.chuteOuverte': 'Chute de {m}\u00a0m : {noms}.',
+  'eff.rituelGaranti': '{name} incante {sort} (rituel garanti).',
   'eff.chuteAtterrissageRefuse': 'Chute annulée : rien ne porterait le groupe à l’arrivée.',
   'eff.maladieContractee': '{name} a contracté : {disease} (symptômes au repos).',
   'eff.titreDeMaladie': 'Maladie — {disease}',
@@ -2037,7 +2040,11 @@ export const fr = {
   'cf.sortRebondit': '{spell} rebondit sur {name} !',
   'cf.zonePersistePlusieursRounds': '{spell} : la zone persiste {rounds} Round(s).',
   'cf.traverseeDeZone': '{name} traverse {zone} !',
+  'cf.refusSousEffectif': '{name} : Équipe trop réduite pour servir {arme}.',
+  'cf.refusEngagePistolet': '{name} est Engagé : {arme} ne peut pas tirer (Atout Pistolet requis).',
+  'cf.refusARecharger': '{name} doit recharger {arme}.',
   'cf.incantationCritique': 'Incantation Critique : effet choisi.',
+  'cf.puissanceTotaleCritique': '{name} lance {sort} (Puissance totale — Critique).',
   'cf.surincantationPleinePuissance': 'Puissance totale : le sort est lancé quels que soient NI et DR (mais peut être Dissipé).',
   'cf.surincantationIrresistible': 'Force inéluctable : le sort ne peut pas être Dissipé.',
   'cf.dictionInstinctive': 'Diction instinctive : aucune Imparfaite sur le double réussi.',
@@ -2085,6 +2092,8 @@ export const fr = {
   'cf.incantationImparfaiteSansCible': '{label} : aucune cible à frapper.',
   'cf.immuniteAuDomaine': '{name} est immunisé aux Sorts de ce Domaine : {spell} est sans effet.',
   'cf.pousse': '{name} est repoussé de {m} m.',
+  'cf.percuteNavire': '{name} percute {cible} !',
+  'cf.percuteNavireDePleinFouet': '{name} percute {cible} de plein fouet !',
   'cf.percuteUnObstacle': '{name} percute un obstacle (Dégâts = distance restante — arbitrage MJ).',
   'cf.souffleRecit': '{name} crache un Souffle — hors combat, effet narratif (arbitrage MJ).',
   'cf.teleportationAuChoix': "{name} peut se téléporter ({m} m) — choisir la case d'arrivée.",
@@ -2414,6 +2423,8 @@ export const fr = {
   'mf.rienAVendre': 'Rien à vendre : aucun objet du panier ne trouve preneur ici.',
   'mf.panierVide': 'Le panier est vide.',
   'groupe.hoteSeul': 'L’hôte seul engage la bourse et la cale du groupe.',
+  'lm.evaluationDuVin': '{name} — Évaluation du {offre} ({roll}) : qualité jugée « {qualite} ».',
+  'lm.evaluationDuVinIncertaine': '{name} — Évaluation du {offre} ({roll}) : qualité jugée « {qualite} » — jugement peu sûr…',
   'lm.offreAbsente': 'Cette cargaison n’est plus proposée.',
   'lm.horsDeLaHalle': 'Aucune halle ouverte.',
   'lm.pasDuVin': '{label} n’est ni du vin ni de l’eau-de-vie : sa qualité ne s’évalue pas.',
@@ -4038,6 +4049,8 @@ export const fr = {
   'summon.summons': '{name} invoque {n} × {label}{tag}.',
   'summon.fragHostile': ' — hostile, hors de son contrôle !',
   'summon.fragAllies': ' (alliés)',
+  'summon.horsCombat': '{name} invoque {n} × {label}{tag} — hors combat, effet narratif (arbitrage MJ).',
+  'summon.fragHostileHorsCombat': ' (hostile)',
   'summon.dispels': '{name} se dissipe ({label}).',
 
   // ── #1318 V8c₅ — SOCLE DU JET (`noyau/rollFlowFactory.ts`) : relance offerte (LDB 12/41) et dé fixé.

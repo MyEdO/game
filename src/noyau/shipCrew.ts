@@ -325,7 +325,7 @@ export function resolveShipUnits(combatants: Combatant[]): string[] {
       const aboard = exposedCrew(crew).filter((c) => !isOutOfAction(c));
       if (aboard.length) {
         for (const c of aboard) { c.outOfRencontre = true; c.exitReason = 'naufrage'; } // #237 : éjecté vivant, lu « hors-combat »
-        lines.push(t('crew.sinks', { ship: nomDe(hull), crew: aboard.map((c) => c.label).join(', ') }));
+        lines.push(t('crew.sinks', { ship: nomDe(hull), crew: aboard.map(nomDe).join(', ') }));
       }
     } else if (crew.length && crew.every((c) => isOutOfAction(c))) {
       // Plus personne à bord : la coque, sans équipage pour la défendre ni la manœuvrer, quitte le combat.

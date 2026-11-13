@@ -2,7 +2,7 @@
  * Flux de combat (tour par tour) — module à part du store.
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 import type { IconId } from '../data/icons';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText } from '../i18n/playerText';
@@ -117,7 +117,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll, type VainqueurOppose } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
-import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
+import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -409,17 +409,17 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   if (required > 0 && active.mannedPoste) {
     const crew = (active.mannedPoste.crewIds ?? []).map((id) => inBattleId(b, id)).filter((c): c is Combatant => !!c);
     if (warMachineCrewPenalty(exposedCrew(crew).length, required).unusable)
-      return { reason: 'sous-effectif', detail: `${active.label} : Équipe trop réduite pour servir ${w.label}.` };
+      return { reason: 'sous-effectif', detail: tr('cf.refusSousEffectif', { name: nomDe(active), arme: w.label }) };
   }
   if (w.type !== 'distance') return null;
   // Tir en étant *Engagé* : impossible sauf Atout d'arme Pistolet (`LDB 14 l.41`, `LDB 62 l.284-285`).
   // Refus AVANT les gates de ressource : recharger ne débloquerait rien.
   if (isEngaged(active) && !canFireWhileEngaged(w))
-    return { reason: 'engaged', detail: `${active.label} est Engagé : ${w.label} ne peut pas tirer (Atout Pistolet requis).` };
+    return { reason: 'engaged', detail: tr('cf.refusEngagePistolet', { name: nomDe(active), arme: w.label }) };
   // Restriction d'armes à distance de la rencontre (#471, NADJ 06 l.181) — même refus AVANT tout autre
   // gate de ressource (Recharge/munition), pour ne pas dire « recharger » à une arme de toute façon bannie.
   if (banRangedActive(b)) return { reason: 'armeBannie', detail: `${w.label} : les armes à distance sont interdites (duel judiciaire).` };
-  if (!weaponLoaded(active, w)) return { reason: 'unloaded', detail: `${active.label} doit recharger ${w.label}.` };
+  if (!weaponLoaded(active, w)) return { reason: 'unloaded', detail: tr('cf.refusARecharger', { name: nomDe(active), arme: w.label }) };
   // Munition requise UNIQUEMENT si l'arme en consomme (famille de munition) ; un tir sans munition suivie
   // (ex. arme sans Groupe) reste possible. `ammoFamily` falsy ⇒ pas de suivi de munition (cf. compatibleAmmo).
   if (ammoFamily(w.subType) && !loadedAmmo(active, w)) {
@@ -1994,7 +1994,7 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
       .map((c) => ({ id: c.id, to, metres, sansSurface }));
   });
   set((s: Jeu) => {
-    const log = [...(s.battle?.log ?? []), ev('mort', structureCollapseLog(target.label), target.id)];
+    const log = [...(s.battle?.log ?? []), ev('mort', structureCollapseLog(nomDe(target)), target.id)];
     const combatants = (s.battle?.combatants.filter((c) => c.id !== target.id) ?? []).map((c) => {
       const tb = tombants.find((x) => x.id === c.id);
       if (!tb) return c;
@@ -5965,7 +5965,7 @@ function runCastFlow(get: Get, set: SetFn, target: Combatant, caster: Combatant,
   // Le lancer est un geste délibéré : un effet certain sans objet sur cette cible se DIT, `applyOps` le tait.
   const certaines = certainFlowOps(flow);
   const sansObjet = certaines ? reussiteSansObjet(target, certaines, withSpell) : null;
-  runCombatFlow({ get, set, target, caster, label: withSpell.label ?? caster.label, opsCtx: withSpell }, flow);
+  runCombatFlow({ get, set, target, caster, label: withSpell.label ?? nomDe(caster), opsCtx: withSpell }, flow);
   return [...(sansObjet ? [sansObjet] : []), ...drainPendingLog(get, set).map((e) => e.text)];
 }
 
@@ -6252,7 +6252,7 @@ export function applyCast(
       if (full !== res) {
         res = missile
           ? evaluateMissile(caster, target, spell, full, undefined, overcastDamageSteps)
-          : { ...full, log: `${caster.label} lance ${spell.label} (Puissance totale — Critique).` };
+          : { ...full, log: tr('cf.puissanceTotaleCritique', { name: nomDe(caster), sort: spell.label }) };
       }
     }
   }
@@ -6624,7 +6624,7 @@ export function resolveTriggerImpureOps(get: Get, set: SetFn, actor: Combatant, 
     else if (op.op === 'scheduleRespawn') lines.push(...scheduleRespawnFromOp(get, set, actor, op));
     // La ZONE garde l'ENTITÉ qui l'a posée (le Trait/Talent porteur) : son `crossTest` en dérive son
     // enjeu, exactement comme une zone de sort (#1262 V2 L6d).
-    else if (op.op === 'zone') placeZoneFromOp(get, actor, actor, op, actor.label, op.perRound ? 3 : 1, 0, 2, lines, source);
+    else if (op.op === 'zone') placeZoneFromOp(get, actor, actor, op, nomDe(actor), op.perRound ? 3 : 1, 0, 2, lines, source);
   }
   return lines;
 }
@@ -8176,8 +8176,7 @@ function dueDeSource(c: Combatant, n: SourceNeuve): PsychDue {
 function nomDeLaSource(l: { battle: BattleState; sources: readonly SourceEnVue[] }, id: string): PlayerText {
   const s = l.sources.find((v) => idDeSource(v) === id);
   if (s) return libelleDeSource(s);
-  const c = inBattleId(l.battle, id);
-  return c ? nomDe(c) : libelleOuAbsence(undefined, 'combattant', id);
+  return nomOuAbsence(inBattleId(l.battle, id), 'combattant', id);
 }
 
 /** Re-tests des afflictions ciblées actives de `c` dus au `moment` du Round `round`, tant qu'un membre de
@@ -8912,7 +8911,7 @@ export const TABLES = {
       if (!ws || !step.de?.result) return;
       // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `operationsDe`/`chuteDe`).
       if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      const { sauve, ligne } = lireEnSeuil(ws.seuils[0], step.de.result, porteur.label);
+      const { sauve, ligne } = lireEnSeuil(ws.seuils[0], step.de.result, nomDe(porteur));
       const reste = ws.seuils.slice(1);
       if (!sauve && reste.length) {
         pousserSauvegarde(set, porteur.id, reste, ws.suite);

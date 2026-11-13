@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { lancerLeScenario } from './lancementDeScenario';
 import { caseEnVue, combattantEnVue } from './visionDuGroupe';
-import { discTiles } from './monde/zones';
+import { discTiles, sceneZonesToBattle } from './monde/zones';
 import { isStructure } from '../engine/structures';
 import { resolveActGates } from './combat/turnHooks';
 import { resolveFlowTest } from './combat/triggeredTest';
@@ -29,6 +29,9 @@ import { applyShipManeuver, rollShipManeuver } from './shipManeuver';
 import { supersededLines, type PsychAffliction } from '../engine/psychology';
 import { psychologyLabel } from '../data';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { nomDIndividu } from './monde/sceneNpc';
+import { applyZoneCrossings } from './combatPlacement';
+import { fixtureText } from '../i18n/fixtureText';
 
 const INCONNU = t('vision.horsDeVue');
 
@@ -267,5 +270,39 @@ describe('turn.psychSuperseded — l’affliction qu’un effet plus fort éclip
   it('en vue : son nom', () => {
     const { vu } = siege();
     expect(ligneEclipsee(vu)).toBe(t('turn.psychSuperseded', { name: INCONNU, psych: psychologyLabel('animosite') }).replace(INCONNU, vu.label));
+  });
+});
+
+describe('nomDIndividu — le nom d’un individu ciblé (libellé d’un Test de Psychologie en combat)', () => {
+  it('hors de vue : « Inconnu »', () => {
+    const { banc, cache } = siege();
+    expect(nomDIndividu(banc.getState() as unknown as Jeu)(cache.id)).toBe(INCONNU);
+  });
+
+  it('en vue : son nom', () => {
+    const { banc, vu } = siege();
+    expect(nomDIndividu(banc.getState() as unknown as Jeu)(vu.id)).toBe(vu.label);
+  });
+});
+
+describe('cf.traverseeDeZone — la traversée d’une zone par un combattant (`applyZoneCrossings`)', () => {
+  /** La ligne de journal de `c` traversant une flaque acide posée sous ses pieds. */
+  function ligneDeTraversee(banc: ReturnType<typeof siege>['banc'], c: Combatant): string {
+    const [flaque] = sceneZonesToBattle([{ id: 'acide', label: 'Flaque acide', area: { kind: 'disc', cx: c.pos!.x, cy: c.pos!.y, radius: 0 }, onCross: [{ op: 'wounds', amount: 0, ignoreTB: false, ignoreAP: true }] }]);
+    const b = banc.getState().battle!;
+    banc.setState({ battle: { ...b, zones: [...(b.zones ?? []), flaque] } });
+    const avant = banc.getState().battle!.log.length;
+    applyZoneCrossings(banc.getState, banc.setState, c, [{ ...c.pos! }]);
+    return banc.getState().battle!.log.slice(avant).map((l) => l.text).join('\n');
+  }
+
+  it('hors de vue : « Inconnu »', () => {
+    const { banc, cache } = siege();
+    expect(ligneDeTraversee(banc, cache)).toContain(t('cf.traverseeDeZone', { name: INCONNU, zone: 'Flaque acide' }));
+  });
+
+  it('en vue : son nom', () => {
+    const { banc, vu } = siege();
+    expect(ligneDeTraversee(banc, vu)).toContain(t('cf.traverseeDeZone', { name: fixtureText(vu.label), zone: 'Flaque acide' }));
   });
 });

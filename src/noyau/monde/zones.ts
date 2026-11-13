@@ -211,7 +211,7 @@ export function crossZones(
     if (!z.onCross?.length || z.crossTest) continue;
     if (!path.some((p) => zoneCovers(z, p))) continue;
     if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label })); continue; }
-    lines.push(`${mover.label} traverse ${z.label} !`);
+    lines.push(t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label }));
     lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }));
   }
   return lines;

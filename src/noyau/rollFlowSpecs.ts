@@ -68,7 +68,7 @@ import { estOperation } from './acteDeSoin';
 import { lancerLActeDeSoin } from './medicFlow';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 
 /** Re-dérive une attaque FIGÉE avec un jet d'attaquant modifié (Chance +1 DR / Résilience / dé
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
@@ -497,7 +497,7 @@ const resultRollLens = <P extends import('./rollFlowFactory').PendingBase & { re
 
 /** L'action engagée (le Test opposé qui EST l'Action, ou la Fuite) ne se renonce plus : le refus dit qui l'a engagée. */
 const refusDeRenoncer = (s: Jeu, porteurId: string): string =>
-  t('jet.refus.renoncerEngage', { name: actorIn(s, porteurId)?.label ?? porteurId });
+  t('jet.refus.renoncerEngage', { name: nomOuAbsence(actorIn(s, porteurId), 'combattant', porteurId) });
 
 /** Fabrique PARTAGÉE des Tests opposés BINAIRES (issue success/tie/fail) où SEUL le jet de l'ACTEUR se
  *  (re)joue tandis que le foe reste FIGÉ — le jet de l'acteur est l'« attaquant » du Test opposé
@@ -927,7 +927,7 @@ export const FLOWS = paresseux({
     onRoll: lancerLIncantation,
     onCancel: renoncerALIncantation,
     // LDB 46 l.24 (#1031)
-    refusDAnnuler: (s, p) => (p.result ? t('cs.castCancelLocked', { name: actorIn(s, p.casterId)?.label ?? p.casterId }) : null),
+    refusDAnnuler: (s, p) => (p.result ? t('cs.castCancelLocked', { name: nomOuAbsence(actorIn(s, p.casterId), 'combattant', p.casterId) }) : null),
     rolled: (p) => !!p.result,
     // Sort non lancé malgré un jet propre réussi (DR sous le NI) : la Résilience s'y ouvre. LDB 17 l.68, l.75
     perdu: (p) => !!p.result && !p.result.cast,
@@ -1892,7 +1892,7 @@ export const FLOWS = paresseux({
           : Math.max(base?.sl ?? 1, 1);
         // `base?.malepierreConsumed` (déjà figé au Round précédent) est REPORTÉ : forcer le résultat
         // ne consomme ni ne restitue une seconde fois la réserve de malepierre.
-        return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: `${actor.label} force la focalisation (Résilience).`, ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
+        return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: t('focalisation.forcee', { name: nomDe(actor) }), ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
       }
       return { result: resolveFocus(actor, spell, battleRng(), 'intermediaire', seaMagicContext(s).atSea, windsMagicModOf(s.battle)) };
     },
@@ -1936,7 +1936,7 @@ export const FLOWS = paresseux({
     // ISSUE au goulot (`apply`) — canal COMBAT (`jetValider('frenesie')` la tisse dans son `set({ battle })`).
     // Le porteur est garanti au site (`if (!c) return` avant l'appel).
     issueChannel: 'battle',
-    issue: (p, s) => describeFrenzy(p, garanti(actorIn(s, p.combatantId), p.combatantId, 'frénésie').label),
+    issue: (p, s) => describeFrenzy(p, nomDe(garanti(actorIn(s, p.combatantId), p.combatantId, 'frénésie'))),
   }),
 
   /** Approche d'une source de Peur (LDB 21 l.27) : Test SEC de `p.test` pour oser se rapprocher —

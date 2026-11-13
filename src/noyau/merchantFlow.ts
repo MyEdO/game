@@ -3,6 +3,7 @@
  * `(get, set)` que combatFlow : ouverture/réassort, panier, achat/vente/réparation, Marchandage
  * (Test opposé), Évaluation.
  */
+import { nomDe } from '../engine/nom';
 import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type TestIds } from '../engine/types';
@@ -842,7 +843,7 @@ function reparerLObjet(get: Get, set: Set, uid: string): void {
 export function ouvrirMarchandage(get: Get, set: Set, contrepartie: ContrepartieDeMarchandage, opposant: OpposantDeMarchandage): void {
   const best = partyAssisted(get().party, { skill: { id: 'marchandage' }, characteristic: 'sociabilite' }); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
   set({ pendingBargain: {
-    playerId: best.actor.id, playerName: best.actor.label,
+    playerId: best.actor.id, playerName: nomDe(best.actor),
     contrepartie, opposant,
     playerSkill: best.value, support: best.support,
     // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
@@ -1214,7 +1215,7 @@ export const TABLES = {
       finalizeSearchAvailability(get, set, entityId, Number(meta.restockPeriod ?? MINUTES_PER_DAY), gossipDay);
       return {
         consequences: freeCons([stepDetail(
-          actor ? dataLabel(actor.label) : t('eff.groupe'),
+          actor ? nomDe(actor) : t('eff.groupe'),
           // LDB 59 l.50
           estJete(step.result) ? t(gossipDay ? 'mf.rechercheReussie' : 'mf.rechercheRatee') : t('mf.rechercheSansJet'),
         )]),

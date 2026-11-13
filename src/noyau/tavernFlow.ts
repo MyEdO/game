@@ -24,7 +24,7 @@
  * Réservé aux tables qui activent l'option `jeux-de-taverne`.
  */
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 import type { FlowTest } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import {
@@ -153,7 +153,7 @@ export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: Resol
       const fiche = sceneNpc(scene, e.id, presetDe);
       return fiche ? [{
         id: e.id,
-        label: fiche.label,
+        label: nomDe(fiche),
         gameId: e.tavernGame!.id,
         ...(e.tavernGame!.stakeBrass != null ? { stakeBrass: e.tavernGame!.stakeBrass } : {}),
       }] : [];
@@ -347,8 +347,8 @@ export function tavernParams(jeu: TavernGame, joueurs = 0): SequenceParams {
  * il est fourni par l'appelant, éditable à la modale, jamais figé au code.
  */
 function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, opponentName: PlayerText, joueurs: number): TavernSeat[] {
-  const seats: TavernSeat[] = [{ id: challenger.id, label: challenger.label, hero: true }];
-  if (opponentHero) seats.push({ id: opponentHero.id, label: opponentHero.label, hero: true });
+  const seats: TavernSeat[] = [{ id: challenger.id, label: nomDe(challenger), hero: true }];
+  if (opponentHero) seats.push({ id: opponentHero.id, label: nomDe(opponentHero), hero: true });
   else seats.push({ id: 'habitue-1', label: opponentName, hero: false });
   for (let i = seats.length; i < Math.max(2, joueurs); i++) {
     seats.push({ id: `habitue-${i}`, label: t('tavern.potHabitue', { rang: i }), hero: false });
@@ -685,7 +685,7 @@ function equipeBande(get: Get, seq: SequenceState<TavernPayload>): { band: Built
 function torchonThrowers(get: Get, p: TavernPayload, game: TavernGame): TavernPayload['throwers'] {
   const taille = game.team?.size ?? 1;
   const heros = equipiers(get);
-  const mien: NonNullable<TavernPayload['throwers']> = heros.map((h) => ({ id: h.id, label: h.label, camp: 'joueur' as const }));
+  const mien: NonNullable<TavernPayload['throwers']> = heros.map((h) => ({ id: h.id, label: nomDe(h), camp: 'joueur' as const }));
   for (let i = heros.length; i < taille; i++) {
     mien.push({ id: `figurant-p-${i}`, label: t('tavern.equipier', { rang: i + 1 }), camp: 'joueur', value: valeurDesCoequipiers(p) });
   }
@@ -1171,7 +1171,7 @@ const TAVERN_TARGET_KIND = 'tavernePotCible';
  *  siège. Les autres sont les habitués de la salle, dont la table fixe le nombre. */
 export interface TavernSeat {
   id: string;
-  label: string;
+  label: PlayerText;
   hero: boolean;
 }
 
@@ -1922,7 +1922,7 @@ export interface TavernVolleyState {
  *  la donnée déclare — TIRÉ AU SORT quand elle le dit (`NADJ 16 l.97` : « jetez une pièce de monnaie
  *  pour déterminer qui joue en premier »). */
 function volleyThrowers(get: Get, p: TavernPayload, ordre: SequenceVolleyRules['ordre'], rng: RNG): NonNullable<TavernPayload['throwers']> {
-  const mien = { id: p.challengerId, label: actorIn(get(), p.challengerId)?.label ?? p.challengerId, camp: 'joueur' as const };
+  const mien = { id: p.challengerId, label: nomOuAbsence(actorIn(get(), p.challengerId), 'combattant', p.challengerId), camp: 'joueur' as const };
   const sien = {
     id: idAdverse(p), label: p.opponentName, camp: 'adversaire' as const,
     ...(p.opponentId ? {} : { value: p.opponentValue }),
@@ -2527,7 +2527,8 @@ export const TABLES = {
           // retombait alors sur `row.label`, qui est le libellé de son TEST. Le journal disait « Force :
           // −4 DR. » là où l'écran disait « Négociant : 0/10 » : deux surfaces, deux noms, un joueur qui
           // attribue le score au mauvais camp.
-          const who = tavernActor(get, row.id)?.label ?? row.label ?? row.id;
+          const acteur = tavernActor(get, row.id);
+          const who = acteur ? nomDe(acteur) : row.label ?? row.id;
           return `${who} : ${dr(row.result?.sl ?? 0)}.`;
         });
         lines.push(...torchonRate(get, set, step.participants));
@@ -2539,7 +2540,8 @@ export const TABLES = {
       // unique). Sans elle, la manche se racontait par un libellé nu (« Force : +4 DR. ») où ni le
       // joueur, ni son vis-à-vis, ni ce que chacun a obtenu n'étaient lisibles.
       const opp = step.meta?.opposed;
-      const mien = step.actorId ? actorIn(get(), step.actorId)?.label : undefined;
+      const acteur = step.actorId ? actorIn(get(), step.actorId) : undefined;
+      const mien = acteur && nomDe(acteur);
       const lignes = [`${mien ? `${mien} — ` : ''}${step.rollLabel ?? 'Jeu'} : ${dr(step.result.sl)}.`];
       if (opp?.aT) {
         const sien = opposedAttackerLabel(opp);
@@ -2627,7 +2629,7 @@ export const TABLES = {
       const jet = step.participants?.[0];
       if (!lu || !jet) return {};
       const heros = actorIn(get(), jet.id);
-      const qui = heros?.label ?? jet.label ?? jet.id;
+      const qui = heros ? nomDe(heros) : jet.label ?? jet.id;
       const tranche = heros && !cadenceAuto() && jetSurfaced(get(), heros);
       const id = `${TAVERN_GAIN_KIND}-${seq.manche}`;
       const libre = lu.outcome.libre;

@@ -1037,12 +1037,12 @@ function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
       actorId: part.id, icon: 'voyage/ancre', group: step.label,
       // L'ENJEU est celui de l'ÉTAPE (#1117 L1b) : recopié tel quel, rendu UNE fois par bande.
       ...(step.stake ? { stake: step.stake } : {}),
-      label: `${(part.roleId ? findCrewRoleById(part.roleId)?.label : undefined) ?? part.label ?? actor.label}${part.essential ? ' ★' : ''}`,
+      label: `${(part.roleId ? findCrewRoleById(part.roleId)?.label : undefined) ?? part.label ?? nomDe(actor)}${part.essential ? ' ★' : ''}`,
       // Z5 : la ligne NOMME la COMPÉTENCE lancée (couture id→label du catalogue) ; le RÔLE tenu est
       // la provenance, porté par le libellé d'entrée. La Difficulté posée à la construction voyage
       // avec la ligne (#1112) au lieu d'être jetée. Une ligne non tentable n'a pas de dé : son refus.
       ...(estJete(res) ? { d: {
-        label: part.skill ? refLabel('skills', part.skill) : (part.label ?? actor.label),
+        label: part.skill ? refLabel('skills', part.skill) : (part.label ?? nomDe(actor)),
         base: part.base, modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl,
         ...(part.difficulty ? { difficulty: part.difficulty } : {}),
       } } : { text: part.refus }),
@@ -1953,7 +1953,7 @@ function coqueDuPont(get: Get): { ref: string; nom: string } | null {
   const ref = get().vessel?.vehicleId ?? plan.vehicle?.creatureId;
   if (!ref) return null;
   const vessel = get().vessel;
-  return { ref, nom: vessel ? nomDuNavire(vessel) : garanti(plan.vehicle, plan.routeId, 'navire du voyage').label };
+  return { ref, nom: vessel ? nomDuNavire(vessel) : nomDe(garanti(plan.vehicle, plan.routeId, 'navire du voyage')) };
 }
 
 /** La Scène GÉNÉRIQUE du PONT, construite à la volée : la coque de campagne au camp allié (le groupe y

@@ -7,7 +7,7 @@ import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../eng
 import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs, type Carrier } from './monde/carrier';
+import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
@@ -53,7 +53,7 @@ import { persisterLeHeros } from './plateforme';
 import { creditBourse, payWithAllocation, refusDeBourse, soloPayer } from './bourseFlow';
 import { ensureBourse, bourseOf, withBourseMoney } from '../engine/bourse';
 import { transmettreLaPossession } from './possessionsFlow';
-import { poserLObjet } from './objetsAuSol';
+import { nomDuPorteur, poserLObjet } from './objetsAuSol';
 
 import type { Get, Set } from './flowTypes';
 import { battleRng } from './battleRng';
@@ -148,7 +148,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string): void {
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
         clone.items ??= [];
-        msg = applyToggleEquip(clone.items, uid, clone.label);
+        msg = applyToggleEquip(clone.items, uid, nomDe(clone));
         recomputeLoadout(clone);
         return clone;
       });
@@ -200,7 +200,7 @@ export function rangerLObjet(get: Get, set: Set, uid: string, containerUid: stri
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
         clone.items ??= [];
-        const r = applyStow(clone.items, uid, containerUid, clone.label);
+        const r = applyStow(clone.items, uid, containerUid, nomDe(clone));
         msg = r.msg;
         if (!r.moved) return h; // capacité insuffisante ou item introuvable : aucune mutation, pas de recompute
         recomputeLoadout(clone);
@@ -283,11 +283,6 @@ export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string,
   mutLoadout(set, heroId, (c) => loadoutSetSlot(c, id, slot, uid));
 }
 
-/** Libellé d'un porteur déjà résolu (héros ou possession — doctrine id/label). */
-function carrierLabel(carrier: Carrier): string {
-  return carrier.kind === 'heros' ? carrier.hero.label : possessionLabel(carrier.possession);
-}
-
 /** Donne un objet de son PORTEUR (héros ou possession) à un autre — #620 généralise le don héros→héros
  *  aux 4 combinaisons (héros↔héros, héros↔possession, possession↔possession). `recomputeLoadout`
  *  reste réservé aux Combatant (armes actives) — une possession n'a pas de loadout. En combat, rien ne
@@ -302,13 +297,13 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: 
   const fromItems = from.kind === 'heros' ? (from.hero.items ?? []) : from.possession.items;
   const item = fromItems.find((i) => i.uid === uid)!;
   if (!to) return void refuserGeste(get, set, t('pf.giveNotFound'));
-  if (fromCarrierId === toCarrierId) return void refuserGeste(get, set, t('pf.giveSelf', { from: carrierLabel(from), item: item.label }));
+  if (fromCarrierId === toCarrierId) return void refuserGeste(get, set, t('pf.giveSelf', { from: nomDuPorteur(from), item: item.label }));
   if (!carriersColocated(porteurLocalise(from), porteurLocalise(to))) {
-    return void refuserGeste(get, set, t('pf.giveNotColocated', { from: carrierLabel(from), to: carrierLabel(to), item: item.label }));
+    return void refuserGeste(get, set, t('pf.giveNotColocated', { from: nomDuPorteur(from), to: nomDuPorteur(to), item: item.label }));
   }
   const lot = lotDeLObjet(fromItems, uid);
-  const fromLabel = carrierLabel(from);
-  const toLabel = carrierLabel(to);
+  const fromLabel = nomDuPorteur(from);
+  const toLabel = nomDuPorteur(to);
   set((s) => ecrireLesPorteurs(s, {
     [fromCarrierId]: (items) => sansLeLot(items, lot),
     [toCarrierId]: (items) => avecLeLot(items, lot, to.kind === 'heros'),
@@ -332,7 +327,7 @@ export function poserLApparence(get: Get, set: Set, uid: string, apparence: stri
 export function accorderLesPx(get: Get, set: Set, heroId: string, amount: number): void {
   let name = '';
   set((s) => ecrireActeur(s, heroId, (h) => {
-    name = h.label;
+    name = nomDe(h);
     const clone: Combatant = structuredClone(h);
     clone.xp = (clone.xp ?? 0) + amount;
     return clone;

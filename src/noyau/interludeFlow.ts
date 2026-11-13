@@ -55,7 +55,7 @@ import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
-import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
+import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, testSkillLabel } from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
@@ -72,7 +72,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -270,7 +270,7 @@ function denouementDuTirage(s: Jeu) {
 
 /** Les lignes des pertes du dénouement `d` : l'argent, puis les Activités. */
 function lignesDesPertes(s: Jeu, d: ReturnType<typeof denouementDuTirage>): string[] {
-  const nom = (heroId: string) => libelleOuAbsence(s.party.find((h) => h.id === heroId), 'heros', heroId);
+  const nom = (heroId: string) => nomOuAbsence(s.party.find((h) => h.id === heroId), 'heros', heroId);
   return [
     ...d.pertes.map(({ heroId, pct, brass }) => msg('if.purseLoss', { name: nom(heroId), pct, money: formatMoney(fromBrass(brass)) })),
     ...d.perdues.flatMap(({ heroId, effets }) => effets.map(({ label }) => msg('if.groupActivityLost', { name: nom(heroId), event: label }))),
@@ -1133,7 +1133,7 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
     set({ bank: rest });
     const threshold = seuilDePerteBancaire(dep.kind, dep.rate);
     return [msg('if.bankLost', {
-      name: libelleOuAbsence(h, 'heros', dep.heroId), roll, threshold,
+      name: nomOuAbsence(h, 'heros', dep.heroId), roll, threshold,
       what: msg(dep.kind === 'investir' ? 'if.bankFailBank' : 'if.bankFailStash'),
       money: formatMoney(fromBrass(dep.brass)),
     })];
@@ -1143,7 +1143,7 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
   set({ bank: rest });
   creditBourse(get, set, dep.heroId, fromBrass(payout)); // retrait PERSONNEL : recrédité au déposant
   return [msg('if.bankWithdraw', {
-    name: libelleOuAbsence(h, 'heros', dep.heroId), money: formatMoney(fromBrass(payout)), roll,
+    name: nomOuAbsence(h, 'heros', dep.heroId), money: formatMoney(fromBrass(payout)), roll,
     extra: dep.kind === 'investir' ? msg('if.bankInterest', { rate: dep.rate }) : '',
   })];
 }

@@ -32,6 +32,7 @@
  *     DÉJÀ CHIFFRÉS par le flux propriétaire via `meta` NEUTRE (`aggregateFlatDR`/`aggregateCapTo`/
  *     `aggregateOpposeSl`, `CascadeStepMeta`) ; par défaut 0/absent.
  */
+import { nomDe } from '../engine/nom';
 import type { IconId } from '../data/icons';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
@@ -161,7 +162,7 @@ export interface RollLabelRef {
 export function composeRollLabel(actor: Combatant | undefined, action: string, test: RollRequest['test']): PlayerText {
   const detail = testSkillLabel(test);
   // eslint-disable-next-line murs/marques -- #1318 : minteur de `PlayerText` — composer le libellé de jet est le corps de `composeRollLabel`.
-  return `${actor ? `${actor.label} — ` : ''}${action}${detail ? ` (${detail})` : ''}` as PlayerText;
+  return `${actor ? `${nomDe(actor)} — ` : ''}${action}${detail ? ` (${detail})` : ''}` as PlayerText;
 }
 
 /*

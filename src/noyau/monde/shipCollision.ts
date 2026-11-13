@@ -11,6 +11,8 @@ import { collisionIndex, resolveCollision, type CollisionShip, type CollisionDam
 import { belierRam, hullNavalTraits } from '../../engine/navalTraits';
 import { applyOps } from '../../engine/ops';
 import { type RNG } from '../../engine/dice';
+import { nomDe } from '../../engine/nom';
+import { t } from '../../i18n';
 import { propulsionDuNavire, type MilieuDeNavigation } from '../../engine/shipBuild';
 import { garanti } from '../../lib/garanti';
 
@@ -32,7 +34,7 @@ export function applyShipCollision(
   causer: Combatant, victim: Combatant, milieu: MilieuDeNavigation, opts: { frontal?: boolean; ramProue?: boolean }, rng: RNG, idNeuf: FabriqueDId,
 ): { lines: string[]; causer: CollisionDamage; victim: CollisionDamage } {
   const res = resolveCollision(toCollisionShip(causer, milieu), toCollisionShip(victim, milieu), opts);
-  const lines = [`${causer.label} percute ${victim.label}${opts.frontal ? ' de plein fouet' : ''} !`];
+  const lines: string[] = [t(opts.frontal ? 'cf.percuteNavireDePleinFouet' : 'cf.percuteNavire', { name: nomDe(causer), cible: nomDe(victim) })];
   // Dégâts sur la Coque (l.464), mitigés DANS l'op : BE + PA de coque + extraAP (armorBonus situationnel).
   lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { idNeuf, rng }));
   lines.push(...applyOps(causer, [{ op: 'wounds', amount: res.causer.damage, ignoreTB: false, ignoreAP: false, extraAP: res.causer.armorBonus }], { idNeuf, rng }));

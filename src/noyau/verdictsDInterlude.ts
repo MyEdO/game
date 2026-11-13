@@ -3,7 +3,7 @@
  * `noyau/favorFlow.ts`) et l'écran d'interlude les lisent, sans que l'un importe l'autre.
  * Le geste applique le verdict en tête (`refuseSi`) ; l'écran le lit sans le recalculer.
  */
-import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, libelleOuAbsence, refLabel } from '../data';
+import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, refLabel } from '../data';
 import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
 import type {
@@ -38,7 +38,8 @@ import { refusDePx } from './depenseDePx';
 import { bourseOf } from '../engine/bourse';
 import { aubeApresNuits } from '../engine/clock';
 import { garanti } from '../lib/garanti';
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
+import type { PlayerText } from '../i18n/playerText';
 
 /** L'état que lisent les verdicts d'interlude. */
 export type EtatDInterlude = Pick<Jeu, 'interlude' | 'party' | 'bank'>;
@@ -56,8 +57,8 @@ export function desEnAttente(s: EtatDInterlude): Combatant[] {
   return s.party.filter((h) => itl.perHero[h.id] && itl.perHero[h.id].eventRoll == null);
 }
 
-const nomDuHeros = (s: EtatDInterlude, heroId: string): string =>
-  libelleOuAbsence(s.party.find((h) => h.id === heroId), 'heros', heroId);
+const nomDuHeros = (s: EtatDInterlude, heroId: string): PlayerText =>
+  nomOuAbsence(s.party.find((h) => h.id === heroId), 'heros', heroId);
 
 /** Refus d'un geste d'interlude pendant le tirage des Événements : la raison affichée, ou `null`. Verdict
  *  UNIQUE des gestes qui ne consomment pas d'Activité (engager un Artisanat, retirer une planque). LDB 22 l.5 */

@@ -1022,7 +1022,7 @@ export function openSkillTest(
       pont,
     });
     return {
-      id: actor.id, label: actor.label, value,
+      id: actor.id, label: nomDe(actor), value,
       // La LIGNE MONTÉE voyage avec le candidat : base NUE + lignes nommées telles que le monteur les
       // a émises (famille et fiche comprises). L'affichage n'a plus rien à recomposer.
       base: line.base, ...(line.mods ? { mods: line.mods } : {}),
@@ -1208,7 +1208,7 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
   const meta = { choiceYes: { kind: 'effet' as const, effet: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
     id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'interface/reflexion',
-    label: stepPrecision(dataLabel(question), dataLabel(h.label)),
+    label: stepPrecision(dataLabel(question), nomDe(h)),
     options: [{ key: 'oui', label: dataLabel(question) }, { key: 'non', label: t('opt.renoncer') }],
     defaultChoice: 'non',
     ...(i === heros.length - 1 ? { meta } : {}),
@@ -1788,7 +1788,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.to && !env.get().battle) poserLeGroupe(env.get, env.set, e.to);
       if (targets.length) {
         env.set(touchActors(env.get()));
-        env.log(t('eff.chuteOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));
+        env.log(t('eff.chuteOuverte', { m, noms: targets.map(nomDe).join(', ') }));
         for (const c of targets) ouvrirChute(env.set, c, m);
       }
     },
@@ -2243,7 +2243,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.mode === 'forcerLaReussite') {
         // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
         for (const line of tablesPosees().lancerLeSortGaranti(get, set, caster, target, spell.id)) env.log(line);
-        env.log(`${caster.label} incante ${spell.label} (rituel garanti).`);
+        env.log(t('eff.rituelGaranti', { name: nomDe(caster), sort: spell.label }));
         return;
       }
       if (get().battle) {
@@ -2406,7 +2406,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
   if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medecinSansCompetenceDeSoin', { name: nomDe(npc) })); return; }
   ouvrirLeMedecin(get, set, undefined, {
     id: e.entityId.id,
-    label: npc.label,
+    label: nomDe(npc),
     skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
     intBonus: bonus(effectiveChar(npc, 'intelligence')),
     acts,

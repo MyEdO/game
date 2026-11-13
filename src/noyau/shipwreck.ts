@@ -200,7 +200,7 @@ function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimme
   const survivors = swimmerIds
     .map((id) => get().party.find((h) => h.id === id))
     .filter((h): h is Combatant => !!h && !h.dead)
-    .map((h) => h.label);
+    .map(nomDe);
   const lines: string[] = [];
   if (shore) lines.push(survivors.length
     ? t('wreck.survivors', { names: survivors.join(', '), place: shore.label })

@@ -4,6 +4,7 @@
  * l'IA (résolution inline, combatFlow) ET le flux joueur (`pendingStateRecovery`, combatSlice). Remplace
  * les branches par-nom `if state === empetre … else athletisme` dupliquées des deux côtés.
  */
+import { nomDe } from '../../engine/nom';
 import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../../engine/types';
 import { testValue, skillBaseValue } from '../../engine/skills';
 import { isOutOfAction } from '../../engine/conditions';
@@ -67,8 +68,8 @@ export function resolveRecoverTest(
     const source = cond?.sourceId && battle ? battle.combatants.find((c) => c.id === cond.sourceId) : undefined;
     const src = source && !isOutOfAction(source) ? source : undefined;
     if (cond?.escapeThreshold != null) { requireSl = cond.escapeThreshold; }
-    else if (cond?.escapeStrength != null) opposition = { value: cond.escapeStrength, base: cond.escapeStrength, label: source?.label ?? etat.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
-    else if (src) opposition = { value: testValue(src, { characteristic: 'force' }), base: skillBaseValue(src, { characteristic: 'force' }), label: src.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
+    else if (cond?.escapeStrength != null) opposition = { value: cond.escapeStrength, base: cond.escapeStrength, label: source ? nomDe(source) : etat.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
+    else if (src) opposition = { value: testValue(src, { characteristic: 'force' }), base: skillBaseValue(src, { characteristic: 'force' }), label: nomDe(src), difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
     entangleOnFail = cond?.entangleOnFail;
     struggleDamage = cond?.struggleDamage;
   }

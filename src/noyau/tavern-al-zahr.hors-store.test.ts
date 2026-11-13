@@ -23,6 +23,7 @@ import { tavernParams, potProchain } from './tavernFlow';
 import type { Combatant } from '../engine/types';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { tableSpec, tableStepNaturalRange } from './cascade';
+import { fixtureText } from '../i18n/fixtureText';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -154,9 +155,9 @@ describe('Al-zahr — les effets de pot (famille 5, socle)', () => {
 
   it('l’ORDRE du tour saute les joueurs sortis — un éliminé ne relance jamais', () => {
     const seats = [
-      { id: 'a', label: 'A', hero: true },
-      { id: 'b', label: 'B', hero: false },
-      { id: 'c', label: 'C', hero: false },
+      { id: 'a', label: fixtureText('A'), hero: true },
+      { id: 'b', label: fixtureText('B'), hero: false },
+      { id: 'c', label: fixtureText('C'), hero: false },
     ];
     expect(potProchain(seats, 0, [])).toBe(1);
     expect(potProchain(seats, 0, ['b'])).toBe(2);

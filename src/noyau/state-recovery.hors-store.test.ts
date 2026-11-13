@@ -6,6 +6,7 @@ import { applyOps } from '../engine/ops';
 import { findConditionById } from '../data';
 import { desDuTest } from '../engine/dice.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { emptyScene } from './monde/scene';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -25,10 +26,12 @@ function enemy(p: Partial<Combatant>): Combatant {
   return { ...hero({ kind: 'ennemi', label: 'Bête', skills: [], ...p }) } as Combatant;
 }
 
+/** Le combat de `combatants` sur une scène où le groupe les voit, comme tout combat du jeu (`lancerLeCombat`). */
 function setBattle(combatants: Combatant[], activeId: string) {
   const order = combatants.map((c) => c.id);
   banc.setState({
     mode: 'battle',
+    scene: emptyScene('recuperation'),
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,

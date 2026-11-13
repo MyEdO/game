@@ -4,6 +4,7 @@
  * font JOUER un PNJ hors combat (table de taverne, marchandage, billet, infirmerie payante). Un PNJ a UNE
  * fiche, quelle que soit la porte par laquelle la partie le rencontre (#1882).
  */
+import { nomDe } from '../../engine/nom';
 import type { Combatant } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { idDuCorps, type Scene, type SceneEntity } from './scene';
@@ -77,7 +78,7 @@ export type EtatDesIndividus = Pick<Jeu, 'party' | 'battle' | 'scene' | 'campaig
 export function nomDIndividu(etat: EtatDesIndividus): NomDIndividu {
   return (id) => {
     const combattant = etat.party.find((c) => c.id === id) ?? inBattleId(etat.battle, id);
-    if (combattant) return combattant.label;
+    if (combattant) return nomDe(combattant);
     const ent = etat.scene?.entities.find((e) => e.id === id);
     return ent && nomDEntite(ent, presetDuNarratif(etat.campaignNarratif));
   };

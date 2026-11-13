@@ -25,6 +25,7 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { chainStep } from './enchainerEtape';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { t } from '../i18n';
+import { nomDe } from '../engine/nom';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { fromBrass, formatMoney, PA_PER_CO, canAfford } from '../engine/money';
@@ -323,7 +324,7 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
     const netSL = opp.netSL;
     if (opp.winner === 'attaquant') pct = -bargainPct(true, netSL, hasBargainBonus(best.actor)); // remise à l'acheteur
     else if (opp.winner === 'defenseur') pct = bargainPct(true, netSL, false); // le marchand monte le prix
-    bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${pct === 0 ? 'prix inchangé' : pct < 0 ? `remise de ${-pct} %` : `surcoût de ${pct} %`}.`;
+    bargainLine = t('port.bargainLine', { name: nomDe(best.actor), roll: opp.attacker.roll, opp: opp.defender.roll, seller: '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
   }
   const price = prixDuLotDeCargaison(want, offer.basePrice, partial, pct);
   const cost = fromBrass(price * PA_PER_CO);
@@ -394,7 +395,7 @@ function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: numbe
     const netSL = opp.netSL;
     if (opp.winner === 'attaquant') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(best.actor)); // le PJ monte le prix
     else if (opp.winner === 'defenseur') bargainPctVal = -bargainPct(true, netSL, false); // l'acheteur le baisse
-    bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${bargainPctVal === 0 ? 'sans effet' : bargainPctVal > 0 ? `+${bargainPctVal} %` : `${bargainPctVal} %`}.`;
+    bargainLine = t('port.bargainLine', { name: nomDe(best.actor), roll: opp.attacker.roll, opp: opp.defender.roll, seller: '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
   }
   // Rumeur commerciale (l.180) : une rumeur du board visant CE Lieu et CE bien le fait vendre au DOUBLE du
   // base. Non consommée (« autant qu'ils le souhaitent ») → elle reste sur le board.
@@ -466,7 +467,7 @@ export const TABLES = {
       const rev = wineEvalReveal(offer.basePrice, success, sl);
       set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, wineTier: rev.shownLabel, wineEvalOk: success } : o) } });
       const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
-      return { consequences: freeCons([`${garanti(actor, step.actorId, 'évaluation du vin').label} — Évaluation du ${offer.label} (${roll}) : qualité jugée « ${rev.shownLabel} »${success ? '.' : ' — jugement peu sûr…'}`]) };
+      return { consequences: freeCons([t(success ? 'lm.evaluationDuVin' : 'lm.evaluationDuVinIncertaine', { name: nomDe(garanti(actor, step.actorId, 'évaluation du vin')), offre: offer.label, roll: garanti(roll, step.id, 'dé de l’évaluation du vin'), qualite: rev.shownLabel })]) };
     },
     [LAND_SELL_BUYER_KIND]: (get, set, step) => {
       if (!step.result) return {};

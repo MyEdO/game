@@ -3,7 +3,7 @@
  * combat (`cliquerLeCombattant`, `cliquerLaCaseDuCombat`), attaque, défense et cascade, désengagement, monture, fin de tour, pause de
  * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
-import { nomDe } from '../engine/nom';
+import { nomDe, nomOuAbsence } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
@@ -95,7 +95,7 @@ import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbu
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
+import { findSeaShantyById, conditionLabel } from '../data';
 import { acquerirLeTrait } from './cibleAcquise';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
@@ -628,7 +628,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active || !active.mountId) return;
       const mount = mountOf(battle, active);
-      const mountName = libelleOuAbsence(mount, 'combattant', active.mountId);
+      const mountName = nomOuAbsence(mount, 'combattant', active.mountId);
       const wasControlled = !!mount && isControlledMount(mount); // monture Nerveux exclue de l'ordre tant que montée
       dismount(battle, scene, active);
       // La monture Nerveux redevient un combattant indépendant → réintègre l'ordre à son rang d'Initiative.
@@ -1347,7 +1347,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const barre = barreDuGeste(s);
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
-      if (heroId !== undefined && heroId !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, heroId)?.label ?? heroId }));
+      if (heroId !== undefined && heroId !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: nomOuAbsence(actorIn(s, heroId), 'combattant', heroId) }));
       if (refuseParSonEntree(get, set, 'ramassage', active, battle, { entityId, pickKey: key })) return;
       const scene = s.scene!;
       const ent = scene.entities.find((e) => e.id === entityId && e.kind === 'prop');

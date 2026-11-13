@@ -522,7 +522,7 @@ export function peutTenterAction(c: Combatant, def: ActivityDef): boolean {
  *  groupe. ADE II 8 l.65, l.116 ; LDB 09 l.30. */
 export function refusTenterAction(posted: Combatant[], def: ActivityDef): string {
   return posted.length
-    ? t('mbf.postedCannot', { names: posted.map((h) => h.label).join(', '), action: def.label })
+    ? t('mbf.postedCannot', { names: posted.map(nomDe).join(', '), action: def.label })
     : refusPersonneNePeutTenter({ action: def.label });
 }
 
