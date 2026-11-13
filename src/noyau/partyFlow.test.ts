@@ -1,7 +1,16 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { afterEach, describe, it, expect } from 'vitest';
 import { poserLApparence, transmettreLObjet, equiperLObjet, rangerLObjet, garnirLaPanoplie } from './partyFlow';
-import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout, formeResolue, choisirApparenceDObjet, weaponItem } from '../engine/items';
+import {
+  itemFromTrappingById,
+  recomputeLoadout,
+  totalEncumbrance,
+  avecObjet,
+  activeLoadout,
+  formeResolue,
+  choisirApparenceDObjet,
+  weaponItem,
+} from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { setDataset } from '../data/overrides';
 import { emptyNarratif } from './monde/campaignNarratif';

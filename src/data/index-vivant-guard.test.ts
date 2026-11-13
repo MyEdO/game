@@ -84,7 +84,17 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bindingsVivants, clesDuSeam, indexFiges, nomsVivantsDuFichier, fichiersSources, fichiersDuSeam, accesseursVivants, sansCommentaires, RACINE } from '../../scripts/guards/lib/bindingsVivants.mjs';
+import {
+  bindingsVivants,
+  clesDuSeam,
+  indexFiges,
+  nomsVivantsDuFichier,
+  fichiersSources,
+  fichiersDuSeam,
+  accesseursVivants,
+  sansCommentaires,
+  RACINE,
+} from '../../scripts/guards/lib/bindingsVivants.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { DATASET_KEYS } from './overrides';
 

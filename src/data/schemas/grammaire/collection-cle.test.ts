@@ -17,7 +17,18 @@ import { sceneSchema } from '../defs-scenes/scene';
 import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
-import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, noeudsDeLElement, refusDeCharge, type MarqueDeCollection } from './collection-cle';
+import {
+  collectionDe,
+  collectionsDesDocuments,
+  collectionsPerdues,
+  collectionsRetrouvees,
+  listeCle,
+  marquerCollection,
+  marqueDeRecord,
+  noeudsDeLElement,
+  refusDeCharge,
+  type MarqueDeCollection,
+} from './collection-cle';
 import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { champsDeChoix } from './choixDeCreation';
 import { schema as schemaDesTailles } from '../defs/sizes';

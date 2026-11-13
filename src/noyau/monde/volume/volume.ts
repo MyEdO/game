@@ -4,7 +4,27 @@
  * avec la hauteur de la surface de chaque case de chaque couche, et le masque de ce qu'un regard en retire. Repère des builders : X = est, Y = haut, Z = sud, en mètres, la case
  * (x, y) centrée sur (x·m, y·m) où m = `metresParCase`.
  */
-import { CHAMPS_DES_COURONNES, CHAMPS_DES_TOITS, CHAMPS_DU_VOLUME, PREFIXE_TUILE_EFFONDREE, crenellatedAt, heightAt, piedDeLArete, sceneMetresPerTile, tileAt, tileCollapsed, tuilesEffondreesSignature, wallEnds, type CellSide, type Scene, type SceneDesCouronnes, type SceneDesToits, type SceneDuVolume, type SceneEntity, type WallSeg } from '../scene';
+import {
+  CHAMPS_DU_VOLUME,
+  PREFIXE_TUILE_EFFONDREE,
+  crenellatedAt,
+  heightAt,
+  piedDeLArete,
+  sceneMetresPerTile,
+  tileAt,
+  tileCollapsed,
+  tuilesEffondreesSignature,
+  wallEnds,
+  type CellSide,
+  type Scene,
+  type SceneDuVolume,
+  type SceneEntity,
+  type WallSeg,
+  CHAMPS_DES_COURONNES,
+  CHAMPS_DES_TOITS,
+  type SceneDesCouronnes,
+  type SceneDesToits,
+} from '../scene';
 import { entityBlockedAt } from '../sceneRules';
 import { versionDesDatasets } from '../../../data/versionDataset';
 import { terrainAbsent, terrainOverlayProp, terrainsAvecGlyphe } from '../terrain';

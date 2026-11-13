@@ -14,7 +14,18 @@ import { PALIERS_RENOMMAGE_MS } from '../../guards/lib/renommageResilient.mjs'
 import { gitDirDe } from '../../hooks/barriere-outil.mjs'
 import { reconstruireApresGit } from '../../git-hooks/docs-rebuild.mjs'
 import { executer, GENERATORS } from '../build-all.mjs'
-import { ATTENTE_DU_HOOK, cheminsDeLEcrivain, ENV_EPOQUE, MARGE_DU_HOOK_MS, ENV_TENU, envDeLaPasse, epoqueDe, operationEnCours, preempterLesDerives, sousLEpoque } from './ecrivain-derives.mjs'
+import {
+  ATTENTE_DU_HOOK,
+  cheminsDeLEcrivain,
+  ENV_EPOQUE,
+  MARGE_DU_HOOK_MS,
+  ENV_TENU,
+  envDeLaPasse,
+  epoqueDe,
+  operationEnCours,
+  preempterLesDerives,
+  sousLEpoque,
+} from './ecrivain-derives.mjs'
 import { ecrireDoc } from './ecriture-derives.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 import { invaliderPreuve } from './fraicheur-docs.mjs'

@@ -22,7 +22,16 @@ import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
 import { corruptionTarget } from './corruptionFlow';
-import { activityById, cleDEntrainement, craftCatalog, entrainementOptions, learnableTalents, qualitesDArtisanat, type ActivityDef, type ActivityResolver } from '../engine/activities';
+import {
+  activityById,
+  cleDEntrainement,
+  craftCatalog,
+  entrainementOptions,
+  learnableTalents,
+  qualitesDArtisanat,
+  type ActivityDef,
+  type ActivityResolver,
+} from '../engine/activities';
 import { describeQuality } from '../engine/qualities/describe';
 import { libelleDePsy } from '../engine/psych/ciblage';
 import { formatMoney, fromBrass } from '../engine/money';

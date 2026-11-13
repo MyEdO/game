@@ -4,8 +4,28 @@ import { join, posix, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MessageChannel, Worker, receiveMessageOnPort } from 'node:worker_threads'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
-import { LOT_D_ANALYSE, analyserEnLots, clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
-import { APPEL_DE_LECTURE, certifierLecture, evaluerLotDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete, encoderLecture, mesureLecture } from '../guards/lib/racinesBalayees.mjs'
+import {
+  LOT_D_ANALYSE,
+  analyserEnLots,
+  clotureDImports,
+  grapheInverse,
+  resolveImport,
+  aliasDuDepot,
+  estModule,
+  liaisonsDe,
+  CHEMIN_TSCONFIG,
+} from '../guards/lib/importGraph.mjs'
+import {
+  APPEL_DE_LECTURE,
+  certifierLecture,
+  evaluerLotDuDepot,
+  evaluer,
+  lecteurDExpressions,
+  lectureDeModule,
+  partiesDeRequete,
+  encoderLecture,
+  mesureLecture,
+} from '../guards/lib/racinesBalayees.mjs'
 import { estDeLaSuiteVitest } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estTestNode } from '../gates/testsParGate.mjs'
 import { baseCommune, ceQuiChange, depotDe, entreesDe, lireEnLot, listerImage, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'

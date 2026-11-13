@@ -20,7 +20,19 @@
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
 import { baseWithTalents } from './talentEffects';
-import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, chaosSpellsOf, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
+import {
+  byId,
+  specPoolOf,
+  levelsForCareer,
+  findTalentById,
+  findDomainById,
+  chaosSpellsOf,
+  findSpeciesById,
+  advancementLabel,
+  refLabel,
+  CareerLevelData,
+  type AdvancementRef,
+} from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';

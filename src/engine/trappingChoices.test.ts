@@ -11,7 +11,18 @@ import {
 } from './trappingChoices';
 import { adresseDeCreation } from './adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
-import { careerLevels, findTrappingById, groupeDeLArme, trappingRefLabel, fabricationAtouts, qualities, trappings, type BrancheDeDotation, type QualityData, type TrappingRef } from '../data/index';
+import {
+  careerLevels,
+  findTrappingById,
+  groupeDeLArme,
+  trappingRefLabel,
+  fabricationAtouts,
+  qualities,
+  trappings,
+  type BrancheDeDotation,
+  type QualityData,
+  type TrappingRef,
+} from '../data/index';
 import { setDataset } from '../data/overrides';
 
 const dot = adresseDeCreation.dotation;

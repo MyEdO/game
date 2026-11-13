@@ -16,7 +16,16 @@ import { buildScene } from '../../src/noyau/mapSpec.ts';
 import { documentDeProjet } from '../../src/noyau/worldMap.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { idDuCorps } from '../../src/noyau/monde/scene.ts';
-import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, siegeEngines, species as SPECIES_CATALOG } from '../../src/data/index.ts';
+import {
+  findCreatureById,
+  byId,
+  findSpellById,
+  findTraitById,
+  findTrappingById,
+  findVehicleById,
+  siegeEngines,
+  species as SPECIES_CATALOG,
+} from '../../src/data/index.ts';
 import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
 

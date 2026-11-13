@@ -6,12 +6,29 @@
  * porteur (ex. `CONDITION_KINDS_CARTE`) ; absente = toute l'algèbre. Remplace les
  * adaptateurs plats `whenFlag/whenWindow/buildWhen` (qui n'exprimaient que « flag ET créneau »).
  */
-import { seuilDeBourse, type Condition, type ActorRef, type ActorField, type CompareOp, type PartySelector, type TemporalCondition } from '../../engine/flowCore';
+import {
+  seuilDeBourse,
+  type Condition,
+  type ActorRef,
+  type ActorField,
+  type CompareOp,
+  type PartySelector,
+  type TemporalCondition,
+} from '../../engine/flowCore';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { actorFieldSchema, actorRefSchema, CONDITIONS_RESERVEES, conditionSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  actorFieldSchema,
+  actorRefSchema,
+  CONDITIONS_RESERVEES,
+  conditionSchema,
+  hasWhatSchema,
+  partyWhoSchema,
+  relationOrCampSchema,
+  startleCauseSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
 import { ChoixDeSpec, RefField, reposerLId } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';

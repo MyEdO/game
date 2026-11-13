@@ -9,7 +9,15 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from './policy';
-import { malevolentInfluenceSeverity, focusCriticalDR, dispelOwnSpellDR, malepierreDR, malepierreCharge, malepierreReserveOf, consumeMalepierre } from './magic';
+import {
+  malevolentInfluenceSeverity,
+  focusCriticalDR,
+  dispelOwnSpellDR,
+  malepierreDR,
+  malepierreCharge,
+  malepierreReserveOf,
+  consumeMalepierre,
+} from './magic';
 import type { Combatant } from './types';
 import { itemFromTrappingById } from './items';
 import { rollMiscast } from './miscast';

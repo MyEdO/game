@@ -11,7 +11,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { auditFacade, auditUnsupportedFloor, auditZoneCoverage, floorPairs, scenePlanDefects, groundTerrains, PLAN_DEFECT_FAMILIES, type Defect, type PlanDefectFamilyDef } from '../../src/noyau/planDefects';
+import {
+  auditFacade,
+  auditUnsupportedFloor,
+  auditZoneCoverage,
+  floorPairs,
+  scenePlanDefects,
+  groundTerrains,
+  PLAN_DEFECT_FAMILIES,
+  type Defect,
+  type PlanDefectFamilyDef,
+} from '../../src/noyau/planDefects';
 import { locateGrid } from './locate';
 import { codedSites } from './sites';
 import { zonesFromSeeds, type ZoneSeed } from '../../src/noyau/monde/asciiMap';

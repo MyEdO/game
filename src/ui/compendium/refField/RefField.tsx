@@ -21,7 +21,20 @@ import type { JSX } from 'react';
 import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
-import { TYPES, catalogueSpecs, entreeOuverte, espaceDe, estFeuilleDId, estSpecialisable, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefASpecialisation, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import {
+  TYPES,
+  catalogueSpecs,
+  entreeOuverte,
+  espaceDe,
+  estFeuilleDId,
+  estSpecialisable,
+  refusDeLEntree,
+  declarationDeFeuilleDId,
+  declarationDeRefASpecialisation,
+  declarationDeRefTypee,
+  type FeuilleDId,
+  type TypeEntite,
+} from '../../../data/schemas/grammaire/ref';
 import { datasetDeLEspaceDuType, specLabel } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';

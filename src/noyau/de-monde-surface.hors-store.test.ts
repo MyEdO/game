@@ -4,7 +4,18 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { surfaceDeLEtape, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, monoStep, worldStep } from './rollSeam';
 import { t } from '../i18n';
 import { actorIn } from './monde/combatants';
-import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, startCascade, pushStep, suspendActiveCascade, poserCurseurCascade, stepReady } from './cascade';
+import {
+  runCascadeImmediate,
+  lireDeEtape,
+  tableStepDef,
+  naturalRollForTableRow,
+  rollTableStep,
+  startCascade,
+  pushStep,
+  suspendActiveCascade,
+  poserCurseurCascade,
+  stepReady,
+} from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene, type Scene } from './monde/scene';

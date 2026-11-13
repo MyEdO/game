@@ -16,7 +16,21 @@ import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
-import { type Amateur, type ConditionUnlock, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import {
+  type Amateur,
+  type ConditionUnlock,
+  type ContexteDeTest,
+  type Availability,
+  type TestedAvailability,
+  CHAR_LABELS,
+  COUVERT_DIFFICULTES,
+  DIFFICULTY_LABELS,
+  HIT_LOCATION_LABELS,
+  LOCALISATIONS_DE_COUP,
+  REACH_LABELS,
+  REACH_VARIABLE,
+  STAKE_FORMS,
+} from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';

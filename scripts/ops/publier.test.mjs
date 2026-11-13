@@ -33,7 +33,19 @@ import { ast, typescript } from '../guards/lib/dialecte.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
-import { GitIndisponible, MARQUE_FEINTE, ajouterOrigine, classer, commitDe, depotDe, pousser, refusDeGit, reussi, shaDe, sortieDe } from '../guards/lib/gitPorte.mjs'
+import {
+  GitIndisponible,
+  MARQUE_FEINTE,
+  ajouterOrigine,
+  classer,
+  commitDe,
+  depotDe,
+  pousser,
+  refusDeGit,
+  reussi,
+  shaDe,
+  sortieDe,
+} from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { ABAISSER_PRIORITE, citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
@@ -41,8 +53,56 @@ import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
-import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog, runEnVol, cheminDeTrace, sortirHorsJournal, verdictDeTrace } from './publicationDonnee.mjs'
-import { ECHEANCE_SANS_RUN_MS, RACINE, borneDeVeilleMin, identiteDuTrain, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, executerPublication, jouerLeTrain, mortDuRun, planDeReprise, transitionDuRun } from './publierTrain.mjs'
+import {
+  CODE_ARRET_MOTEUR,
+  CODE_BORNE_DEPASSEE,
+  CODE_INDETERMINEE,
+  ENV_LANCEMENT,
+  FILE_TIMEOUT_MIN,
+  codeDeVerdict,
+  commandeDeVeille,
+  cheminsDeJournal,
+  entameDuRun,
+  envDeLancement,
+  idDeRun,
+  lancementDe,
+  ligneDePublication,
+  pidDeRun,
+  runDe,
+  filetDuTrainEnfant,
+  journalInitial,
+  journalVide,
+  lancementNpm,
+  ligneDeDetachement,
+  lireJournal,
+  modeDuLog,
+  motifDeRotation,
+  nomDeJournal,
+  nomDeRotation,
+  optionsDe,
+  rotationnerLog,
+  runEnVol,
+  cheminDeTrace,
+  sortirHorsJournal,
+  verdictDeTrace,
+} from './publicationDonnee.mjs'
+import {
+  ECHEANCE_SANS_RUN_MS,
+  RACINE,
+  borneDeVeilleMin,
+  identiteDuTrain,
+  transitionsDuRun,
+  veillerLeTrain,
+  constaterLaMort,
+  contexteDe,
+  etatDeLEtape,
+  etatDuTrain,
+  executerPublication,
+  jouerLeTrain,
+  mortDuRun,
+  planDeReprise,
+  transitionDuRun,
+} from './publierTrain.mjs'
 import {
   BORNE_EJECTIONS,
   ETAPES,

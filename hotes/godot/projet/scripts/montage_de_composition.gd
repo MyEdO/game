@@ -339,6 +339,15 @@ static func boucler(lecteur: AnimationPlayer, noms: Array) -> void:
 		lecteur.add_animation_library(cle, propre)
 
 
+## Sorti de l'arbre avec son combattant ou son atelier, qui n'y reviennent pas (#4195) : chaque montage en vol est
+## jeté (`_demandes`, `monter`), sa refonte demandée (`_refondre_la_demande`) et la pile qu'il attend du pont
+## (`recevoir_la_pile`) aussi.
+func _exit_tree() -> void:
+	_demandes.clear()
+	_refonte_demandee = false
+	_pile_fondue = ""
+
+
 ## Le montage ramené à aucun modèle : ni squelette ni lecteur, ni élément monté, ni demande de montage en vol.
 func vider() -> void:
 	if modele != null:
@@ -1314,7 +1323,13 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 func _demander_la_refonte() -> void:
 	if not _refonte_demandee:
 		_refonte_demandee = true
-		refondre.call_deferred()
+		_refondre_la_demande.call_deferred()
+
+
+## La refonte demandée (`_demander_la_refonte`), si rien ne l'a faite ni jetée entre-temps.
+func _refondre_la_demande() -> void:
+	if _refonte_demandee:
+		refondre()
 
 
 ## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce

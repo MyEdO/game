@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, dechirureFractureFicheId, traumaMovementHalved, traumaDodgePenalty, traumaCharPenalties, traumaSkillPenalty, consolidateAmputations, treatTrauma, passiveTestMod, avecSequelles, applyFractureEnd, type SequelleNeuve } from './trauma';
+import {
+  traumaById,
+  dechirureFractureFicheId,
+  traumaMovementHalved,
+  traumaDodgePenalty,
+  traumaCharPenalties,
+  traumaSkillPenalty,
+  consolidateAmputations,
+  treatTrauma,
+  passiveTestMod,
+  avecSequelles,
+  applyFractureEnd,
+  type SequelleNeuve,
+} from './trauma';
 import { effectiveChar } from './characteristics';
 import { effectiveMovement } from './encumbrance';
 import { defenseValue } from './combat';

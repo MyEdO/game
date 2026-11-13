@@ -29,7 +29,18 @@ import { rule } from '../engine/policy';
 import { bourseOf } from '../engine/bourse';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, estLanceur } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
-import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, libelleDeClasse, libelleOuAbsence } from '../data';
+import {
+  careers,
+  findSpellById,
+  findStarById,
+  spells as allSpells,
+  speciesSingular,
+  findSpeciesById,
+  findCareerById,
+  careerLabelFor,
+  libelleDeClasse,
+  libelleOuAbsence,
+} from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { CodexRef } from './compendium/CodexRef';

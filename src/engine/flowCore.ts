@@ -28,7 +28,17 @@ import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
-import { estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, estOpDuNavire, opDemandeUnDe, valeurNonLiee, type Formula, type GameOp, type PairedSense } from './ops';
+import {
+  estOpDAttaquesSubies,
+  estOpDeLaBourseDuGroupe,
+  estOpDuMarche,
+  estOpDuNavire,
+  opDemandeUnDe,
+  valeurNonLiee,
+  type Formula,
+  type GameOp,
+  type PairedSense,
+} from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';

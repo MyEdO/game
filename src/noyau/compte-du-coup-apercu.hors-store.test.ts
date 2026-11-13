@@ -6,7 +6,18 @@ import { applyAttackResult, attackWeaponOf, victimeDuCoup, resolveCastChain } fr
 import { draineCascade } from './cascade.testkit';
 import { toucheSauvee, hitModifiers } from './combat/hitModifiers';
 import { createHero } from '../engine/character';
-import { rederivePassiveAttack, issueAuJet, compteDuCoup, woundsAtCritLocation, apresDeviations, resolveStrayRangedHit, coupAApplique, ligneDuCoup, hitLocationByShape, type AttackResult } from '../engine/combat';
+import {
+  rederivePassiveAttack,
+  issueAuJet,
+  compteDuCoup,
+  woundsAtCritLocation,
+  apresDeviations,
+  resolveStrayRangedHit,
+  coupAApplique,
+  ligneDuCoup,
+  hitLocationByShape,
+  type AttackResult,
+} from '../engine/combat';
 import { reverseRoll } from '../engine/tests';
 import { makeRNG } from '../engine/dice';
 import { recomputeLoadout } from '../engine/items';

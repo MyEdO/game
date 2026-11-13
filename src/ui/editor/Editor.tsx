@@ -2,7 +2,29 @@ import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, idDuCorps, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, dupliquerLEntite, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
+import {
+  resizeGrid,
+  editEntity,
+  TypeNonNomme,
+  IdentiteNonPatchable,
+  type Pt,
+  type ProjectScenes,
+  deleteSel,
+  dupliquerLEntite,
+  nudgeSel,
+  pasteEntity,
+  addLayer,
+  removeLayer,
+  addArchitectureBody,
+  addStoreyAbove,
+  addArchitecturePart,
+  addBuildingMass,
+  addProjectScene,
+  duplicateProjectScene,
+  deleteProjectScene,
+  switchProjectScene,
+  poseBlocsAvances,
+} from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../../noyau/planDefects';

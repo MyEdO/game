@@ -18,7 +18,23 @@ import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
-import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
+import {
+  bornesAuPoint,
+  champDeLElement,
+  champsDeclares,
+  champsDuRecord,
+  champsOfferts,
+  choixDuNoeud,
+  cleOfferte,
+  elementDuNoeud,
+  formeAuPoint,
+  inferFields,
+  kindDuNoeud,
+  recordDuNoeud,
+  unionDuNoeud,
+  varianteCourante,
+  type FieldDesc,
+} from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
 import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';

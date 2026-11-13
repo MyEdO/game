@@ -70,7 +70,31 @@ import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';
 import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
-import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
+import {
+  type Pt,
+  setEdgeWall,
+  patchWall,
+  toggleDiagonalWall,
+  paintHeight,
+  paintCrenellated,
+  paintTiles,
+  fillTerrainRect,
+  addLayer,
+  putLayer,
+  placeEmplacement,
+  setPosteCrew,
+  setPosteSide,
+  pasteEntity,
+  addRestZone,
+  setSceneScalaires,
+  setSceneFlags,
+  realFloorAt,
+  roofExclusionsByZ,
+  deriveArchitectureMasses,
+  bodyFootCellsByZ,
+  bodyFootCells,
+  adoptableOpeningsAt,
+} from './sceneEdit';
 import { edgeWallState } from './sceneEditLecture';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un

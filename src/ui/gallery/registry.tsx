@@ -87,7 +87,24 @@ import { CouvreField } from '../editor/CouvreField';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, creatures, skillRefLabel, type SkillRef, type TrappingData } from '../../data';
+import {
+  species,
+  careers,
+  levelsForCareer,
+  stars,
+  mutations,
+  allAxes,
+  charAbr,
+  spells,
+  etats,
+  memoParVersion,
+  findPsychologyById,
+  findTrappingById,
+  creatures,
+  skillRefLabel,
+  type SkillRef,
+  type TrappingData,
+} from '../../data';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTrait, parseSkillRef } from '../../data/refFormatLivre';

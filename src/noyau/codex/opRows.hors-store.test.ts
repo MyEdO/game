@@ -9,7 +9,22 @@ import { datasetArray } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
 import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
-import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables, groupLabel } from '../../data';
+import {
+  characteristics,
+  talents,
+  skills,
+  traits,
+  psychologies,
+  etats,
+  trappings,
+  maladies,
+  symptoms,
+  creatures,
+  mutations,
+  findSymptomById,
+  effectTables,
+  groupLabel,
+} from '../../data';
 import type { CharKey } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
 import { spellOps } from '../../engine/flowCore';

@@ -7,7 +7,17 @@
  * d'Armure (#1463).
  */
 import { describe, it, expect } from 'vitest';
-import { aspectAToutesLocalisations, classerParenthese, emplacementsDesPieces, formaterParLocalisation, lireAspectIndice, lireMatiere, lireParLocalisation, lirePlage, localisationsDeZone } from './classementDeTrait';
+import {
+  aspectAToutesLocalisations,
+  classerParenthese,
+  emplacementsDesPieces,
+  formaterParLocalisation,
+  lireAspectIndice,
+  lireMatiere,
+  lireParLocalisation,
+  lirePlage,
+  localisationsDeZone,
+} from './classementDeTrait';
 
 /** Catalogue d'armures de fixture, colonne Emplacements de LDB 63 l.42-58. */
 const pieces = emplacementsDesPieces([
