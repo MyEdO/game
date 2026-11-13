@@ -47,7 +47,7 @@ export { aLEchelleDesPonts, CAPS_DES_PONTS, estPoseParSesPonts, naviresDeLaScene
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
-export { distanceDeCombat, distanceDeContact } from './monde/footprint';
+export { distanceDeCombat } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
 export { effectiveTalents } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY } from './combatAuto';
