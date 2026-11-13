@@ -20,7 +20,8 @@ import { emptyScene, Scene } from './monde/scene';
 import { buildEncounter } from './monde/encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
-import { setRule } from '../engine/policy';
+import { setRule, resetRule } from '../engine/policy';
+import { applierQuiOuvre } from './noyau.testkit';
 import { setCadence } from '../engine/cadence';
 import { t } from '../i18n';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -30,7 +31,7 @@ import { toDate } from '../engine/clock';
 import { creditBourse } from './bourseFlow';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engine/types';
 import { applierDe, rollTableStep } from './cascade';
-import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
+import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest, type ChoisitCle } from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 import { lignesDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
@@ -824,5 +825,90 @@ describe('péril d’auteur qui émet une révélation, seule étape du jour ten
       expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor, c.participants.length]), `le jour attend en pile, fini (${etat()})`).toEqual([['travelDay', 1, 1]]);
     };
     expect(jouerLeJour([{ type: 'setTime', hour: 6 }], carteAuSlot), 'la carte, seule, une fois').toEqual(['upkeep']);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// #4006 — l'applier de la Rencontre d'Étape (`travelPostes.ts › etapeRencontre`), joué d'office par le pilote du
+// jour (`jouerLaJournee`), ouvre un nœud de scène : il passe avant le dénouement du jour, halte ou arrivée.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('Rencontre d’Étape dont l’applier ouvre un nœud sous la journée pilotée (#4006)', () => {
+  beforeEach(() => { setCadence('rapide'); setRule('voyage-etapes', true); });
+  afterEach(() => { setCadence('manuel'); resetRule('voyage-etapes'); });
+  const drapeau = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+  const OUVREURS: { ouvreur: string; etape: string; flow: Flow }[] = [
+    { ouvreur: 'test', etape: 'jetDeTestDeScene', flow: { kind: 'test', test: { characteristic: 'force' }, reussite: drapeau('branche'), echec: drapeau('branche') } },
+    { ouvreur: 'choix', etape: 'choixDeFlux', flow: { kind: 'choix', invite: 'Prier encore', oui: drapeau('branche'), non: drapeau('branche') } },
+    { ouvreur: 'volontaires', etape: 'volontaireDeFlux', flow: { kind: 'effet', effet: { type: 'ops', on: { volontaires: 'Qui monte la garde ?' }, ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }] } } },
+    { ouvreur: 'contagion', etape: 'maladieDeFinDeCombat', flow: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'exposeDisease', disease: 'blessure-purulente' }] } } },
+  ];
+  const volontaire: ChoisitCle = (etape) => (etape.kind === 'volontaireDeFlux' ? 'oui' : undefined);
+  const jours = () => get().travelPlan?.log?.length ?? 0;
+  const etat = () => { const s = get(); const p = s.pendingCascade; return `slot=${p ? `${p.purpose}@${p.cursor}/${p.participants.length}:${p.participants[p.cursor]?.kind}` : '-'} test=${!!s.pendingTest} pile=[${s.suspendedCascades.map((c) => `${c.purpose}@${c.cursor}/${c.participants.length}`)}] jours=${jours()} halte=${!!s.pendingRest} lieu=${s.lieu}`; };
+  const rencontreQuiOuvre = (flow: Flow | null) => applierQuiOuvre('etapeRencontre', flow);
+  /** Le jour : l'Approvisionnement de Hilda au slot, puis le pilote joue le bilan d'Étape et sa Rencontre tirée. */
+  const partir = (km: number, graine: number) => {
+    seedBattleRng(graine);
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1')], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any] });
+    setup(map({ km, perilDie: 0 }), [h]);
+    get().partirEnVoyage('r1', 'pied');
+    expect([get().pendingCascade?.purpose, get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind], `prémisse : le poste du jour tient le slot (${etat()})`).toEqual(['travelDay', 'etapePosteEnBande']);
+    avanceEtapeCascade(get);
+  };
+  /** Le nœud au slot, le jour fini en pile derrière sa Rencontre ; joué jusqu'à sa clôture, le jour se dénoue. */
+  const jouerLeNoeud = (cas: string, etape: string) => {
+    expect(get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind, `le nœud tient le slot (${cas}, ${etat()})`).toBe(etape);
+    const jour = get().suspendedCascades.map((c) => [c.purpose, c.cursor === c.participants.length]);
+    expect(jour, `le jour attend en pile, fini (${cas}, ${etat()})`).toEqual([['travelDay', true]]);
+    let tours = 0;
+    for (; tours < 20 && (get().pendingTest || get().pendingCascade); tours++) {
+      expect(jours(), `aucune journée comptée sous le nœud (${cas}, ${etat()})`).toBe(0);
+      expect(get().pendingRest, `aucune halte sous le nœud (${cas}, ${etat()})`).toBeNull();
+      expect(get().travelPlan, `aucune arrivée sous le nœud (${cas}, ${etat()})`).not.toBeNull();
+      expect(get().suspendedCascades.map((c) => c.purpose), `le jour attend en pile (${cas}, ${etat()})`).toEqual(['travelDay']);
+      if (get().pendingTest) { get().jetLancer('test'); get().jetValider('test'); } else avanceEtapeCascade(get, undefined, volontaire);
+    }
+    banc.reprendreTout();
+    expect(tours, `le nœud s’est clos (${cas}, ${etat()})`).toBeLessThan(20);
+    expect([get().pendingCascade, get().suspendedCascades], `le slot est libre, la pile vide (${cas}, ${etat()})`).toEqual([null, []]);
+  };
+  /** L'effet du nœud est joué : la branche du Test ou du choix, l'État du volontaire, le verdict de contagion. */
+  const brancheJouee = (ouvreur: string) => {
+    if (ouvreur === 'volontaires') return get().party[0]!.conditions.some((c) => c.id === 'extenue');
+    if (ouvreur === 'contagion') return get().journal.includes(t('cf.resisteALInfection', { name: 'Hilda' })) || (get().party[0]!.diseases ?? []).length > 0;
+    return !!get().flags.branche;
+  };
+
+  for (const graine of [7, 2]) for (const { ouvreur, etape, flow } of OUVREURS) it(`${ouvreur}, graine ${graine}, 30 km : le nœud passe avant le dénouement du jour, une journée comptée, la halte après`, () => {
+    const cas = `${ouvreur}, graine ${graine}`;
+    const passages = rencontreQuiOuvre(flow);
+    partir(30, graine);
+    expect(passages.n, `prémisse (${cas}) : le pilote a joué l’applier de la Rencontre`).toBe(1);
+    jouerLeNoeud(cas, etape);
+    expect(brancheJouee(ouvreur), `l’effet du nœud est joué (${cas})`).toBe(true);
+    expect(passages.n, `la Rencontre n’est pas rejouée (${cas})`).toBe(1);
+    expect(jours(), `une journée comptée (${cas})`).toBe(1);
+    expect(get().pendingRest, `la halte s’ouvre après la clôture (${cas})`).toBeTruthy();
+  });
+
+  /** Le dénouement « arrivée », que le témoin sans nœud fixe : plan clos au lieu d'arrivée, sans halte. */
+  const arrivee = () => [get().travelPlan, get().lieu, get().pendingRest, get().scene?.id, get().journal[get().journal.length - 1]];
+  const ARRIVEE = [null, 'pb', null, 'lieu-a-scene', t('tf.arrivee', { to: 'B' })];
+  it('témoin sans nœud, 12 km : le jour de la Rencontre finit sur l’arrivée', () => {
+    const passages = rencontreQuiOuvre(null);
+    partir(12, 7);
+    banc.reprendreTout();
+    expect(passages.n, 'prémisse : le pilote a joué l’applier de la Rencontre').toBe(1);
+    expect([get().pendingCascade, get().suspendedCascades], 'le jour s’est dénoué').toEqual([null, []]);
+    expect(arrivee()).toEqual(ARRIVEE);
+  });
+  for (const { ouvreur, etape, flow } of OUVREURS) it(`${ouvreur}, 12 km : le nœud passe avant l’arrivée, puis le voyage arrive comme le témoin`, () => {
+    const passages = rencontreQuiOuvre(flow);
+    partir(12, 7);
+    expect(passages.n, `prémisse (${ouvreur}) : le pilote a joué l’applier de la Rencontre`).toBe(1);
+    jouerLeNoeud(ouvreur, etape);
+    expect(brancheJouee(ouvreur), `l’effet du nœud est joué (${ouvreur})`).toBe(true);
+    expect(passages.n, `la Rencontre n’est pas rejouée (${ouvreur})`).toBe(1);
+    expect(arrivee(), `le même dénouement que le témoin (${ouvreur})`).toEqual(ARRIVEE);
   });
 });

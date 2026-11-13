@@ -59,7 +59,7 @@ import { makeRNG } from '../engine/dice';
 import { ECHEC_SANS_JET, estJete } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { hullNavalTraits } from '../engine/navalTraits';
-import { avecLesTables, cleDeFixture } from './noyau.testkit';
+import { applierQuiOuvre, avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
 import { chargerLaSave, lireSave, snapshotSave } from './persistance/save';
 import type { GenreDeCascade } from './tablesPosees';
@@ -3414,6 +3414,66 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       expect(slot.purpose, 'le jour tient toujours le slot').toBe('travelDay');
       expect(slot.participants.slice(jour.participants.length).map((x) => x.id.startsWith('mer-equipage-touche')), 'la bande est ajoutée au jour').toEqual([true]);
       expect(pile(), 'aucune séquence parquée').toEqual([]);
+    });
+  });
+
+  describe('Test de scène ouvert par l’applier de l’événement de bord, au niveau voyage (#4006)', () => {
+    const drapeau = (flag: string) => ({ kind: 'effet' as const, effet: { type: 'setFlag' as const, flag } });
+    const TEST_DE_SCENE = { kind: 'test' as const, test: { characteristic: 'force' as const }, reussite: drapeau('branche'), echec: drapeau('branche') };
+    const evenementQuiOuvre = (ouvrir: boolean) => applierQuiOuvre('mer-evenement-de-bord', ouvrir ? TEST_DE_SCENE : null);
+    /** Le Test de scène au slot, le jour en pile derrière son événement ; joué jusqu'à sa clôture, le jour reprend. */
+    const jouerLeTest = (cas: string) => {
+      expect([get().pendingCascade?.purpose, etapeAuSlot(), !!get().pendingTest], `le Test de scène tient le slot (${cas})`).toEqual(['test', 'jetDeTestDeScene', true]);
+      expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), `le jour attend en pile derrière son événement (${cas})`).toEqual([['travelDay', 1]]);
+      let tours = 0;
+      for (; tours < 10 && get().pendingTest; tours++) {
+        expect(journeesVivantes().map((c) => c!.cursor), `le jour attend derrière son événement (${cas})`).toEqual([1]);
+        expect(get().travelPlan!.sea!.daysAtSea, `aucune journée comptée sous le Test (${cas})`).toBe(0);
+        expect(get().pendingRest, `aucune halte sous le Test (${cas})`).toBeNull();
+        expect(get().pendingShoreLeave, `aucun accostage sous le Test (${cas})`).toBeNull();
+        get().jetLancer('test'); get().jetValider('test');
+        banc.reprendreTout();
+      }
+      expect(tours, `le Test s’est clos (${cas})`).toBeLessThan(10);
+      expect(get().flags.branche, `la branche du Test est jouée (${cas})`).toBe(true);
+      jusquAuSlotLibre(affalerRate);
+      expect(get().suspendedCascades, `la pile est vide (${cas})`).toEqual([]);
+    };
+
+    for (const cadence of CADENCES) it(`${cadence} (Collision soudaine, graine 1) : le Test au slot, le jour en pile ; clos, le jour se dénoue, une journée comptée, la halte`, () => {
+      const passages = evenementQuiOuvre(true);
+      jourNaturel(1, cadence);
+      expect(passages.n, `prémisse (${cadence}) : le pilote a joué l’applier de l’événement de bord`).toBe(1);
+      jouerLeTest(cadence);
+      expect(passages.n, `l’événement n’est pas rejoué (${cadence})`).toBe(1);
+      uneJourneeComptee(cadence);
+    });
+
+    /** Le jour de l'accostage : 1 km du port, l'événement de bord dû, tous les dés à 1 (le Test de scène ne décale pas
+     *  la suite des tirages du jour). */
+    const jourDAccostage = (cadence: (typeof CADENCES)[number]) => {
+      imposerLesD100();
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence })!;
+      set({ travelPlan: { ...plan, kmDone: plan.km - 1, sea: { ...plan.sea!, daysToEvent: 1 } } } as never);
+      runSeaDay(get, set);
+    };
+    /** Le dénouement « arrivée au port », que le témoin sans nœud fixe : plan clos, relâche à terre en attente, sans halte. */
+    const accostage = () => [get().travelPlan, get().pendingShoreLeave?.to.id, get().pendingRest, get().journal[get().journal.length - 1]];
+    const ACCOSTAGE = [null, 'B', null, t('sv.arrive', { to: 'Erengrad' })];
+    for (const cadence of CADENCES) it(`témoin sans nœud, ${cadence} : le jour de l’événement de bord finit sur l’accostage`, () => {
+      const passages = evenementQuiOuvre(false);
+      jourDAccostage(cadence);
+      jusquAuSlotLibre(affalerRate);
+      expect(passages.n, `prémisse (${cadence}) : le pilote a joué l’applier de l’événement de bord`).toBe(1);
+      expect(accostage()).toEqual(ACCOSTAGE);
+    });
+    for (const cadence of CADENCES) it(`${cadence}, jour de l’accostage : le Test passe avant l’arrivée, puis le navire accoste comme le témoin`, () => {
+      const passages = evenementQuiOuvre(true);
+      jourDAccostage(cadence);
+      expect(passages.n, `prémisse (${cadence}) : le pilote a joué l’applier de l’événement de bord`).toBe(1);
+      jouerLeTest(cadence);
+      expect(passages.n, `l’événement n’est pas rejoué (${cadence})`).toBe(1);
+      expect(accostage(), `le même dénouement que le témoin (${cadence})`).toEqual(ACCOSTAGE);
     });
   });
 });
