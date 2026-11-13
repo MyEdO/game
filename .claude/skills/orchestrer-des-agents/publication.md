@@ -17,6 +17,8 @@ Commits intermédiaires `refs #N`, seul le solde clôt.
   sous `src/` → `JUGE:`/`REFUTATION:` (+ `JUGE-VISION:` si un écran change) au message, ou dans un commit
   DESCENDANT ou le solde `.claude/soldes/ref-<N>.md` ou `<N>.md` d'un ticket cité qui NOMME son sha
   (`npm run livraison:plage`).
+- **Un conflit sur un import ou un export nommé** (un nom par ligne, `murs/noms-par-ligne`, #3821) se résout
+  en prenant un côté, puis `npm run lint:noms-par-ligne -- <fichier>` sur le fichier.
 - **Jamais une veille, un train ou un outil `scripts/ops/` lancé depuis un worktree où un agent édite cet
   outil** : il exécute le WIP. Publier avant de dispatcher, ou suivre par `gh pr view` ; un « train mort »
   se recoupe par le pid réel et `git ls-remote` avant toute relance.

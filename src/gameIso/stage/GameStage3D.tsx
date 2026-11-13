@@ -142,7 +142,15 @@ import { setSpritePicker } from './spritePicker';
 import { stage3dFramingFor, stageScreen, viewBoxScreen, type Stage3dFraming } from './stage3dCamera';
 import { poserLampesDuCiel, stageLightScalars, type LampesDuCiel } from './stageLights';
 import { viewPolicy } from './viewPolicy';
-import { applyFlicker, applyPointLights, createPointLightPool, hasFlicker, pointLightWrites, POINT_LIGHT_BUDGET, type PointLightSlots } from './stagePointLights';
+import {
+  applyFlicker,
+  applyPointLights,
+  createPointLightPool,
+  hasFlicker,
+  pointLightWrites,
+  POINT_LIGHT_BUDGET,
+  type PointLightSlots,
+} from './stagePointLights';
 import type { LightSource } from '../../noyau/monde/vision';
 import { AMBIANCE } from '../catalog/ambiance';
 import { sceneBrume, scenePrecip } from '../../noyau/monde/meteo';

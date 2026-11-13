@@ -1,5 +1,15 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { sizeFootprint, footprintN, footprintTiles, occupiesTile, footprintChebyshev, footprintsOverlap, combatDistance, decorFootGeometry, propFootTiles } from './footprint';
+import {
+  sizeFootprint,
+  footprintN,
+  footprintTiles,
+  occupiesTile,
+  footprintChebyshev,
+  footprintsOverlap,
+  combatDistance,
+  decorFootGeometry,
+  propFootTiles,
+} from './footprint';
 import { datasetObject, setObjectDataset } from '../../data/overrides';
 import { findPropById } from '../../data';
 import { entityBlockedAt } from './sceneRules';

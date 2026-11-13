@@ -30,7 +30,19 @@ import { clicDuCombattant, creerPont, type MondeDuPont, type Suite } from '../po
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, type Bouton, type Choix, type Element, type Entite, type Formulaire, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
+import {
+  elementsDesGestes,
+  ligne,
+  type Bouton,
+  type Choix,
+  type Element,
+  type Entite,
+  type Formulaire,
+  type Jeu,
+  type Ligne,
+  type Plan,
+  type Saisie,
+} from '../../../src/hote/elements';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 import type { Listage } from './atelier';
 

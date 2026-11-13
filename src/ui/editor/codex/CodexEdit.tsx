@@ -12,20 +12,48 @@ import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuD
 import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
-import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
+import {
+  metaPourFichier,
+  chargeDiscriminee,
+  brouillonNeuf,
+  noeudDuChamp,
+  noeudObjet,
+  noeudDeLEntree,
+  RangeeSansNoeud,
+  rapportDeFautes,
+} from '../../../data/schemas/validate';
 import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import type {
+  ActivityContext,
+  OutcomeBand,
+  BattleOutcome,
+  BattleOutcomeTarget,
+  BattleOutcomeScale,
+  BattleCond,
+  ActivityResolver,
+  ResolverOwner,
+} from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
 import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  RefField,
+  SaisieSuggeree,
+  reposerLId,
+  cfgDeLaFeuille,
+  cfgDeLaListe,
+  cfgDuNoeudASpec,
+  cfgDuNoeudType,
+  refFieldCfg,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
@@ -57,7 +85,27 @@ import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
 import type { ArmeDerivee } from '../../../data';
-import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
+import {
+  SymptomsField,
+  SymptomTickField,
+  DiseaseDailyTestField,
+  type DiseaseDailyTest,
+  ShipCrewHitField,
+  type ShipCrewHitValue,
+  TalentTestField,
+  CombatField,
+  AdvancementRefField,
+  TrappingRefField,
+  CharKeysField,
+  DomainEffectsField,
+  TraitListField,
+  OptionalsListField,
+  HarvestField,
+  SpecsField,
+  RuleValueField,
+  RuleActionField,
+  type RuleShape,
+} from './StructFields';
 import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';

@@ -4,7 +4,17 @@
  * (graine, dés fixés). Le duel est celui de `combatDeTest.testkit.ts`, dans la scène de fixture.
  */
 import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, previewAttack, type EntreesDeLaPartie, type EtatDeJeu, type Intention, type Jeton, type Partie, type ResultatDeLAppel } from './index';
+import {
+  creerPartie,
+  etatInitialDuJeu,
+  previewAttack,
+  type EntreesDeLaPartie,
+  type EtatDeJeu,
+  type Intention,
+  type Jeton,
+  type Partie,
+  type ResultatDeLAppel,
+} from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { BRUNA, etatAttable, rangsAssis } from './taverneAttablee.testkit';
 import { testScene } from '../scenes/test-fixture';

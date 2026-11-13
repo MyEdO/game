@@ -10,7 +10,20 @@ import { walkNeighbors, type Pt } from './path';
 import { inMapBounds } from './zones';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
-import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import {
+  casesDeFace,
+  heightAt,
+  isWalkable,
+  piedDeLArete,
+  porteEnJeu,
+  sceneMetresPerTile,
+  structureIsDown,
+  tuilesEffondreesSignature,
+  wallEnds,
+  wallIsOpen,
+  type Scene,
+  type WallSeg,
+} from './scene';
 import { memoByRef, memoByRefDeps } from './sceneMemo';
 import { hash32, hash32AuMillieme } from '../../data/hash';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';

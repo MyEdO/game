@@ -12,7 +12,40 @@ import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, lignesDeDelegation, argumentsDuNoyau, suiteDuNoyauALancer, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
+import {
+  REPLI_FACTEUR_CI,
+  REPLI_SURCOUT_MS,
+  SURCOUTS,
+  apprendre,
+  lignesDeDelegation,
+  argumentsDuNoyau,
+  suiteDuNoyauALancer,
+  executerLancements,
+  principal,
+  ligneDeRelance,
+  argumentsVitest,
+  bilanDuLancement,
+  paquetsDeLancement,
+  ordreDuLanceur,
+  planDuLancement,
+  texteDuReel,
+  derivationBornee,
+  ecrireLesMesures,
+  entreeDuCli,
+  estimationsDe,
+  facteursCi,
+  lintDesTouches,
+  nomDuMemo,
+  paliersDe,
+  perimetreDuDepot,
+  planDExecution,
+  planDuPerimetre,
+  rapportDuLancement,
+  surcoutObserve,
+  texteDeLEchec,
+  texteDeLEstimation,
+  texteDuMur,
+} from './perimetre.mjs'
 import { exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'

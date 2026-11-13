@@ -19,7 +19,21 @@ import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type M
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type Maniement, type PosteDuVehicule } from '../../../src/noyau/index';
+import {
+  cataloguesDeComposition,
+  emplacementDePiece,
+  emplacementsDeRangement,
+  gardeRobe,
+  findTeinteById,
+  libelleDeCleDElement,
+  maniementDeLaForme,
+  pieceRacine,
+  type EmblemeDef,
+  type EmblemeResolu,
+  type FireArc,
+  type Maniement,
+  type PosteDuVehicule,
+} from '../../../src/noyau/index';
 
 /**
  * @contrat Atelier 3D

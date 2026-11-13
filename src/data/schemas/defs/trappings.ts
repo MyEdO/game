@@ -8,7 +8,16 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, enumNomme, formulaSchema, genreDArmeSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
+import {
+  availabilitySchema,
+  enumNomme,
+  formulaSchema,
+  genreDArmeSchema,
+  moneySchema,
+  reachSchema,
+  sizeCategorySchema,
+  weaponDamageSpecSchema,
+} from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';

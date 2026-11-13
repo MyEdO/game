@@ -60,9 +60,46 @@ import type { BatchParticipant } from './pendings';
 import { rollBatchParticipant, pushStep, rollTableStep, type TableStepDef } from './cascade';
 import { combatStakeRef } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
-import { startSequence, resolveSequenceTie, recitDuDepartage, sequenceCumulsDeLaManche, sequenceDrBonus, sequencePhaseOf, sequenceScoreOf, sequenceTableRow, resolveSequencePotTurn, sequencePotIssue, resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, activeSequence, setSequenceChargeUtile, setSequenceCumuls, PERTE_DU_TOUR, DECROISSANCE_DU_TOUR } from './sequenceCore';
-import { SEQUENCE_PURPOSE, SEQUENCE_BORNE, type SequenceBoard, type SequenceCloseCtx, type SequenceParams, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
-import { type SequencePotTurn, type SequenceThrowTurn, type SequenceThrowOutcome, type SequenceVolleyRules, type SequenceVolleyRow, type SequenceSide, type SequenceCombinedRules } from '../engine/sequenceVocab';
+import {
+  startSequence,
+  resolveSequenceTie,
+  recitDuDepartage,
+  sequenceCumulsDeLaManche,
+  sequenceDrBonus,
+  sequencePhaseOf,
+  sequenceScoreOf,
+  sequenceTableRow,
+  resolveSequencePotTurn,
+  sequencePotIssue,
+  resolveSequenceThrow,
+  sequenceThrowGain,
+  sequenceThrowRow,
+  sequenceVolleyRounds,
+  activeSequence,
+  setSequenceChargeUtile,
+  setSequenceCumuls,
+  PERTE_DU_TOUR,
+  DECROISSANCE_DU_TOUR,
+} from './sequenceCore';
+import {
+  SEQUENCE_PURPOSE,
+  SEQUENCE_BORNE,
+  type SequenceBoard,
+  type SequenceCloseCtx,
+  type SequenceParams,
+  type SequenceRound,
+  type SequenceState,
+  type SequenceVerdict,
+} from './sequenceContract';
+import {
+  type SequencePotTurn,
+  type SequenceThrowTurn,
+  type SequenceThrowOutcome,
+  type SequenceVolleyRules,
+  type SequenceVolleyRow,
+  type SequenceSide,
+  type SequenceCombinedRules,
+} from '../engine/sequenceVocab';
 import type { RNG } from '../engine/dice';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';

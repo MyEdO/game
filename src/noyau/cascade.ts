@@ -22,7 +22,25 @@ import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import type { CascadeStep, CascadeStepMeta, PendingCascade, ReprisePilote, RowSurface, CascadeRoll, BatchParticipant, CascadeAggregate, CascadeSecondRead, CascadeDeDecl, CascadeDeTirage, CascadeDeResult, CascadeTableDecl, CascadeTableResult, OpposedRowFreeze, StepEvaluation, SeuilDeSauvegarde } from './pendings';
+import type {
+  CascadeStep,
+  CascadeStepMeta,
+  PendingCascade,
+  ReprisePilote,
+  RowSurface,
+  CascadeRoll,
+  BatchParticipant,
+  CascadeAggregate,
+  CascadeSecondRead,
+  CascadeDeDecl,
+  CascadeDeTirage,
+  CascadeDeResult,
+  CascadeTableDecl,
+  CascadeTableResult,
+  OpposedRowFreeze,
+  StepEvaluation,
+  SeuilDeSauvegarde,
+} from './pendings';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t, type MsgKey } from '../i18n';
 import { refuserGeste } from './refusVisible';
@@ -35,7 +53,17 @@ import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './monde/combatants';
-import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, refusSansJet, type TestResult } from '../engine/tests';
+import {
+  rollTest,
+  evaluateTest,
+  evaluateCombinedTest,
+  bestForcedRoll,
+  resolveOpposed,
+  opposedBranchSuccess,
+  estJete,
+  refusSansJet,
+  type TestResult,
+} from '../engine/tests';
 import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';

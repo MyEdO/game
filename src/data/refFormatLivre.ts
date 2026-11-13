@@ -13,7 +13,23 @@
  * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
  * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, qualityIdByLabel, specCatalogOf, specIdByLabel, specLabel, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from './index';
+import {
+  byId,
+  caracDuSigle,
+  findSkill,
+  findTalent,
+  findTalentById,
+  findTraitById,
+  qualityIdByLabel,
+  specCatalogOf,
+  specIdByLabel,
+  specLabel,
+  traitIdByLabel,
+  emplacementsDesPiecesDuCatalogue,
+  type SkillRef,
+  type TalentRef,
+  type TraitData,
+} from './index';
 import { ARG_JOKER, traitAdmet } from './schemas/grammaire/reference';
 import { specAuCatalogue } from './schemas/grammaire/ref';
 import { slugId } from './slug';

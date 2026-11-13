@@ -6,7 +6,17 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, installerLAmelioration, portCareenVessel, portRepairVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import {
+  applyVesselCritical,
+  buildSeaPlan,
+  continueSeaDayAfterCascade,
+  finalizePortArrivalTo,
+  installerLAmelioration,
+  portCareenVessel,
+  portRepairVessel,
+  runSeaDay,
+  vesselManann,
+} from './seaVoyageFlow';
 import { rollPortRepair } from '../engine/shipBuild';
 import { REPARATION } from '../engine/seaNavigation';
 import { findVehicleById } from '../data';

@@ -12,7 +12,19 @@ import { availableAttacks } from '../../noyau/combatManeuvers';
 import type { ManeuverDef } from '../../data/index';
 import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef, type ActionId } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
-import { actionGate, offreArmee, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ContexteDOffre } from '../../noyau/actionRegistry';
+import {
+  actionGate,
+  offreArmee,
+  currentInterludeAction,
+  offresDeLActif,
+  offresParPorteur,
+  offreDesignee,
+  etatDeLaBarre,
+  ACTION_CANDIDATES,
+  remedesPertinents,
+  type ActionCtx,
+  type ContexteDOffre,
+} from '../../noyau/actionRegistry';
 import { currentTargetingMode, targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
 import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';

@@ -125,6 +125,7 @@
     "raw:reanchor-split": "node scripts/raw/reanchor-split.mjs",
     "raw:catalogs": "node scripts/raw/build-catalogs.mjs",
     "lint": "node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.config.mjs --disable-nested-config . --max-warnings 0",
+    "lint:noms-par-ligne": "node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.noms-par-ligne.config.mjs --disable-nested-config --fix",
     "server:typecheck": "npm --prefix server run typecheck",
     "relay:dev": "npm --prefix server run dev",
     "relay:deploy": "npm --prefix server run deploy",

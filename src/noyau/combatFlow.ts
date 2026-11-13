@@ -8,7 +8,33 @@ import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText } from '../i18n/playerText';
 import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier, RevealEntry } from './pendings';
+import type {
+  PendingCast,
+  PendingDeviation,
+  PendingCritSeverity,
+  CoupSuspendu,
+  CoupDeTouche,
+  CoupDuMarin,
+  DecisionDeCritique,
+  DeviationCtx,
+  PendingBladeTrap,
+  FreeAttackFreeze,
+  BladeTrapFreeze,
+  ScheduledRespawn,
+  PendingReload,
+  PendingAttack,
+  CascadeTableDecl,
+  CascadeTableDone,
+  PendingMiscastStep,
+  CascadeStep,
+  BatchParticipant,
+  PendingCounterspell,
+  CounterParticipant,
+  CounterDeclaration,
+  IssueDEmpoignade,
+  ReactionDeBouclier,
+  RevealEntry,
+} from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource, type Main } from '../engine/types';
@@ -24,11 +50,78 @@ import { programmer } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
-import { resolveMelee, resolveRanged, bestRangedDefense, rangedDefenseModes, rollRangedAttacker, combatValue, hasWeaponGroupSkill, weaponGroupSkillMode, attackModifiers, rollMeleeAttacker, rollDisengageAttack, rollGrappleForce, assertAttackWeapon, hitLocationByShape, locationLabel, lancerDeLaSecondeMain, woundsFromHit, compteDuCoup, apresDeviations, localisationRelanceeDe, sansLeCoupCritiqueIgnore, type CompteDuCoup, toucheAuJetPose, rangeBandModifier, rangeBandName, belowMinRangeBand, resolveStrayRangedHit, resolveMeleePassive, toucheDuTestDeDefense, armeDeMainPrincipale, coupAApplique, finishMelee, rollMeleeDefender, AttackResult, ModLine, outnumberMod, crowdMod, defenseTargetMods, composeAttack, frozenDifficulty, type DifficultyShown, defenseValue, defenseValueModParts, DEFENSE_LABEL, type DefenseMode, attackHandGate, conditionModLines, canFireWhileEngaged, ligneDuCoup, freeAttackWeapon, defaultParryWeapon, advantageModLine, toucheAvecPrise, toucheNonIgnoree, attackTestOf } from '../engine/combat';
+import {
+  resolveMelee,
+  resolveRanged,
+  bestRangedDefense,
+  rangedDefenseModes,
+  rollRangedAttacker,
+  combatValue,
+  hasWeaponGroupSkill,
+  weaponGroupSkillMode,
+  attackModifiers,
+  rollMeleeAttacker,
+  rollDisengageAttack,
+  rollGrappleForce,
+  assertAttackWeapon,
+  hitLocationByShape,
+  locationLabel,
+  lancerDeLaSecondeMain,
+  woundsFromHit,
+  compteDuCoup,
+  apresDeviations,
+  localisationRelanceeDe,
+  sansLeCoupCritiqueIgnore,
+  type CompteDuCoup,
+  toucheAuJetPose,
+  rangeBandModifier,
+  rangeBandName,
+  belowMinRangeBand,
+  resolveStrayRangedHit,
+  resolveMeleePassive,
+  toucheDuTestDeDefense,
+  armeDeMainPrincipale,
+  coupAApplique,
+  finishMelee,
+  rollMeleeDefender,
+  AttackResult,
+  ModLine,
+  outnumberMod,
+  crowdMod,
+  defenseTargetMods,
+  composeAttack,
+  frozenDifficulty,
+  type DifficultyShown,
+  defenseValue,
+  defenseValueModParts,
+  DEFENSE_LABEL,
+  type DefenseMode,
+  attackHandGate,
+  conditionModLines,
+  canFireWhileEngaged,
+  ligneDuCoup,
+  freeAttackWeapon,
+  defaultParryWeapon,
+  advantageModLine,
+  toucheAvecPrise,
+  toucheNonIgnoree,
+  attackTestOf,
+} from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
-import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
+import {
+  engage,
+  markAttacked,
+  isEngaged,
+  decayEngagement,
+  chargeAdvantage,
+  disengageFrom,
+  clearEngagementOf,
+  areInContact,
+  reachTiles,
+  meleeReachTiles,
+} from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
@@ -39,8 +132,33 @@ import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refu
 import { effectifAuContact } from './combat/surnombre';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
-import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
-import { reloadGrantsAssessAdvantage, hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
+import {
+  applyTriggeredEffects,
+  maneuverEffectsOf,
+  freeAttackSourcesOf,
+  triggerEffectOps,
+  fireOwnTestFailed,
+  ciblesDeLEffet,
+  flowOffert,
+  type TriggerCtx,
+} from './triggeredEffects';
+import {
+  reloadGrantsAssessAdvantage,
+  hasStealAdvantage,
+  stealsOneAdvantage,
+  shieldAdvantageLevel,
+  shieldReactionCost,
+  contreSurDefenseGagnee,
+  contresEpuisees,
+  talentCritExtraWounds,
+  arcaneDomainIdOf,
+  hasBattement,
+  hasDistraire,
+  canPreemptRanged,
+  hasInstinctiveDiction,
+  hasCritRollTwiceTalent,
+  fleeMovementBonus,
+} from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
   flyMeters, runMultiplier,
@@ -94,9 +212,28 @@ import {
   type SpellLike,
   resolveMagicMissile, resolveCasting,
 } from '../engine/magic';
-import { type OvercastAxis, type OvercastSource, type OvercastSpell, overcastSourceOf, overcastDurationParts, overcastAxesFor, extraTargetCapacity, zoneDiameterMultiplier } from '../engine/overcast';
+import {
+  type OvercastAxis,
+  type OvercastSource,
+  type OvercastSpell,
+  overcastSourceOf,
+  overcastDurationParts,
+  overcastAxesFor,
+  extraTargetCapacity,
+  zoneDiameterMultiplier,
+} from '../engine/overcast';
 import type { SpellRange } from '../engine/spellRange';
-import { certainFlowOps, evalCondition, spellFlowFor, spellOps, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type FlowTest, type EffectTrigger } from '../engine/flowCore';
+import {
+  certainFlowOps,
+  evalCondition,
+  spellFlowFor,
+  spellOps,
+  flowHasFreeAttack,
+  flattenFlow,
+  EMPTY_FLOW,
+  type FlowTest,
+  type EffectTrigger,
+} from '../engine/flowCore';
 import { combatConditionCtx } from './combat/flowEval';
 import { applyOps, reussiteSansObjet, resolveFormula, SELF_REF, skillDRBonus, type GameOp, type OpsCtx } from '../engine/ops';
 import { applySummon } from './summonFlow';
@@ -114,10 +251,36 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, categorieDesLignesDeLaTable, MISCAST_TABLES, MISCAST_DATASETS,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll, type VainqueurOppose } from '../engine/tests';
+import {
+  opposedTest,
+  rollTest,
+  evaluateTest,
+  resolveOpposed,
+  isDoubleRoll,
+  easeDifficulty,
+  hydrateTR,
+  cibleBrute,
+  cibleMesuree,
+  estJete,
+  reverseRoll,
+  type VainqueurOppose,
+} from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
-import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
+import {
+  findManeuverById,
+  findDomainById,
+  findPsychologyById,
+  diseaseLabel,
+  refLabel,
+  findVehicleById,
+  combatStakeRef,
+  GRAPPLE,
+  type SpellData,
+  type ManeuverDef,
+  libelleOuAbsence,
+  SPEC_SOURCES,
+} from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -135,12 +298,57 @@ import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, porteeDeTir, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, laisserTomber, rederiverLArmeTenue, endommagerLArmeTenue } from '../engine/items';
+import {
+  recomputeLoadout,
+  weaponWithAmmo,
+  loadedAmmo,
+  porteeDeTir,
+  loadWeapon,
+  unloadWeapon,
+  setReloadProgress,
+  spendChamberedRound,
+  consumeAmmo,
+  ammoFamily,
+  ammoFamilyLabel,
+  damageArmour,
+  deviatableArmourAt,
+  casserLaPieceBaclee,
+  lacherLArme,
+  laisserTomber,
+  rederiverLArmeTenue,
+  endommagerLArmeTenue,
+} from '../engine/items';
 import { crochetDuSol } from './objetsAuSol';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND, isActionLocked } from '../engine/conditions';
-import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, souffleDuType, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import {
+  isOutOfAction,
+  addCondition,
+  appliquerMortSubite,
+  removeCondition,
+  hasCondition,
+  cannotDefend,
+  canTakeAction,
+  applyZeroWounds,
+  loseWounds,
+  inDeathCondition,
+  stacks,
+  recoveredStacks,
+  incomingMeleeAdvantage,
+  effectRef,
+  COND,
+  isActionLocked,
+} from '../engine/conditions';
+import {
+  creatureAttacks,
+  attaquesNaturelles,
+  attaqueNaturelle,
+  selfManeuversOf,
+  selfManeuverApplicable,
+  souffleDuType,
+  type AttackKind,
+  type CreatureAttack,
+} from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
 /** Deux lancers de Blessure Critique, dont le porteur CHOISIT le résultat gardé (LDB 41 l.170) :
@@ -156,9 +364,41 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import {
+  resolveCritique,
+  jeuDeCritique,
+  critiquesDuCoup,
+  relanceLaLocalisation,
+  estUnCoupCritique,
+  type CauseCoupCritique,
+  porteurDeCritique,
+  regimeDePorteur,
+  type OrigineCritique,
+  REGIMES_DE_CRITIQUE,
+  type OptionsCritique,
+  critiqueTriviale,
+  critWoundLocation,
+  critImmediateSummary,
+  opRestitueeParLeBandeau,
+  prendreAmputationsDifferees,
+  critTableKeyFor,
+  critTableRows,
+  type CriticalResolved,
+  type CritTableKey,
+} from '../engine/critical';
 import { facesDuDe, findTableEntry } from '../engine/tables';
-import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
+import {
+  isFumble,
+  rollOups,
+  desDOups,
+  desDeBrisDeLame,
+  casseSurMaladresse,
+  CLE_SOLIDE,
+  ligneDeSolide,
+  SOURCE_SOLIDE,
+  type OupsResolved,
+  type DemandeDeCasse,
+} from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import { ARTILLERY_MISFIRE } from '../data/artilleryMisfire';
@@ -175,23 +415,90 @@ import { findSpell, findSpellById } from '../data/index';
 const resolveSpell = (id: string) => findSpellById(id);
 import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
-import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './monde/scene';
+import {
+  Scene,
+  sceneMetresPerTile,
+  isMerScene,
+  setStructureDown,
+  setTileCollapsed,
+  parapetTilesAbove,
+  heightAt,
+  surfaceDAtterrissage,
+  structureIsDown,
+  climbEdgeBetween,
+  type VictoryCondition,
+} from './monde/scene';
 import { STEP_MAX_M } from './monde/relief';
 import { placeCombatant, spawnEnemy } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import {
+  sweepDismountDeaths,
+  mountedAttackMods,
+  defenseDodgeMods,
+  mountMovement,
+  mouvementDeCourse,
+  mountOf,
+  chargeDmgProxy,
+  mountUp,
+  mountableNear,
+  movementRemaining,
+  canMove,
+  riderFearSize,
+  combatGeomOf,
+  attackGeomOf,
+  meleeWeaponInRange,
+  pickAttackWeaponList,
+} from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { couvertDuPoste } from '../engine/navalTraits';
-import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf, rechargeDuTour, posteDeLaBataille } from './monde/shipPostes';
+import {
+  shipOfCrew,
+  mountedWeaponBears,
+  servingCrewPresent,
+  servablePostes,
+  serveAtPoste,
+  crewPosteOf,
+  rechargeDuTour,
+  posteDeLaBataille,
+} from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
 import { targetArc, headingToBear } from './monde/fireArc';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
-import { fearSourceFor, idDeSource, libelleDeSource, sourceDejaAffrontee, type SourceEnVue, refreshAllDefendedPsych, sansPeurFace, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTriggers, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, cibleLabel, PsychType, type PsychAffliction, psychTest, sousPeur, indiceDePeur, vise, ciblesDePulsion, pasDePeur, issueDePeur, sansPeurLabel } from '../engine/psychology';
+import {
+  fearSourceFor,
+  idDeSource,
+  libelleDeSource,
+  sourceDejaAffrontee,
+  type SourceEnVue,
+  refreshAllDefendedPsych,
+  sansPeurFace,
+  sansPeurVs,
+  failConditionAmount,
+  isPsychImmune,
+  isFrenzied,
+  clearPsychOf,
+  targetedTriggers,
+  supersededLines,
+  psychResolution,
+  psychBranchOps,
+  psychBranchFlow,
+  cibleLabel,
+  PsychType,
+  type PsychAffliction,
+  psychTest,
+  sousPeur,
+  indiceDePeur,
+  vise,
+  ciblesDePulsion,
+  pasDePeur,
+  issueDePeur,
+  sansPeurLabel,
+} from '../engine/psychology';
 import { subirLaTerreur } from './cibleAcquise';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
 import { sceneCombatModifiers } from './monde/sceneRules';
@@ -233,29 +540,129 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 }
 
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, comptePasDifferes, confierLaSuite, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, jouerLesClotures, OPS_DIFFEREES, type Applique } from './combatEffects';
+import {
+  pushReveal,
+  pushCombatStep,
+  applyEffects,
+  gearFromEffects,
+  drainPendingLog,
+  ouvrirChute,
+  cloturer,
+  comptePasDifferes,
+  confierLaSuite,
+  ctxRepris,
+  revealPurpose,
+  nePeutPasDifferer,
+  jouerFlowEntier,
+  jouerLesClotures,
+  OPS_DIFFEREES,
+  type Applique,
+} from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
 import { jetSurfaced, tenuParUnHumain } from './sieges';
 import { resolveRecoverTest } from './combat/recover';
-import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
-import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
+// effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
+import {
+  fireTurnStartTriggers,
+  fireTurnEndTriggers,
+  resolveActGates,
+} from './combat/turnHooks';
+// usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
+import {
+  runCombatFlow,
+  routeTriggeredTest,
+  bandeTriggeredTest,
+  rollFrozenOpposedAttacker,
+  frozenOpposedBatchStep,
+  simpleBatchTestStep,
+} from './combat/triggeredTest';
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-import { bestDefenseMode, hasFreeWeaponAttack, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue, distraireAttackBase, distraireDefenseBase } from './combatManeuvers';
+import {
+  bestDefenseMode,
+  hasFreeWeaponAttack,
+  freeAttackCost,
+  freeAttackTargetOk,
+  gratuitesRestantes,
+  MELEE_MANEUVER_KINDS,
+  rollManeuverAttacker,
+  maneuverAttackerDifficulty,
+  resolveManeuver,
+  availableFreeAttackOps,
+  resolveBattement,
+  battementEligible,
+  resolveDistraire,
+  distraireEligible,
+  distraireAttackValue,
+  distraireDefenseValue,
+  distraireAttackBase,
+  distraireDefenseBase,
+} from './combatManeuvers';
 import { testFlow } from './monde/flow';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, evaluerRangeeBatch, sortirDeLHote, type TableStepDef, type CascadeApplier } from './cascade';
+import {
+  runCascadeImmediate,
+  rollTableStep,
+  poserCurseurCascade,
+  lireEnSeuil,
+  pushStep,
+  evaluerRangeeBatch,
+  sortirDeLHote,
+  type TableStepDef,
+  type CascadeApplier,
+} from './cascade';
 import { inversionDeTalent } from '../engine/reverseToken';
 import { effectiveTalents } from '../engine/talentEffects';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup, Suite } from './pendings';
+import type {
+  CascadeStepMeta,
+  ChaineDeBalayage,
+  EnchainementDuCoup,
+  TirsDeBordee,
+  RebondDeChaine,
+  SeuilDeSauvegarde,
+  SauvegardeSuite,
+  SuiteDeCoup,
+  ToucheDeProjectile,
+  PendingCasseDArme,
+  QueueDuCoup,
+  Suite,
+} from './pendings';
 import { APRES_COUP, type IssueOpposee, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
-import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi, hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory, stepDetail, stepPrecision, stepPsych, stepSansPeur, type ChoiceSpec, type Consequence, type TableSpec } from './rollSeam';
+import {
+  freeCons,
+  resultLines,
+  rollStep,
+  rollSansPilote,
+  surfaceOf,
+  surfaceRow,
+  monoStep,
+  pousseSi,
+  hostStep,
+  idDansLaSequence,
+  openSequence,
+  openBand,
+  pushHost,
+  pushTableDone,
+  pushTable,
+  pushChoice,
+  pushDisplay,
+  pushDie,
+  tableStep,
+  makeBandFactory,
+  stepDetail,
+  stepPrecision,
+  stepPsych,
+  stepSansPeur,
+  type ChoiceSpec,
+  type Consequence,
+  type TableSpec,
+} from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';

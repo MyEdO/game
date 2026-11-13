@@ -3,7 +3,20 @@
  * (`engine/policy.ts`) en zones, chaque entrée rendue par la forme de son contrôle (`kind`), et le geste qui en règle
  * une, persisté dans le `Stockage` de l'hôte (`hote/preferences.ts`, `hote/reglesMaison.ts`).
  */
-import { OPTIONAL_RULES, PREFERENCES, preferenceDef, reglesMaisonMutables, valeurConforme, nommerLesRetraits, ruleOverrides, type Jeu as Partie, type OptionalRule, type Preference, type PrefValue, type RuleValue } from '../noyau/index';
+import {
+  OPTIONAL_RULES,
+  PREFERENCES,
+  preferenceDef,
+  reglesMaisonMutables,
+  valeurConforme,
+  nommerLesRetraits,
+  ruleOverrides,
+  type Jeu as Partie,
+  type OptionalRule,
+  type Preference,
+  type PrefValue,
+  type RuleValue,
+} from '../noyau/index';
 import { t } from '../i18n';
 import type { Stockage } from '../lib/stockage';
 import { ligne, SANS_BORNE, type Bouton, type Element, type Entite, type Ligne } from './elements';

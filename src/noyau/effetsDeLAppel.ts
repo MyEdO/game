@@ -7,7 +7,26 @@
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
 import { allMusicDefs } from '../data/sons/musique';
-import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type ManeuverDef, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import {
+  breathTypes,
+  conditionLabel,
+  domains,
+  etats,
+  findDomainById,
+  findRenduById,
+  findSpellById,
+  findTrappingById,
+  findWeaponGroupById,
+  lightTones,
+  maneuvers,
+  rendus,
+  siegeEngines,
+  type DomainData,
+  type ManeuverDef,
+  type Projectile,
+  type RenduDef,
+  type VisuelDEffet,
+} from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';

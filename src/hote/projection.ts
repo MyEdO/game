@@ -6,7 +6,43 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, vehiculeDuCombattant, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, estPoseParSesPonts, fermeturesDeLaFenetre, libelleDeLaFermeture, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt, type VehiculeDuCombattant } from '../noyau/index';
+import {
+  activeCombatant,
+  offreArmee,
+  mouvementDuTour,
+  fenetreDuJeu,
+  combatDistance,
+  etatDeLaBarre,
+  offresDeLActif,
+  validTargets,
+  endTurnArmed,
+  porteeDuCombattant,
+  vehiculeDuCombattant,
+  gestesDExploration,
+  jetsEnVue,
+  capDuGroupe,
+  stepInteraction,
+  porteesDuTour,
+  tileFromKey,
+  estPoseParSesPonts,
+  fermeturesDeLaFenetre,
+  libelleDeLaFermeture,
+  combattantEnVue,
+  entiteConnue,
+  nomEnVue,
+  porteurEnVue,
+  type Combatant,
+  type EtatDeLaBarre,
+  type GesteDExploration,
+  type GesteDuJeu,
+  type GesteDuNoyau,
+  type Jeu,
+  type JetEnVue,
+  type Offre,
+  type PorteeDeComposition,
+  type Pt,
+  type VehiculeDuCombattant,
+} from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {

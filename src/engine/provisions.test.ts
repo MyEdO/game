@@ -3,7 +3,21 @@ import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from './items';
 import { Characteristics, Combatant, ItemInstance, type UpkeepDeferTest } from './types';
 import { makeRNG, RNG } from './dice';
-import { dailyFoodUpkeep, applyFaimTest, isStarving, hungerCharPenalties, rationCount, isRation, dailyWaterUpkeep, applySoifTest, isThirsty, isDeprived, thirstCharPenalties, provisioningManifest, type VivresDeCale } from './provisions';
+import {
+  dailyFoodUpkeep,
+  applyFaimTest,
+  isStarving,
+  hungerCharPenalties,
+  rationCount,
+  isRation,
+  dailyWaterUpkeep,
+  applySoifTest,
+  isThirsty,
+  isDeprived,
+  thirstCharPenalties,
+  provisioningManifest,
+  type VivresDeCale,
+} from './provisions';
 import { effectiveChar } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 import { RULE_REF } from './ruleRefs';

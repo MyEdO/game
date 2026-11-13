@@ -38,6 +38,7 @@ export const NATURES_HORS_ANNEXE = Object.freeze({
   'gdscript.mjs': 'OUTIL',
   'gdscriptSansRegle.mjs': 'GARDE',
   'modulesSubstitues.mjs': 'GARDE',
+  'nomsParLigneLint.mjs': 'GARDE',
   'porteursDesComptes.mjs': 'OUTIL',
   'racinesPresentes.mjs': 'OUTIL',
   'reexportations.mjs': 'GARDE',

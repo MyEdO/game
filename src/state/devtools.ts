@@ -68,7 +68,26 @@ import { translaterFormation } from '../noyau/monde/shipPostes';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
-import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
+import {
+  checkBattleOver,
+  etatDeTourNeuf,
+  subirLaCharge,
+  approachFearTrigger,
+  aiTurnLog,
+  clearAiTurnLog,
+  maybeRunEnemyTurn,
+  applyHullCriticalToTarget,
+  maybeOpenDefense,
+  defenseEnCours,
+  placingZoneOf,
+  effectiveSpellOf,
+  aiCreatureFreeAttacks,
+  armeDeLaGratuite,
+  fileDesGratuites,
+  refusDeDefenseReactive,
+  choixPiegeLame,
+  type PlacingZone,
+} from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
 import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
@@ -140,7 +159,14 @@ import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
 import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
 import { CLES_DE_DATASET, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
-import { collectionDuDataset, datasetSerializeRoot, datasetObjectSerializeRoot, OBJECT_DATASET_KEYS, type DatasetKey, type ObjectDatasetKey } from '../data/overrides';
+import {
+  collectionDuDataset,
+  datasetSerializeRoot,
+  datasetObjectSerializeRoot,
+  OBJECT_DATASET_KEYS,
+  type DatasetKey,
+  type ObjectDatasetKey,
+} from '../data/overrides';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../data/schemas/exposition-derivee';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';

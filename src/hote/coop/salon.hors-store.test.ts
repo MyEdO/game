@@ -5,7 +5,19 @@
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BUFFER_MAX, GRACE_MS, cleDuJeton, creerLeSalon, emettreIntentInvite, netAssign, netAssignSlot, setGmSeat, type PortsDuSalon, type ReponseDuRelais, type Salon } from './salon';
+import {
+  BUFFER_MAX,
+  GRACE_MS,
+  cleDuJeton,
+  creerLeSalon,
+  emettreIntentInvite,
+  netAssign,
+  netAssignSlot,
+  setGmSeat,
+  type PortsDuSalon,
+  type ReponseDuRelais,
+  type Salon,
+} from './salon';
 import { FakeSocket, portsDuTest } from './relay.testkit';
 import { PROTOCOL_VERSION, serializeMessage } from './protocol';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';

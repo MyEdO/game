@@ -29,7 +29,17 @@ import { refKey, talentMaxReached } from '../../engine/careerSlots';
 import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
 import { formatDice, hashSeed } from '../../engine/dice';
-import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementRacine, idChoisi, libelleDeLaValeur, sousEmplacement, valeursDeLEmplacement, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import {
+  brancheChoisie,
+  dotationsDuHeros,
+  emplacementsDeDotation,
+  estEmplacementRacine,
+  idChoisi,
+  libelleDeLaValeur,
+  sousEmplacement,
+  valeursDeLEmplacement,
+  type EmplacementDeDotation,
+} from '../../engine/trappingChoices';
 import type { AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { idsDeLaSousListe, type RefASpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';

@@ -16,9 +16,29 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { computeReconciliation as calculerReconciliation, renderReport, sansProvenanceAdaptee, trousDurs, ecartsTrousDurs, lireStock, STOCK_PATH, PREFIXE_B2, decodeCle, coeursEtrangers } from './reconcile.mjs'
+import {
+  computeReconciliation as calculerReconciliation,
+  renderReport,
+  sansProvenanceAdaptee,
+  trousDurs,
+  ecartsTrousDurs,
+  lireStock,
+  STOCK_PATH,
+  PREFIXE_B2,
+  decodeCle,
+  coeursEtrangers,
+} from './reconcile.mjs'
 import { BOOKS, coeurDe, coeursDe } from './_lib.mjs'
-import { parseFiche, registresDeFiches, validerDette, orphelinsDeDette, rendre as rendreImplementation, RAPPORT as RAPPORT_IMPLEMENTATION, buildContext, indexCode } from './build-implemente.mjs'
+import {
+  parseFiche,
+  registresDeFiches,
+  validerDette,
+  orphelinsDeDette,
+  rendre as rendreImplementation,
+  RAPPORT as RAPPORT_IMPLEMENTATION,
+  buildContext,
+  indexCode,
+} from './build-implemente.mjs'
 import { coeurDeBanc } from './atlasFixture.mjs'
 
 const rapportReel = rendreImplementation(buildContext()).get(RAPPORT_IMPLEMENTATION)

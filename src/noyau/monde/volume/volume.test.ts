@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { CASES_PAR_MORCEAU, couronnesDuMonde, retraitDuMonde, toitsDuMonde, toitsLeves, volumeDuMonde, type MorceauDuMonde, type RetraitDuMonde, type VolumeDuMonde } from './volume';
+import {
+  CASES_PAR_MORCEAU,
+  couronnesDuMonde,
+  retraitDuMonde,
+  toitsDuMonde,
+  toitsLeves,
+  volumeDuMonde,
+  type MorceauDuMonde,
+  type RetraitDuMonde,
+  type VolumeDuMonde,
+} from './volume';
 import { nappeKey } from './toits';
 import { perimeterWallSegs } from '../../sceneEdit.testkit';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../scene';

@@ -55,7 +55,18 @@ import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
-import { findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, qualityRefLabel, qualities, combatStakeRef, libelleOuAbsence, testSkillLabel } from '../data';
+import {
+  findTrappingById,
+  findTalentById,
+  findSpellById,
+  refLabel,
+  skillInstanceLabel,
+  qualityRefLabel,
+  qualities,
+  combatStakeRef,
+  libelleOuAbsence,
+  testSkillLabel,
+} from '../data';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';

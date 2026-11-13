@@ -824,6 +824,12 @@ export const BLOCS_LINT = [
     files: GLOBS_DE_MOD_HORS_TS,
     rules: { 'murs/mod-sans-regle': ['error', ...VERROU_MOD_HORS_TS] },
   },
+  {
+    // #3821
+    files: ['src/**', 'hotes/**', 'scripts/**', 'server/**', '.claude/**'],
+    excludeFiles: BANCS_DE_MOD,
+    rules: { 'murs/noms-par-ligne': 'error' },
+  },
 ];
 export default {
  plugins:['typescript'], categories:{correctness:'off'},

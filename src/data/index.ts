@@ -9,15 +9,41 @@ import type { PlayerText } from '../i18n/playerText';
 import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
-import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
+import {
+  dansLaSousListe,
+  espaceDe,
+  idsDe,
+  idsDeLaSousListe,
+  lireLEspace,
+  porteLeMarqueur,
+  type FeuilleDId,
+  type RefASpecialisation,
+  type RefDesignee,
+  type RefTypee,
+  type TypeEntite,
+} from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES, type IdDeColonneDuMarchand } from './schemas/grammaire/vocabulaires';
-import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
+import {
+  CATEGORIE_CODEX_DU_FICHIER,
+  CLES_CODEX,
+  DATASET_DE_LA_CATEGORIE,
+  DATASET_DE_L_ESPACE,
+  type CleCodex,
+  type CleDeDataset,
+  type DatasetDeCategorie,
+} from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDeMention, DotationDePossession, Somme } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema } from './schemas/grammaire/valeurs';
+import {
+  natureDeMentionSchema,
+  symptomSeveritySchema,
+  type NatureDeMention,
+  type harvestRaritySchema,
+  type harvestDangerSchema,
+} from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
@@ -167,7 +193,15 @@ import planDeBestiaireJson from './planDeBestiaire.json';
 import type * as gabaritsDef from './schemas/defs/gabarits';
 import type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
-import { cleDHabille, type EmplacementId, type EnsembleDef, type GardeRobeEntree, type HabilleDEnsemble, type PieceId, type TenueDeGardeRobe } from './schemas/defs/garde-robe';
+import {
+  cleDHabille,
+  type EmplacementId,
+  type EnsembleDef,
+  type GardeRobeEntree,
+  type HabilleDEnsemble,
+  type PieceId,
+  type TenueDeGardeRobe,
+} from './schemas/defs/garde-robe';
 import presetsDePersonnageJson from './presets-de-personnage.json';
 import type { PresetDePersonnage } from './schemas/defs/presets-de-personnage';
 import godsJson from './gods.json';
@@ -200,10 +234,21 @@ import landCargoJson from './land-cargo.json';
 import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, Difficulty, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from './schemas/defs/maladies';
-import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
+// type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
+import type {
+  PowerEstimateRow,
+  MightModifierRow,
+  WarMachineRow,
+  StructureRow as MassBattleStructureRow,
+  HazardRow,
+} from '../engine/massBattle';
 import { type DiceSpec, formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
-import { sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+// runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+import {
+  sizeFromProfile,
+  sizeFromTalents,
+} from '../engine/size';
 import type { OupsRow } from './oups';
 import type { InterludeEvent } from './interludeEvents';
 import type { Peripetie } from './peripeties';

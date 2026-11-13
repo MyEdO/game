@@ -6,7 +6,23 @@
  */
 import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
-import { crewRoleValue, competencesDuRole, moraleBand, moraleBase, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
+import {
+  crewRoleValue,
+  competencesDuRole,
+  moraleBand,
+  moraleBase,
+  undercrewPenalty,
+  weeklyCrewWageBrass,
+  recalcMorale,
+  payChoiceCostBrass,
+  payChoices,
+  isPayChoice,
+  isFreePayChoice,
+  freePayChoiceId,
+  recommendedPayChoiceId,
+  type CrewAssignment,
+  type UndercrewPenalty,
+} from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';

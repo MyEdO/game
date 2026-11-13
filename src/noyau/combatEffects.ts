@@ -9,7 +9,19 @@ import { armChapterRecapIfDue } from './chapitreRecap';
 import { ouvrirLaFinDeSeance } from './partyFlow';
 import { tableTotale } from '../lib/tableTotale';
 import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
-import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
+import type {
+  LootGear,
+  CascadeStep,
+  CascadeStepMeta,
+  CascadeTableDone,
+  Cloture,
+  OpsCtxPorte,
+  PendingCascade,
+  PendingTest,
+  ScheduledEffect,
+  Suite,
+  RevealEntry,
+} from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
@@ -26,7 +38,19 @@ import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
 import { dialoguesDeLaScene } from './monde/scene';
-import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
+import {
+  bestForTests,
+  partyBest,
+  partyAssisted,
+  peutTenter,
+  possesses,
+  soutienDetail,
+  isSocialTest,
+  socialPsychMod,
+  socialPsychLabel,
+  socialPsychLines,
+  testValue,
+} from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
 import { restoreFortune } from '../engine/fortune';
@@ -38,7 +62,19 @@ import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, 
 import type { IdDeLigneDeButin } from './designations';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
-import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
+import {
+  creatureSemee,
+  navireSeme,
+  findCreatureById,
+  findVehicleById,
+  refLabel,
+  WATER_EXPOSURE,
+  diseaseLabel,
+  nightStakeRef,
+  combatStakeRef,
+  flowStakeRef,
+  testSkillLabel,
+} from '../data';
 import { moraleBase } from '../engine/crewMorale';
 import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
@@ -68,7 +104,22 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type ConditionCtx, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, executerFlow, leafOpsCtx, lierLesTirages, EMPTY_FLOW, type ArretDeFlow, type ResteDuFlow } from '../engine/flowCore';
+import {
+  type FlowTest,
+  type ConditionCtx,
+  type EffectOp,
+  type CibleDeRole,
+  type CibleDeVolontaires,
+  type Condition,
+  flowEffects,
+  evalCondition,
+  executerFlow,
+  leafOpsCtx,
+  lierLesTirages,
+  EMPTY_FLOW,
+  type ArretDeFlow,
+  type ResteDuFlow,
+} from '../engine/flowCore';
 import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';

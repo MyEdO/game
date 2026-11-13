@@ -6,9 +6,39 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { caracteristiqueChiffreeSchema, countSpecSchema, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
+import {
+  caracteristiqueChiffreeSchema,
+  countSpecSchema,
+  monnaieSchema,
+  natureDeMentionSchema,
+  difficultySchema,
+  enumNomme,
+  formuleSansTirageSchema,
+  maisonSchema,
+  matiereDArmureSchema,
+  parLocalisationSchema,
+  plageSchema,
+  secondarySourceRefSchema,
+  sizeCategorySchema,
+  sourceRefSchema,
+  varianteDeCibleSchema,
+} from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, parmi, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec, type Parmi } from './ref';
+import {
+  idDe,
+  marqueurDeLaForme,
+  messageDeFormes,
+  messageDeRefusDeSpec,
+  parmi,
+  porteLeMarqueur,
+  recordDIds,
+  ref,
+  refOuSpec,
+  refs,
+  refTypee,
+  refusDeSpec,
+  type Parmi,
+} from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 

@@ -18,7 +18,18 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { hasTalent } from '../engine/magic';
-import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type CatalogItem, type StockLine } from '../engine/disponibilite';
+import {
+  rollStock,
+  fullStock,
+  availabilitySearchBonus,
+  barterRatio,
+  availabilityAfterHalvings,
+  priceAfterHalvings,
+  isTradable,
+  outOfTradeReason,
+  type CatalogItem,
+  type StockLine,
+} from '../engine/disponibilite';
 import type { Settlement } from '../data/schemas/grammaire/valeurs';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
@@ -26,7 +37,18 @@ import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMon
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, findMerchantArchetypeById, type QualityRef, type TrappingData } from '../data/index';
+import {
+  findTrappingById,
+  trappingsInstanciables,
+  findVehicleById,
+  findCreatureById,
+  vehicles,
+  creatures,
+  combatStakeRef,
+  findMerchantArchetypeById,
+  type QualityRef,
+  type TrappingData,
+} from '../data/index';
 import type { MerchantArchetypeDef } from '../data/merchants.types';
 import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
