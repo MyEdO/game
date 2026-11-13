@@ -3296,9 +3296,9 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
  *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
  *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU somme d'argent (`Somme`) —
- *  OU mention par nature (`DotationDeMention`) — OU choix « A ou B »
- *  (`choice`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
- *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS, résolus par
+ *  OU mention par nature (`DotationDeMention`) — OU « 1 parmi »
+ *  (`{ pick: 1, of }`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
+ *  (`wildcard`, ex. `{wildcard:'arme'}`). `pick`/`wildcard` sont des EMPLACEMENTS, résolus par
  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
  *  restent tels quels et ne produisent aucun objet.
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
@@ -3312,7 +3312,7 @@ export type TrappingRef =
   | DotationDePossession
   | Somme
   | DotationDeMention
-  | { choice: TrappingRef[] }
+  | { pick: 1; of: TrappingRef[] }
   | { wildcard: string };
 /** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni somme, ni mention, ni texte, ni emplacement ? */
 export const estDotationDObjet = (ref: TrappingRef): ref is Extract<TrappingRef, { id: string; type?: never }> => 'id' in ref && !('type' in ref);
@@ -3548,14 +3548,15 @@ export function choixLabel(category: string, id: string, choix: true | string[])
 function ouListe(options: readonly string[]): PlayerText {
   return dataLabel(options.join(` ${t('ref.ou')} `));
 }
+/** Libellé d'un nœud `{ pick, of }` (`Parmi`) aux libellés d'options `options` : « 2 parmi : a, b », ou « a ou b ». */
+function libelleDuParmi(pick: number, options: PlayerText[]): PlayerText {
+  return pick > 1 ? dataLabel(`${t('ref.parmi', { n: pick })} ${options.join(', ')}`) : ouListe(options);
+}
 /** Libellé d'affichage d'un `AdvancementRef` : « Savoir (Au choix) », « A ou B », « 3 Talents
  *  aléatoires », « Magie des Arcanes (Bête) ». SOURCE UNIQUE (Codex + résolution création). */
 export function advancementLabel(category: string, a: AdvancementRef): PlayerText {
   if ('id' in a) return refLabel(category, a);
-  if ('pick' in a) {
-    const options = a.of.map((x) => advancementLabel(category, x));
-    return a.pick > 1 ? dataLabel(`${t('ref.parmi', { n: a.pick })} ${options.join(', ')}`) : ouListe(options);
-  }
+  if ('pick' in a) return libelleDuParmi(a.pick, a.of.map((x) => advancementLabel(category, x)));
   return a.random === 1 ? t('ref.talentAleatoire') : t('ref.talentsAleatoires', { n: a.random });
 }
 /** id de base d'un `AdvancementRef` SIMPLE (référence, avec ou sans régime de spécialisation) — pour
@@ -3567,10 +3568,10 @@ export function advancementBaseId(a: AdvancementRef): string | undefined {
 /** Libellé d'affichage d'une `TrappingRef` : « Marteau », « Pamphlétaire (3) », « Chiffon (1d10) »,
  *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
  *  `RefDesignee` — `LDB 08 l.1130`), « Bijoux valant 3d10 couronnes d'or » (`valeur`), somme d'argent
- *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
+ *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, « 1 parmi » (récursif), ou joker
  *  « Arme (au choix) ». SOURCE UNIQUE (Codex, créateur, marchand, inventaire). */
 export function trappingRefLabel(ref: TrappingRef): PlayerText {
-  if ('choice' in ref) return ouListe(ref.choice.map(trappingRefLabel));
+  if ('pick' in ref) return libelleDuParmi(ref.pick, ref.of.map(trappingRefLabel));
   if ('wildcard' in ref) return ref.wildcard === 'arme' ? t('ref.armeAuChoix') : t('ref.jokerAuChoix', { base: ref.wildcard });
   if (estDotationDArgent(ref)) return dataLabel(libelleDeLaSomme(ref));
   const base = 'text' in ref

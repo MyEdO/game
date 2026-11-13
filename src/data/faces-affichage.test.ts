@@ -27,7 +27,7 @@ describe('faces d’affichage : le texte FR de la donnée', () => {
   });
 
   it('dotation : branches, joker d’arme, Atout au choix', () => {
-    const choix: TrappingRef = { choice: [{ id: 'dague' }, { id: 'baton-de-combat' }] };
+    const choix: TrappingRef = { pick: 1, of: [{ id: 'dague' }, { id: 'baton-de-combat' }] };
     expect(trappingRefLabel(choix)).toBe('Dague ou Bâton de combat');
     expect(trappingRefLabel({ wildcard: 'arme' })).toBe('Arme (au choix)');
     expect(trappingRefLabel({ id: 'dague', qualityChoice: true })).toBe('Dague (qualité au choix)');
@@ -37,7 +37,7 @@ describe('faces d’affichage : le texte FR de la donnée', () => {
 describe('faces d’affichage : le liant suit SA clé de message', () => {
   it('`ref.ou` change le liant de toutes les alternatives', () => {
     catalogue['ref.ou'] = 'or';
-    expect(trappingRefLabel({ choice: [{ id: 'dague' }, { id: 'baton-de-combat' }] })).toBe('Dague or Bâton de combat');
+    expect(trappingRefLabel({ pick: 1, of: [{ id: 'dague' }, { id: 'baton-de-combat' }] })).toBe('Dague or Bâton de combat');
     expect(choixLabel('skills', 'corps-a-corps', ['fleau', 'deux-mains'])).toBe('Corps à corps (Fléau or Deux-mains)');
   });
 
