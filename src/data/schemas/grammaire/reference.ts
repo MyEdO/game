@@ -6,7 +6,7 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { caracteristiqueChiffreeSchema, countSpecSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
+import { caracteristiqueChiffreeSchema, countSpecSchema, monnaieSchema, natureDeMentionSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
 import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
@@ -249,11 +249,18 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
 /** `TrappingRef` (`src/data/index.ts`) — par id de catalogue (+ quantité, + Atouts ATTACHÉS `qualities`
  *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
  *  texte narratif hors catalogue (+ quantité), dotation de POSSESSION (`dotationDePossessionSchema`,
- *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
- *  ou joker (`wildcard`). Composé par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`. Sa `spec` est la PRÉCISION
- *  d'un objet, nommée comme telle : `trappings.json` ne déclare aucun catalogue de Spécialisations. */
+ *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), somme d'argent (`sommeSchema`), mention par nature
+ *  (`dotationDeMentionSchema`), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
+ *  ou joker (`wildcard`). Composé par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`,
+ *  sans texte ni mention. Sa `spec` est la PRÉCISION d'un objet, nommée comme telle : `trappings.json` ne
+ *  déclare aucun catalogue de Spécialisations. */
 type CountSpecInfer = z.infer<typeof countSpecSchema>;
 type QualityRefInfer = z.infer<typeof qualityRefSchema>;
+/** Une somme : `count` pièces de `monnaie` (`Somme`, tirée par `sommeTiree`, `engine/possessionGrants.ts`). Dotation
+ *  d'argent, valeur d'un objet doté, Richesse de départ d'un prétiré. LDB 57 */
+export const sommeSchema = nommerChamps(z.strictObject({ monnaie: monnaieSchema, count: countSpecSchema }), { monnaie: { label: 'monnaie' }, count: { label: 'nombre de pièces' } });
+export type Somme = z.infer<typeof sommeSchema>;
+
 /** Dotation d'un objet du catalogue : sa `spec` est la précision de la dotation, pas une Spécialisation. */
 export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({
   id: idDe('trapping'),
@@ -261,7 +268,16 @@ export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({
   count: countSpecSchema.optional(),
   qualities: z.array(qualityRefSchema).optional(),
   qualityChoice: z.literal(true).optional(),
-}), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' } });
+  valeur: sommeSchema.optional(),
+}), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' }, valeur: { label: 'valeur' } });
+
+/** Dotation d'une MENTION : un bien imprimé que la fiche porte sous sa nature, sans mécanique. #4053 */
+export const dotationDeMentionSchema = nommerChamps(z.strictObject({
+  label: z.string().min(1),
+  nature: natureDeMentionSchema,
+  count: countSpecSchema.optional(),
+}), { label: { label: 'libellé' }, nature: { label: 'nature' }, count: { label: 'nombre' } });
+export type DotationDeMention = z.infer<typeof dotationDeMentionSchema>;
 
 /** Dotation d'une ligne hors catalogue : son texte imprimé et sa quantité. */
 export const dotationDeTexteSchema = nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } });
@@ -275,8 +291,9 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
 });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
 type DotationSansTexte =
-  | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true }
+  | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true; valeur?: Somme }
   | DotationDePossession
+  | Somme
   | { choice: unknown[] }
   | { wildcard: 'arme' };
 type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
@@ -289,12 +306,14 @@ function formesDeDotation<T, A = never>(soi: () => z.ZodType<T>, ...autres: z.Zo
     dotationDeCatalogueSchema,
     ...autres,
     dotationDePossessionSchema,
+    sommeSchema,
     marquerProduit(nommerChamps(z.strictObject({ choice: z.array(z.lazy(soi)) }), { choice: { label: "choix" } }), 'formesDeDotation', 'choix'),
     jokerDeDotationSchema,
   ], { error: messageDeFormes });
 }
 
-/** Dotation sans texte : `classes.json`. LDB 05 l.552 ; #4053 */
+/** Dotation sans texte ni mention : `classes.json`. LDB 05 l.552 ; #4053 */
 export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation(() => dotationSansTexteSchema);
-export const trappingRefSchema: z.ZodType<DotationSansTexte | DotationDeTexte> = formesDeDotation(() => trappingRefSchema, dotationDeTexteSchema);
+export const trappingRefSchema: z.ZodType<DotationSansTexte | DotationDeTexte | DotationDeMention> =
+  formesDeDotation<DotationSansTexte | DotationDeTexte | DotationDeMention, DotationDeTexte | DotationDeMention>(() => trappingRefSchema, dotationDeTexteSchema, dotationDeMentionSchema);
 

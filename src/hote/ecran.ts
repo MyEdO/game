@@ -140,7 +140,8 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    * chaque Test, sa Caractéristique et ses Augmentations au détail ; Talents et son niveau, Sorts, Prières, chacun sa
    * description au détail ; Possessions, chaque possession en bouton qui la nomme, son nombre quand il y en a
    * plusieurs, les équipées d'abord (une arme : tenue dans le set actif) ; il la choisit, `{ fiche }` portant son
-   * `objet`, la choisie pressée la laisse.
+   * `objet`, la choisie pressée la laisse ; puis une puce par nature de ses mentions (`mention/<nature>`), la nature
+   * au libellé, ses mentions et leur nombre en valeur.
    */
   'fiche.sections': Entite[];
   /** le livre et la page du profil dont le combattant est l'instance. */
@@ -952,7 +953,7 @@ const entrees = (id: string, liste: readonly EntreeDeLaFiche[]): Puce[] => liste
  *  porte ; ses Traits et ses Mutations ; ses Compétences, la valeur de leur Test, leur Caractéristique et leurs
  *  Augmentations au détail, par nom ; ses Talents et leur niveau ; ses sorts ; ses prières ; chacune de ses
  *  possessions en bouton qui la nomme, les équipées d'abord : il la choisit (`ouverte.objet`) ; la choisie, pressée,
- *  se laisse. Le premier paragraphe d'une description au détail. */
+ *  se laisse ; puis ses mentions, une puce par nature. Le premier paragraphe d'une description au détail. */
 function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<keyof typeof SECTIONS_DU_STATBLOC, (Puce | Bouton | Entite)[]> {
   const carac = new Map(f.caracteristiques.map((c) => [c.cle, c]));
   return {
@@ -976,13 +977,16 @@ function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<key
     talents: f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc))),
     sorts: entrees('sort', f.sorts),
     prieres: entrees('priere', f.prieres),
-    possessions: [...f.possessions]
-      .sort((a, b) => Number(b.equipee) - Number(a.equipee))
-      .map((p) => {
-        const choisie = ouverte.objet === p.uid;
-        const libelle = p.nombre > 1 ? t('ecran.fiche.possession', { libelle: p.libelle, nombre: p.nombre }) : p.libelle;
-        return boutonDeFiche(`possession/${p.uid}`, libelle, { porteur: f.id, ...(choisie ? {} : { objet: p.uid }) }, choisie);
-      }),
+    possessions: [
+      ...[...f.possessions]
+        .sort((a, b) => Number(b.equipee) - Number(a.equipee))
+        .map((p) => {
+          const choisie = ouverte.objet === p.uid;
+          const libelle = p.nombre > 1 ? t('ecran.fiche.possession', { libelle: p.libelle, nombre: p.nombre }) : p.libelle;
+          return boutonDeFiche(`possession/${p.uid}`, libelle, { porteur: f.id, ...(choisie ? {} : { objet: p.uid }) }, choisie);
+        }),
+      ...f.mentions.map((m) => puce(`mention/${m.nature}`, m.titre, m.mentions.map((x) => (x.nombre > 1 ? t('ecran.fiche.possession', { libelle: x.libelle, nombre: x.nombre }) : x.libelle)).join(', '))),
+    ],
   };
 }
 

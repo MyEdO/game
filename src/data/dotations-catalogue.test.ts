@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { careerLevels, classes, creatures, trappings, trappingRefLabel, type TrappingRef } from './index';
+import { careerLevels, classes, creatures, estMention, trappings, trappingRefLabel, type TrappingRef } from './index';
 import { replier } from '../lib/ordre.mjs';
 
 /**
@@ -44,18 +44,6 @@ for (const t of trappings) {
   PAR_SINGULIER.set(s, [...(PAR_SINGULIER.get(s) ?? []), t.id]);
 }
 
-/**
- * Les `{text}` de dotation que le catalogue NOMME sans qu'ils soient des références — la parenthèse
- * n'y est pas une spécialisation. Liste NOMINATIVE, chacune avec sa raison ; elle ne fait que
- * décroître, et un texte qui n'y est pas se lie.
- */
-const EXCLUSIONS: readonly { texte: string; raison: string }[] = [
-  { texte: 'Bijoux (50 CO)', raison: 'PRIX, pas une spécialisation (LDB 08 l.971 « bijoux valant 50 CO »)' },
-  { texte: 'Bijoux (200 CO)', raison: 'PRIX' },
-  { texte: 'Bijoux (500 CO)', raison: 'PRIX' },
-  { texte: 'Outils professionnels (Au choix)', raison: 'SENTINELLE d’emplacement non désigné (#1457)' },
-];
-
 /** Toutes les dotations des deux datasets, branches `choice` comprises, avec leur porteur. */
 const dotations = (): { porteur: string; ref: TrappingRef }[] => {
   const out: { porteur: string; ref: TrappingRef }[] = [];
@@ -90,38 +78,27 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
     expect(PAR_SINGULIER.get(singulier('Sa Honte')), '« Sa Honte » ne nomme aucune possession').toBeUndefined();
   });
 
-  it('aucun `{text}` de dotation ne nomme une possession du catalogue', () => {
+  it('aucun libellé libre de dotation (`{text}`, `label` d’une mention) ne nomme une possession du catalogue', () => {
     const aLier: string[] = [];
-    const vues = new Set<string>();
     for (const { porteur, ref } of dotations()) {
-      if (!('text' in ref)) continue;
-      const exclusion = EXCLUSIONS.find((e) => e.texte === ref.text);
-      if (exclusion) {
-        vues.add(exclusion.texte);
-        continue;
-      }
-      const exact = PAR_LABEL.get(normaliser(ref.text));
+      const libre = 'text' in ref ? ref.text : estMention(ref) ? ref.label : undefined;
+      if (libre === undefined) continue;
+      const exact = PAR_LABEL.get(normaliser(libre));
       if (exact) {
-        aLier.push(`${porteur} : « ${ref.text} » EST le libellé de ${exact.join('/')} — s’écrit {id}`);
+        aLier.push(`${porteur} : « ${libre} » EST le libellé de ${exact.join('/')} — s’écrit {id}`);
         continue;
       }
-      const pluriel = PAR_SINGULIER.get(singulier(ref.text));
+      const pluriel = PAR_SINGULIER.get(singulier(libre));
       if (pluriel) {
-        aLier.push(`${porteur} : « ${ref.text} » est la graphie au PLURIEL de ${pluriel.join('/')} — s’écrit {id}`);
+        aLier.push(`${porteur} : « ${libre} » est la graphie au PLURIEL de ${pluriel.join('/')} — s’écrit {id}`);
         continue;
       }
-      const tete = teteDeParenthese(ref.text);
+      const tete = teteDeParenthese(libre);
       const cible = tete == null ? undefined : (PAR_LABEL.get(normaliser(tete)) ?? PAR_SINGULIER.get(singulier(tete)));
       if (cible)
-        aLier.push(`${porteur} : « ${ref.text} » nomme ${cible.join('/')} + une spécialisation — s’écrit {id, spec}`);
+        aLier.push(`${porteur} : « ${libre} » nomme ${cible.join('/')} + une spécialisation — s’écrit {id, spec}`);
     }
     expect(aLier, `dotation(s) à lier au catalogue :\n${aLier.join('\n')}`).toEqual([]);
-    const perimees = EXCLUSIONS.filter((e) => !vues.has(e.texte)).map((e) => e.texte);
-    expect(perimees, `exclusion(s) PÉRIMÉE(s) — le texte n’est plus dans la donnée, retirer la ligne :\n${perimees.join('\n')}`).toEqual([]);
-  });
-
-  it('chaque exclusion porte sa RAISON', () => {
-    expect(EXCLUSIONS.filter((e) => !e.raison.trim()).map((e) => e.texte)).toEqual([]);
   });
 
   /**
@@ -146,6 +123,17 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
       munitions.length,
       'les 6 « Carreaux » migrés, le site historique `patrouilleur-routier-1` et `specialiste-de-siege-1` (AA 04 l.275)',
     ).toBe(8);
+  });
+
+  it('chaque forme de dotation a son libellé : somme, objet valant sa somme, mention et son nombre, choix de mentions', () => {
+    const libelles = ([
+      { monnaie: 'gold', count: { fixed: 20 } },
+      { monnaie: 'silver', count: { roll: { n: 3, sides: 10 } } },
+      { id: 'bijoux', valeur: { monnaie: 'gold', count: { roll: { n: 3, sides: 10 } } } },
+      { label: 'Pamphlétaires', nature: 'personne', count: { fixed: 3 } },
+      { choice: [{ label: 'Ferme', nature: 'immeuble' }, { label: 'Droits de pâturage', nature: 'titre' }] },
+    ] satisfies TrappingRef[]).map((ref) => trappingRefLabel(ref));
+    expect(libelles).toEqual(['20 couronnes d\'or', '3d10 pistoles d\'argent', 'Bijoux valant 3d10 couronnes d\'or', 'Pamphlétaires (3)', 'Ferme ou Droits de pâturage']);
   });
 
   it('la `spec` d’une dotation s’AFFICHE — sur la donnée réelle, jamais une réf forgée', () => {

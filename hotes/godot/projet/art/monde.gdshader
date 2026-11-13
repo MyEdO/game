@@ -1,15 +1,16 @@
-// Le shader du monde (`VolumeDeScene`, #3948), qui habille l'instance vue de chaque morceau, seule à ne porter aucune
-// ombre : le code que Godot 4.7 génère pour un `StandardMaterial3D` coloré par ses sommets (sRGB) ou texturé en
-// triplanaire dans le repère du maillage, relief compris, rendu des deux côtés, ses paramètres nommés comme les
-// propriétés de cette matière (`VolumeDeScene.texturer`), plus le masque du retrait (`retrait`, `RetraitDuMonde`) : un
-// sommet dont la case (`UV2`) est retirée se replie ; une case hors du masque lié (aucun lié, avant le premier
-// `VolumeDeScene.retirer` ou après `retirer(null)` : la texture noire par défaut) n'est pas lue, rien ne s'y replie ; et
-// la vision du groupe (`vision`, `VisionDuMonde`, `VolumeDeScene.voir`) : l'état de la case sous le fragment, lu au plan
-// de sa couche et fondu depuis la vision d'avant, multiplie l'albédo par sa teinte, en lumière linéaire : sous
-// `OUTPUT_IS_SRGB` (rendu de compatibilité), l'albédo est en sRGB et le moteur le linéarise après `fragment()`
-// (`recettes/voile-de-la-vision.gd`) ; sans vision liée, la texture blanche et les teintes à 1 : rien n'est voilé.
-// `vertex()` sans branche, comme le code généré : sous une branche, le pilote arrondit autrement la projection des
-// textures.
+// Le shader du monde (`VolumeDeScene`, #3948), qui habille l'instance vue de chaque morceau et de chaque nappe de toit
+// ou couronne, seule à ne porter aucune ombre : le code que Godot 4.7 génère pour un `StandardMaterial3D` coloré par ses
+// sommets (sRGB) ou texturé en triplanaire dans le repère du maillage, relief compris, rendu des deux côtés, ses
+// paramètres nommés comme les propriétés de cette matière (`VolumeDeScene.texturer`), plus le masque du retrait
+// (`retrait`, `RetraitDuMonde`) : un sommet dont la case (`UV2`) est retirée se replie ; une case hors du masque lié
+// (aucun lié, avant le premier `VolumeDeScene.retirer`, après `retirer(null)` ou sur une nappe : la texture noire par
+// défaut) n'est pas lue, rien ne s'y replie ; et la vision du groupe (`vision`, `VisionDuMonde`, `VolumeDeScene.voir`) :
+// l'état de la case sous le fragment, lu au plan de sa couche et fondu depuis la vision d'avant, multiplie l'albédo par
+// sa teinte, en lumière linéaire : sous `OUTPUT_IS_SRGB` (rendu de compatibilité), l'albédo est en sRGB et le moteur le
+// linéarise après `fragment()` (`recettes/voile-de-la-vision.gd`) ; sans vision liée, la texture blanche et les teintes
+// à 1 : rien n'est voilé. La part de lumière (`part_de_lumiere`) a sa jumelle en GDScript pour la teinte d'une instance
+// d'arête (`MiseEnPage.teinte_d_instance`), tenue égale par `recettes/voile-du-bati.gd`. `vertex()` sans branche, comme
+// le code généré : sous une branche, le pilote arrondit autrement la projection des textures.
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
@@ -105,6 +106,8 @@ void fragment() {
 	float lumiere = part_de_lumiere(mix(etat_vu(vision_avant), etat_vu(vision), vision_fondu));
 	if (lumiere != 1.0) {
 		ALBEDO = OUTPUT_IS_SRGB ? en_srgb(en_lineaire(ALBEDO) * lumiere) : ALBEDO * lumiere;
+		// #3950
+		SPECULAR = 0.5 * sqrt(lumiere);
 	}
 	ROUGHNESS = roughness;
 }

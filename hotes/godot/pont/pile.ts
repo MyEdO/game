@@ -42,11 +42,28 @@ export interface PieceDeLaPile {
 
 /**
  * @contrat Pile des couches
+ * Une surface de la peau de la tenue, dans le repère du squelette de la base. Chaque tableau est la suite de ses octets,
+ * petit-boutiste, en base64.
+ */
+export interface SurfaceDePeau {
+  /** les positions de ses sommets au repos, formes cuites : trois flottants de 32 bits par sommet. */
+  positions: string;
+  /** les mêmes sans aucune forme ; absent d'une surface sans shape key. */
+  neutres?: string;
+}
+
+/**
+ * @contrat Pile des couches
  * La pile demandée.
  */
 export interface PileDemandee {
   /** les pièces de la tenue. */
   pieces: PieceDeLaPile[];
+  /** la peau de la tenue (#3842) : chaque surface skinnée de la base, montrée ou masquée, hors des zones que couvrent
+   *  les éléments montés de la couche `peau`, puis chaque surface skinnée de ceux qui en couvrent une ; l'ordre des
+   *  couches se vote sur ses `neutres` (`ordreDesCouches`, `asset/pile.ts`), l'endroit d'une pièce se lit sur ses
+   *  `positions` (`endroitDe`). */
+  peau: SurfaceDePeau[];
   /** le parent de chaque os du squelette de la base qui en a un, par nom. */
   parents: Record<string, string>;
   /** les os des chaînes de la base (`osDeChaine` de sa base dans `modeles`). */
@@ -104,7 +121,9 @@ export function resoudreLaPileDUneTenue(json: string): string {
       const neutres = demandes.map((m, i) => ({ positions: m.neutres === undefined ? Float32Array.from(maillages[i].positions) : new Float32Array(octetsDe(m.neutres)), indices: maillages[i].indices }));
       return { rang, accessoire, maillages, neutres };
     });
-    const bilan = resoudreLaPile(pieces, ordreDesCouches(), { parents: new Map(Object.entries(demande.parents)), osDeChaine: new Set(demande.osDeChaine) });
+    const peaux = demande.peau.map((s) => new Float32Array(octetsDe(s.positions)));
+    const neutres = demande.peau.map((s) => new Float32Array(octetsDe(s.neutres ?? s.positions)));
+    const bilan = resoudreLaPile(pieces, ordreDesCouches(neutres), { parents: new Map(Object.entries(demande.parents)), osDeChaine: new Set(demande.osDeChaine) }, peaux);
     reponse = { ok: true, bilan, pieces: pieces.map((p) => ({ maillages: p.maillages.map(ecrire) })) };
   } catch (erreur) {
     reponse = { ok: false, erreur: { categorie: 'validation', message: `pile : demande illisible (${erreur instanceof Error ? erreur.message : String(erreur)})` } };

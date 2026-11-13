@@ -71,7 +71,7 @@ describe('vivant', () => {
   });
 
   it('une ligne resoudreLaPile suivie d’une autre requête rend leurs deux réponses dans cet ordre', async () => {
-    const pile = JSON.stringify({ pieces: [], parents: {}, osDeChaine: [] });
+    const pile = JSON.stringify({ pieces: [], parents: {}, osDeChaine: [], peau: [] });
     tuyau.processus.stdin.write(`${JSON.stringify(['resoudreLaPile', pile])}\n${JSON.stringify(['vue', null])}\n`);
     const premiere = JSON.parse(await tuyau.prochaine()) as { ok: boolean; bilan?: unknown };
     const seconde = JSON.parse(await tuyau.prochaine()) as { ok: boolean; bilan?: unknown };
@@ -84,7 +84,7 @@ describe('vivant', () => {
       positions: enBase64(Float32Array.from([0, 0, 0, 0.1, 0, 0, 0, 0.1, 0])), indices: enBase64(Int32Array.from([0, 2, 1])),
       os: enBase64(new Int32Array(12)), poids: enBase64(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])), noms: ['bras'],
     };
-    const demande: PileDemandee = { pieces: [{ rang: -1, accessoire: false, maillages: [maillage] }], parents: {}, osDeChaine: [] };
+    const demande: PileDemandee = { pieces: [{ rang: -1, accessoire: false, maillages: [maillage] }], parents: {}, osDeChaine: [], peau: [] };
     tuyau.processus.stdin.write(`${JSON.stringify(['resoudreLaPile', JSON.stringify(demande)])}\n`);
     const r = JSON.parse(await tuyau.prochaine()) as { ok: boolean; erreur?: unknown };
     expect([r.ok, r.erreur]).toEqual([true, undefined]);

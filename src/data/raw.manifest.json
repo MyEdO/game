@@ -21,7 +21,7 @@
     "id": "4e/bestiaire#l-argent-des-pnj-edo",
     "type": "raw.manifest",
     "label": "L'argent des PNJ (EDO)",
-    "bloque": "`careerLevels.json` écrit en texte l'argent d'une dotation (« Pistoles d'argent » du Marchand 1, « 50 pistoles d'argent » du Colporteur 4, EDO 11 l.44) : aucun objet ne le porte, `argentDuPnj` tire donc la bourse de ce PNJ"
+    "bloque": "`creatures.json` écrit en texte l'argent de quatre profils nommés (« 1 CO » d'Eusapia Balacanon, « 2d10 pistoles d'argent » d'Isrogdal l'Empressé, EDO 11 l.44) : un spawn de créature ne lit pas ses `trappings`, cet argent n'est donc pas matérialisé"
   },
   {
     "id": "4e/magie#seconde-vue",

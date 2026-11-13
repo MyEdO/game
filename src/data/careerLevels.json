@@ -177,7 +177,8 @@
         "id": "arme-simple"
       },
       {
-        "text": "Pamphlétaire"
+        "label": "Pamphlétaire",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -224,19 +225,22 @@
     ],
     "trappings": [
       {
-        "text": "Pamphlétaire",
+        "label": "Pamphlétaires",
+        "nature": "personne",
         "count": {
           "fixed": 3
         }
       },
       {
-        "text": "Mécène"
+        "label": "Mécène",
+        "nature": "personne"
       },
       {
-        "text": "Presse à imprimer"
+        "id": "presse-a-imprimer"
       },
       {
-        "text": "Chapeau impressionnant"
+        "id": "chapeau",
+        "spec": "impressionnant"
       }
     ],
     "characteristics": [
@@ -437,7 +441,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "atelier"
@@ -485,7 +490,8 @@
     ],
     "trappings": [
       {
-        "text": "Guilde"
+        "label": "Guilde",
+        "nature": "titre"
       },
       {
         "id": "vetements",
@@ -553,7 +559,8 @@
     ],
     "trappings": [
       {
-        "text": "Hébergement"
+        "label": "Hébergement",
+        "nature": "immeuble"
       },
       {
         "id": "chaussures",
@@ -620,10 +627,12 @@
     ],
     "trappings": [
       {
-        "text": "Maison de ville"
+        "label": "Maison de ville",
+        "nature": "immeuble"
       },
       {
-        "text": "Serviteur"
+        "label": "Serviteur",
+        "nature": "personne"
       },
       {
         "id": "plume-d-oie"
@@ -685,10 +694,12 @@
         "type": "vehicle"
       },
       {
-        "text": "Cocher"
+        "label": "Cocher",
+        "nature": "personne"
       },
       {
-        "text": "Maison de ville"
+        "label": "Maison de ville",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -733,24 +744,28 @@
     ],
     "trappings": [
       {
-        "text": "Chaîne officielle"
+        "id": "bijoux",
+        "spec": "chaîne officielle"
       },
       {
         "id": "diligence",
         "type": "vehicle"
       },
       {
-        "text": "Valet de pied"
+        "label": "Valet de pied",
+        "nature": "personne"
       },
       {
         "id": "vetements",
         "qualityChoice": true
       },
       {
-        "text": "Grand hôtel particulier avec jardins"
+        "label": "Grand hôtel particulier avec jardins",
+        "nature": "immeuble"
       },
       {
-        "text": "Serviteurs"
+        "label": "Serviteurs",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -948,10 +963,12 @@
     ],
     "trappings": [
       {
-        "text": "Assistant"
+        "label": "Assistant",
+        "nature": "personne"
       },
       {
-        "text": "Bureau"
+        "label": "Bureau",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -1001,7 +1018,8 @@
         "text": "Longue vue"
       },
       {
-        "text": "Réseau d'informateurs"
+        "label": "Réseau d'informateurs",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -1078,7 +1096,7 @@
         "id": "bache-de-toile"
       },
       {
-        "text": "Pistoles d'argent",
+        "monnaie": "silver",
         "count": {
           "roll": {
             "n": 3,
@@ -1156,7 +1174,10 @@
         "id": "licence-de-guilde"
       },
       {
-        "text": "20 CO"
+        "monnaie": "gold",
+        "count": {
+          "fixed": 20
+        }
       }
     ],
     "characteristics": [
@@ -1210,16 +1231,22 @@
     ],
     "trappings": [
       {
-        "text": "Hôtel particulier"
+        "label": "Hôtel particulier",
+        "nature": "immeuble"
       },
       {
-        "text": "Serviteurs"
+        "label": "Serviteurs",
+        "nature": "personne"
       },
       {
-        "text": "Entrepôt"
+        "label": "Entrepôt",
+        "nature": "immeuble"
       },
       {
-        "text": "100 CO"
+        "monnaie": "gold",
+        "count": {
+          "fixed": 100
+        }
       }
     ],
     "characteristics": [
@@ -1271,16 +1298,21 @@
         }
       },
       {
-        "text": "Grand domaine"
+        "label": "Grand domaine",
+        "nature": "immeuble"
       },
       {
-        "text": "Entrepôt",
+        "label": "Entrepôts",
+        "nature": "immeuble",
         "count": {
           "fixed": 2
         }
       },
       {
-        "text": "1000 CO"
+        "monnaie": "gold",
+        "count": {
+          "fixed": 1000
+        }
       },
       {
         "id": "vetements",
@@ -1474,10 +1506,12 @@
         "id": "necessaire-de-deguisement"
       },
       {
-        "text": "Planque"
+        "label": "Planque",
+        "nature": "immeuble"
       },
       {
-        "text": "Disciple indigent"
+        "label": "Disciple indigent",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -1523,10 +1557,12 @@
     ],
     "trappings": [
       {
-        "text": "Antre"
+        "label": "Antre",
+        "nature": "immeuble"
       },
       {
-        "text": "Groupe important de disciples Mendiants"
+        "label": "Groupe important de disciples Mendiants",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -1664,7 +1700,8 @@
         "id": "huile-de-lampe"
       },
       {
-        "text": "Insigne en cuivre"
+        "id": "insigne",
+        "spec": "en cuivre"
       }
     ],
     "characteristics": [
@@ -1725,7 +1762,7 @@
         "id": "heaume"
       },
       {
-        "text": "Symbole de garde"
+        "id": "symbole-de-grade"
       }
     ],
     "characteristics": [
@@ -1786,7 +1823,8 @@
         "qualityChoice": true
       },
       {
-        "text": "Symbole de garde de qualité"
+        "id": "symbole-de-grade",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -1936,7 +1974,8 @@
         "id": "piege-a-animaux"
       },
       {
-        "text": "Perche pour attraper les rats morts"
+        "id": "perche",
+        "spec": "pour attraper les rats morts"
       }
     ],
     "characteristics": [
@@ -1988,7 +2027,7 @@
     ],
     "trappings": [
       {
-        "text": "Lanterne darvish"
+        "id": "lampe-davrich"
       },
       {
         "id": "arme-simple"
@@ -2040,7 +2079,8 @@
     ],
     "trappings": [
       {
-        "text": "Assistant"
+        "label": "Assistant",
+        "nature": "personne"
       },
       {
         "id": "chien",
@@ -2241,13 +2281,15 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "atelier-artiste"
       },
       {
-        "text": "Mécène"
+        "label": "Mécène",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -2292,16 +2334,19 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti",
+        "label": "Étudiants",
+        "nature": "personne",
         "count": {
           "fixed": 3
         }
       },
       {
-        "text": "Bibliotèque (Art)"
+        "label": "Bibliothèque (Art)",
+        "nature": "immeuble"
       },
       {
-        "text": "Grand Atelier (Artiste)"
+        "id": "atelier-artiste",
+        "spec": "grand"
       }
     ],
     "characteristics": [
@@ -2485,7 +2530,8 @@
         "qualityChoice": true
       },
       {
-        "text": "Assistant"
+        "label": "Assistant",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -2539,13 +2585,13 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Costume luxueux et d'excellente qualité"
+        "id": "costume-de-cour",
+        "spec": "costume luxueux",
+        "qualityChoice": true
       },
       {
-        "text": "Suite de Conseillers"
-      },
-      {
-        "text": "Suite d'Assistants"
+        "label": "Suite de Conseillers et d'Assistants",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -2770,7 +2816,7 @@
         "spec": "Fidèle"
       },
       {
-        "text": "Epée d'entrainement en bois",
+        "id": "epee-d-entrainement-en-bois",
         "count": {
           "fixed": 2
         }
@@ -3018,7 +3064,8 @@
     ],
     "trappings": [
       {
-        "text": "Assistant"
+        "label": "Assistant",
+        "nature": "personne"
       },
       {
         "id": "carte"
@@ -3072,16 +3119,19 @@
     ],
     "trappings": [
       {
-        "text": "Assistant"
+        "label": "Assistant",
+        "nature": "personne"
       },
       {
         "text": "Vêtements élégants de qualité supérieure"
       },
       {
-        "text": "Suite de Diplomates"
+        "label": "Suite de Diplomates",
+        "nature": "personne"
       },
       {
-        "text": "Héraut"
+        "label": "Héraut",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -3225,13 +3275,15 @@
         "id": "arme-simple"
       },
       {
-        "text": "Informateur"
+        "label": "Informateur",
+        "nature": "personne"
       },
       {
         "id": "necessaire-de-deguisement"
       },
       {
-        "text": "Réseau d'informateurs"
+        "label": "Réseau d'informateurs",
+        "nature": "personne"
       },
       {
         "id": "telescope"
@@ -3290,7 +3342,8 @@
         "id": "livre-cryptographie"
       },
       {
-        "text": "Réseau d'espions et d'informateurs"
+        "label": "Réseau d'espions et d'informateurs",
+        "nature": "personne"
       },
       {
         "text": "Piegons voyageurs"
@@ -3345,16 +3398,16 @@
     ],
     "trappings": [
       {
-        "text": "Bureau"
+        "label": "Bureau",
+        "nature": "immeuble"
       },
       {
-        "text": "Personnel"
+        "label": "Personnel",
+        "nature": "personne"
       },
       {
-        "text": "Grand réseau d'Espions"
-      },
-      {
-        "text": "d'Agents secrets et d'Informateurs"
+        "label": "Grand réseau d'Espions, d'Agents secrets et d'Informateurs",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -3559,7 +3612,8 @@
         "spec": "cérémoniel de fonction"
       },
       {
-        "text": "Equipe d'Intendants et de Gardiens"
+        "label": "Équipe d'Intendants et de Gardiens",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -3607,13 +3661,16 @@
     ],
     "trappings": [
       {
-        "text": "Assistant"
+        "label": "Assistant",
+        "nature": "personne"
       },
       {
-        "text": "Résidence de gouverneur"
+        "label": "Résidence de Gouverneur",
+        "nature": "immeuble"
       },
       {
-        "text": "Serviteur"
+        "label": "Serviteur",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -3693,10 +3750,20 @@
         ]
       },
       {
-        "text": "Bijoux valant (3d10 CO)"
+        "id": "bijoux",
+        "valeur": {
+          "monnaie": "gold",
+          "count": {
+            "roll": {
+              "n": 3,
+              "sides": 10
+            }
+          }
+        }
       },
       {
-        "text": "Serviteur personnel"
+        "label": "Serviteur personnel",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -3758,7 +3825,8 @@
     ],
     "trappings": [
       {
-        "text": "Employé de maison",
+        "label": "Employés de maison",
+        "nature": "personne",
         "count": {
           "fixed": 4
         }
@@ -3767,7 +3835,8 @@
         "id": "costume-de-cour"
       },
       {
-        "text": "Luxueux Costume de cour"
+        "id": "costume-de-cour",
+        "qualityChoice": true
       },
       {
         "text": "Cheval de selle avec selle et harnais ou Diligence"
@@ -3784,7 +3853,13 @@
         ]
       },
       {
-        "text": "Bijoux (50 CO)"
+        "id": "bijoux",
+        "valeur": {
+          "monnaie": "gold",
+          "count": {
+            "fixed": 50
+          }
+        }
       }
     ],
     "characteristics": [
@@ -3837,19 +3912,30 @@
     ],
     "trappings": [
       {
-        "text": "Ensemble de luxueux costume de cour",
+        "id": "costume-de-cour",
+        "qualityChoice": true,
         "count": {
           "fixed": 2
         }
       },
       {
-        "text": "200 CO"
+        "monnaie": "gold",
+        "count": {
+          "fixed": 200
+        }
       },
       {
-        "text": "Fief"
+        "label": "Fief",
+        "nature": "titre"
       },
       {
-        "text": "Bijoux (200 CO)"
+        "id": "bijoux",
+        "valeur": {
+          "monnaie": "gold",
+          "count": {
+            "fixed": 200
+          }
+        }
       },
       {
         "id": "chevaliere"
@@ -3915,13 +4001,23 @@
         ]
       },
       {
-        "text": "500 CO"
+        "monnaie": "gold",
+        "count": {
+          "fixed": 500
+        }
       },
       {
-        "text": "Bijoux (500 CO)"
+        "id": "bijoux",
+        "valeur": {
+          "monnaie": "gold",
+          "count": {
+            "fixed": 500
+          }
+        }
       },
       {
-        "text": "Province"
+        "label": "Province",
+        "nature": "titre"
       }
     ],
     "characteristics": [
@@ -4105,7 +4201,8 @@
         "id": "lampe-tempete"
       },
       {
-        "text": "Livrée de qualité"
+        "id": "livree",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -4155,10 +4252,17 @@
         "id": "arme-simple"
       },
       {
-        "text": "Vêtements élégants"
+        "id": "vetements",
+        "spec": "élégants",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
       },
       {
-        "text": "Serviteur"
+        "label": "Serviteur",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -4637,7 +4741,8 @@
         "text": "Caparaçon"
       },
       {
-        "text": "Petite unité de Chevaliers"
+        "label": "Petite unité de Chevaliers",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -4687,10 +4792,12 @@
         "text": "Grand heaume à cimier"
       },
       {
-        "text": "Ecuyer"
+        "label": "Écuyer",
+        "nature": "personne"
       },
       {
-        "text": "Importante unité de Chevaliers ou plusieurs petites unités de Chevaliers"
+        "label": "Importante unité de Chevaliers ou plusieurs petites unités de Chevaliers",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -5295,7 +5402,8 @@
         "id": "gros-morceau-de-viande"
       },
       {
-        "text": "Envie de voyager"
+        "label": "Envie de voyager",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -5360,7 +5468,7 @@
     ],
     "trappings": [
       {
-        "text": "Pansière"
+        "id": "pansiere-ogre"
       },
       {
         "text": "Vêtements locaux"
@@ -5426,10 +5534,12 @@
     ],
     "trappings": [
       {
-        "text": "Unité de mercenaires"
+        "label": "Unité de mercenaires",
+        "nature": "personne"
       },
       {
-        "text": "Respect"
+        "label": "Respect",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -5476,7 +5586,8 @@
     ],
     "trappings": [
       {
-        "text": "Pansière éprouvée au combat"
+        "id": "pansiere-ogre",
+        "spec": "éprouvée au combat"
       },
       {
         "text": "Contrat de mercenaire"
@@ -5728,7 +5839,8 @@
     ],
     "trappings": [
       {
-        "text": "Relique religieuse"
+        "id": "relique",
+        "spec": "religieuse"
       }
     ],
     "characteristics": [
@@ -5921,10 +6033,11 @@
     ],
     "trappings": [
       {
-        "text": "Unité de Recrues (Compagnie)"
+        "label": "Unité de recrues (Compagnie)",
+        "nature": "personne"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade"
       }
     ],
     "characteristics": [
@@ -5986,14 +6099,15 @@
         "text": "Ordres de mission"
       },
       {
-        "text": "Unité de Soldats"
+        "label": "Unité de Soldats",
+        "nature": "personne"
       },
       {
         "id": "uniforme",
         "qualityChoice": true
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade"
       }
     ],
     "characteristics": [
@@ -6246,13 +6360,15 @@
         "label": "Gros blaireau apprivoisé"
       },
       {
-        "text": "Écuyer (Taquineur de blaireau)"
+        "label": "Écuyer (Taquineur de blaireau)",
+        "nature": "personne"
       },
       {
         "text": "Armure de plates"
       },
       {
-        "text": "Sens de l'humour"
+        "label": "Sens de l'humour",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -6594,7 +6710,8 @@
         "spec": "Alcool"
       },
       {
-        "text": "Honte"
+        "label": "Honte",
+        "nature": "intangible"
       },
       {
         "id": "tatouage"
@@ -6665,7 +6782,7 @@
         "id": "grande-hache"
       },
       {
-        "text": "Tête de troll"
+        "id": "tete-de-troll"
       }
     ],
     "characteristics": [
@@ -6719,7 +6836,7 @@
     ],
     "trappings": [
       {
-        "text": "Tête de géant"
+        "id": "tete-de-geant"
       },
       {
         "id": "hache-de-lancer"
@@ -6768,7 +6885,7 @@
     ],
     "trappings": [
       {
-        "text": "Tête de dragon"
+        "id": "tete-de-dragon"
       }
     ],
     "characteristics": [
@@ -7034,7 +7151,7 @@
         "id": "chemise-de-mailles"
       },
       {
-        "text": "Paires de Menottes",
+        "id": "menottes",
         "count": {
           "fixed": 4
         }
@@ -7302,14 +7419,16 @@
     ],
     "trappings": [
       {
-        "text": "Trophée d'un ennemi légendaire"
+        "id": "trophee",
+        "spec": "d'un ennemi légendaire"
       },
       {
         "id": "fleche-elfique",
         "spec": "antique (pour proie spéciale)"
       },
       {
-        "text": "Réputation effrayante"
+        "label": "Réputation effrayante",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -7451,7 +7570,8 @@
         }
       },
       {
-        "text": "Corne de cocher"
+        "id": "instrument",
+        "spec": "corne de cocher"
       },
       {
         "id": "veste-de-cuir"
@@ -7642,7 +7762,17 @@
         "id": "sac-de-couchage"
       },
       {
-        "text": "Biens (2d10 sous de cuivre)"
+        "id": "marchandises",
+        "spec": "biens",
+        "valeur": {
+          "monnaie": "brass",
+          "count": {
+            "roll": {
+              "n": 2,
+              "sides": 10
+            }
+          }
+        }
       },
       {
         "id": "tente"
@@ -7713,7 +7843,17 @@
         "id": "fontes-de-selle"
       },
       {
-        "text": "Biens (2d10 pistoles d'argent)"
+        "id": "marchandises",
+        "spec": "biens",
+        "valeur": {
+          "monnaie": "silver",
+          "count": {
+            "roll": {
+              "n": 2,
+              "sides": 10
+            }
+          }
+        }
       },
       {
         "text": "Ensemble d'ustensiles de cuisine"
@@ -7776,7 +7916,17 @@
         "type": "vehicle"
       },
       {
-        "text": "Biens (2d10 CO)"
+        "id": "marchandises",
+        "spec": "biens",
+        "valeur": {
+          "monnaie": "gold",
+          "count": {
+            "roll": {
+              "n": 2,
+              "sides": 10
+            }
+          }
+        }
       }
     ],
     "characteristics": [
@@ -7831,10 +7981,23 @@
         "type": "vehicle"
       },
       {
-        "text": "Biens (5d10 CO)"
+        "id": "marchandises",
+        "spec": "biens",
+        "valeur": {
+          "monnaie": "gold",
+          "count": {
+            "roll": {
+              "n": 5,
+              "sides": 10
+            }
+          }
+        }
       },
       {
-        "text": "50 pistoles d'argent"
+        "monnaie": "silver",
+        "count": {
+          "fixed": 50
+        }
       }
     ],
     "characteristics": [
@@ -7969,7 +8132,8 @@
         "id": "fronde"
       },
       {
-        "text": "Pancarte"
+        "id": "affiche",
+        "spec": "pancarte"
       },
       {
         "id": "symbole-religieux"
@@ -8025,7 +8189,7 @@
     ],
     "trappings": [
       {
-        "text": "Relique"
+        "id": "relique"
       }
     ],
     "characteristics": [
@@ -8075,7 +8239,8 @@
         "id": "livre-religion"
       },
       {
-        "text": "Partisans (dont des Pénitents, des Flagellants et des Zélotes)"
+        "label": "Partisans (dont des Pénitents, des Flagellants et des Zélotes)",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -8318,7 +8483,8 @@
         "text": "Haillons"
       },
       {
-        "text": "Respect des autres Frères Loups"
+        "label": "Respect des autres Frères Loups",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -8556,7 +8722,8 @@
     ],
     "trappings": [
       {
-        "text": "Estafettes"
+        "label": "Estafettes",
+        "nature": "personne"
       },
       {
         "id": "chemise-de-mailles"
@@ -8818,7 +8985,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprentis Coureurs des forts",
+        "label": "Apprentis Coureurs des forts",
+        "nature": "personne",
         "count": {
           "fixed": 4
         }
@@ -8827,7 +8995,8 @@
         "id": "carte"
       },
       {
-        "text": "Souvenirs de nombreux voyages"
+        "id": "souvenirs",
+        "spec": "de nombreux voyages"
       }
     ],
     "characteristics": [
@@ -9029,7 +9198,8 @@
     ],
     "trappings": [
       {
-        "text": "Escadrille de Patrouilleurs routiers"
+        "label": "Escadrille de Patrouilleurs routiers",
+        "nature": "personne"
       },
       {
         "id": "pistolet"
@@ -9044,7 +9214,7 @@
         "id": "bouclier"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade"
       }
     ],
     "characteristics": [
@@ -9111,7 +9281,8 @@
         "qualityChoice": true
       },
       {
-        "text": "Unité de Patrouilleurs routiers"
+        "label": "Unité de Patrouilleurs routiers",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -9318,10 +9489,12 @@
     ],
     "trappings": [
       {
-        "text": "Chemise de mailles de bonne qualité"
+        "id": "chemise-de-mailles",
+        "qualityChoice": true
       },
       {
-        "text": "Escouade de Gardes novices"
+        "label": "Escouade de Gardes novices",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -9368,10 +9541,12 @@
     ],
     "trappings": [
       {
-        "text": "Garnison de Sergent Gardechamps"
+        "label": "Garnison de Sergent Gardechamps",
+        "nature": "personne"
       },
       {
-        "text": "Respect de la communauté"
+        "label": "Respect de la communauté",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -9512,7 +9687,8 @@
         ]
       },
       {
-        "text": "Chapeau en cuir"
+        "id": "chapeau",
+        "spec": "en cuir"
       },
       {
         "id": "veste-de-cuir"
@@ -9587,7 +9763,8 @@
         "qualityChoice": true
       },
       {
-        "text": "Interrogateurs subordonnés"
+        "label": "Interrogateurs subordonnés",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -9637,7 +9814,8 @@
         "text": "Costume luxueux de qualité supérieure"
       },
       {
-        "text": "Répurgateurs subordonnés"
+        "label": "Répurgateurs subordonnés",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -9779,7 +9957,8 @@
         "id": "instrument"
       },
       {
-        "text": "Choix de textes (Que vous ne savez pas encore lire)"
+        "id": "choix-de-textes",
+        "spec": "que vous ne savez pas encore lire"
       }
     ],
     "characteristics": [
@@ -9893,7 +10072,8 @@
         "text": "Garde-robe avec costumes et accessoires"
       },
       {
-        "text": "Troupe de Saltimbanques"
+        "label": "Troupe de saltimbanques",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -10092,7 +10272,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "atelier"
@@ -10149,7 +10330,8 @@
         "text": "Bon de commande"
       },
       {
-        "text": "Grand Atelier"
+        "id": "atelier",
+        "spec": "grand"
       }
     ],
     "characteristics": [
@@ -10360,7 +10542,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti boucher"
+        "label": "Apprenti boucher",
+        "nature": "personne"
       },
       {
         "text": "Sac sanglant"
@@ -10416,13 +10599,16 @@
     ],
     "trappings": [
       {
-        "text": "Grotte ou Autre repaire"
+        "label": "Grotte ou autre repaire",
+        "nature": "immeuble"
       },
       {
-        "text": "Cultistes loyaux de la Gueule"
+        "label": "Cultistes loyaux de la Gueule",
+        "nature": "personne"
       },
       {
-        "text": "Faim insatiable"
+        "label": "Faim insatiable",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -10561,7 +10747,8 @@
     ],
     "trappings": [
       {
-        "text": "Accès à une bibliothèque"
+        "label": "Accès à une bibliothèque",
+        "nature": "titre"
       },
       {
         "text": "Diplôme"
@@ -10670,7 +10857,8 @@
     ],
     "trappings": [
       {
-        "text": "Étude"
+        "label": "Étude",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -10917,14 +11105,16 @@
         "id": "licence-de-guilde"
       },
       {
-        "text": "Bibliothèque (Ingénieur)"
+        "label": "Bibliothèque (Ingénieur)",
+        "nature": "immeuble"
       },
       {
         "id": "outils-professionnels-ingenieur",
         "qualityChoice": true
       },
       {
-        "text": "Grand atelier (Ingénieur)"
+        "id": "atelier-ingenieur",
+        "spec": "grand"
       }
     ],
     "characteristics": [
@@ -11055,7 +11245,8 @@
     ],
     "trappings": [
       {
-        "text": "Robe de juriste"
+        "id": "robes",
+        "spec": "de juriste"
       },
       {
         "id": "licence-de-guilde"
@@ -11115,10 +11306,12 @@
     ],
     "trappings": [
       {
-        "text": "Assistant (Etudiant ou Serviteur)"
+        "label": "Assistant (Étudiant ou Serviteur)",
+        "nature": "personne"
       },
       {
-        "text": "Bureau"
+        "label": "Bureau",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -11167,7 +11360,8 @@
         "id": "maillet"
       },
       {
-        "text": "Perruque ostentatoire"
+        "id": "perruque",
+        "spec": "ostentatoire"
       }
     ],
     "characteristics": [
@@ -11355,7 +11549,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "atelier",
@@ -11546,10 +11741,11 @@
         "id": "livre-religion"
       },
       {
-        "text": "Relique"
+        "id": "relique"
       },
       {
-        "text": "Outils professionnels (Au choix)"
+        "id": "outils-professionnels",
+        "spec": "au choix"
       }
     ],
     "characteristics": [
@@ -11603,10 +11799,12 @@
     ],
     "trappings": [
       {
-        "text": "Abbaye"
+        "label": "Abbaye",
+        "nature": "immeuble"
       },
       {
-        "text": "Bibliothèque (Théologie)"
+        "label": "Bibliothèque (Théologie)",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -11652,7 +11850,8 @@
     ],
     "trappings": [
       {
-        "text": "Ordre de religieux"
+        "label": "Ordre religieux",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -11786,7 +11985,8 @@
         "id": "livre-religion"
       },
       {
-        "text": "Robes de cérémonie"
+        "id": "robes",
+        "spec": "de cérémonie"
       }
     ],
     "characteristics": [
@@ -11842,16 +12042,20 @@
     ],
     "trappings": [
       {
-        "text": "Robe de bonne qualité"
+        "id": "robes",
+        "qualityChoice": true
       },
       {
-        "text": "relique religieuse"
+        "id": "relique",
+        "spec": "religieuse"
       },
       {
-        "text": "Prêtres subordonnés"
+        "label": "Prêtres subordonnés",
+        "nature": "personne"
       },
       {
-        "text": "Temple"
+        "label": "Temple",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -11900,10 +12104,12 @@
     ],
     "trappings": [
       {
-        "text": "Bibliothèque (Théologie)"
+        "label": "Bibliothèque (Théologie)",
+        "nature": "immeuble"
       },
       {
-        "text": "Grands Prêtres subordonnés"
+        "label": "Grands Prêtres subordonnés",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -12089,7 +12295,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -12143,14 +12350,16 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "atelier",
         "spec": "Magie"
       },
       {
-        "text": "Bibliothèque (Magie)"
+        "label": "Bibliothèque (Magie)",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -12396,7 +12605,8 @@
         "label": "Bateau de transport fluvial"
       },
       {
-        "text": "Equipage"
+        "label": "Équipage",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -12613,7 +12823,8 @@
     ],
     "trappings": [
       {
-        "text": "Coureur de rivières"
+        "label": "Coureur de rivières",
+        "nature": "personne"
       },
       {
         "id": "barque-fluviale",
@@ -12804,13 +13015,11 @@
         "id": "justaucorps-de-cuir"
       },
       {
-        "text": "Pipe"
+        "id": "pipe-et-tabac"
       },
       {
-        "text": "Tabac"
-      },
-      {
-        "text": "Casquette de porteur"
+        "id": "casquette",
+        "spec": "de porteur"
       }
     ],
     "characteristics": [
@@ -12862,10 +13071,11 @@
     ],
     "trappings": [
       {
-        "text": "Gagne de Débardeurs"
+        "label": "Gang de Débardeurs",
+        "nature": "personne"
       },
       {
-        "text": "Sifflet"
+        "id": "sifflet"
       }
     ],
     "characteristics": [
@@ -12911,10 +13121,12 @@
     ],
     "trappings": [
       {
-        "text": "Bureau"
+        "label": "Bureau",
+        "nature": "immeuble"
       },
       {
-        "text": "Personnel"
+        "label": "Personnel",
+        "nature": "personne"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -13405,10 +13617,11 @@
         "text": "Voilier"
       },
       {
-        "text": "Equipage"
+        "label": "Équipage",
+        "nature": "personne"
       },
       {
-        "text": "Sextant"
+        "id": "sextant"
       },
       {
         "text": "Longue vue"
@@ -13609,7 +13822,10 @@
         }
       },
       {
-        "text": "Corde avec grappin"
+        "id": "corde"
+      },
+      {
+        "id": "grappin"
       },
       {
         "id": "barge-fluviale",
@@ -13663,10 +13879,11 @@
         "text": "Flotille de bateaux de transport fluvial"
       },
       {
-        "text": "Equipage de Naufrageurs"
+        "label": "Équipage de Naufrageurs",
+        "nature": "personne"
       },
       {
-        "text": "Tonnelet de bière"
+        "id": "biere-tonnelet"
       },
       {
         "id": "menottes"
@@ -13916,7 +14133,8 @@
     ],
     "trappings": [
       {
-        "text": "Canotier"
+        "label": "Canotier",
+        "nature": "personne"
       },
       {
         "id": "barque-fluviale",
@@ -14184,10 +14402,11 @@
         "label": "Bateaux de patrouille"
       },
       {
-        "text": "Equipage"
+        "label": "Équipage",
+        "nature": "personne"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade"
       }
     ],
     "characteristics": [
@@ -14333,16 +14552,19 @@
         }
       },
       {
-        "text": "Assortiment de poudres colorées"
+        "id": "poudres-colorees",
+        "spec": "assortiment"
       },
       {
-        "text": "Eau"
+        "id": "eau"
       },
       {
-        "text": "Breloques"
+        "id": "breloque",
+        "spec": "assortiment"
       },
       {
-        "text": "Colifichets"
+        "id": "colifichet",
+        "spec": "assortiment"
       }
     ],
     "characteristics": [
@@ -14450,7 +14672,8 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "text": "Sceau falsifié"
+        "id": "cachet-grave",
+        "spec": "sceau falsifié"
       }
     ],
     "characteristics": [
@@ -14577,7 +14800,7 @@
     ],
     "trappings": [
       {
-        "text": "Dose de mytracine"
+        "id": "mystracine"
       },
       {
         "id": "vetements",
@@ -14635,7 +14858,8 @@
     ],
     "trappings": [
       {
-        "text": "Réseau de Prostituées"
+        "label": "Réseau de prostituées",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -14681,10 +14905,12 @@
     ],
     "trappings": [
       {
-        "text": "Maison de ville avec discrète entrée arrière"
+        "label": "Maison de ville avec discrète entrée arrière",
+        "nature": "immeuble"
       },
       {
-        "text": "Réseau d'Entremetteurs"
+        "label": "Réseau d'Entremetteurs",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -14894,7 +15120,8 @@
         "id": "cotte-de-mailles"
       },
       {
-        "text": "Bande de Hors-la-loi"
+        "label": "Bande de Hors-la-loi",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -14941,10 +15168,12 @@
     ],
     "trappings": [
       {
-        "text": "\"Fief\" de Chefs de bande"
+        "label": "« Fief » de Chefs de bande",
+        "nature": "personne"
       },
       {
-        "text": "Antre"
+        "label": "Antre",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -15410,10 +15639,12 @@
         }
       },
       {
-        "text": "Gang de Coupe-jarret et de Rançonneurs"
+        "label": "Gang de Coupe-jarret et de Rançonneurs",
+        "nature": "personne"
       },
       {
-        "text": "Antre"
+        "label": "Antre",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -15460,10 +15691,12 @@
     ],
     "trappings": [
       {
-        "text": "Chefs de gangs subalterrnes"
+        "label": "Chefs de gangs subalternes",
+        "nature": "personne"
       },
       {
-        "text": "Réseau d'Informateurs"
+        "label": "Réseau d'Informateurs",
+        "nature": "personne"
       },
       {
         "id": "vetements",
@@ -15538,7 +15771,17 @@
         "id": "arme-simple"
       },
       {
-        "text": "Marchandises volées (3d10 pistoles d'argent)"
+        "id": "marchandises",
+        "spec": "volées",
+        "valeur": {
+          "monnaie": "silver",
+          "count": {
+            "roll": {
+              "n": 3,
+              "sides": 10
+            }
+          }
+        }
       }
     ],
     "characteristics": [
@@ -15600,7 +15843,7 @@
     ],
     "trappings": [
       {
-        "text": "Monocle"
+        "id": "monocle"
       },
       {
         "id": "outils-professionnels-graveur"
@@ -15660,7 +15903,8 @@
     ],
     "trappings": [
       {
-        "text": "Echoppe de prêteur sur gages"
+        "label": "Échoppe de prêteur sur gages",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -15706,13 +15950,16 @@
     ],
     "trappings": [
       {
-        "text": "Gros bras"
+        "label": "Gros bras",
+        "nature": "personne"
       },
       {
-        "text": "Réseau d'Informateurs"
+        "label": "Réseau d'Informateurs",
+        "nature": "personne"
       },
       {
-        "text": "Entrepôt"
+        "label": "Entrepôt",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -15912,7 +16159,8 @@
         "id": "sac-a-dos"
       },
       {
-        "text": "Cape avec de nombreuses poches"
+        "id": "cape",
+        "spec": "avec de nombreuses poches"
       },
       {
         "id": "porte-bonheur"
@@ -15964,7 +16212,7 @@
         "id": "robes"
       },
       {
-        "text": "Crâne"
+        "id": "crane"
       }
     ],
     "characteristics": [
@@ -16203,13 +16451,21 @@
     ],
     "trappings": [
       {
-        "text": "Vêtements sombres"
+        "id": "vetements",
+        "spec": "sombres"
       },
       {
         "id": "grappin"
       },
       {
-        "text": "Masque ou Echarpes"
+        "choice": [
+          {
+            "id": "masque"
+          },
+          {
+            "id": "echarpe"
+          }
+        ]
       }
     ],
     "characteristics": [
@@ -16338,7 +16594,8 @@
         "id": "veste-de-cuir"
       },
       {
-        "text": "Percepteurs",
+        "label": "Percepteurs",
+        "nature": "personne",
         "count": {
           "fixed": 3
         }
@@ -16404,7 +16661,8 @@
         "id": "plastron"
       },
       {
-        "text": "Bailli"
+        "label": "Bailli",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -16451,14 +16709,16 @@
     ],
     "trappings": [
       {
-        "text": "Bibliothèque (Loi)"
+        "label": "Bibliothèque (Loi)",
+        "nature": "immeuble"
       },
       {
         "id": "robes",
         "qualityChoice": true
       },
       {
-        "text": "Sceau d'office"
+        "id": "cachet-grave",
+        "spec": "sceau d'office"
       }
     ],
     "characteristics": [
@@ -16993,7 +17253,8 @@
     ],
     "trappings": [
       {
-        "text": "Sélection de cartes"
+        "id": "carte",
+        "spec": "sélection de cartes"
       },
       {
         "id": "outils-professionnels",
@@ -17152,7 +17413,7 @@
         ]
       },
       {
-        "text": "Fourrures de rhinox"
+        "id": "fourrures-de-rhinox"
       }
     ],
     "characteristics": [
@@ -17208,7 +17469,8 @@
         "type": "creature"
       },
       {
-        "text": "Pansière avec un crâne de rhinox"
+        "id": "pansiere-ogre",
+        "spec": "avec un crâne de rhinox"
       },
       {
         "id": "fontes-de-selle"
@@ -17256,7 +17518,16 @@
     ],
     "trappings": [
       {
-        "text": "Ferme ou Droits de pâturage sur un grand domaine"
+        "choice": [
+          {
+            "label": "Ferme",
+            "nature": "immeuble"
+          },
+          {
+            "label": "Droits de pâturage sur un grand domaine",
+            "nature": "titre"
+          }
+        ]
       },
       {
         "text": "Troupeau de rhinox ou d'autres Grandes bêtes"
@@ -17458,7 +17729,8 @@
         "id": "atelier-herboriste"
       },
       {
-        "text": "Cueilleur"
+        "label": "Cueilleur",
+        "nature": "personne"
       },
       {
         "id": "cataplasme-de-guerison",
@@ -17773,7 +18045,8 @@
     ],
     "trappings": [
       {
-        "text": "Equipe de Mineurs"
+        "label": "Équipe de mineurs",
+        "nature": "personne"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -17911,7 +18184,8 @@
     ],
     "trappings": [
       {
-        "text": "Assortiment d'amulettes"
+        "id": "amulette",
+        "spec": "assortiment d'amulettes"
       }
     ],
     "characteristics": [
@@ -18218,10 +18492,12 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
-        "text": "Cabane isolée"
+        "label": "Cabane isolée",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -18267,13 +18543,15 @@
     ],
     "trappings": [
       {
-        "text": "Assortiment de crânes d'animaux"
+        "id": "crane",
+        "spec": "assortiment de crânes d'animaux"
       },
       {
-        "text": "Cape de cérémonie"
+        "id": "cape",
+        "spec": "de cérémonie"
       },
       {
-        "text": "Couronne de fleurs"
+        "id": "couronne-de-fleurs"
       }
     ],
     "characteristics": [
@@ -18400,7 +18678,8 @@
         "spec": "Hache"
       },
       {
-        "text": "Outils de la Profession (Identique au Métier)"
+        "id": "outils-professionnels",
+        "spec": "identique au Métier"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -18463,7 +18742,8 @@
         "type": "vehicle"
       },
       {
-        "text": "Maison de village"
+        "label": "Maison de village",
+        "nature": "immeuble"
       },
       {
         "id": "atelier"
@@ -18514,7 +18794,8 @@
     ],
     "trappings": [
       {
-        "text": "Respect du village"
+        "label": "Respect du village",
+        "nature": "intangible"
       }
     ],
     "characteristics": [
@@ -18731,13 +19012,15 @@
         "id": "chausses-de-mailles"
       },
       {
-        "text": "Ecuyer"
+        "label": "Écuyer",
+        "nature": "personne"
       },
       {
         "id": "lance"
       },
       {
-        "text": "Page"
+        "label": "Page",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -18796,7 +19079,7 @@
         "text": "Paire de pistolets avec Poudre noire et Munitions ou Arc avec Carquois de 10 flèches"
       },
       {
-        "text": "Plastron d'acier"
+        "id": "plastron"
       }
     ],
     "characteristics": [
@@ -18959,7 +19242,8 @@
         "id": "heaume"
       },
       {
-        "text": "Blason personnel"
+        "label": "Blason personnel",
+        "nature": "titre"
       },
       {
         "id": "selle-et-harnais"
@@ -19017,7 +19301,8 @@
         "text": "Caparaçon"
       },
       {
-        "text": "Petit contingent de suivants"
+        "label": "Petit contingent de suivants",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -19064,10 +19349,12 @@
     ],
     "trappings": [
       {
-        "text": "Ecuyer"
+        "label": "Écuyer",
+        "nature": "personne"
       },
       {
-        "text": "Unité de Chevaliers"
+        "label": "Compagnie de chevaliers",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -19295,7 +19582,8 @@
         "text": "Caparaçon"
       },
       {
-        "text": "Petite unité de Chevaliers du Soleil flamboyant"
+        "label": "Petite unité de Chevaliers du Soleil flamboyant",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -19342,13 +19630,15 @@
     ],
     "trappings": [
       {
-        "text": "Ecuyer"
+        "label": "Écuyer",
+        "nature": "personne"
       },
       {
         "text": "Grand heaume avec l'emblème du Soleil"
       },
       {
-        "text": "Importante unité de Chevaliers du Soleil flamboyant"
+        "label": "Grande unité ou plusieurs petites unités de chevaliers",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -19506,7 +19796,8 @@
         "text": "Armure de plates"
       },
       {
-        "text": "Cape en peau de loup"
+        "id": "cape",
+        "spec": "en peau de loup"
       },
       {
         "id": "destrier-cheval-de-guerre-lourd",
@@ -19569,7 +19860,8 @@
         "text": "Caparaçon"
       },
       {
-        "text": "Petite unité de Chevaliers du Loup Blanc"
+        "label": "Petite unité de Chevaliers du Loup Blanc",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -19616,10 +19908,12 @@
     ],
     "trappings": [
       {
-        "text": "Compagnie de Chevaliers du Loup Blanc"
+        "label": "Compagnie de Chevaliers du Loup Blanc",
+        "nature": "personne"
       },
       {
-        "text": "Novice"
+        "label": "Novice",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -19773,13 +20067,22 @@
     ],
     "trappings": [
       {
-        "text": "Anneau ou Médaillon avec l'emblème de la Panthère"
+        "choice": [
+          {
+            "id": "bijoux",
+            "spec": "anneau orné d'un emblème de panthère"
+          },
+          {
+            "id": "bijoux",
+            "spec": "médaillon orné d'un emblème de panthère"
+          }
+        ]
       },
       {
         "text": "Armure de plates"
       },
       {
-        "text": "Cape en peau de Panthère"
+        "id": "peau-de-grand-felin"
       },
       {
         "id": "destrier-cheval-de-guerre-lourd",
@@ -19853,7 +20156,8 @@
         "text": "Caparaçon"
       },
       {
-        "text": "Petite unité de Chevaliers Panthères"
+        "label": "Petite unité de Chevaliers Panthères",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -19900,10 +20204,12 @@
     ],
     "trappings": [
       {
-        "text": "Ecuyer"
+        "label": "Écuyer",
+        "nature": "personne"
       },
       {
-        "text": "Importante unité de Chevaliers Panthères ou plusieurs petites unités de Chevaliers Panthères"
+        "label": "Grande unité ou plusieurs petites unités de Chevaliers Panthères",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -20164,7 +20470,8 @@
     ],
     "trappings": [
       {
-        "text": "Relique religieuse"
+        "id": "relique",
+        "spec": "religieuse (myrmidéenne)"
       }
     ],
     "characteristics": [
@@ -20373,7 +20680,8 @@
     ],
     "trappings": [
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de son rang"
       },
       {
         "id": "uniforme",
@@ -20434,7 +20742,8 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de son rang"
       }
     ],
     "characteristics": [
@@ -20582,7 +20891,7 @@
         "id": "heaume"
       },
       {
-        "text": "Plastron d'acier"
+        "id": "plastron"
       }
     ],
     "characteristics": [
@@ -20634,7 +20943,8 @@
     ],
     "trappings": [
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne du rang"
       },
       {
         "id": "uniforme",
@@ -20698,7 +21008,8 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       }
     ],
     "characteristics": [
@@ -20893,7 +21204,8 @@
     ],
     "trappings": [
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       },
       {
         "id": "uniforme",
@@ -20953,7 +21265,8 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       }
     ],
     "characteristics": [
@@ -21151,10 +21464,12 @@
     ],
     "trappings": [
       {
-        "text": "Manuel sur l'art de combattre à la zweihänder"
+        "id": "livre",
+        "spec": "manuel sur l'art de combattre à la zweihänder"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       },
       {
         "id": "zweihander",
@@ -21214,7 +21529,8 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       },
       {
         "id": "uniforme",
@@ -21419,10 +21735,11 @@
     ],
     "trappings": [
       {
-        "text": "Plastron d'acier"
+        "id": "plastron"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       }
     ],
     "characteristics": [
@@ -21468,10 +21785,11 @@
     ],
     "trappings": [
       {
-        "text": "Porte-étendard"
+        "label": "Porte-étendard",
+        "nature": "personne"
       },
       {
-        "text": "Brassards d'acier"
+        "id": "brassards"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -21481,14 +21799,16 @@
         "id": "jambieres-d-acier"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "bâton de rang"
       },
       {
         "id": "uniforme",
         "qualityChoice": true
       },
       {
-        "text": "Étendard de l'unité"
+        "id": "etendard",
+        "spec": "de l'unité"
       }
     ],
     "characteristics": [
@@ -21699,7 +22019,8 @@
     ],
     "trappings": [
       {
-        "text": "Livres de tableaux balistiques"
+        "id": "livre",
+        "spec": "tableaux balistiques"
       },
       {
         "id": "balle-et-poudre",
@@ -21714,7 +22035,7 @@
         "id": "pistolet"
       },
       {
-        "text": "Plastron d'acier"
+        "id": "plastron"
       },
       {
         "text": "Lot de six mèches durant 1 minute"
@@ -21773,7 +22094,8 @@
         "spec": "pavillon"
       },
       {
-        "text": "Page porteur d'armes"
+        "label": "Page porteur d'armes",
+        "nature": "personne"
       },
       {
         "id": "vetements",
@@ -22020,7 +22342,8 @@
         "type": "creature"
       },
       {
-        "text": "Cercle de suiveurs de camp"
+        "label": "Cercle de suiveurs de camp",
+        "nature": "personne"
       },
       {
         "id": "selle-et-harnais"
@@ -22169,7 +22492,7 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Théodolite"
+        "id": "theodolite"
       }
     ],
     "characteristics": [
@@ -22275,10 +22598,12 @@
     ],
     "trappings": [
       {
-        "text": "Théodolite"
+        "id": "theodolite",
+        "qualityChoice": true
       },
       {
-        "text": "Étude"
+        "label": "Étude",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -22488,7 +22813,8 @@
     ],
     "trappings": [
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       },
       {
         "id": "uniforme",
@@ -22557,7 +22883,8 @@
         "id": "selle-et-harnais"
       },
       {
-        "text": "Symbole de grade"
+        "id": "symbole-de-grade",
+        "spec": "insigne de rang"
       }
     ],
     "characteristics": [
@@ -22697,7 +23024,8 @@
         "id": "chapeau"
       },
       {
-        "text": "Coffre de marin"
+        "id": "coffre",
+        "spec": "de marin"
       },
       {
         "text": "Outils"
@@ -22752,10 +23080,12 @@
     ],
     "trappings": [
       {
-        "text": "Équipe de servants"
+        "label": "Équipe de servants",
+        "nature": "personne"
       },
       {
-        "text": "Longue-vue"
+        "id": "telescope",
+        "spec": "longue-vue"
       }
     ],
     "characteristics": [
@@ -22801,10 +23131,12 @@
     ],
     "trappings": [
       {
-        "text": "Cabine"
+        "label": "Cabine",
+        "nature": "immeuble"
       },
       {
-        "text": "Uniforme de bonne qualité"
+        "id": "uniforme",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -22948,7 +23280,7 @@
     ],
     "trappings": [
       {
-        "text": "Manteau en peau de phoque"
+        "id": "peau-de-phoque"
       }
     ],
     "characteristics": [
@@ -23293,7 +23625,7 @@
         "text": "Longue-vue"
       },
       {
-        "text": "Sextant"
+        "id": "sextant"
       }
     ],
     "characteristics": [
@@ -23506,7 +23838,10 @@
         "label": "Bateau de transport"
       },
       {
-        "text": "Corde avec grappin"
+        "id": "corde"
+      },
+      {
+        "id": "grappin"
       }
     ],
     "characteristics": [
@@ -23557,7 +23892,7 @@
         "id": "menottes"
       },
       {
-        "text": "Tonnelet de bière"
+        "id": "biere-tonnelet"
       }
     ],
     "characteristics": [
@@ -23802,7 +24137,8 @@
     ],
     "trappings": [
       {
-        "text": "Canotier"
+        "label": "Canotier",
+        "nature": "personne"
       },
       {
         "id": "esquif",
@@ -23942,10 +24278,12 @@
     ],
     "trappings": [
       {
-        "text": "Coffre de navire"
+        "id": "coffre",
+        "spec": "de navire"
       },
       {
-        "text": "Uniforme de bonne qualité"
+        "id": "uniforme",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -24001,7 +24339,8 @@
         "label": "Bateau à commander"
       },
       {
-        "text": "Grand chapeau"
+        "id": "chapeau",
+        "spec": "grand"
       },
       {
         "text": "Journal du capitaine"
@@ -24258,13 +24597,16 @@
         "label": "Bateau de cérémonie"
       },
       {
-        "text": "Prêtres subalternes"
+        "label": "Prêtres subalternes",
+        "nature": "personne"
       },
       {
-        "text": "Temple"
+        "label": "Temple",
+        "nature": "immeuble"
       },
       {
-        "text": "Toge de bonne qualité"
+        "id": "robes",
+        "qualityChoice": true
       }
     ],
     "characteristics": [
@@ -24314,10 +24656,12 @@
         "text": "Flottille de bateaux"
       },
       {
-        "text": "Relique sacrée"
+        "id": "relique",
+        "spec": "sacrée"
       },
       {
-        "text": "Prêtres capitaines subalternes"
+        "label": "Prêtres capitaines subalternes",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -24454,10 +24798,12 @@
     ],
     "trappings": [
       {
-        "text": "Bottes trouvées"
+        "id": "bottes",
+        "spec": "trouvées"
       },
       {
-        "text": "Chapeau de pluie"
+        "id": "chapeau",
+        "spec": "de pluie"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -24518,7 +24864,8 @@
         "label": "Bateau"
       },
       {
-        "text": "Cabane"
+        "label": "Cabane",
+        "nature": "immeuble"
       },
       {
         "id": "lampe-tempete"
@@ -24570,7 +24917,8 @@
     ],
     "trappings": [
       {
-        "text": "Épave transformée en logis"
+        "label": "Épave transformée en logis",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -24790,10 +25138,14 @@
         "label": "Bateau de transport fluvial"
       },
       {
-        "text": "Corde avec grappin"
+        "id": "corde"
       },
       {
-        "text": "Relique religieuse"
+        "id": "grappin"
+      },
+      {
+        "id": "relique",
+        "spec": "religieuse"
       }
     ],
     "characteristics": [
@@ -24840,7 +25192,8 @@
     ],
     "trappings": [
       {
-        "text": "Groupe de cultistes"
+        "label": "Groupe de cultistes",
+        "nature": "personne"
       },
       {
         "id": "pistolet"
@@ -25008,7 +25361,7 @@
         "id": "licence-de-guilde"
       },
       {
-        "text": "Outils de la profession"
+        "id": "outils-professionnels"
       }
     ],
     "characteristics": [
@@ -25061,7 +25414,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "livre",
@@ -25257,7 +25611,8 @@
         "text": "Pistolet ou tromblon avec des munitions"
       },
       {
-        "text": "Chemise de mailles à manches"
+        "id": "cotte-de-mailles",
+        "spec": "chemise de mailles à manches"
       }
     ],
     "characteristics": [
@@ -25310,10 +25665,12 @@
     ],
     "trappings": [
       {
-        "text": "Casque"
+        "id": "heaume",
+        "spec": "casque"
       },
       {
-        "text": "Passe-partout de la faculté"
+        "id": "clef",
+        "spec": "passe-partout de la faculté"
       }
     ],
     "characteristics": [
@@ -25361,7 +25718,8 @@
         "id": "plastron"
       },
       {
-        "text": "Équipe de bedeaux"
+        "label": "Équipe de bedeaux",
+        "nature": "personne"
       }
     ],
     "characteristics": [
@@ -25501,7 +25859,8 @@
     ],
     "trappings": [
       {
-        "text": "Résidence permanente"
+        "label": "Résidence permanente",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -25554,7 +25913,8 @@
     ],
     "trappings": [
       {
-        "text": "Vêtements respectables"
+        "id": "vetements",
+        "spec": "respectables"
       }
     ],
     "characteristics": [
@@ -25599,10 +25959,17 @@
     ],
     "trappings": [
       {
-        "text": "Vêtements élégants"
+        "id": "vetements",
+        "spec": "élégants",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
       },
       {
-        "text": "Maison de ville"
+        "label": "Maison de ville",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -25803,7 +26170,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti acolyte"
+        "label": "Apprenti acolyte",
+        "nature": "personne"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -25863,10 +26231,12 @@
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Bibliothèque (magique)"
+        "label": "Bibliothèque (magique)",
+        "nature": "immeuble"
       },
       {
-        "text": "Bureau"
+        "label": "Bureau",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -26016,7 +26386,7 @@
         "text": "Licence magique"
       },
       {
-        "text": "Laboratoire alchimique portatif"
+        "id": "laboratoire-alchimique-portatif"
       },
       {
         "id": "robe-de-sorcier-fonctionnelle"
@@ -26087,7 +26457,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti alchimiste"
+        "label": "Apprenti alchimiste",
+        "nature": "personne"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -26146,7 +26517,8 @@
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Bibliothèque (Forgeron, Orfèvre ou Ingénieur)"
+        "label": "Bibliothèque (Forgeron, Orfèvre ou Ingénieur)",
+        "nature": "immeuble"
       },
       {
         "choice": [
@@ -26306,7 +26678,8 @@
         "id": "robe-de-sorcier-fonctionnelle"
       },
       {
-        "text": "Faucille en argent"
+        "id": "faucille",
+        "spec": "en argent"
       }
     ],
     "characteristics": [
@@ -26358,10 +26731,12 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
-        "text": "Faucille en or"
+        "id": "faucille",
+        "spec": "en or"
       },
       {
         "text": "Objet magique"
@@ -26416,10 +26791,12 @@
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Jardin pour retraite"
+        "label": "Jardin pour retraite",
+        "nature": "immeuble"
       },
       {
-        "text": "Bibliothèque (Magie)"
+        "label": "Bibliothèque (Magie)",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -26560,7 +26937,8 @@
     ],
     "trappings": [
       {
-        "text": "Télescope cérémoniel"
+        "id": "telescope",
+        "spec": "cérémoniel"
       },
       {
         "text": "Licence magique"
@@ -26569,7 +26947,7 @@
         "id": "robe-de-sorcier-fonctionnelle"
       },
       {
-        "text": "Sextant"
+        "id": "sextant"
       }
     ],
     "characteristics": [
@@ -26621,10 +26999,20 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
-        "text": "Sphère armillaire ou planétaire de valeur"
+        "choice": [
+          {
+            "id": "sphere-armillaire",
+            "spec": "de valeur"
+          },
+          {
+            "id": "planetaire",
+            "spec": "de valeur"
+          }
+        ]
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -26683,10 +27071,12 @@
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Bibliothèque (Magie)"
+        "label": "Bibliothèque (Magie)",
+        "nature": "immeuble"
       },
       {
-        "text": "Observatoire dans une tour ou au sommet d'une montagne"
+        "label": "Observatoire dans une tour ou au sommet d'une montagne",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -26893,7 +27283,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -26952,7 +27343,8 @@
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Bibliothèque (Magie)"
+        "label": "Bibliothèque (Magie)",
+        "nature": "immeuble"
       },
       {
         "id": "atelier",
@@ -27104,7 +27496,12 @@
         "id": "robe-de-sorcier-fonctionnelle"
       },
       {
-        "text": "Deuxième et troisième Clefs des Secrets"
+        "id": "clef-des-secrets",
+        "spec": "deuxième"
+      },
+      {
+        "id": "clef-des-secrets",
+        "spec": "troisième"
       },
       {
         "id": "arme-simple"
@@ -27158,10 +27555,16 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
-        "text": "Quatrième et cinquième Clefs des Secrets"
+        "id": "clef-des-secrets",
+        "spec": "quatrième"
+      },
+      {
+        "id": "clef-des-secrets",
+        "spec": "cinquième"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -27220,10 +27623,16 @@
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Bibliothèque (Magie)"
+        "label": "Bibliothèque (Magie)",
+        "nature": "immeuble"
       },
       {
-        "text": "Sixième et septième Clefs des Secrets"
+        "id": "clef-des-secrets",
+        "spec": "sixième"
+      },
+      {
+        "id": "clef-des-secrets",
+        "spec": "septième"
       },
       {
         "id": "atelier",
@@ -27421,7 +27830,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "text": "Objet magique"
@@ -27472,13 +27882,15 @@
     ],
     "trappings": [
       {
-        "text": "Conclave de chamanes"
+        "label": "Conclave de chamanes",
+        "nature": "personne"
       },
       {
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Antre chamanique"
+        "label": "Antre chamanique",
+        "nature": "immeuble"
       }
     ],
     "characteristics": [
@@ -27911,7 +28323,8 @@
     ],
     "trappings": [
       {
-        "text": "Apprenti"
+        "label": "Apprenti",
+        "nature": "personne"
       },
       {
         "id": "cheval-de-guerre-leger",
@@ -27970,10 +28383,12 @@
         "id": "robe-de-sorcier-elaboree"
       },
       {
-        "text": "Bibliothèque (Magie)"
+        "label": "Bibliothèque (Magie)",
+        "nature": "immeuble"
       },
       {
-        "text": "Cercle d'informateurs"
+        "label": "Cercle d'informateurs",
+        "nature": "personne"
       },
       {
         "id": "atelier",

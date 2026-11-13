@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/volume_de_scene.gd" id="1_volume"]
 [ext_resource type="Shader" path="res://art/monde.gdshader" id="2_monde"]
@@ -29,10 +29,6 @@ size = Vector3(0.9, 1, 0.16)
 material = SubResource("Materiau_porte")
 size = Vector3(0.9, 0.04, 0.2)
 
-[sub_resource type="StandardMaterial3D" id="Materiau_texture"]
-cull_mode = 2
-roughness = 1.0
-
 [sub_resource type="ShaderMaterial" id="Materiau_sommets_masque"]
 shader = ExtResource("2_monde")
 shader_parameter/roughness = 0.95
@@ -47,7 +43,6 @@ mesh_mur = SubResource("Mesh_mur")
 mesh_porte = SubResource("Mesh_porte")
 mesh_seuil = SubResource("Mesh_seuil")
 couleur_des_sommets = SubResource("Materiau_sommets")
-matiere_texturee = SubResource("Materiau_texture")
 couleur_des_sommets_masquee = SubResource("Materiau_sommets_masque")
 matiere_texturee_masquee = SubResource("Materiau_texture_masque")
 
