@@ -130,7 +130,7 @@ import { combatDistance } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
+import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, reprendreLaPile, poserCurseurCascade, sortirDeLHote } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, jetImmunise, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';
@@ -540,12 +540,9 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   if (!handled && get().battle) {
     if (!checkBattleOver(get, set)) resumeSuspendedAI(get, set); // combat non terminé → reprendre l'IA
   }
-  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) : `suspendedCascades` ne se vidait qu'au
-  // teardown de combat — une séquence parquée par une AUTRE séquence (`startCascade`/`pushStep` d'un
-  // `purpose` différent) n'était reprise NULLE PART. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
-  // ouvrir la suite : elle passe d'abord) ET hors combat (une séquence parquée par `lancerLeCombat` reste
-  // propriété du teardown, cf. les sorties de la victoire et de la défaite, `issueDeCombat.ts`).
-  if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) par la reprise partagée (`reprendreLaPile`),
+  // APRÈS le dénouement ci-dessus : s'il a ouvert la suite, le slot est tenu et elle passe d'abord.
+  reprendreLaPile(get, set);
 }
 
 /** « Terminer » : ferme la cascade et enchaîne la suite (reprise de voyage…). Le joueur ne la joue qu'au bilan
@@ -3141,17 +3138,21 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // appendues (Critique/Imparfaite/Colère) → la cascade les joue (cursor+1) ; aucune → ferme la situation.
       // (Si pas de cascade d'incantation hôte — test/IA direct — on laisse intacte la cascade que les
       // conséquences ont éventuellement démarrée elles-mêmes, cursor déjà sur la 1ʳᵉ conséquence.)
+      let fermeLHote = false;
       if (castStepIdx >= 0) {
         const casc = get().pendingCascade;
         if (casc && casc.purpose === 'combat' && casc.cursor === castStepIdx) {
           if (casc.participants.length > castStepIdx + 1) poserCurseurCascade(get, set, casc, castStepIdx + 1);
-          else set({ pendingCascade: null });
+          else fermeLHote = true;
         }
       }
       // Lanceur ENNEMI (modale témoin) : le tour de l'IA était suspendu → reprise. No-op si une autre
       // interaction bloquante s'est ouverte (Destin, révélations, OU la cascade de conséquences encore
       // ouverte) — elle reprendra elle-même (validation d'étape → resumeSuspendedAI à la clôture).
-      if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
+      const reprendreLEnnemi = (): void => { if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set); };
+      // La situation fermée libère le slot par la sortie d'hôte (#4006).
+      if (fermeLHote) sortirDeLHote(get, set, {}, reprendreLEnnemi);
+      else reprendreLEnnemi();
     },
     contreSort: () => {
       const pcs = get().pendingCounterspell;

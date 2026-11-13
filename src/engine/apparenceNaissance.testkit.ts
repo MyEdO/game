@@ -1,6 +1,7 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { apparences } from '../data';
 import { setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { createHero } from './character';
 
@@ -10,7 +11,7 @@ let catalogueInitial: Apparence[] | undefined;
 /** Ce qu'un test règle d'une variante, en ids d'AUTEUR ; `especes: undefined` retire l'étiquette d'espèce. */
 interface ReglageDeVariante { id?: string; forme?: { id: string }; especes?: string[]; classes?: string[]; qualites?: string[] }
 
-export function varianteDeNaissance(reglage: ReglageDeVariante = {}): Apparence {
+export function varianteDeNaissance(reglage: ReglageDeVariante = {}): EntreeVivante<Apparence> {
   const especes = 'especes' in reglage ? reglage.especes : ['nains'];
   return {
     id: reglage.id ?? 'naissance-naine',
@@ -23,7 +24,7 @@ export function varianteDeNaissance(reglage: ReglageDeVariante = {}): Apparence 
   };
 }
 
-export function poserVariantesDeNaissance(...variantes: Apparence[]): void {
+export function poserVariantesDeNaissance(...variantes: EntreeVivante<Apparence>[]): void {
   catalogueInitial ??= apparences.slice();
   setDataset('apparences', [...catalogueInitial.filter((a) => !a.forme), ...variantes]);
 }

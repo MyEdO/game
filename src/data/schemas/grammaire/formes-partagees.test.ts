@@ -90,13 +90,26 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     expect(trappingRefSchema.safeParse({ monnaie: 'florin', count: { fixed: 1 } }).success).toBe(false);
   });
 
-  it('accepte {choice} — dotation « X ou Y » migrée (chantier #654 Lot 3)', () => {
-    const ref = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
-    expect(trappingRefSchema.safeParse(ref).success).toBe(true);
+  it('accepte le « 1 parmi » `{ pick: 1, of }`, imbriqué compris', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(true);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ pick: 1, of: [{ id: 'dague' }, { wildcard: 'arme' }] }, { id: 'grande-hache' }] }).success).toBe(true);
   });
 
-  it('{choice} migré (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
-    const ref: TrappingRef = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
+  it('refuse un « 2 parmi » : `brancheChoisie` ne retient qu’une branche', () => {
+    expect(trappingRefSchema.safeParse({ pick: 2, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(false);
+  });
+
+  it('refuse une branche `{ id, choix }` ou `{ id, spec, choix }` : `of` n’admet que les formes de dotation', () => {
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague', choix: true }] }).success).toBe(false);
+    expect(trappingRefSchema.safeParse({ pick: 1, of: [{ id: 'dague', spec: 'x', choix: ['a'] }] }).success).toBe(false);
+  });
+
+  it('refuse la graphie `{ choice }`', () => {
+    expect(trappingRefSchema.safeParse({ choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] }).success).toBe(false);
+  });
+
+  it('`{ pick: 1, of }` (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
+    const ref: TrappingRef = { pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
     const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
       resolveTrappingChoices(dotationsDuHeros(CARRIERE_FIXTURE), { [adresseDeCreation.dotation([0])]: 1 }));
     expect(resolues).toEqual([{ id: 'pistolet' }]);
@@ -108,10 +121,10 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
   const classe = classesDuDisque[0];
   const classeDotee = (trappings: unknown[]) => [{ ...classe, trappings }];
 
-  it('une Classe nommée qui porte un `{text}`, à la racine ou dans un `{choice}`, est refusée', () => {
-    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { choice: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
+  it('une Classe nommée qui porte un `{text}`, à la racine ou dans un `{pick, of}`, est refusée', () => {
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
     expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { text: 'Déjeuner' }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
-    expect(validateDataset('classes.json', classeDotee([{ choice: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 });
 

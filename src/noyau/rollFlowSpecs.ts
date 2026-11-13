@@ -50,7 +50,7 @@ import { d100 } from '../engine/dice';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
+import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady, sortirDeLHote } from './cascade';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
@@ -1201,8 +1201,9 @@ export const FLOWS = paresseux({
    */
   testEtendu: () => makeRollFlow<PendingExtendedTest, ExtendedTestRound>({
     key: 'pendingExtendedTest',
-    // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
-    onCancel: (get, set, p) => { set({ pendingExtendedTest: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
+    // Renoncer CLÔT le Test (sans réussite) par la sortie d'hôte : la suite du Flow qui l'a ouvert se joue, comme après un
+    // Test raté, puis la pile reprend.
+    onCancel: (get, set, p) => sortirDeLHote(get, set, { pendingExtendedTest: null }, () => reprendreLaSuite(get, set, p.suite)),
     // Le Round porte {roll, sl, success} SANS cible (elle vit sur le pending) : accesseur explicite.
     die: {
       read: (r, _a, p) => (r.result && p ? { roll: r.result.roll, target: p.target, critable: false } : null),
@@ -1411,8 +1412,9 @@ export const FLOWS = paresseux({
    */
   enfoncerLaPorte: () => makeRollFlow<PendingForceDoor, ForceDoorParticipant>({
     key: 'pendingForceDoor',
-    // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
-    onCancel: (get, set, p) => { set({ pendingForceDoor: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
+    // Renoncer CLÔT l'enfoncement (la porte tient) par la sortie d'hôte : la suite du Flow qui l'a ouvert se joue, puis la
+    // pile reprend.
+    onCancel: (get, set, p) => sortirDeLHote(get, set, { pendingForceDoor: null }, () => reprendreLaSuite(get, set, p.suite)),
     clotures: { valider: 'toujours', annuler: 'toujours' },
     die: roll3Die<ForceDoorParticipant, PendingForceDoor>(),
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },

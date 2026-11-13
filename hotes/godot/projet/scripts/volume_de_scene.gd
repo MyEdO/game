@@ -14,6 +14,9 @@
 class_name VolumeDeScene
 extends Node3D
 
+## Le fondu de la vision (`voir`) est parvenu à sa fin, aucune vision n'attendant plus (`part_du_fondu`).
+signal fondu_fini
+
 ## La couche de rendu de l'ombre des luminaires (`_morceau`), la deuxième (`VisualInstance3D.layers`), que la lampe d'un
 ## foyer exclut de son ombre (`Foyer`).
 const COUCHE_DES_LUMINAIRES := 2
@@ -215,7 +218,7 @@ func _process(secondes: float) -> void:
 
 ## Le fondu de la vision (`voir`) avancé de `secondes` secondes, que `_process` avance à chaque image, sur les matières
 ## du shader de monde et, à la prochaine image dessinée, sur les instances vues des arêtes (`_teindre_le_pose`) ;
-## parvenu à sa fin, la vision qui attend se pose.
+## parvenu à sa fin, la vision qui attend se pose, sinon il se dit fini (`fondu_fini`).
 func avancer_le_fondu(secondes: float) -> void:
 	if _part_du_fondu == 1.0:
 		return
@@ -224,10 +227,14 @@ func avancer_le_fondu(secondes: float) -> void:
 		for matiere: ShaderMaterial in matieres.values():
 			matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
 	_a_teindre.merge(_du_fondu)
-	if _part_du_fondu == 1.0 and _vision_en_attente != null:
-		var attendue: Variant = _vision_en_attente
-		_vision_en_attente = null
-		voir(attendue)
+	if _part_du_fondu != 1.0:
+		return
+	if _vision_en_attente == null:
+		fondu_fini.emit()
+		return
+	var attendue: Variant = _vision_en_attente
+	_vision_en_attente = null
+	voir(attendue)
 
 
 ## La vision posée (`voir`) liée à chaque matière des morceaux et des nappes (`_lier_la_vision_a`).
