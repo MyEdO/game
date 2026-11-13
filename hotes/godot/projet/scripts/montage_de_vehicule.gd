@@ -114,6 +114,18 @@ func oublier() -> void:
 	_recu = ""
 
 
+## Le lecteur des clips du modèle posé (#4081) : le sien si un élément est posé, sinon celui de la base `base`
+## (`null` : aucun).
+func lecteur_pose(base: MontageDeComposition) -> AnimationPlayer:
+	return lecteur if scene != null else base.lecteur
+
+
+## Le clip du rôle `role` du modèle posé (#4081) : celui de sa table (`clips` du corps) si un élément est posé, sinon
+## celui de la base `base` sous sa tenue (`MontageDeComposition.clip`) ; `""` sans clip pour ce rôle.
+func clip_pose(role: String, base: MontageDeComposition) -> String:
+	return clips.get(role, "") if scene != null else base.clip(role)
+
+
 func _retirer() -> void:
 	for ancienne in get_children():
 		ancienne.queue_free()

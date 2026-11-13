@@ -20,6 +20,9 @@ import { pick, refOuSpec, unionDeFormes, type TypeEntite } from './ref';
 const tirage = nommerChamps(z.strictObject({ random: z.number().int().positive() }), { random: { label: 'nombre de tirages' } });
 
 /** Emplacement d'avancement de `type` — composition FERMÉE, écrite UNE fois pour les deux defs. */
-export function avancement<T extends TypeEntite>(type: T): z.ZodType<unknown> {
-  return unionDeFormes([refOuSpec(type, undefined, 'specOuChoixFacultatifs'), pick(type, [tirage]), tirage]);
+export function avancement<T extends TypeEntite>(type: T) {
+  return unionDeFormes([refOuSpec<T>(type, undefined, 'specOuChoixFacultatifs'), pick(type, [tirage]), tirage]);
 }
+
+/** Un emplacement d'avancement de `type`, à la sortie du parse (`avancement`). */
+export type Avancement<T extends TypeEntite> = z.output<ReturnType<typeof avancement<T>>>;

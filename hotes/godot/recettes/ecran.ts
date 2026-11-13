@@ -11,8 +11,8 @@
  * de Surincantation alloué, la création d'un héros ouverte dans `marche-equipement` (la race avant puis après son d100,
  * la carrière tirée, les Caractéristiques en 100 points, chacune en liste), la carte du monde, la journée de route arrêtée aux jets des héros puis ces jets tombés, et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
  * (un onglet par héros), les Scènes du premier Round de la bataille et l'entre-deux-Rounds, dans
- * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`) et d'une rangée
- * de cases. Chaque vue porte
+ * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`), d'une rangée
+ * de cases et d'un curseur. Chaque vue porte
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`). Chaque vue qu'une partie montre
  * a sa planche (`Planche`, #3935), que `etalons.mjs --enregistrer` écrit sous `hotes/godot/etalons/`.
@@ -21,16 +21,17 @@
  * La recette native `projet/recettes/ecran.gd` montre les vues que la sonde fige (`hotes/godot/recettes/ecran.ts`, sous
  * `recettes/vues/ecran.json` de sa copie) : chaque source a sa zone et chaque zone sa source, chaque élément son
  * composant dans l'ordre, chaque texte qu'il dit se lit à l'écran, chaque geste pressé joue son intention, celui d'une
- * entité compris, chaque liste montre choisie sa valeur pressée et aucune sans elle, le geste en focus le prend, une
- * vue remontrée garde ses nœuds. Chaque vue se montre dans la disposition qu'elle nomme : chaque élément y a une zone,
- * et chaque disposition dédiée de `projet/ecrans/` est montrée par une vue.
+ * entité compris, chaque liste montre choisie sa valeur pressée et aucune sans elle, un curseur glissé ou réglé par sa
+ * boîte à nombre joue sa valeur, le geste en focus le prend, une vue remontrée garde ses nœuds et ne joue rien. Chaque
+ * vue se montre dans la disposition qu'elle nomme : chaque élément y a une zone, et chaque disposition dédiée de
+ * `projet/ecrans/` est montrée par une vue.
  * @contrat L'écran de Godot
  */
 import { clicDuCombattant, creerPont, type MondeDuPont, type Suite } from '../pont/pont';
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, type Bouton, type Choix, type Element, type Entite, type Formulaire, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, type Bouton, type Choix, type Curseur, type Element, type Entite, type Formulaire, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 import type { Listage } from './atelier';
 
@@ -46,9 +47,10 @@ export interface VueFigee {
  * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
  * (`projet/scripts/pont_de_planche.gd`). `nom` la nomme dans l'adresse (`?planche=<nom>`) et dans son fichier
  * (`hotes/godot/etalons/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
- * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `retrait` et `aretes` les réponses du pont à ces
- * trois méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous `journal.lignes`, le
- * masque du regard et les arêtes de sa scène ; `monde`, le monde de sa scène (`MondeDeLaPlanche`).
+ * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `retrait`, `aretes` et `vision` les réponses du
+ * pont à ces quatre méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous
+ * `journal.lignes`, le masque du regard, les arêtes de sa scène et ce que le groupe en connaît ; `monde`, le monde de sa
+ * scène (`MondeDeLaPlanche`).
  */
 export interface Planche {
   nom: string;
@@ -58,6 +60,7 @@ export interface Planche {
   monde: MondeDeLaPlanche;
   retrait: unknown;
   aretes: unknown;
+  vision: unknown;
 }
 
 /** Le monde d'une planche, que `pont_de_planche.gd` sert : la réponse de `monde` et celle de `morceaux` à toutes ses
@@ -103,6 +106,10 @@ const CASES: Formulaire = {
     valeurs: [{ libelle: 'Case A', valeur: 'a', presse: true, refus: null }, { libelle: 'Case B', valeur: 'b', presse: false, refus: null }, { libelle: 'Case C', valeur: 'c', presse: false, refus: 'Refusée' }],
   }],
 };
+
+/** Un curseur réglable, à des bornes qu'une glissière neuve n'a pas : il joue son verbe, ses arguments et la valeur
+ *  donnée. */
+const CURSEUR: Curseur = { type: 'curseur', id: 'curseur', ton: 'neutre', libelle: 'Curseur de recette', valeur: 4, min: 2, max: 10, pas: 2, verbe: 'verbeDeRecette', arguments: ['designe'], refus: null };
 
 /** Un geste ouvert que sa fermeture refuse, sa raison dite. */
 const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet', reglage: false };
@@ -172,6 +179,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       monde: mondeDeLaPlanche(),
       retrait: JSON.parse(pont.appeler('retrait', null)),
       aretes: JSON.parse(pont.appeler('aretes', null)),
+      vision: JSON.parse(pont.appeler('vision', null)),
     });
     const jouer = (methode: string, entree: unknown): Suite => {
       let s = appeler(methode, entree);
@@ -390,11 +398,16 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   s = atelier.appeler('creation', deLaCreation('creation.corps', 'methode', 'Répartir 100 points'));
   figer(atelier, 'creation-caracteristiques', 'création, les Caractéristiques en 100 points', s);
   atelier.fermer();
+  const variante = unPont([]);
+  s = viderLesFenetres(variante.jouer, variante.jouer('demarrer', { scenario: 'marche-equipement', graine: 3 }));
+  for (const [zone, id] of [['groupe.gestes', 'creation'], ['creation.corps', 'tirage'], ['creation.gestes', 'suivante'], ['creation.corps', 'tirage']] as const) s = variante.appeler('creation', deLaCreation(zone, id));
+  figer(variante, 'creation-carriere-second-lancer', 'création, la carrière tirée et son second lancer', s);
+  variante.fermer();
 
   vues.push({
     nom: 'formulaire de chaque saisie',
     disposition: null,
-    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
+    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.corps': [CURSEUR], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
     attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE }, [CASES.id]: { type: CASES.verbe, args: [['a']] } },
   });
   return { vues, planches };

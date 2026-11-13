@@ -15,7 +15,7 @@ import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import traitsJson from '../../traits.json';
-import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type DeclarationExposition, type Exposition, type CleExigible } from './document';
+import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type DeclarationExposition, type Exposition, type CleExigible, type DocumentHandle } from './document';
 import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
@@ -28,7 +28,7 @@ import { avancement } from './avancement';
 import { SANS_LIVRE_DEFINITIF } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { entreePartielle as creaturePartielle } from '../defs/creatures';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
 import { noeudObjet, validateDataset } from '../validate';
@@ -866,7 +866,7 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
       { id: 'x', label: 'X', max: 2, source: {} },
       { id: 'x', label: 'X', max: 2, source: SOURCE_REELLE, maison: 'r' },
     ];
-    const messages = (doc: ReturnType<typeof document>) =>
+    const messages = (doc: DocumentHandle<string>) =>
       CORPUS.flatMap((v) => {
         const r = doc.entree.safeParse({ ...v, type: 'fiche-jouet' });
         return r.success ? [] : r.error.issues.map((i) => i.message);
@@ -936,7 +936,7 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
 });
 
 describe('ref() — id validé AU PARSE contre le registre généré', () => {
-  it('accepte un id RÉEL de son dataset et le brande', () => {
+  it('accepte un id RÉEL de son dataset et le type à l’union fermée de son espace', () => {
     const noeud = ref('skill');
     expect(noeud.safeParse({ id: UNE_COMPETENCE.id }).success).toBe(true);
     const idParse = idDe('skill').parse(UNE_COMPETENCE.id);
@@ -1256,9 +1256,10 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
     expectTypeOf(competence.parse({ id: UNE_COMPETENCE.id })).toEqualTypeOf<{ id: Id<'skill'> }>();
   });
 
-  it("`ref(type, undefined, sousListe)` garde la même sortie `{ id: Id<type> }`", () => {
+  it("`ref(type, undefined, sousListe)` sort `{ id: Id<type, sousListe> }`, l'union de sa seule sous-liste", () => {
     const parSousListe = ref('material', undefined, 'objet');
-    expectTypeOf<z.output<typeof parSousListe>>().toEqualTypeOf<{ id: Id<'material'> }>();
+    expectTypeOf<z.output<typeof parSousListe>>().toEqualTypeOf<{ id: Id<'material', 'objet'> }>();
+    expectTypeOf<Id<'material', 'objet'>>().toEqualTypeOf<IdsParEspace['materials.json?domain=objet']>();
   });
 });
 

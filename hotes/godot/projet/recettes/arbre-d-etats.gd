@@ -1,6 +1,6 @@
 extends SceneTree
 
-## L'arbre d'états d'un corps (#3949, `animation/corps.tres`, `Combattant`) : sur le pont figé de l'atelier (`PontFige`,
+## L'arbre d'états d'un corps (#3949, `EtatsDuCorps`, `Combattant`) : sur le pont figé de l'atelier (`PontFige`,
 ## `hotes/godot/recettes/atelier.ts`, `figerLeRepos`), un vrai `Combattant` vêtu de la base humanoïde. Chaque couple
 ## (état courant, rôle demandé) que `Combattant` produit passe par un fondu qui nomme l'état quitté
 ## (`get_fading_from_node`), sur le corps comme sur un véhicule qui porte un clip pour chaque rôle ; pendant le fondu du
@@ -30,7 +30,7 @@ const POSE_D_AVANT := 0.3
 const GABARIT := {racine = {os = "root", echelle = 0.74}, enfantsDe = {thigh_l = 0.62, calf_l = 0.62, thigh_r = 0.62, calf_r = 0.62}, pieds = ["foot_l", "foot_r"], jambes = ["thigh_l", "calf_l", "thigh_r", "calf_r"], clipsPlantes = []}
 const CLIPS_DU_VEHICULE := {repos = "v_repos", marche = "v_marche", melee = "v_melee", tir = "v_tir", coup = "v_coup", mort = "v_mort"}
 var _fautes: Array[String] = []
-var _arbre: AnimationTree = null
+var _arbre: EtatsDuCorps = null
 
 
 func _initialize() -> void:
@@ -79,17 +79,17 @@ func _recetter() -> void:
 
 
 ## Chaque couple (état courant, rôle demandé) dont le lecteur branché porte les deux alias : depuis l'état posé sans
-## fondu (`start`), le rôle demandé (`Combattant._jouer`), l'arbre le gagne par un fondu qui nomme l'état quitté.
+## fondu (`start`), le rôle demandé (`EtatsDuCorps.jouer`), l'arbre le gagne par un fondu qui nomme l'état quitté.
 func _matrice(cas: String, combattant: Combattant, etats: AnimationNodeStateMachinePlayback) -> void:
 	var lecteur := combattant._lecteur()
 	var couples := 0
-	for de: String in Combattant.ROLES:
-		for vers: String in Combattant.ROLES:
-			if de == vers or de == Combattant.MORT or not lecteur.has_animation("role/" + de) or not lecteur.has_animation("role/" + vers):
+	for de: String in EtatsDuCorps.ROLES:
+		for vers: String in EtatsDuCorps.ROLES:
+			if de == vers or de == EtatsDuCorps.MORT or not lecteur.has_animation("role/" + de) or not lecteur.has_animation("role/" + vers):
 				continue
 			etats.start(de)
 			await _pas(3)
-			combattant._jouer(vers)
+			_arbre.jouer(vers)
 			var quitte := "?"
 			for i in IMAGES_D_ATTENTE:
 				await _pas()
@@ -120,7 +120,7 @@ func _fondu(combattant: Combattant, etats: AnimationNodeStateMachinePlayback, sq
 	await _pas(30)
 	var poses: Array[Quaternion] = [squelette.get_bone_pose_rotation(temoin)]
 	var quittes: Array[String] = []
-	combattant._jouer("marche")
+	_arbre.jouer("marche")
 	for i in IMAGES_D_ATTENTE:
 		await _pas()
 		poses.append(squelette.get_bone_pose_rotation(temoin))
@@ -148,10 +148,10 @@ func _fondu(combattant: Combattant, etats: AnimationNodeStateMachinePlayback, sq
 func _retours(combattant: Combattant, etats: AnimationNodeStateMachinePlayback, lecteur: AnimationPlayer, base: Dictionary) -> void:
 	etats.start("repos")
 	await _pas(3)
-	combattant._jouer("marche")
+	_arbre.jouer("marche")
 	await _pas(3)
 	_verifier(etats.get_current_node() == "marche" and lecteur.assigned_animation == base.clips.marche, "marche : état %s, clip marqué %s, attendu %s" % [etats.get_current_node(), lecteur.assigned_animation, base.clips.marche])
-	combattant._jouer("repos")
+	_arbre.jouer("repos")
 	await _pas(30)
 	for cas: Array in [["melee", combattant.agir_vers.bind(Vector3(5.0, 0.0, 0.0))], ["coup", combattant.subir]]:
 		cas[1].call()
@@ -167,7 +167,7 @@ func _retours(combattant: Combattant, etats: AnimationNodeStateMachinePlayback, 
 		await _pas()
 		_verifier(etats.get_current_node() == "repos" and lecteur.assigned_animation == base.clips.repos, "%s : pas revenu au repos (état %s, clip marqué %s)" % [cas[0], etats.get_current_node(), lecteur.assigned_animation])
 		print("[arbre-d-etats] %s → repos seul en %d images" % [cas[0], images])
-	combattant._jouer("mort")
+	_arbre.jouer("mort")
 	await _pas(int(lecteur.get_animation("role/mort").length / PAS_S) + 60)
 	_verifier(etats.get_current_node() == "mort", "mort : l'arbre est à %s, attendu mort tenue" % etats.get_current_node())
 
@@ -188,7 +188,8 @@ func _habiller_en_marche(combattant: Combattant, etats: AnimationNodeStateMachin
 
 
 ## Une hallebarde montée à la prise `main` (seconde prise, maniement `hampe`) : `role/repos` joue son clip de
-## `clipsDeuxMains`, marqué au lecteur sous le repos ; démontée, le clip de `clips`.
+## `clipsDeuxMains`, marqué au lecteur sous le repos, et la main libre tient la seconde prise, la tenue posée sur l'état
+## suivi (`EtatsDuCorps.suivi`) ; démontée, le clip de `clips`.
 func _deux_mains(combattant: Combattant, etats: AnimationNodeStateMachinePlayback, lecteur: AnimationPlayer, montage: MontageDeComposition, base: Dictionary) -> void:
 	etats.start("repos")
 	await _pas(3)
@@ -196,7 +197,7 @@ func _deux_mains(combattant: Combattant, etats: AnimationNodeStateMachinePlaybac
 	await _attendre(func() -> bool: return montage.montes.has("main"))
 	await _pas(2)
 	var a_deux_mains: String = base.clipsDeuxMains[MontageDeComposition.modeles.secondesPrises[HALLEBARDE].maniement].repos
-	_verifier(not montage.seconde_prise.is_empty(), "hallebarde : aucune seconde prise")
+	_verifier(not montage.seconde_prise.is_empty() and montage.seconde_prise.all(func(m: SkeletonModifier3D) -> bool: return m.active), "hallebarde : la main libre ne tient pas la seconde prise sous %s, la tenue ne suit pas l'état (`EtatsDuCorps.suivi`)" % lecteur.assigned_animation)
 	_verifier(_alias_de(lecteur, "repos", a_deux_mains) and lecteur.assigned_animation == a_deux_mains, "hallebarde : role/repos ne joue pas %s (clip marqué %s)" % [a_deux_mains, lecteur.assigned_animation])
 	combattant.vetir({base = BASE})
 	await _pas(2)
@@ -216,7 +217,7 @@ func _vehicule_demonte(combattant: Combattant, montage: MontageDeComposition, le
 	combattant._brancher()
 	await _pas(2)
 	_verifier(_arbre.get_node(_arbre.anim_player) == lecteur and _arbre.get_node(_arbre.root_node) == lecteur.get_node(lecteur.root_node), "véhicule démonté : l'arbre n'est pas rebranché sur le lecteur du corps")
-	for role: String in Combattant.ROLES:
+	for role: String in EtatsDuCorps.ROLES:
 		var clip := montage.clip(role)
 		_verifier(_alias_de(lecteur, role, clip) if clip != "" else not lecteur.has_animation("role/" + role), "véhicule démonté : role/%s périmé (attendu %s)" % [role, clip])
 
@@ -294,22 +295,23 @@ func _sans_corps() -> void:
 	combattant.montrer({id = "seul", nom = "Seul", pb = [0, 5], horsCombat = true}, Vector3.ZERO, true, null, null, 2.0)
 	for i in 5:
 		await process_frame
-	var arbre: AnimationTree = combattant.get_node("Etats")
+	var arbre: EtatsDuCorps = combattant.get_node("Etats")
 	_verifier(not arbre.active and arbre.anim_player.is_empty(), "sans corps : l'arbre est actif ou branché")
 	combattant.queue_free()
 	await process_frame
 
 
-## L'alias `role/<role>` du lecteur joue-t-il le clip `clip` : la même ressource, ou sa copie bouclée ?
+## L'alias `role/<role>` du lecteur joue-t-il le clip `clip` : la même ressource, ou sa copie à la boucle de son rôle
+## (`EtatsDuCorps.BOUCLES`) ?
 func _alias_de(lecteur: AnimationPlayer, role: String, clip: String) -> bool:
 	if not lecteur.has_animation("role/" + role) or not lecteur.has_animation(clip):
 		return false
 	var alias := lecteur.get_animation("role/" + role)
 	var source := lecteur.get_animation(clip)
-	return alias == source or (alias.loop_mode == Animation.LOOP_LINEAR and alias.length == source.length and alias.get_track_count() == source.get_track_count() and alias.track_get_path(0) == source.track_get_path(0) and alias.track_get_key_count(0) == source.track_get_key_count(0))
+	return alias == source or (alias.loop_mode == EtatsDuCorps.BOUCLES.get(role, source.loop_mode) and alias.length == source.length and alias.get_track_count() == source.get_track_count() and alias.track_get_path(0) == source.track_get_path(0) and alias.track_get_key_count(0) == source.track_get_key_count(0))
 
 
-## `n` images de l'horloge manuelle de l'arbre, chacune suivie d'une image du jeu (`Combattant._process`).
+## `n` images de l'horloge manuelle de l'arbre, chacune suivie d'une image du jeu (`EtatsDuCorps._process`).
 func _pas(n := 1) -> void:
 	for i in n:
 		_arbre.advance(PAS_S)

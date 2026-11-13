@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.162-306 */
 import { z } from 'zod';
-import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { difficultySchema, enumNomme, meteoMarineSchema, parSaison, plageSchema, shipLocationSchema, sourceRefSchema, ventMarinSchema } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -172,4 +172,3 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type SeaWeatherData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

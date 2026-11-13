@@ -475,7 +475,7 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 
 | Élément | Triangles maximum | Atlas maximum |
 |---|---|---|
-| base humanoïde | 6 000 | 1024² |
+| base humanoïde | 14 500 | 1024² |
 | tête | 2 500 | 512² |
 | pilosité | 1 500 | 256² |
 | vêtement par pièce | 2 500 | 512² |
@@ -485,8 +485,10 @@ Budgets de construction du design (à confirmer par les portes L2/L4) :
 | prop d'art | 1 500 | 512² |
 | personnage assemblé, base visible comprise | 16 000 | — |
 
-Ne pas créer de plafond véhicule absent du contrat. La part de base masquée se mesure lors du
-montage complet ; le budget de l'évaluateur présent ne remplace pas automatiquement ce calcul.
+Base à 14 500 : décision utilisateur du 2026-11-13 (#3287), la base mesurée à 14 318 triangles.
+
+Ne pas créer de plafond véhicule absent du contrat. Le budget assemblé de l'évaluateur ne compte pas
+les meshes que la pile des couches masque (`hotes/godot/asset/evaluateur/evaluer.ts`, `masques`).
 
 **Artistique** : identité, silhouette, proportions, pose, coupe, contacts et lisibilité. Un défaut
 dominant renvoie à la construction ; un petit pli acceptable permet d'avancer. Gros trou, pièce
@@ -596,7 +598,9 @@ ne franchissent ni mur ni porte, et reposent sur un plancher. Une garde qui refu
 d'une case ou en la tournant, jamais en la retirant ni en vidant une cabine dessinée : le nombre de pièces par bord est
 celui de l'illustration qui les place (MDG 12 pour la caraque). Dans le jeu, la route à bord
 (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`, une par scénario `a-bord-de-*`) prouve que chaque case
-s'atteint depuis le départ par les échelles, et la rejoue au clic dans l'export Web :
+s'atteint depuis le départ par les échelles et qu'au regard `plateau` chacune est la plus haute que le monde montre à
+la verticale de son point (aucun décor du pont du dessous ne la traverse : `src/noyau/planDeNavire.test.ts`), et la
+rejoue au clic dans l'export Web, au regard `plateau` :
 
 ```sh
 ROUTE=/atelier/routes npx vitest run --config vitest.noyau.config.ts hotes/godot/recettes/route-a-bord.hors-store.test.ts

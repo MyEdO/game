@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { careerLevels, classes, creatures, estMention, trappings, trappingRefLabel, type TrappingRef } from './index';
+import { careerLevels, classes, creatures, estMention, trappings, trappingRefLabel, type BrancheDeDotation, type TrappingRef } from './index';
 import { replier } from '../lib/ordre.mjs';
 
 /**
@@ -44,13 +44,14 @@ for (const t of trappings) {
   PAR_SINGULIER.set(s, [...(PAR_SINGULIER.get(s) ?? []), t.id]);
 }
 
-/** Toutes les dotations des deux datasets, branches `choice` comprises, avec leur porteur. */
+/** Toutes les dotations des deux datasets, branches de `pick` et membres de lot compris, avec leur porteur. */
 const dotations = (): { porteur: string; ref: TrappingRef }[] => {
   const out: { porteur: string; ref: TrappingRef }[] = [];
-  const pousser = (porteur: string, refs: readonly TrappingRef[]) => {
+  const pousser = (porteur: string, refs: readonly BrancheDeDotation[]) => {
     for (const ref of refs) {
-      out.push({ porteur, ref });
-      if ('choice' in ref) pousser(porteur, ref.choice);
+      if ('lot' in ref) pousser(porteur, ref.lot);
+      else out.push({ porteur, ref });
+      if ('pick' in ref) pousser(porteur, ref.of);
     }
   };
   for (const c of classes) pousser(`classes.json › ${c.id}`, c.trappings);
@@ -131,7 +132,7 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
       { monnaie: 'silver', count: { roll: { n: 3, sides: 10 } } },
       { id: 'bijoux', valeur: { monnaie: 'gold', count: { roll: { n: 3, sides: 10 } } } },
       { label: 'Pamphlétaires', nature: 'personne', count: { fixed: 3 } },
-      { choice: [{ label: 'Ferme', nature: 'immeuble' }, { label: 'Droits de pâturage', nature: 'titre' }] },
+      { pick: 1, of: [{ label: 'Ferme', nature: 'immeuble' }, { label: 'Droits de pâturage', nature: 'titre' }] },
     ] satisfies TrappingRef[]).map((ref) => trappingRefLabel(ref));
     expect(libelles).toEqual(['20 couronnes d\'or', '3d10 pistoles d\'argent', 'Bijoux valant 3d10 couronnes d\'or', 'Pamphlétaires (3)', 'Ferme ou Droits de pâturage']);
   });
@@ -140,7 +141,7 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
     const site = dotations().find(({ ref }) => 'spec' in ref && ref.id === 'outils-professionnels' && ref.spec === 'Maréchal-ferrant');
     expect(site, 'aucune dotation `outils-professionnels (Maréchal-ferrant)` en donnée — le témoin a disparu').toBeTruthy();
     expect(trappingRefLabel(site!.ref)).toBe('Outils professionnels (Maréchal-ferrant)');
-    const choix = dotations().find(({ ref }) => 'choice' in ref && ref.choice.some((b) => 'spec' in b && b.id === 'atelier' && b.spec != null));
+    const choix = dotations().find(({ ref }) => 'pick' in ref && ref.of.some((b) => 'spec' in b && b.id === 'atelier' && b.spec != null));
     expect(choix, 'aucun choix de dotation `atelier` spécialisé en donnée — le témoin a disparu').toBeTruthy();
     expect(trappingRefLabel(choix!.ref)).toBe('Atelier (Ingénierie) ou Atelier (Magie)');
     const compte = dotations().find(({ ref }) => 'id' in ref && ref.id === 'carreau' && ref.count != null);

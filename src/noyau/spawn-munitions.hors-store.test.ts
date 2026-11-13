@@ -26,7 +26,7 @@ describe('munition tirée d’un poste né de la scène (#2097)', () => {
     const c = ficheDEntite(ent, presetPnjById);
     c.mannedPoste = c.postes![0];
     consumeAmmo(c, c.postes![0].ammo![0]);
-    expect(c.postes![0].ammo![0].qty).toBe(avant - 1);
+    expect(c.postes![0].ammo![0].qty).toBe(avant! - 1);
     expect(Object.entries(ent.postes![0].ammo!)).toContainEqual([munition, avant]);
   });
 

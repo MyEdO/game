@@ -7,7 +7,7 @@
  */
 import { Combatant } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
-import { combatDistance } from './monde/footprint';
+import { distanceDeCombat } from './monde/footprint';
 import type { Jeu } from './etat';
 import { currentTargetingMode, type HoverTargeting, type TilePreview } from './targetingModes';
 import { controlsCombatant } from './netOwnership';
@@ -68,7 +68,7 @@ export function validTargets(get: () => Jeu): Combatant[] {
   const cands = mode.candidates
     ? mode.candidates(get, active)
     : battle.combatants.filter((c) => c.id !== active.id && c.pos && !isOutOfAction(c) && hoverTargeting(get, active, c).kind === 'ok');
-  return [...cands].sort((a, b) => combatDistance(active, a) - combatDistance(active, b));
+  return [...cands].sort((a, b) => distanceDeCombat(active, a) - distanceDeCombat(active, b));
 }
 
 /** Cible SUIVANTE (Tab) : la plus proche valide, ou la suivante par distance si une est déjà visée —

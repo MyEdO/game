@@ -2,8 +2,8 @@
  * #3045 — une Spécialisation se désigne par la fabrique qui la valide : tout objet `{ id, spec }` du registre
  * est une référence à spécialisation (`refOuSpec`, `specRef`), lue par `declarationDeRefASpecialisation`,
  * que l'atelier rend en `RefField` (`spec`) ; jamais un objet écrit au site dont l'`id` et la `spec`
- * passeraient en chaînes libres. Seule la dotation d'un objet du catalogue (`dotationDeCatalogueSchema`,
- * reconnue par identité de nœud) porte une `spec` qui n'est pas une Spécialisation.
+ * passeraient en chaînes libres. Seul l'objet de catalogue d'une dotation (`objetDeCatalogueSchema`,
+ * `dotationDeCatalogueSchema`, reconnus par identité de nœud) porte une `spec` qui n'est pas une Spécialisation.
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
@@ -12,10 +12,12 @@ import { OP_DEFS, conditionSchema, facilitationSchema, flowTestSchema } from './
 import { descendre, enfantsDe } from './descente';
 import { declarationDeRefASpecialisation, refOuSpec } from './ref';
 import { nommerChamps } from './meta';
-import { dotationDeCatalogueSchema } from './reference';
+import { dotationDeCatalogueSchema, objetDeCatalogueSchema } from './reference';
 
-/** Toute `spec` désigne une Spécialisation, sauf celle de la dotation d'un objet du catalogue. */
-const specDesigneUneSpecialisation = (noeud: unknown): boolean => noeud !== dotationDeCatalogueSchema;
+const OBJETS_DE_CATALOGUE: ReadonlySet<unknown> = new Set([objetDeCatalogueSchema, dotationDeCatalogueSchema]);
+
+/** Toute `spec` désigne une Spécialisation, sauf celle de l'objet de catalogue d'une dotation. */
+const specDesigneUneSpecialisation = (noeud: unknown): boolean => !OBJETS_DE_CATALOGUE.has(noeud);
 
 /** Les objets `{ id, spec }` désignant une Spécialisation qu'aucune fabrique à spécialisation n'a construits,
  *  nommés `<racine> <chemin>`. */
@@ -57,10 +59,10 @@ describe('objets `{ id, spec }` du registre', () => {
     expect(competence({ id: 'athletisme', spec: 'zorglub' })).toBe(false);
   });
 
-  it('contrôle positif : un objet écrit au site est relevé quel que soit son libellé ; la fabrique et la dotation de catalogue ne le sont pas', () => {
+  it('contrôle positif : un objet écrit au site est relevé quel que soit son libellé ; la fabrique et l’objet de catalogue d’une dotation ne le sont pas', () => {
     const libre = z.strictObject({ id: z.string(), spec: z.string().optional() });
     const nomme = (label: string) => nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional() }), { id: { label: 'identifiant' }, spec: { label } });
-    const racine = z.strictObject({ a: libre, b: refOuSpec('skill'), c: nomme('Spécialisation'), d: nomme('précision'), e: dotationDeCatalogueSchema });
+    const racine = z.strictObject({ a: libre, b: refOuSpec('skill'), c: nomme('Spécialisation'), d: nomme('précision'), e: dotationDeCatalogueSchema, f: objetDeCatalogueSchema });
     expect(objetsASpecNonMarques([racine])).toEqual(['0 .a', '0 .c', '0 .d']);
   });
 });

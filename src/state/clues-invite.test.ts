@@ -1,12 +1,11 @@
 /**
  * LIAISON WEB du carnet d'indices (#2415) : chez un invité, l'action `marquerLesIndices` du store est enrobée en intent
- * (`interceptGuestActions`) et ne se joue pas localement. La règle du carnet est au noyau
+ * (`transmettreLesIntentions`) et ne se joue pas localement. La règle du carnet est au noyau
  * (`src/noyau/monde/clues.hors-store.test.ts`), son départ en intention au salon (`src/hote/coop/salon.hors-store.test.ts`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
-import { interceptGuestActions, restoreGuestActions } from './netFlow';
 import { affichés, narratif, hero, fixtureScene } from '../noyau/monde/clues.fixture';
 
 beforeEach(() => {
@@ -20,14 +19,14 @@ describe('clues — câblage store (#670)', () => {
     applyEffects(useGame.getState, useGame.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     const local = useGame.getState().marquerLesIndices;
     const vus = affichés(useGame.getState().clues, ['ind-lettre']);
-    // Câblage : le substitut RÉELLEMENT posé par `interceptGuestActions` (sans session, l'envoi est inerte).
-    interceptGuestActions();
+    // Câblage : le substitut RÉELLEMENT posé par `transmettreLesIntentions` (sans session, l'envoi est inerte).
+    useGame.getState().transmettreLesIntentions(() => {});
     try {
       expect(useGame.getState().marquerLesIndices, 'marquerLesIndices n’est pas enrobé en intent').not.toBe(local);
       useGame.getState().marquerLesIndices(vus);
       expect(useGame.getState().clues['ind-lettre'].vuParSiège).toBeUndefined();
     } finally {
-      restoreGuestActions();
+      useGame.getState().restaurerLesIntentions();
     }
   });
 });

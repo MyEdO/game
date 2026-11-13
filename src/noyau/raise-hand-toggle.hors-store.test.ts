@@ -37,7 +37,7 @@ function combat(mode: 'local' | 'hote' | 'invite' = 'hote') {
 
 const battle = () => banc.getState().battle!;
 const mains = () => battle().handRaisedBy ?? [];
-const ctx = (): Parameters<typeof actionGate>[1] => ({ active: battle().combatants[0] as Combatant, battle: battle(), netMode: banc.getState().net.mode, gameTime: banc.getState().gameTime });
+const ctx = (): Parameters<typeof actionGate>[1] => ({ scene: banc.getState().scene, active: battle().combatants[0] as Combatant, battle: battle(), netMode: banc.getState().net.mode, gameTime: banc.getState().gameTime });
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

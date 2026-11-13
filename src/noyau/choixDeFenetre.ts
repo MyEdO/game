@@ -236,7 +236,10 @@ export const OUVERTS_DU_CHOIX = {
   // LDB 17 l.67
   renier: { renier: reglage('renier', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
   cibleDeMonture: {
-    cible: reglage('cibleDeMonture', 'cible', (s) => DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDuCoupleMonte.nom(s, id), id, 'couple monté')))),
+    cible: reglage('cibleDeMonture', 'cible', (s) => {
+      const nom = DESIGNATIONS.IdDuCoupleMonte.nom(s);
+      return DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(nom(id), id, 'couple monté')));
+    }),
   },
   conseil: {
     paie: reglage('conseil', 'paie', (s) => (s.pendingCouncil?.phase === 'choix'
@@ -326,7 +329,10 @@ export const OUVERTS_DU_CHOIX = {
   // ZI 13
   victoire: {
     ligne: lignesDuButin('victoire', (s) => s.pendingVictory?.gear),
-    depecer: reglage('victoire', 'depecer', (s) => creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer'), refusDeDepecer(s, id)))),
+    depecer: reglage('victoire', 'depecer', (s) => {
+      const nom = DESIGNATIONS.IdDeCreatureADepecer.nom(s);
+      return creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(nom(id), id, 'créature à dépecer'), refusDeDepecer(s, id)));
+    }),
   },
   // LDB 66
   repos: {

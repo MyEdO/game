@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, wallBetween, edgeOf, setDoorOpen, type Scene } from './scene';
-import { pathTo, reachable, walkComponentAt, walkNeighbors } from './path';
+import { distancesDeMarcheVers, pathTo, reachable, tileKey, walkComponentAt, walkNeighbors } from './path';
 
 /**
  * Murs sur ARÊTES (cloisons fines) : ils bloquent le PASSAGE entre deux cases adjacentes sans rendre
@@ -99,5 +99,31 @@ describe('composantes marchables — même verdict que `pathTo`, et rafraîchies
 
     expect(comp(ouvert, 0, 0), 'porte ouverte : même composante').toBe(comp(ouvert, 3, 0));
     expect(pathTo(ouvert, { x: 0, y: 0 }, { x: 3, y: 0 }, { blocked: empty })).not.toBeNull();
+  });
+});
+
+describe('distancesDeMarcheVers — distance de marche au plus proche des buts', () => {
+  const cles = (s: Scene) => { const out: string[] = []; for (let y = 0; y < s.dimensions.h; y++) for (let x = 0; x < s.dimensions.w; x++) out.push(tileKey(x, y)); return out; };
+
+  it('un but : la distance de chaque case est celle de la marche depuis le but (la porte se contourne)', () => {
+    const s = walledColumn(2);
+    const depuis = reachable(s, { x: 2, y: 0 }, 99, { blocked: empty });
+    const vers = distancesDeMarcheVers(s, [{ x: 2, y: 0 }], { blocked: empty });
+    for (const k of cles(s)) expect(vers.vers(k), k).toBe(depuis.get(k));
+    expect(vers.vers(tileKey(1, 0))).toBe(5); // par la porte (y=2), pas à travers le mur
+  });
+
+  it('plusieurs buts : la plus petite des distances, en un seul parcours', () => {
+    const s = walledColumn(2);
+    const buts = [{ x: 2, y: 0 }, { x: 1, y: 3 }];
+    const vers = distancesDeMarcheVers(s, buts, { blocked: empty });
+    const parBut = buts.map((b) => reachable(s, b, 99, { blocked: empty }));
+    for (const k of cles(s)) expect(vers.vers(k), k).toBe(Math.min(...parBut.map((m) => m.get(k)!)));
+    expect(vers.vers(tileKey(1, 0))).toBe(3);
+  });
+
+  it('mur plein sans porte : une case de l’autre côté n’a aucune distance ; un but occupé n’en est pas un', () => {
+    expect(distancesDeMarcheVers(walledColumn(), [{ x: 2, y: 0 }], { blocked: empty }).vers(tileKey(1, 0))).toBeUndefined();
+    expect(distancesDeMarcheVers(walledColumn(2), [{ x: 2, y: 0 }], { blocked: new Set([tileKey(2, 0)]) }).vers(tileKey(3, 0))).toBeUndefined();
   });
 });

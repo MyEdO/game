@@ -35,7 +35,8 @@ import { ouvrirLeRepos } from './restFlow';
 import { arriverAuLieu } from './lieuFlow';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
-import { toRecapLines, type RecapEvent } from './recapLine';
+import { toRecapLines } from './recapLine';
+import { noteEvent, rangerLesEvenements } from './evenementDuJour';
 import type { BatchParticipant } from './pendings';
 import { crewTestContributors, equipageImplique, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
 import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
@@ -56,7 +57,7 @@ import { profilNavalDe } from '../engine/coque';
 import { installAmount, installCost, prixDeLaReparation, rollPortRepair, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -75,7 +76,7 @@ import {
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
   lighthouseSpotDifficulty, lighthouseOrientationDR, savoirOceansBonus, pursuitDistanceGain,
-  pursuitLowMPenalty, voileSansProfil, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
+  pursuitLowMPenalty, voileSansProfil, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage, VIVRES_DE_CALE,
 } from '../engine/seaNavigation';
 import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailChars, isWeatherWarded } from '../engine/exposure';
 import { pursuitOutcome } from '../engine/pursuit';
@@ -93,9 +94,9 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { ajouterAuRoster, crewRoleValue, crewTestModParts, facteurDuVivreSeul, facteursDeVivreSeul, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
-import { provisioningManifest } from '../engine/provisions';
+import { provisioningManifest, rationsDeCale } from '../engine/provisions';
 import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
@@ -173,9 +174,6 @@ export interface SeaVoyageState {
   waterContaminated?: { diseaseId: string };
   /** Lignes du jour (recap de la halte de nuit). */
   lines: string[];
-  /** Événements de bord RACONTÉS aujourd'hui (#371 LOT 4) — rendus en `ParchmentCard`, distincts des
-   *  lignes de routine (`lines`) : un événement PORTE UN RÉCIT (titre + texte d'auteur/de table). */
-  events?: RecapEvent[];
   /** PROCÈS-VERBAL structuré du jour (couche `voyageCadence`) : une ligne de JET par Test d'équipage de
    *  ROUTINE auto-résolu en route COMMANDÉE — « aucun jet silencieux » (rendu par `MultiRollList`). */
   entries?: NightEntry[];
@@ -273,18 +271,6 @@ function tell(get: Get, set: Set, lines: string[]): void {
   if (plan?.sea) set({ travelPlan: { ...plan, sea: { ...plan.sea, lines: [...plan.sea.lines, ...lines] } } });
 }
 
-/** POSE un ÉVÉNEMENT RACONTÉ (#371 LOT 4) au recap du jour EN CARTE (`sea.events`, distinct de
- *  `sea.lines`) : le titre + texte verbatim de l'événement se rendent en `ParchmentCard`
- *  (`SeaVoyageBody`), pas en ligne de routine. REND la ligne qui le nomme au lieu de l'écrire : depuis
- *  un applier de cascade, cette ligne est la CONSÉQUENCE de l'étape (`commitStep` la journalise ET la
- *  garde dans `outcome`, donc dans la pile à l'écran) ; hors cascade, l'appelant la passe à `ecrireAuJournal`.
- *  Même partage des voix que `noteSeaLine` ci-dessous — un applier n'écrit jamais au journal en direct. */
-function noteEvent(get: Get, set: Set, event: RecapEvent): string {
-  const plan = get().travelPlan;
-  if (plan?.sea) set({ travelPlan: { ...plan, sea: { ...plan.sea, events: [...(plan.sea.events ?? []), event] } } });
-  return `${event.title} — ${event.text}`;
-}
-
 /** Écrit SEULEMENT au recap du jour (`sea.lines`) — le JOURNAL des appliers de cascade migrés (#295
  *  Lot 1) est désormais écrit par `commitStep` depuis les `consequences` retournées (`freeCons`), pas
  *  par un second canal direct. `tell()` reste le canal des sites HORS applier (narration d'événement de
@@ -317,23 +303,39 @@ export function vesselManann(vessel: CampaignVessel | null): ManannMood {
 const FOOD_SHORTAGE_FACTOR = 'nourriture-insuffisante';
 
 /**
- * VIVRES de l'équipage PNJ sur `days` jour(s) (MDG 14 l.238 : « rations de mer de la cale ») : l'effectif
- * nominal (`shipboardSouls().crew`) consomme une ration/jour de `vessel.provisions`. À court → le facteur
- * de Moral `nourriture-insuffisante` (−2d10, l.171) est ACTIVÉ pour le prochain recalcul hebdomadaire ;
- * couvert → il est retiré (réapprovisionné). `provisions` absent = ravitaillement d'équipage réputé assuré
- * (décision de périmètre de `waterLitres`) → aucune consommation, aucun facteur. Mute `vessel`. #245. */
+ * VIVRES de l'équipage PNJ sur `days` jour(s) : l'effectif nominal (`shipboardSouls().crew`) mange une ration par
+ * marin et par jour sur `vessel.provisions`, vivre après vivre dans l'ordre de `VIVRES_DE_CALE.vivres`. Le dernier
+ * jour fait la nourriture du prochain recalcul hebdomadaire : à court, `nourriture-insuffisante` ; couvert par un
+ * seul vivre, le facteur qui le déclare (`vivreSeul`, crew-morale.json) ; les deux s'excluent. `provisions` absent : vivres non
+ * suivis, aucune consommation. MDG 14 l.143, l.166, l.171, l.238, l.263 ; #245 ; #1652
+ */
 function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   const vessel = get().vessel;
   if (!vessel) return [];
   const crew = shipboardSouls(get()).crew;
   const need = crew * Math.max(0, days);
-  if (vessel.provisions == null || need <= 0) return []; // ravitaillement réputé assuré / pas d'équipage PNJ
-  const left = Math.max(0, vessel.provisions - need);
-  const short = vessel.provisions < need;
-  const factors = short
-    ? (vessel.morale.factors.includes(FOOD_SHORTAGE_FACTOR) ? vessel.morale.factors : [...vessel.morale.factors, FOOD_SHORTAGE_FACTOR])
-    : vessel.morale.factors.filter((f) => f !== FOOD_SHORTAGE_FACTOR);
-  set({ vessel: { ...vessel, provisions: left, morale: { ...vessel.morale, factors } } });
+  if (vessel.provisions == null || need <= 0) return [];
+  const provisions = { ...vessel.provisions };
+  let reste = need;
+  let dernier: { vivre: string; mange: number } | undefined;
+  for (const id of VIVRES_DE_CALE.vivres) {
+    const stock = provisions[id];
+    if (stock === undefined) continue;
+    const mange = Math.min(reste, stock);
+    provisions[id] = stock - mange;
+    reste -= mange;
+    if (mange > 0) dernier = { vivre: id, mange };
+  }
+  const left = rationsDeCale(provisions);
+  const short = reste > 0;
+  const seul = dernier && dernier.mange >= crew ? facteurDuVivreSeul(dernier.vivre)?.id : undefined;
+  const actif = short ? FOOD_SHORTAGE_FACTOR : seul ?? null;
+  const deVivreSeul = facteursDeVivreSeul();
+  const factors = [
+    ...vessel.morale.factors.filter((f) => f !== FOOD_SHORTAGE_FACTOR && !deVivreSeul.includes(f)),
+    ...(actif ? [actif] : []),
+  ];
+  set({ vessel: { ...vessel, provisions, morale: { ...vessel.morale, factors } } });
   return [short
     ? t('sv.crewFoodOut')
     : t('sv.crewFoodLeft', { need, left, s: left > 1 ? 's' : '' })];
@@ -518,7 +520,7 @@ export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[]): Dos
     refusDAppareiller: refus ? raisonDuRefusDAppareiller(refus) : null,
     heroes, crewCount,
     autonomyDays: vessel.waterLitres != null && dailyWater > 0 ? Math.floor(vessel.waterLitres / dailyWater) : null,
-    provisionDays: vessel.provisions != null && crewCount > 0 ? Math.floor(vessel.provisions / crewCount) : null,
+    provisionDays: vessel.provisions != null && crewCount > 0 ? Math.floor(rationsDeCale(vessel.provisions) / crewCount) : null,
     weeklyWageBrass: weeklyCrewWageBrass(vessel.crew),
     soldesParRole: (vessel.crew ?? []).map((h) => ({ roleId: h.roleId, count: h.count, weeklyBrass: weeklyCrewWageBrass([h]) })),
   };
@@ -1270,7 +1272,7 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
   return tableStep({
     id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'voyage/vague',
     label: t('step.seaBoardEvent'),
-    table: { tableId: SEA_BOARD_EVENT_TABLE, spec: deDesEvenementsDeBord(), ...(mood.score ? { mod: mood.score } : {}) },
+    table: { tableId: SEA_BOARD_EVENT_TABLE, ...(mood.score ? { mod: mood.score } : {}) },
     stake: voyageStakeRef(SEA_BOARD_EVENT_KIND),
   });
 }
@@ -1283,7 +1285,7 @@ export const SEA_BOARD_EVENT_TABLE = 'evenements-de-bord';
 // plage réécrite à la main ; FAMILLE (`famillesTirables`) mémoïsée sur `seaBoardEvents`.
 const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<string, TableStepDef>([[SEA_BOARD_EVENT_TABLE, {
   label: t('step.seaBoardEvent'),
-  die: facesDuDe(deDesEvenementsDeBord()),
+  die: deDesEvenementsDeBord(),
   rows: evenementsDeBord().map((e) => ({ id: e.id, min: e.min, max: e.max })),
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(evenementsDeBord(), die).label })],
 }]]));
@@ -1502,8 +1504,8 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
 
   // Eau douce (ch.13 l.209-213 + ch.14 l.242) : consommation par bande de Température × POPULATION EMBARQUÉE
   // (héros + effectif PNJ nominal, `shipboardSouls` — MDG 14 l.238 : « l'équipage … a besoin de beaucoup
-  // d'eau »), si le navire suit ses tonneaux (`vessel.waterLitres`). La Soif elle-même suit la décision de
-  // périmètre de `provisions.ts` (volet Soif non simulé) : à sec, on AVERTIT.
+  // d'eau »), si le navire suit ses tonneaux (`vessel.waterLitres`). À sec, la Soif se joue à l'entretien
+  // quotidien (`upkeep.ts`, `hasWater`), LDB 18 l.340.
   const vessel0 = get().vessel;
   if (vessel0?.waterLitres != null) {
     const souls = shipboardSouls(get()).total;
@@ -1512,7 +1514,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
     set({ vessel: { ...vessel0, waterLitres: left } });
     tell(get, set, [left > 0 ? t('sv.freshWater', { need, souls, left }) : t('sv.waterDry')]);
   }
-  // Vivres de l'équipage PNJ (MDG 14 l.238/250) : l'effectif nominal mange sur les rations de mer de la cale.
+  // Vivres de l'équipage PNJ (MDG 14 l.238/250) : l'effectif nominal mange sur les vivres de la cale.
   tell(get, set, consumeCrewProvisions(get, set, 1));
 
   // Maladies embarquées (MDG 14 l.209-230) : Tonneau d'eau contaminé (l.209, `buildBarrelSteps`) + Mal de
@@ -1663,7 +1665,6 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   const sea = get().travelPlan!.sea!;
   const daysAtSea = sea.daysAtSea + 1;
   const todayLines = sea.lines;
-  const todayEvents = sea.events ?? [];
 
   const miles = sea.milesToday;
   const kmDone = Math.min(plan.km, plan.kmDone + miles);
@@ -1682,7 +1683,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   // Météo du LENDEMAIN, sous les météos imposées au navire.
   const { weather, windFrom } = meteoDuJour(get, hull, sea.weather.vent, rng);
   patchSea(get, set, {
-    daysAtSea, lines: [], entries: [], events: [],
+    daysAtSea, lines: [], entries: [],
     weather, windFrom,
     milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, paceToday: undefined, manieursToday: undefined,
     hullAtDayStart: hull.wounds.current,
@@ -1691,7 +1692,8 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
 
   const worldMap = get().worldMap as WorldMap;
   const to = placeById(worldMap, plan.toPlaceId);
-  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(todayLines), entries: dayEntries, events: todayEvents, sea: chrome };
+  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(todayLines), entries: dayEntries, sea: chrome };
+  rangerLesEvenements(get, set, recapDay);
 
   if (plan.km - kmDone < 1e-9 && to) {
     // ARRIVÉE : la distance de la traversée est NOTÉE sur le navire (vente à un port producteur :
@@ -1882,7 +1884,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   const value = testValue(eng, { characteristic: 'initiative' }); // Test d'INITIATIVE (Difficulté par défaut : Intermédiaire +0)
   set({
     pendingSteamSave: {
-      actorId: eng.id, actorName: eng.label, skillValue: value, difficulty: 'intermediaire',
+      actorId: eng.id, skillValue: value, difficulty: 'intermediaire',
       ...cibleMesuree(rollLine({ actor: eng, test: { characteristic: 'initiative' }, difficulty: 'intermediaire', valeur: value })),
       scaldOps: [{ op: 'wounds', amount: dmg, ignoreTB: false, ignoreAP: true }], // « qui ignorent l'Armure » (le BE reste déduit)
       roll: null, success: false, sl: 0,

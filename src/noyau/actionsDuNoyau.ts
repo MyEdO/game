@@ -182,6 +182,15 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  transférée au siège qui possédait `heroId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
    *  du slot. */
   remplacerLeHeros: (heroId: IdDeHeros, heros: HerosEngage) => void;
+  /** Coop : attribue le héros `heroId` au siège `siege` (`attribuerLeHeros`) ; refusé, et dit, par
+   *  `refusDAttribuerLeHeros` (`noyau/sieges.ts`). */
+  affecterLeHerosAuSiege: (heroId: IdDeHeros, siege: number) => void;
+  /** Coop : attribue l'emplacement `emplacement` de l'écran d'équipe au siège `siege` (`attribuerLEmplacement`) ;
+   *  refusé, et dit, par `refusDAttribuerLEmplacement` (`noyau/sieges.ts`). */
+  affecterLEmplacementAuSiege: (emplacement: number, siege: number) => void;
+  /** Pose le rôle MJ au siège `siege` (`null` : l'IA) (`poserLeSiegeMJ`) ; refusé, et dit, par `refusDuSiegeMJ`
+   *  (`noyau/sieges.ts`). */
+  affecterLeSiegeMJ: (siege: number | null) => void;
   equiperLObjet: (uid: IdDObjet) => void;
   /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
@@ -330,8 +339,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   recruterLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
   /** Débarque `count` PNJ salariés du rôle `roleId` (#228). */
   renvoyerLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
-  /** Achète à quai `rations` rations-jour et `tonneaux` tonneaux d'eau douce pour la cale (MDG 14 l.248-252). */
-  avitaillerLeNavire: (rations: number, tonneaux: number) => void;
+  /** Achète à quai `quantites` rations-jour par vivre de la cale et `tonneaux` tonneaux d'eau douce
+   *  (`devisDAvitaillement`, MDG 14 l.238, l.248-252 ; MDG 15 l.262). */
+  avitaillerLeNavire: (quantites: import('../engine/provisions').VivresDeCale, tonneaux: number) => void;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`) ; ses
    *  achats, ventes et bradages sont ses choix (`fenetreChoisir('marcheDeTerre', …)`, comme au port, `cargaison.ts`). */
   ouvrirLeMarche: () => void;

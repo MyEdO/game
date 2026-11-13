@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MSRC 7 */
 import { z } from 'zod';
-import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { difficultySchema, plageSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 
 export const file = 'river-navigation.json';
@@ -95,4 +95,3 @@ const doc = document(
 export const schema = doc.schema;
 export const meta = doc.meta;
 export const exposition = doc.exposition;
-export type RiverNavigationData = EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>;

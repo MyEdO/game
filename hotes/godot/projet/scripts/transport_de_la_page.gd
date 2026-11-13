@@ -65,7 +65,8 @@ func publier(nom: String, valeur: Variant) -> void:
 
 
 func exposer(nom: String, rappel: Callable) -> void:
-	_exposes[nom] = JavaScriptBridge.create_callback(rappel)
+	_exposes[nom] = JavaScriptBridge.create_callback(func(args: Array) -> void:
+		rappel.call(str(args[0]), func(reponse: String) -> void: (args[1] as JavaScriptObject).call("call", null, reponse)))
 	JavaScriptBridge.get_interface("window").set(nom, _exposes[nom])
 
 

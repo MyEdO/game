@@ -71,8 +71,7 @@ const doc = document(
   {
     /** LDB 60 l.9/l.40 ; LDB 62 l.217/l.309 ; LDB 63 l.68/l.80 */
     polarite: z.enum(['atout', 'defaut']),
-    /** `subType` observé : 'arme' | 'armure' | 'objet' (59/59) ; `QualityData.subType` autorise aussi
-     *  `null` (TS `string | null`), non vu dans les 59 entrées actuelles mais le type source fait foi. */
+    /** Id de `qualitySubtypes.json` ; `null` = aucun sous-type. */
     subType: z.enum(['arme', 'armure', 'objet']).nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
     passive: passifsDe().optional(),

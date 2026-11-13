@@ -13,8 +13,7 @@
  *  - Rumeurs commerciales (l.176-303) : Test de Ragot Complexe (−10) → Emplacement aléatoire → rumeur → un
  *    bien correspondant s'y vend le DOUBLE de son prix de base.
  */
-import landCargoJson from '../data/land-cargo.json';
-import type { LandCargoData } from '../data/schemas/defs/land-cargo';
+import { landCargo, type LandCargoData } from '../data';
 import { d100, roll, rollDice, type RNG } from './dice';
 import { deDeLaTableTiree, findTableEntry, findTableEntryIndex } from './tables';
 import type { Difficulty } from './types';
@@ -27,7 +26,7 @@ export const VOIE_TERRESTRE: Voie = 'terre';
 /** Rangée du Tableau des rumeurs commerciales (l.281-303). */
 export type RumourRow = LandCargoData['rumeurs']['entries'][number];
 
-const LAND = landCargoJson as LandCargoData;
+const LAND = landCargo;
 
 export const WINE_QUALITY = LAND.qualiteDuVin.entries;
 /** Échelons de Richesse et leur Mise à prix — source UNIQUE des libellés d'authoring de l'éditeur de

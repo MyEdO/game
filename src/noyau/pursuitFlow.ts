@@ -25,6 +25,7 @@
  * Un camp tenu par un joueur y ouvre une étape de CHOIX ; un camp PNJ tranche par sa POLITIQUE
  * (`PursuitPolicy`, valeur maison éditable à l'Effet `startPursuit` — règle 7, jamais un MJ implicite).
  */
+import { nomDe } from '../engine/nom';
 import type { Get, Set } from './flowTypes';
 import { rollTest } from '../engine/tests';
 import { effectiveMovement } from '../engine/encumbrance';
@@ -220,7 +221,7 @@ function resolvePursuitFoe(f: PursuitFoeRef, index: number, skillId: string): Pu
   const id = f.id ?? `foe-${index + 1}`;
   const ref = f.ref;
   const fiche = spawnEnemy('id' in ref ? { ref: ref.id } : { statblock: ref.custom }, id, { x: 0, y: 0 });
-  return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
+  return { id, label: nomDe(fiche), movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
 }
 
 /** Démarre une poursuite terrestre (Effet `startPursuit`) : instancie le socle puis ouvre la 1ʳᵉ manche. */

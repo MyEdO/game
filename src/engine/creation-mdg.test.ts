@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { rollCareer } from './creation';
-import { careersForSpecies, colonneDeCarrieres, findCareerById, findSpeciesById, levelsForCareer, species, tableDeCarrieres } from '../data';
+import { careersForSpecies, colonneDeCarrieres, findCareerById, findSpeciesById, levelsForCareer, offreDuJet, species, tableDeCarrieres } from '../data';
 import { newDraft, withSpecies, withCoastalSwap, coastalSwapAvailable, type CreatorDraft } from '../noyau/creation/brouillon';
 import { deFixe } from './dice.testkit';
 
@@ -22,7 +22,7 @@ const fixed = deFixe;
 const draft = (speciesId: string, coastalSwap: boolean): CreatorDraft =>
   withCoastalSwap(withSpecies(newDraft(1), speciesId), coastalSwap);
 /** Le jet `r` d'une espèce, avec ou sans le remplacement. */
-const tire = (speciesId: string, swap: boolean, r: number) => rollCareer(sp(speciesId), swap, fixed(r)).ids;
+const tire = (speciesId: string, swap: boolean, r: number) => offreDuJet(sp(speciesId), rollCareer(sp(speciesId), swap, fixed(r)));
 
 const sp = (id: string) => findSpeciesById(id)!;
 
@@ -65,7 +65,7 @@ describe('Classe Côtier — swap Riverains ↔ Côtiers (MDG 09 l.9, table l.21
     for (const swap of [false, true]) {
       for (let r = 1; r <= 100; r++) {
         const ids = tire('humains-reiklander', swap, r);
-        const classes = new Set(ids.map((id) => findCareerById(id)!.class.id));
+        const classes = new Set<string>(ids.map((id) => findCareerById(id)!.class.id));
         expect(classes.has('riverains') && classes.has('cotiers'), `d100=${r} swap=${swap}`).toBe(false);
       }
     }

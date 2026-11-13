@@ -478,7 +478,9 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     // h3 n'a AUCUNE sauvegarde : son maillon suspend par la DÉVIATION (1 PB → dépassement, armure déviable).
     const h3 = mk('heros', 'h3', blessuresSurLeProfil({ pos: { x: 6, y: 5 }, characteristics: nul(), aiControlled: true, wounds: blessuresDeBase(30, 1), armour: blindee }) as never);
     const h4 = mk('heros', 'h4', { pos: { x: 5, y: 4 }, characteristics: nul(), aiControlled: true, traits: [demon] } as never);
-    setBattle([ogre, h1, h2, h3, h4]);
+    // L'œil du groupe (`visibleFrom`, `src/noyau/visionState.ts`) : un héros non piloté par l'IA, hors de portée de la chaîne.
+    const temoin = mk('heros', 'temoin', { pos: { x: 15, y: 5 } });
+    setBattle([ogre, h1, h2, h3, h4, temoin]);
     autoCleave(banc.getState, banc.setState, ogre, h1, { ...touche(), cleave: true } as AttackResult);
     derouler();
     const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => /^ogre touche/.test(t));
@@ -659,7 +661,9 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], size: 'enorme', aiControlled: true } as never);
     const e1 = mk('ennemi', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
     const e2 = mk('ennemi', 'e2', { pos: { x: 0, y: 1 }, characteristics: nul() } as never);
-    setBattle([heros, e1, e2]);
+    // L'œil du groupe (`visibleFrom`, `src/noyau/visionState.ts`) : un héros non piloté par l'IA, hors de portée du coup.
+    const temoin = mk('heros', 'temoin', { pos: { x: 15, y: 5 } });
+    setBattle([heros, e1, e2, temoin]);
     const coup = { ...touche(), cleave: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', dualMode: true, result: coup } as never });
     banc.getState().jetValider('attaque');

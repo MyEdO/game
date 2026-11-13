@@ -671,7 +671,7 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
   // Encrier de tirage CARRIÈRE (#393 P2, même patron que Race #393 P3) : rangée unique recherche +
   // encrier, le résultat vit dans l'encrier rendu (plus de mur de boutons de borne). LDB 05 l.208-212 :
   // 1ᵉʳ jet gardé = +50 PX ; pas convaincu → deux jets de plus (3 bornes au choix) = +25 PX ; au-delà,
-  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`, INCHANGÉE).
+  // relances libres = 0 PX (mécanique `rollDraftCareer`/`careerXp`).
   const rolledLast = d.careerRolls[d.careerRolls.length - 1];
   const kept = careerXp(d) > 0;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftCareer(d)));
@@ -1851,7 +1851,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
   const { adresse } = emplacement;
   if (emplacement.sorte === 'branches') {
     const choisie = brancheChoisie(emplacement, choices);
-    const options = emplacement.ref.choice.map((branche, j) => ({
+    const options = emplacement.ref.of.map((branche, j) => ({
       key: String(j),
       label: trappingRefLabel(branche),
       selected: choisie === j,

@@ -32,7 +32,7 @@ import { recordDIds, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { apparencesDObjetsSchema, couleursSchema, emblemeSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
 import { findEnsembleParHabille, findVarianteById, piecesDeLObjet } from '../../index';
-import type { HabilleDEnsemble, TenueId } from './garde-robe';
+import type { HabilleDEnsemble } from './garde-robe';
 
 export const file = 'presets-de-personnage.json';
 export const famille = 'entite';
@@ -163,10 +163,8 @@ export const meta = doc.meta;
 
 export const exposition = doc.exposition;
 
-/** VUE TS d'une entrée — le nœud rendu par la fabrique est SCELLÉ (`z.infer` y vaut `unknown`), la vue se recompose donc
- *  depuis l'enveloppe et les champs déclarés (`EnveloppeDocument`) : `type` y est le littéral du document, `source` exigée
- *  (`exiges`), et l'id de `tenue` resserré à `TenueId`. */
+/** VUE TS d'une entrée. */
 export type PresetDePersonnage = Omit<EnveloppeDocument, 'type' | 'source'> & {
   type: 'presets-de-personnage';
   source: NonNullable<EnveloppeDocument['source']>;
-} & Omit<z.infer<z.ZodObject<typeof champs>>, 'tenue'> & { tenue?: { id: TenueId } };
+} & z.infer<z.ZodObject<typeof champs>>;

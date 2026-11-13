@@ -101,7 +101,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     poserFicheDeTest();
     const banc = ouvrirLeBanc();
     enCombat(banc, heros());
-    banc.setState({ pendingApproach: { combatantId: 'h', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'x', sourceName: 'X', intent: { kind: 'tile', pt: { x: 2, y: 1 } }, result: null } });
+    banc.setState({ pendingApproach: { combatantId: 'h', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'x', intent: { kind: 'tile', pt: { x: 2, y: 1 } }, result: null } });
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingApproach!.test));
     const enVue = cibleEnVue(banc.getState(), 'approche', 'h');
