@@ -9,7 +9,7 @@ import { Combatant, CharKey } from './types';
 import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import type * as advancementCostsDef from '../data/schemas/defs/advancementCosts';
-import { datasetDe, type EntreeDe } from '../data/datasets';
+import { datasetDe } from '../data/datasets';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
@@ -26,16 +26,6 @@ import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/
 export function inCareerChar(careerChars: CharKey[], char: CharKey): boolean {
   return careerChars.includes(char);
 }
-
-/**
- * Type d'une bande du Tableau de Coût des Augmentations (LDB 07 l.56-70).
- * La bande = nombre d'Augmentations DÉJÀ achetées, fourchette `{min, max}` aux bornes INCLUSIVES,
- * les DEUX telles que la source les imprime (« 0 à 5 », « 6 à 10 »…).
- * `max: null` = bande FINALE « 71 et + » : LDB 07 l.49 ne pose AUCUN plafond, la borne haute reste
- * donc OUVERTE en donnée (JSON n'a pas d'Infinity) et ne s'ouvre qu'au lookup.
- * La donnée vit dans `src/data/advancementCosts.json` — ne pas éditer ici.
- */
-export type AdvanceCostBand = EntreeDe<typeof advancementCostsDef>;
 
 const ADVANCE_COST_TABLE = datasetDe<typeof advancementCostsDef>(advancementCostsJson);
 

@@ -19,6 +19,7 @@ import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
+import { itemCapabilitiesSchema } from '../defs/trappings';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
@@ -250,6 +251,8 @@ const NOMMES = [
   'groupe|heros|navire|membreAuHasard|target|caster',
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
+  // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
+  Object.keys(itemCapabilitiesSchema.shape).join('|'),
   // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
   'personne|immeuble|titre|intangible',
 ].sort();

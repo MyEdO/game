@@ -7,6 +7,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
  * engine) et d'un inventaire EXHAUSTIF par script (histogramme de TOUTES les entrées du dataset).
  */
 import { z } from 'zod';
+import { tableTotale } from '../../../lib/tableTotale';
 import { document } from '../grammaire/document';
 import { availabilitySchema, enumNomme, formulaSchema, genreDArmeSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
@@ -80,6 +81,9 @@ export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   waterContainer: { label: 'Récipient d’eau' },
   improvisedWithoutCharge: { label: 'Improvisée sans Charge' },
 });
+
+/** Une capacité de `itemCapabilitiesSchema`, nommée par le libellé de son champ (`skills.tool.capability`). */
+export const capaciteDObjetSchema = enumNomme(tableTotale(itemCapabilitiesSchema.keyof().options, (cle) => metaDesChamps(itemCapabilitiesSchema, { exigees: true })[cle].label));
 
 /** LDB 73 */
 const weaponSchema = nommerChamps(z.strictObject({

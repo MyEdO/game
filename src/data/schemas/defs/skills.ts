@@ -9,7 +9,7 @@ import { charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../gra
 import { document } from '../grammaire/document';
 import { senseSchema } from '../grammaire/mecanique';
 import { ref } from '../grammaire/ref';
-import { itemCapabilitiesSchema } from './trappings';
+import { capaciteDObjetSchema } from './trappings';
 
 export const file = 'skills.json';
 export const famille = 'entite';
@@ -48,7 +48,7 @@ const doc = document(
       gate: z.literal('peur'),
     }), { role: { label: 'Rôle' }, gate: { label: 'Condition d’accès' } }).optional(),
     /** `capability` = une clé des capacités d'objet (`capabilities`, `schemas/defs/trappings.ts`). */
-    tool: nommerChamps(z.strictObject({ capability: itemCapabilitiesSchema.keyof(), withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
+    tool: nommerChamps(z.strictObject({ capability: capaciteDObjetSchema, withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
   },
   {
     characteristic: { label: 'Caractéristique' },
