@@ -1,11 +1,15 @@
 {
   "model": "humanoide--vetement--pourpoint.glb",
-  "model_sha256": "c724353189230d2256e2d15ff64acb6adf91798c6c71c8abd86d8abd232dc5e0",
-  "importe_le": "2026-11-06",
+  "model_sha256": "dfc1ececf0e444affff868e80b3690f41f1c478f32fd470cc496f930521a89ad",
+  "importe_le": "2026-11-13",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

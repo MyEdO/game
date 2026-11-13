@@ -1,11 +1,15 @@
 {
   "model": "humanoide--vetement--bottes-a-revers.glb",
-  "model_sha256": "eed3553bebdec5e7597e81ba52127de45fec2ed4c241a2e01d715d35d3dde9ff",
-  "importe_le": "2026-11-05",
+  "model_sha256": "f9fc09fe04693a25e2c6da2142e426941e40881a2b4df613fd2fa9d424c29c30",
+  "importe_le": "2026-11-13",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

@@ -1,11 +1,15 @@
 {
   "model": "humanoide--vetement--bottes.glb",
-  "model_sha256": "3a059b74fd638145ba4736adeaeef7f7f888992e861f2d85c9fd6a83506780a5",
-  "importe_le": "2026-11-06",
+  "model_sha256": "b0b4e1dfe1289ea3735215a6ba6cbfe6b513a3e0e4e9d10992276d198a7728eb",
+  "importe_le": "2026-11-13",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

@@ -1,11 +1,15 @@
 {
   "model": "humanoide--pilosite--barbe-courte.glb",
-  "model_sha256": "77fa0b80c0e5d2f3cf4d5b2a29f4dd9097aafe7c1c0739bc1de1405a1ab1de63",
-  "importe_le": "2026-11-05",
+  "model_sha256": "6947e6da0b5ce963fd8a948e2d37a0cccec7be4d10c4d3c871b8a6705aa035b1",
+  "importe_le": "2026-11-13",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

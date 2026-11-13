@@ -1,11 +1,15 @@
 {
   "model": "humanoide--vetement--chemise.glb",
-  "model_sha256": "73c78c7dbc94b042ff3ab388052eb8f579fc1cf46b0d52d3ccf260316145683a",
-  "importe_le": "2026-11-06",
+  "model_sha256": "dff72038f2a380b194cbee3248e5e63eab89779a88c8243cbafd04f2126baf18",
+  "importe_le": "2026-11-13",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

@@ -18,9 +18,9 @@
   ],
   "silhouettes": [
     "feminin",
+    "corpulence",
     "carrure_moins",
-    "carrure_plus",
-    "corpulence"
+    "carrure_plus"
   ],
   "surfaces": [
     {
@@ -37,7 +37,7 @@
     }
   ],
   "glb": {
-    "sha256": "4b32f01a44569b568223e95f4b095d0762fb4af063c204c0671e1ed641b129ba",
-    "octets": 657736
+    "sha256": "3fdbc606352430f9c13604bc49a599f7c685431f2eafb4f9edc1fdaae36cc613",
+    "octets": 314744
   }
 }
