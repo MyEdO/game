@@ -93,6 +93,7 @@ import {
   type LigneDuJournal,
   type LumiereDeLaScene,
   type ProjectDoc,
+  type Intention,
   type Partie,
   type Programme,
   type ResultatDeLAppel,
@@ -116,7 +117,7 @@ import {
   porteurEnVue,
   visionDuMonde,
   type VisionDuMonde,
-  type Intention,
+  projetEdite,
 } from '../../../src/noyau/index';
 import {
   ErreurDeGeste,
@@ -163,6 +164,7 @@ import {
   estUnGesteDuPointeur,
   memoireDesCalques,
   refusDeLaValeurDit,
+  refusDuFormulaire,
   surcoucheDeLEdition,
   zonesDeLEditeur,
 } from '../../../src/hote/editeur';
@@ -1726,12 +1728,15 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`,
      * `src/scenes/campaign.ts`), le texte de son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de
      * l'index des chapitres du `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
-     * `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement, d'un chargement de planche ou
+     * `src/noyau/edition/session.ts`), un geste du pointeur sur le plan du document ouvert (la case et le point de la
+     * scène ; sur la carte du monde, le point du cadre du plan `editeur.carte` multiplié par ses `unites`, sa
+     * case la partie entière), l'issue d'un enregistrement, d'un chargement de planche ou
      * de celui du chapitre attendu (refusée en `validation` hors d'une attente, ou d'un autre chapitre), ou celui que
      * porte un bouton des zones de l'éditeur, un qui l'offre sans refus d'abord ; ou `{ type: 'nommer' | 'identifier' |
      * 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
      * qui nomme la sélection ou la scène, `args` le nom saisi ou rien, qui change l'identifiant de la zone d'effet
-     * sélectionnée, `args` l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
+     * sélectionnée, `args` l'identifiant saisi, ou celui d'un élément du porteur sélectionné (l'action d'un décor, le
+     * nœud d'un dialogue), `args` l'élément puis l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
      * drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ (section « Éditeur »)
@@ -1739,8 +1744,13 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
      * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
      * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
-     * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
-     * porte refuse
+     * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
+     * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
+     * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
+     * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas ; la carte ouverte, le
+     * pointeur la sélectionne, glisse un lieu, en pose un à l'outil Lieu et tire une route à l'outil Chemin, et les zones
+     * propres à la scène se vident ; le plan d'un lieu ouvert (`lieu/plan`), le pointeur y désigne, glisse et épingle
+     * ses points d'intérêt au point du cadre de ce plan, aux mêmes unités
      */
     editer(json) {
       const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));
@@ -1758,7 +1768,11 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
         const nomme = 'type' in e ? gesteDuFormulaire(zonesDeLEditeur(s), e) : undefined;
-        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
+        if ('type' in e) {
+          valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
+          const refuse = refusDuFormulaire(zonesDeLEditeur(s), e.type);
+          if (refuse) throw new ErreurDeGeste('regle', `editer : ${refuse}`);
+        }
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (estLIssueDUnChapitre(e.edition)) {
@@ -1776,7 +1790,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
           if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);
-          depot = { id: s.projet.id, texte: passe.valeur };
+          depot = { id: projetEdite(s).id, texte: passe.valeur };
         }
         if (geste.geste === 'tester') {
           const lance = essaiDeLaScene(s);
@@ -1799,7 +1813,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
-        ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),
+        ...(charge ? { planche: { image: cheminDeLaPlanche(projetEdite(session).id, charge.sceneId, charge.z) } } : {}),
         ...(demande ? { chapitre: demande } : {}),
         ...(memoire ? { memoire } : {}),
       };

@@ -62,7 +62,7 @@ function construireScene(): Scene {
               flow: flowFromEffects([
                 { type: 'journal', desc: "Vous chargez — l'acier contre la chair corrompue." },
                 { type: 'endDialogue' },
-                { type: 'startCombat', encounter: 'enc-mutants' },
+                { type: 'startCombat', encounter: { id: 'enc-mutants' } },
               ]),
             },
             { id: 'reculer-sans-bruit', label: 'Reculer sans bruit vers le couvert…', next: { id: 'a2' } },
@@ -80,7 +80,7 @@ function construireScene(): Scene {
               label: 'Au combat !',
               flow: flowFromEffects([
                 { type: 'endDialogue' },
-                { type: 'startCombat', encounter: 'enc-mutants' },
+                { type: 'startCombat', encounter: { id: 'enc-mutants' } },
               ]),
             },
           ],

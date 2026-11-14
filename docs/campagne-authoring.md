@@ -233,7 +233,7 @@ chaîne de nom dupliquée dans la donnée.
 - **Locuteur de SESSION** — ouvrir un dialogue en interagissant avec une entité (`interagirAvecLEntite`) pose
   `dialogue.speakerId = ent.id` automatiquement ; un `startDialogue.speakerId` explicite le fait pour un
   dialogue lancé par script (trigger, effet). C'est le locuteur PAR DÉFAUT de tous les nœuds.
-- **Locuteur PAR NŒUD** — `DialogueNode.speakerId` (id d'une `SceneEntity` de la MÊME scène) surcharge le
+- **Locuteur PAR NŒUD** — `DialogueNode.speakerId` (`{ id }` d'un personnage de la MÊME scène, `PERSONNAGES_DE_LA_SCENE`) surcharge le
   locuteur de session pour CE nœud seulement : permet d'ALTERNER les interlocuteurs dans une même
   conversation (ex. une tablée à plusieurs PNJ). Un nœud sans `speakerId` retombe sur la session.
 - Le nom affiché = le `label` de l'entité résolue (`DialogueBox`, `src/ui/DialogueBox.tsx`) — jamais un

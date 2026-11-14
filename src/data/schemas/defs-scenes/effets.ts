@@ -38,6 +38,7 @@ import {
   MARCHANDS_DE_LA_SCENE,
   PERSONNAGES_DE_LA_SCENE,
   ptSchema,
+  RENCONTRES_DE_LA_SCENE,
   SCENES_DU_PROJET,
   wallSideSchema,
 } from './communs';
@@ -200,7 +201,7 @@ export const giveMoneySchema = nommerChamps(z.strictObject({
  *  authore ses propres octrois via cette action, à tout point narratif (victoire, objectif, dialogue…). */
 export const giveXpSchema = nommerChamps(z.strictObject({ type: z.literal('giveXp'), amount: z.number() }), { type: { label: "type"  }, amount: { label: "quantité" } });
 
-export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: z.string() }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
+export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: ref(RENCONTRES_DE_LA_SCENE) }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
@@ -498,7 +499,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   escapeAt: z.number().optional(),
   skill: refOuSpec('skill'),
   foes: listeCle(pursuitFoeSchema, 'id'),
-  encounter: z.string().optional(),
+  encounter: ref(RENCONTRES_DE_LA_SCENE).optional(),
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
 

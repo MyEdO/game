@@ -265,7 +265,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     const enc = buildEncounter({ id: 'enc-rue', enemies: [{ creature: { id: 'mutant' }, pos: { x: 3, y: 0 } }] });
     sc.entities = [...sc.entities, ...enc.entities];
     sc.encounters = [enc.encounter];
-    sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: 'enc-rue' }]) }];
+    sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: { id: 'enc-rue' } }]) }];
     explorer(sc, { ...dedans, z: 1 });
     const hero = banc.getState().party[0];
     const avant = hero.wounds.current;
@@ -286,7 +286,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     const enc = buildEncounter({ id: 'enc-rue', enemies: [{ creature: { id: 'mutant' }, pos: { x: 3, y: 0 } }] });
     sc.entities = [...sc.entities, ...enc.entities];
     sc.encounters = [enc.encounter];
-    sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: 'enc-rue' }]) }];
+    sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: { id: 'enc-rue' } }]) }];
     explorer(sc, { ...dedans, z: 1 });
     const second = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'K', seed: 2 });
     banc.setState({ party: [...banc.getState().party, second] });

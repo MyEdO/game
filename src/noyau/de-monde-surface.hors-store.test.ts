@@ -368,18 +368,19 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
  * flux RNG : sans troncature, les périls suivants rejoueraient leurs dés après le combat.
  */
 describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (parité du `break`)', () => {
-  /** Route à 3 périls d'auteur À 100 % ; le rang `interrompt` porte un `startCombat`. */
+  /** Route à 3 périls d'auteur À 100 % ; le rang `interrompt` porte une `transition`. */
   const routeAvecPerils = (interrompt: number): MapRoute => ({
     id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 10, modes: ['pied'],
     perils: [0, 1, 2].map((i) => ({
       label: `P${i}`, chancePct: 100,
-      effects: i === interrompt ? [{ type: 'startCombat' as const, encounter: 'enc-x' }] : [{ type: 'journal' as const, desc: `note ${i}` }],
+      effects: i === interrompt ? [{ type: 'transition' as const, scene: { id: 'clairiere' } }] : [{ type: 'journal' as const, desc: `note ${i}` }],
     })),
   } as MapRoute);
 
   function planSur(route: MapRoute): void {
+    get().chargerLeProjet({ scenes: [emptyScene('route', 2, 2), emptyScene('clairiere', 2, 2)], entryId: 'route', worldMap: { id: 'm', label: 'm', places: [], routes: [route] }, projet: null });
     set({
-      worldMap: { id: 'm', nom: 'm', places: [], routes: [route] } as unknown as WorldMap,
+      journal: [],
       travelPlan: { routeId: 'r1', fromPlaceId: 'A', toPlaceId: 'B', mode: 'pied', hoursPerDay: 8, km: 10, kmDone: 0, interrupted: false } as never,
     });
   }

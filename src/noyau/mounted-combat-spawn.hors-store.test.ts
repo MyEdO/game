@@ -190,13 +190,13 @@ describe('Combat monté AUTHORÉ — `mount` / `ridesEntityId` au spawn (LDB 14 
     expect(cavalier.mountId).toBeUndefined();
   });
 
-  it('`ridesEntityId` vers une entité ABSENTE : `validateScene` nomme la monture inexistante, et le spawn rend les deux combattants sans appairage', () => {
+  it('`ridesEntityId` vers une entité ABSENTE : `validateScene` la dit absente des montures de la rencontre, et le spawn rend les deux combattants sans appairage', () => {
     const { scene, montureId, cavalierId } = cavalerieScene(false);
     const membres = scene.encounters[0].members!;
-    membres[1] = { ...membres[1], ridesEntityId: 'monture-absente' };
+    membres[1] = { ...membres[1], ridesEntityId: { id: 'monture-absente' } };
 
     const fautes = validateScene([scene]).filter((w) => w.scope === 'encounter' && w.refId === ENC_CAVALERIE);
-    expect(fautes.some((f) => f.level === 'error' && f.message.includes('monture-absente'))).toBe(true);
+    expect(fautes.some((f) => f.level === 'error' && f.message.includes('« monture-absente » est absent du catalogue des montures de la rencontre'))).toBe(true);
 
     const battle = startCavalerie(scene);
     const monture = battle.combatants.find((c) => c.id === montureId)!;

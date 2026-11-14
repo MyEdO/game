@@ -29,7 +29,7 @@ const construireScene = (): Scene => buildScene({
       once: true,
       flow: flowFromEffects([
         { type: 'journal', desc: "Deux villageois se dressent en grondant — leurs traits se déforment. En garde !" },
-        { type: 'startCombat', encounter: 'enc-ulric' },
+        { type: 'startCombat', encounter: { id: 'enc-ulric' } },
       ]),
     },
   ],

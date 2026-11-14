@@ -2155,6 +2155,9 @@ export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | u
  * la `SkillInstance` runtime est toujours concrète.
  */
 export type SkillRef = RefASpecialisation & { value: number };
+/** `SkillRef` d'un porteur qui DÉSIGNE (`competenceChiffreeSchema`, `schemas/defs-scenes/communs.ts`) : la scène
+ *  et le `CustomStatblock` ne portent aucun emplacement (`choix`). */
+export type SkillRefDesignee = RefDesignee & { value: number };
 /** Libellé d'affichage d'une `SkillRef` : « Langue (Magick) 63 », « Savoir (Au choix) 65 »,
  *  « Métier (Armurier ou Forgeron) 50 ». */
 export function skillRefLabel(ref: SkillRef): PlayerText {

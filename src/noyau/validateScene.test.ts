@@ -429,6 +429,23 @@ describe('validateScene', () => {
     expect(erreursSur('fantome', { type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fantome' } })).toEqual([expect.stringContaining('« fantome » est absent du catalogue des personnages de la scène')]);
   });
 
+  it('la rencontre d’un `startCombat` ou d’un `startPursuit` : absente de la scène, une seule erreur, celle du parse ; présente, aucune (#3606 M4a)', () => {
+    const scene = (effet: Effect) => {
+      const s = base();
+      s.encounters = [{ id: 'enc-presente', members: [] }];
+      s.triggers.push({ id: 't-rencontre', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([effet]) });
+      return s;
+    };
+    const combat = (id: string): Effect => ({ type: 'startCombat', encounter: { id } });
+    const poursuite = (id: string): Effect => ({ type: 'startPursuit', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'humain' } }], encounter: { id } });
+    const surRencontres = (s: Scene) => msgs(validateScene([s])).filter((m) => m.includes('catalogue des rencontres de la scène'));
+    expect(surRencontres(scene(combat('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
+    expect(surRencontres(scene(poursuite('enc-fantome')))).toEqual([expect.stringContaining('« enc-fantome » est absent du catalogue des rencontres de la scène')]);
+    expect(msgs(validateScene([scene(combat('enc-fantome'))])).filter((m) => m.includes('« enc-fantome »'))).toHaveLength(1);
+    expect(surRencontres(scene(combat('enc-presente')))).toEqual([]);
+    expect(surRencontres(scene(poursuite('enc-presente')))).toEqual([]);
+  });
+
   /**
    * ENJEU d'un Flow AUTHORÉ (#1117, arbitrage user 2026-08-12 / #1262) : « l'enjeu d'un Flow authoré
    * s'AUTHORE DANS LA SCÈNE — champ stake dans l'éditeur de Flow […] Le validateur de scène exige le

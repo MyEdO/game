@@ -17,14 +17,18 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
+import { emptyWorldMap, resolvePortRef, type WorldMap } from '../worldMap';
 import {
   avertissementsDeLaSession,
   cadreDeLaSession,
-  champDuMessage,
+  calqueDeLaCouche,
   editer,
   groupesDuLieu,
+  idDeLaSceneEditee,
   ouvrirLEdition,
   planDeLaVolee,
+  planDuLieuOuvert,
+  projetEdite,
   sceneEditee,
   vueDeLaScene,
   type GesteDEdition,
@@ -37,19 +41,39 @@ import { flowFromEffects } from '../monde/flow';
 import { fauteDAppui } from '../monde/poseDuDecor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import { garanti } from '../../lib/garanti';
-import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDuPorteur } from '../sceneEdit';
+import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDuPorteur, ECRITURES_DES_PORTEURS } from '../sceneEdit';
+import { peripetieNeuve, portNeuf } from '../worldMapEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, segmentDeLaSelection, type CadreDuPorteur } from '../sceneEditLecture';
+import {
+  capsOfferts,
+  choixDuChamp,
+  entiteDeLaSelection,
+  formulaireDe,
+  porteurDeLaSel,
+  segmentDeLaSelection,
+  type CadreDuPorteur,
+  type SorteDePorteur,
+} from '../sceneEditLecture';
 import { champsDeclares, champsDuRecord, choixDuNoeud, elementDuNoeud, recordDuNoeud } from '../codex/editFields';
 import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/schemas/grammaire/valeurs';
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
-import { refusDeLaValeur } from './session';
+import { refusDeLaValeur, refusDeRetrait } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { creatures, findCreatureById, MERCHANT_ARCHETYPES, siegeEngines, spells, talents, traits, TAVERN_GAMES } from '../../data';
+import {
+  creatures,
+  findCreatureById,
+  MERCHANT_ARCHETYPES,
+  navalPorts,
+  siegeEngines,
+  spells,
+  talents,
+  traits,
+  TAVERN_GAMES,
+} from '../../data';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';
@@ -98,13 +122,17 @@ describe('session d’édition', () => {
     expect([s.pinceau, s.rectangle]).toEqual([3, false]);
   });
 
-  it('enregistrer : hors du dépôt, rien ; au dépôt, les scènes ne sont enregistrées qu’à l’écriture réussie', () => {
+  it('enregistrer : hors du dépôt, rien ; au dépôt, le projet édité n’est enregistré qu’à l’écriture réussie', () => {
     expect(editer(ouverte(), { geste: 'enregistrer' }).depot).toBeNull();
-    const modifiee = editer(ouverte(true), { geste: 'ajouterCouche' });
+    const ouv = ouverte(true);
+    const modifiee = editer(ouv, { geste: 'ajouterCouche' });
     const enCours = editer(modifiee, { geste: 'enregistrer' });
-    expect(enCours.depot).toEqual({ enregistrees: [sceneEditee(ouverte(true))], enCours: [sceneEditee(modifiee)] });
-    expect(editer(enCours, { geste: 'enregistrement', reussi: true }).depot).toEqual({ enregistrees: [sceneEditee(modifiee)], enCours: null });
-    expect(editer(enCours, { geste: 'enregistrement', reussi: false }).depot).toEqual({ enregistrees: [sceneEditee(ouverte(true))], enCours: null });
+    expect(enCours.depot!.enregistre).toBe(projetEdite(ouv));
+    expect(enCours.depot!.enCours).toBe(projetEdite(modifiee));
+    const reussi = editer(enCours, { geste: 'enregistrement', reussi: true }).depot!;
+    expect([reussi.enregistre === projetEdite(modifiee), reussi.enCours]).toEqual([true, null]);
+    const echoue = editer(enCours, { geste: 'enregistrement', reussi: false }).depot!;
+    expect([echoue.enregistre === projetEdite(ouv), echoue.enCours]).toEqual([true, null]);
     expect(editer(modifiee, { geste: 'enregistrement', reussi: true }), 'aucun enregistrement en cours').toBe(modifiee);
   });
 
@@ -355,16 +383,6 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
     expect('music' in sceneEditee(jouer(auto, sur({ musique: { piste: 'combat' } }))), 'aucune piste : le champ quitte la scène').toBe(false);
   });
 
-  it('le message d’introduction : saisi sur plusieurs lignes tel quel, sa provenance gardée ; vide, il se retire avec elle', () => {
-    expect(champDuMessage(), 'une prose nommée se saisit sur plusieurs lignes').toMatchObject({ key: 'texte', kind: 'textarea' });
-    const texte = '  Le relais est désert.\n\nUne lanterne bat au vent.';
-    const source = { book: 'ldb', page: 12 };
-    const scene = { ...emptyScene('session', 4, 4), startMessage: { texte: 'Ancien.', source } } as Scene;
-    const saisi = jouer(ouverteSur(scene), sur({ message: texte }));
-    expect(sceneEditee(saisi).startMessage).toEqual({ texte, source });
-    expect('startMessage' in sceneEditee(jouer(saisi, sur({ message: '' }))), 'vide : le message quitte la scène, provenance comprise').toBe(false);
-  });
-
   it('les ancres de bataille : ajoutées vers une Scène de Round, repointées, posées à une case, retirées ; la dernière retirée, le champ quitte la scène ; un rang absent laisse la session', () => {
     const [a, b] = ciblesDAncreDeBataille();
     const posee = jouer(ouverte(), sur({ stations: { ajouter: a.id } }), sur({ stations: { ajouter: a.id } }));
@@ -400,6 +418,62 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
     expect(jouer(habillee, { geste: 'baie', id: 'absente', patch: { apparence: apparence.id } })).toBe(habillee);
     const decor = (['chimney', 'sign', 'belfry'] as const).find((k) => !apparencesDeLOuverture(k).some((a) => a.id === apparence.id))!;
     expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { sorte: decor } })), 'une sorte d’un autre catalogue retire l’apparence').toBe(false);
+  });
+});
+
+describe('le porteur singulier `scene` du geste `valeur` (#3606)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const surLaScene = (s: SessionDEdition, chemin: (string | number)[], ...valeur: unknown[]): GesteDEdition =>
+    ({ geste: 'valeur', porteur: porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s))!, chemin, ...(valeur.length ? { valeur: valeur[0] } : {}) });
+
+  it('sans sélection, le porteur édité est la scène ouverte, sous son identifiant ; nommer, identifier et supprimer y restent ceux de la scène', () => {
+    const s = ouverteSur(emptyScene('session', 4, 4));
+    expect(porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s))).toEqual({ sorte: 'scene', id: 'session' });
+    expect(sceneEditee(jouer(s, { geste: 'nommer', nom: 'Le relais' })).label).toBe('Le relais');
+    expect(idDeLaSceneEditee(jouer(s, { geste: 'identifier', id: 'relais' }))).toBe('relais');
+    expect(jouer(s, { geste: 'supprimer' }), 'rien à supprimer').toBe(s);
+  });
+
+  it('le message de départ : son texte saisi sur plusieurs lignes tel quel, sa provenance gardée ; vidé, il se retire avec elle', () => {
+    const texte = '  Le relais est désert.\n\nUne lanterne bat au vent.';
+    const adapteDe = { book: 'ldb', page: 12 };
+    const s = ouverteSur({ ...emptyScene('session', 4, 4), startMessage: { texte: 'Ancien.', adapteDe } } as Scene);
+    const saisi = jouer(s, surLaScene(s, ['startMessage', 'texte'], texte));
+    expect(sceneEditee(saisi).startMessage).toEqual({ texte, adapteDe });
+    expect('startMessage' in sceneEditee(jouer(saisi, surLaScene(saisi, ['startMessage', 'texte']))), 'vidé : le message quitte la scène, provenance comprise').toBe(false);
+    expect(jouer(saisi, surLaScene(saisi, ['desc'], 'Une salle.')), 'hors du message, la scène n’offre rien').toBe(saisi);
+  });
+});
+
+describe('le retrait d’un champ que son objet exige (#3606)', () => {
+  const retrait = (sorte: SorteDePorteur, id: string, chemin: Segment[]): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte, id }, chemin });
+  const FLUX = { kind: 'si', condition: { kind: 'flag', expr: 'porte_ouverte' }, alors: { kind: 'effet', effet: { type: 'setFlag', flag: 'entre' } }, sinon: { kind: 'effet', effet: { type: 'setFlag', flag: 'refoule' } } };
+
+  it('vidé, le drapeau de la condition d’un flux `si` est requis : le flux, qui exige encore sa suite, reste entier', () => {
+    const dialogue = { id: 'dlg1', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Une porte close.', choices: [{ id: 'choix1', label: 'Entrer', flow: FLUX }] }] };
+    const s = ouverteSur({ ...emptyScene('retrait', 6, 6), dialogues: [dialogue] } as unknown as Scene);
+    const g = retrait('dialogue', 'dlg1', ['nodes', 0, 'choices', 0, 'flow', 'condition', 'expr']);
+    expect(refusDeLaValeur(s, g)).toBe('requis');
+    expect(editer(s, g), 'la session telle quelle').toBe(s);
+  });
+
+  it('vidé, le nom d’un profil personnalisé copié du Bestiaire est requis : le profil, qui exige encore ses Caractéristiques, reste', () => {
+    const pose = [{ geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'l-ombre-du-fleuve' } }, { geste: 'appui', point: point(1, 1) }, { geste: 'relache', point: point(1, 1) }] satisfies GesteDEdition[];
+    const posee = pose.reduce<SessionDEdition>(editer, ouverteSur(emptyScene('retrait', 6, 6)));
+    const id = posee.sel?.type === 'entity' ? posee.sel.id : '';
+    const s = editer(posee, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['statblock'], valeur: statblockDeLaCreature(findCreatureById('l-ombre-du-fleuve')!) });
+    expect(sceneEditee(s).entities.find((e) => e.id === id)?.statblock, 'le profil copié').toBeDefined();
+    const g = retrait('entite', id, ['statblock', 'label']);
+    expect(refusDeLaValeur(s, g)).toBe('requis');
+    expect(editer(s, g), 'la session telle quelle').toBe(s);
+  });
+
+  it('vidé, le drapeau de la porte d’un Test de traversée retire la porte, qui ne portait rien d’autre ; le Test reste', () => {
+    const zone = { id: 'z1', label: 'Pont-levis', area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 }, crossTest: { skill: { id: 'athletisme' }, difficulty: 'intermediaire', gate: { kind: 'flag', expr: 'pont_baisse' } } };
+    const s = ouverteSur({ ...emptyScene('retrait', 6, 6), effectZones: [zone] } as unknown as Scene);
+    const g = retrait('zone', 'z1', ['crossTest', 'gate', 'expr']);
+    expect(refusDeLaValeur(s, g)).toBeNull();
+    expect(sceneEditee(editer(s, g)).effectZones?.[0].crossTest).toEqual({ skill: { id: 'athletisme' }, difficulty: 'intermediaire' });
   });
 });
 
@@ -744,10 +818,10 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
     const enchainee = jouer(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow'], pas));
     expect(decor(enchainee).usable?.actions?.[1].flow, 'l’enchaînement s’écrit entier').toEqual(pas);
     expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow', 'etapes'], [null])), 'un pas que son schéma ne bâtit pas').toBe('horsSorte');
-    const renommee = jouer(ecrite, { geste: 'identifier', action: 'fouiller-2', id: ' coffre ' });
+    const renommee = jouer(ecrite, { geste: 'identifier', element: 'fouiller-2', id: ' coffre ' });
     expect(decor(renommee).usable?.actions?.map((a) => a.id)).toEqual(['fouiller', 'coffre']);
-    expect(jouer(renommee, { geste: 'identifier', action: 'coffre', id: 'fouiller' }), 'un identifiant déjà porté : aucun cran').toBe(renommee);
-    expect(jouer(renommee, { geste: 'identifier', action: 'coffre', id: ' ' }), 'un identifiant vide : aucun cran').toBe(renommee);
+    expect(jouer(renommee, { geste: 'identifier', element: 'coffre', id: 'fouiller' }), 'un identifiant déjà porté : aucun cran').toBe(renommee);
+    expect(jouer(renommee, { geste: 'identifier', element: 'coffre', id: ' ' }), 'un identifiant vide : aucun cran').toBe(renommee);
     const retiree = jouer(renommee, valeur(renommee, ['usable', 'actions'], [decor(renommee).usable!.actions![1]]), valeur(renommee, ['usable', 'actions'], []));
     expect(decor(retiree).usable).toBeUndefined();
   });
@@ -825,10 +899,174 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
   });
 });
 
+describe('les dialogues de la scène éditée, par la table d’écriture de leur sorte (#3606 M3b1b)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const dialogue = (id: string, nodes: Scene['dialogues'][number]['nodes'] = [{ id: 'n1', choices: [] }]) => ({ id, start: { id: nodes[0].id }, nodes });
+  /** Le dialogue `accueil`, ouvert par le PNJ `aubergiste` ; `rumeurs`, par le déclencheur `seuil` ; `libre`, par personne. */
+  const AUBERGE: Scene = {
+    ...emptyScene('auberge', 6, 6),
+    entities: [{ id: 'aubergiste', kind: 'personnage', pos: { x: 2, y: 2 }, creature: { id: 'humain' }, dialogueId: { id: 'accueil' } }],
+    triggers: [{ id: 'seuil', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'rumeurs' } }] as Effect[]) }],
+    dialogues: [dialogue('accueil'), dialogue('rumeurs'), dialogue('libre')],
+  };
+  const choisi = (sorte: 'dialogue' | 'declencheur', id: string) => jouer(ouverteSur(AUBERGE), { geste: 'selectionner', porteur: { sorte, id } });
+
+  it('ajouter crée un dialogue sur un cran et le sélectionne ; une sorte qui ne se crée pas par la table est sans objet', () => {
+    const s = ouverteSur(AUBERGE);
+    const ajoute = jouer(s, { geste: 'ajouter', sorte: 'dialogue' });
+    const neuf = sceneEditee(ajoute).dialogues[sceneEditee(ajoute).dialogues.length - 1];
+    expect([ajoute.sel, sceneEditee(ajoute).dialogues.length, ajoute.historique.passe.length]).toEqual([{ type: 'dialogue', id: neuf.id }, 4, s.historique.passe.length + 1]);
+    expect(jouer(s, { geste: 'ajouter', sorte: 'zone' })).toBe(s);
+  });
+
+  it('sélectionner pose la sélection du porteur ; un porteur absent est sans objet', () => {
+    expect(choisi('dialogue', 'libre').sel).toEqual({ type: 'dialogue', id: 'libre' });
+    const s = ouverteSur(AUBERGE);
+    expect(jouer(s, { geste: 'selectionner', porteur: { sorte: 'dialogue', id: 'absent' } })).toBe(s);
+  });
+
+  it('nommer un dialogue le renomme, propagé au dialogue du PNJ et à « Ouvrir un dialogue », resélectionné ; un nom pris est sans objet', () => {
+    const accueil = jouer(choisi('dialogue', 'accueil'), { geste: 'nommer', nom: ' bienvenue ' });
+    expect([accueil.sel, sceneEditee(accueil).entities[0].dialogueId]).toEqual([{ type: 'dialogue', id: 'bienvenue' }, { id: 'bienvenue' }]);
+    const rumeurs = jouer(choisi('dialogue', 'rumeurs'), { geste: 'nommer', nom: 'ragots' });
+    expect([rumeurs.sel, JSON.stringify(sceneEditee(rumeurs).triggers[0].flow).includes('"ragots"')]).toEqual([{ type: 'dialogue', id: 'ragots' }, true]);
+    const pris = choisi('dialogue', 'rumeurs');
+    expect(jouer(pris, { geste: 'nommer', nom: 'libre' })).toBe(pris);
+  });
+
+  it('supprimer un dialogue référencé est sans objet, et son refus se dit ; un dialogue libre se retire sur un cran, annulable', () => {
+    for (const id of ['accueil', 'rumeurs']) {
+      const s = choisi('dialogue', id);
+      expect(jouer(s, { geste: 'supprimer' }), id).toBe(s);
+      expect(refusDeRetrait(s), id).toContain(`« ${id} »`);
+    }
+    const s = choisi('dialogue', 'libre');
+    expect(refusDeRetrait(s)).toBeNull();
+    const retire = jouer(s, { geste: 'supprimer' });
+    expect([retire.sel, sceneEditee(retire).dialogues.map((d) => d.id), retire.historique.passe.length]).toEqual([null, ['accueil', 'rumeurs'], s.historique.passe.length + 1]);
+    expect(sceneEditee(jouer(retire, { geste: 'annuler' })).dialogues.map((d) => d.id)).toEqual(['accueil', 'rumeurs', 'libre']);
+  });
+
+  it('identifier un nœud du dialogue sélectionné le renomme, propagé au départ et à chaque suite ; un nom pris est sans objet', () => {
+    const scene = { ...AUBERGE, dialogues: [dialogue('libre', [{ id: 'n1', choices: [{ id: 'c1', label: 'Et ?', next: { id: 'n2' } }] }, { id: 'n2', choices: [{ id: 'c2', label: 'Encore', next: { id: 'n2' } }] }])] };
+    const s = jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'dialogue', id: 'libre' } });
+    const suite = sceneEditee(jouer(s, { geste: 'identifier', element: 'n2', id: ' suite ' })).dialogues[0];
+    expect([suite.nodes.map((n) => n.id), suite.nodes.map((n) => n.choices[0].next?.id)]).toEqual([['n1', 'suite'], ['suite', 'suite']]);
+    expect(sceneEditee(jouer(s, { geste: 'identifier', element: 'n1', id: 'tete' })).dialogues[0].start).toEqual({ id: 'tete' });
+    expect(jouer(s, { geste: 'identifier', element: 'n1', id: 'n2' })).toBe(s);
+  });
+
+  it('le déclencheur se renomme et se retire par la table de sa sorte, comme avant elle', () => {
+    const renomme = jouer(choisi('declencheur', 'seuil'), { geste: 'nommer', nom: ' porte ' });
+    expect([renomme.sel, sceneEditee(renomme).triggers.map((t) => t.id)]).toEqual([{ type: 'trigger', id: 'porte' }, ['porte']]);
+    const s = choisi('declencheur', 'seuil');
+    expect(refusDeRetrait(s)).toBeNull();
+    const retire = jouer(s, { geste: 'supprimer' });
+    expect([retire.sel, sceneEditee(retire).triggers]).toEqual([null, []]);
+  });
+
+  it('un avertissement d’un dialogue sélectionne ce dialogue', () => {
+    const casse = { ...AUBERGE, dialogues: [...AUBERGE.dialogues, { id: 'casse', start: { id: 'absent' }, nodes: [{ id: 'n1', choices: [] }] }] };
+    const s = ouverteSur(casse);
+    const rang = avertissementsDeLaSession(s).findIndex((w) => w.scope === 'dialogue' && w.refId === 'casse');
+    expect(rang).toBeGreaterThanOrEqual(0);
+    expect(jouer(s, { geste: 'avertissement', rang }).sel).toEqual({ type: 'dialogue', id: 'casse' });
+  });
+});
+
+describe('les rencontres de la scène éditée, par la table d’écriture de leur sorte (#3606 M4b)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const personnage = (id: string): Scene['entities'][number] => ({ id, kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' } });
+  /** `enc-bois`, lancée par le déclencheur `lisiere` et l'embuscade de la route `route-bois` ; `enc-pont`, par la
+   *  poursuite du déclencheur `pont` ; `enc-libre`, par personne. Dans `enc-bois`, `cavalier` chevauche `cheval`. */
+  const CLAIRIERE: Scene = {
+    ...emptyScene('clairiere', 6, 6),
+    entities: ['cavalier', 'cheval', 'archer', 'badaud'].map(personnage),
+    triggers: [
+      { id: 'lisiere', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startCombat', encounter: { id: 'enc-bois' } }] as Effect[]) },
+      { id: 'pont', rect: { x: 1, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'humain' } }], encounter: { id: 'enc-pont' } }] as Effect[]) },
+    ],
+    encounters: [
+      { id: 'enc-bois', members: [{ entityId: 'cavalier', ridesEntityId: { id: 'cheval' } }, { entityId: 'cheval', mount: true }, { entityId: 'archer' }] },
+      { id: 'enc-pont', members: [] },
+      { id: 'enc-libre', members: [] },
+    ],
+  };
+  const CARTE = {
+    ...emptyWorldMap('carte'),
+    routes: [{ id: 'route-bois', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'], ambush: { scene: { id: 'clairiere' }, encounter: 'enc-bois' } }],
+  } satisfies WorldMap;
+  const ouverteSurLaCarte = (worldMap: WorldMap) => ouvrirLEdition({ scenes: [CLAIRIERE], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const choisie = (id: string, worldMap: WorldMap = CARTE) => jouer(ouverteSurLaCarte(worldMap), { geste: 'selectionner', porteur: { sorte: 'rencontre', id } });
+  const ids = (s: SessionDEdition) => sceneEditee(s).encounters.map((e) => e.id);
+
+  it('ajouter crée une rencontre sans membre sur un cran et la sélectionne', () => {
+    const s = ouverteSurLaCarte(CARTE);
+    const ajoute = jouer(s, { geste: 'ajouter', sorte: 'rencontre' });
+    const neuve = sceneEditee(ajoute).encounters[3];
+    expect([ajoute.sel, neuve.members, ajoute.historique.passe.length]).toEqual([{ type: 'encounter', id: neuve.id }, [], s.historique.passe.length + 1]);
+  });
+
+  it('nommer une rencontre la renomme, propagé à « Démarrer un combat » et à la poursuite, resélectionnée ; un nom pris est sans objet', () => {
+    const bois = jouer(choisie('enc-bois', emptyWorldMap('carte')), { geste: 'nommer', nom: ' enc-foret ' });
+    expect([bois.sel, ids(bois), JSON.stringify(sceneEditee(bois).triggers[0].flow).includes('"enc-foret"')]).toEqual([{ type: 'encounter', id: 'enc-foret' }, ['enc-foret', 'enc-pont', 'enc-libre'], true]);
+    const pont = jouer(choisie('enc-pont'), { geste: 'nommer', nom: 'enc-gue' });
+    expect(JSON.stringify(sceneEditee(pont).triggers[1].flow).includes('"enc-gue"')).toBe(true);
+    expect(validateScene([sceneEditee(pont)]).filter((w) => w.level === 'error' && w.message.includes('catalogue des rencontres'))).toEqual([]);
+    const pris = choisie('enc-pont');
+    expect(jouer(pris, { geste: 'nommer', nom: 'enc-libre' })).toBe(pris);
+  });
+
+  it('nommer une rencontre qu’une embuscade de route du projet lance la renomme à l’embuscade de chaque route qui vise sa scène, sur un cran ; son retrait reste refusé, la route dite (#3606)', () => {
+    const ailleurs = { id: 'route-ailleurs', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'], ambush: { scene: { id: 'autre' }, encounter: 'enc-bois' } } satisfies WorldMap['routes'][number];
+    const s = choisie('enc-bois', { ...CARTE, routes: [...CARTE.routes, ailleurs] });
+    const renomme = jouer(s, { geste: 'nommer', nom: ' enc-foret ' });
+    expect([renomme.sel, ids(renomme), renomme.historique.passe.length]).toEqual([{ type: 'encounter', id: 'enc-foret' }, ['enc-foret', 'enc-pont', 'enc-libre'], s.historique.passe.length + 1]);
+    expect(projetEdite(renomme).worldMap!.routes.map((r) => [r.id, r.ambush?.encounter])).toEqual([['route-bois', 'enc-foret'], ['route-ailleurs', 'enc-bois']]);
+    expect(projetEdite(jouer(renomme, { geste: 'annuler' })).worldMap!.routes[0].ambush?.encounter).toBe('enc-bois');
+    expect(refusDeRetrait(renomme)).toBe('La rencontre « enc-foret » est l’embuscade de la route « route-bois » de la carte du monde.');
+    expect(jouer(renomme, { geste: 'supprimer' })).toBe(renomme);
+  });
+
+  it('supprimer une rencontre qu’un effet de la scène lance est sans objet, et son refus se dit ; une rencontre libre se retire sur un cran', () => {
+    const s = choisie('enc-pont');
+    expect(jouer(s, { geste: 'supprimer' })).toBe(s);
+    expect(refusDeRetrait(s)).toContain('« enc-pont »');
+    const libre = choisie('enc-libre');
+    expect(refusDeRetrait(libre)).toBeNull();
+    const retire = jouer(libre, { geste: 'supprimer' });
+    expect([retire.sel, ids(retire), retire.historique.passe.length]).toEqual([null, ['enc-bois', 'enc-pont'], libre.historique.passe.length + 1]);
+  });
+
+  it('la cible de la victoire s’écrit parmi les membres, la monture chevauchée parmi les montures ; la liste des membres ne s’écrit pas entière (#3606)', () => {
+    const s = choisie('enc-bois');
+    const valeur = (chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'rencontre', id: 'enc-bois' }, chemin, ...(v === undefined ? {} : { valeur: v }) });
+    const offerts = (chemin: Segment[]) => choixDuChamp('rencontre', sceneEditee(s).encounters[0], chemin, cadreDeLaSession(s))?.map((c) => c.valeur);
+    expect(offerts(['victoryCondition', 'targetId'])).toEqual([{ id: 'cavalier' }, { id: 'cheval' }, { id: 'archer' }]);
+    expect(offerts(['members', 2, 'ridesEntityId'])).toEqual([{ id: 'cheval' }]);
+    const seuil = jouer(s, valeur(['victoryCondition'], { type: 'woundsThreshold', atOrBelowPercent: 50 }), valeur(['victoryCondition', 'targetId'], { id: 'archer' }));
+    expect(sceneEditee(seuil).encounters[0].victoryCondition).toEqual({ type: 'woundsThreshold', targetId: { id: 'archer' }, atOrBelowPercent: 50 });
+    expect(refusDeLaValeur(seuil, valeur(['victoryCondition', 'targetId'], { id: 'badaud' })), 'un personnage hors de la rencontre').toBe('horsSorte');
+    expect(sceneEditee(jouer(s, valeur(['members', 2, 'ridesEntityId'], { id: 'cheval' }))).encounters[0].members![2]).toEqual({ entityId: 'archer', ridesEntityId: { id: 'cheval' } });
+    const membres = sceneEditee(s).encounters[0].members!;
+    expect(refusDeLaValeur(s, valeur(['members'], [...membres, { entityId: 'badaud' }])), 'enrôler passe par `addMember`').toBe('nonOffert');
+    expect(refusDeLaValeur(s, valeur(['members'], [])), 'retirer passe par `removeMember`').toBe('nonOffert');
+    expect(refusDeLaValeur(s, valeur(['members', 0, 'entityId'], 'badaud'))).toBe('nonOffert');
+  });
+
+  it('un avertissement d’une rencontre sélectionne cette rencontre', () => {
+    const casse = { ...CLAIRIERE, encounters: [...CLAIRIERE.encounters, { id: 'enc-casse', members: [{ entityId: 'fantome' }] }] };
+    const s = ouverteSur(casse);
+    const rang = avertissementsDeLaSession(s).findIndex((w) => w.scope === 'encounter' && w.refId === 'enc-casse');
+    expect(rang).toBeGreaterThanOrEqual(0);
+    expect(jouer(s, { geste: 'avertissement', rang }).sel).toEqual({ type: 'encounter', id: 'enc-casse' });
+  });
+});
+
 describe('la validation de la session ne se refait que quand le projet change (#3993)', () => {
   it('deux sessions au même projet rendent les mêmes avertissements ; une scène écrite ou un dataset re-daté les refait, au contenu de `validateScene`', () => {
     const projet = { scenes: [{ ...emptyScene('valide', 4, 4), walls: [{ x: 1, y: 1, side: 'N' }] }], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
-    const direct = (s: SessionDEdition) => validateScene([sceneEditee(s)], undefined, NARRATIF_VIDE).filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
+    const direct = (s: SessionDEdition) => validateScene([sceneEditee(s)], undefined, NARRATIF_VIDE).filter((w) => w.sceneId === idDeLaSceneEditee(s) || w.scope === 'worldMap');
     const a = avertissementsDeLaSession(ouvrirLEdition(projet, false));
     expect(a.length, 'le mur en impasse est averti').toBeGreaterThan(0);
     const b = avertissementsDeLaSession(ouvrirLEdition(projet, false));
@@ -844,5 +1082,381 @@ describe('la validation de la session ne se refait que quand le projet change (#
     const d = avertissementsDeLaSession(ecrite);
     expect(d[0]).not.toBe(c[0]);
     expect(d).toEqual(c);
+  });
+});
+
+describe('l’historique de l’éditeur tient le projet et sa scène montrée (#3606)', () => {
+  const projet = { scenes: [emptyScene('a', 4, 4), emptyScene('b', 4, 4)], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const vers = (id: string): GesteDEdition => ({ geste: 'scenes', quoi: 'aller', id });
+  const couches = (s: SessionDEdition, id: string) => projetEdite(s).scenes.find((sc) => sc.id === id)!.layers.map((l) => l.z);
+  const ANNULER: GesteDEdition = { geste: 'annuler' };
+  const RETABLIR: GesteDEdition = { geste: 'retablir' };
+  const COUCHE: GesteDEdition = { geste: 'ajouterCouche' };
+
+  it('écrire dans A, aller en B sans cran, écrire, annuler deux fois rend le projet d’origine, chaque cran montrant sa scène ; rétablir aussi', () => {
+    const ouv = ouvrirLEdition(projet, false);
+    const enB = jouer(ouv, COUCHE, vers('b'));
+    expect([enB.historique.passe.length, idDeLaSceneEditee(enB), enB.z], 'aller est une navigation').toEqual([1, 'b', 0]);
+    const ecrite = jouer(enB, COUCHE, { geste: 'outil', outil: { mode: 'terrain', terrain: 'pierre' } });
+    const une = jouer(ecrite, ANNULER);
+    expect([idDeLaSceneEditee(une), couches(une, 'a'), couches(une, 'b')]).toEqual(['b', [0, 1], [0]]);
+    const deux = jouer(une, ANNULER);
+    expect([idDeLaSceneEditee(deux), deux.z, deux.outil], 'une autre scène montrée remet à zéro').toEqual(['a', 0, { mode: 'selection' }]);
+    expect(projetEdite(deux)).toBe(projetEdite(ouv));
+    const r1 = jouer(deux, RETABLIR);
+    expect([idDeLaSceneEditee(r1), couches(r1, 'a'), couches(r1, 'b')]).toEqual(['a', [0, 1], [0]]);
+    const r2 = jouer(r1, RETABLIR);
+    expect(idDeLaSceneEditee(r2)).toBe('b');
+    expect(projetEdite(r2)).toBe(projetEdite(ecrite));
+  });
+
+  it('annuler depuis A un cran posé sur B montre B ; rétablir aussi', () => {
+    const depuisA = jouer(ouvrirLEdition(projet, false), vers('b'), COUCHE, vers('a'));
+    const annule = jouer(depuisA, ANNULER);
+    expect([idDeLaSceneEditee(annule), couches(annule, 'b')]).toEqual(['b', [0]]);
+    const retabli = jouer(jouer(annule, vers('a')), RETABLIR);
+    expect([idDeLaSceneEditee(retabli), couches(retabli, 'b')]).toEqual(['b', [0, 1]]);
+  });
+
+  it('ajouter, dupliquer et retirer une scène posent un cran ; annulés, la scène montrée est au projet', () => {
+    const ouv = ouvrirLEdition(projet, false);
+    const ids = (s: SessionDEdition) => projetEdite(s).scenes.map((sc) => sc.id);
+    for (const quoi of ['ajouter', 'dupliquer'] as const) {
+      const neuve = jouer(ouv, { geste: 'scenes', quoi });
+      expect([neuve.historique.passe.length, idDeLaSceneEditee(neuve)]).toEqual([1, 'scene-0']);
+      const annule = jouer(neuve, ANNULER);
+      expect([idDeLaSceneEditee(annule), projetEdite(annule)], `annuler ${quoi} pendant qu’on édite la scène neuve`).toEqual(['a', projetEdite(ouv)]);
+      expect(idDeLaSceneEditee(jouer(annule, RETABLIR))).toBe('scene-0');
+    }
+    const retiree = jouer(ouv, { geste: 'scenes', quoi: 'retirer' });
+    expect([ids(retiree), idDeLaSceneEditee(retiree)]).toEqual([['b'], 'b']);
+    const ressuscitee = jouer(retiree, ANNULER);
+    expect([idDeLaSceneEditee(ressuscitee), projetEdite(ressuscitee)]).toEqual(['a', projetEdite(ouv)]);
+    expect(idDeLaSceneEditee(jouer(ressuscitee, RETABLIR)), 'rétablir le retrait montre la scène qui reste').toBe('b');
+    expect(idDeLaSceneEditee(jouer(ouv, { geste: 'scenes', quoi: 'ajouter' }, { geste: 'scenes', quoi: 'retirer' }, { geste: 'scenes', quoi: 'ajouter' })), 'un id neuf ne reprend aucun id d’un cran').toBe('scene-1');
+  });
+
+  it('l’enregistrement voit une écriture faite sur une scène quittée', () => {
+    const enCours = jouer(ouvrirLEdition(projet, true), COUCHE, vers('b'), { geste: 'enregistrer' });
+    expect(enCours.depot!.enCours!.scenes.find((sc) => sc.id === 'a')!.layers.map((l) => l.z)).toEqual([0, 1]);
+  });
+
+  it('renommer la scène réécrit chaque cran, sa scène montrée comprise ; un id d’un cran se refuse', () => {
+    const renommee = jouer(ouvrirLEdition(projet, false), vers('b'), COUCHE, vers('a'), { geste: 'identifier', id: 'aa' });
+    expect(projetEdite(renommee).scenes.map((sc) => sc.id)).toEqual(['aa', 'b']);
+    const annule = jouer(renommee, ANNULER);
+    expect([idDeLaSceneEditee(annule), projetEdite(annule).scenes.map((sc) => sc.id)]).toEqual(['b', ['aa', 'b']]);
+    const sansB = jouer(ouvrirLEdition(projet, false), { geste: 'scenes', quoi: 'retirer' }, vers('b'));
+    expect(jouer(sansB, { geste: 'identifier', id: 'a' }), 'a vit dans un cran passé').toBe(sansB);
+  });
+
+  it('renommée, la scène qu’un cran passé ou futur montrait revient sous son nouvel id', () => {
+    const passee = jouer(ouvrirLEdition(projet, false), COUCHE, { geste: 'identifier', id: 'aa' }, ANNULER);
+    expect([idDeLaSceneEditee(passee), sceneEditee(passee).id, couches(passee, 'aa')], 'annuler').toEqual(['aa', 'aa', [0]]);
+    const future = jouer(ouvrirLEdition(projet, false), COUCHE, ANNULER, { geste: 'identifier', id: 'aa' }, RETABLIR);
+    expect([idDeLaSceneEditee(future), sceneEditee(future).id, couches(future, 'aa')], 'rétablir').toEqual(['aa', 'aa', [0, 1]]);
+  });
+
+  it('les calques d’une scène retirée ressuscitent avec elle ; l’enregistrement réussi les oublie', () => {
+    const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
+    expect(calqueDeLaCouche(calee)).toBeDefined();
+    const retiree = jouer(calee, { geste: 'scenes', quoi: 'retirer' });
+    expect(calqueDeLaCouche(jouer(retiree, ANNULER)), 'annuler le retrait rend le calque').toBe(calqueDeLaCouche(calee));
+    const enregistree = jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: true });
+    expect(Object.keys(enregistree.calques)).toEqual([]);
+    expect(Object.keys(jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: false }).calques)).toEqual(['a']);
+  });
+});
+
+describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses routes par la table d’écriture de leur sorte (#3606 M5)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const BOURG: Scene = { ...emptyScene('bourg', 6, 6), entryPoints: { porte: { x: 0, y: 0 }, quai: { x: 1, y: 0 } }, encounters: [{ id: 'enc-a', members: [] }, { id: 'enc-b', members: [] }] };
+  const VAL: Scene = emptyScene('val', 6, 6);
+  const ouvert = (worldMap?: WorldMap) => ouvrirLEdition({ scenes: [BOURG, VAL], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const valeur = (sorte: SorteDePorteur, id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> =>
+    ({ geste: 'valeur', porteur: { sorte, id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
+  const carte = (s: SessionDEdition) => projetEdite(s).worldMap!;
+  /** `x` et `y`, reliés par `r`, à pied et en diligence, le billet de diligence vendu depuis `x`. */
+  const RELIEE: WorldMap = {
+    ...emptyWorldMap('monde'),
+    places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 'bourg' } }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 'val' } }],
+    routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 12, modes: ['pied', 'diligence'], billets: { diligence: { prix: {}, depuis: { id: 'x' } } } }],
+  };
+
+  it('ouvrir la carte d’un projet qui n’en a pas la crée vide sur un cran, son singulier édité sans sélection ; annuler la retire et rend la scène ; rouvrir le document ouvert est sans objet', () => {
+    const s = ouvert();
+    const sur = jouer(s, { geste: 'document', document: 'carte' });
+    expect([sur.document, carte(sur), sur.historique.passe.length, porteurDeLaSel(sur.sel, sur.document, idDeLaSceneEditee(sur))])
+      .toEqual(['carte', emptyWorldMap('carte-0'), s.historique.passe.length + 1, { sorte: 'carte', id: 'carte' }]);
+    expect(jouer(sur, { geste: 'document', document: 'carte' })).toBe(sur);
+    const annule = jouer(sur, { geste: 'annuler' });
+    expect([annule.document, projetEdite(annule).worldMap]).toEqual(['scene', undefined]);
+  });
+
+  it('ouvrir la carte d’un projet qui en a une, puis revenir à la scène, navigue sans cran et remet la session à zéro', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'absent' } }, { geste: 'outil', outil: { mode: 'gomme' } });
+    const sur = jouer(s, { geste: 'document', document: 'carte' });
+    expect([sur.document, sur.historique, sur.outil, sur.sel]).toEqual(['carte', s.historique, { mode: 'selection' }, null]);
+    const retour = jouer(sur, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } }, { geste: 'document', document: 'scene' });
+    expect([retour.document, retour.sel, retour.historique, porteurDeLaSel(retour.sel, retour.document, idDeLaSceneEditee(retour))]).toEqual(['scene', null, s.historique, { sorte: 'scene', id: 'bourg' }]);
+  });
+
+  it('la carte écrit son libellé, son fond et ses réglages, sur un cran ; sa liste de lieux ne s’écrit pas par elle', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
+    const ecrite = jouer(s, valeur('carte', 'carte', ['label'], 'Le Reikland'), valeur('carte', 'carte', ['background'], 'cartes/reikland.png'), valeur('carte', 'carte', ['params'], {}), valeur('carte', 'carte', ['params', 'hoursPerDay'], 8));
+    expect([carte(ecrite).label, carte(ecrite).background, carte(ecrite).params, ecrite.historique.passe.length]).toEqual(['Le Reikland', 'cartes/reikland.png', { hoursPerDay: 8 }, s.historique.passe.length + 4]);
+    expect(refusDeLaValeur(s, valeur('carte', 'carte', ['places'], []))).toBe('nonOffert');
+  });
+
+  it('ajouter un lieu le pose au centre des bornes, décalé s’il en chevauche un, sous un identifiant frais, sélectionné sur un cran ; sa position ne s’écrit pas au formulaire', () => {
+    const s = jouer(ouvert(), { geste: 'document', document: 'carte' });
+    const un = jouer(s, { geste: 'ajouter', sorte: 'lieu' });
+    const deux = jouer(un, { geste: 'ajouter', sorte: 'lieu' });
+    expect([deux.sel, carte(deux).places.map((p) => [p.id, p.pos, p.scene.id]), deux.historique.passe.length])
+      .toEqual([{ type: 'place', id: 'lieu-1' }, [['lieu-0', { x: 50, y: 50 }, 'bourg'], ['lieu-1', { x: 58, y: 50 }, 'bourg']], s.historique.passe.length + 2]);
+    expect([refusDeLaValeur(deux, valeur('lieu', 'lieu-1', ['pos'], { x: 10, y: 10 })), refusDeLaValeur(deux, valeur('lieu', 'lieu-1', ['id'], 'autre'))]).toEqual(['nonOffert', 'nonOffert']);
+    expect(carte(jouer(deux, { geste: 'annuler' })).places.map((p) => p.id)).toEqual(['lieu-0']);
+  });
+
+  it('un lieu écrit son libellé, son port neuf et ses services ; son entrée parmi celles de sa scène ; chaque écriture s’annule', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    const ecrit = jouer(s,
+      valeur('lieu', 'x', ['label'], 'Ubersreik'),
+      valeur('lieu', 'x', ['port'], portNeuf()),
+      valeur('lieu', 'x', ['services'], [{ kind: { id: 'auberge' } }]),
+      valeur('lieu', 'x', ['entry'], 'quai'));
+    expect(carte(ecrit).places[0]).toEqual({ ...RELIEE.places[0], label: 'Ubersreik', port: portNeuf(), services: [{ kind: { id: 'auberge' } }], entry: 'quai' });
+    expect(choixDuChamp('lieu', carte(s).places[0], ['entry'], cadreDeLaSession(s))?.map((c) => c.valeur)).toEqual(['porte', 'quai']);
+    const ports = choixDuChamp('lieu', carte(s).places[0], ['port'], cadreDeLaSession(s));
+    expect([ports?.map((c) => c.valeur), choixDuChamp('lieu', carte(ecrit).places[0], ['port'], cadreDeLaSession(ecrit))]).toEqual([[portNeuf(), ...navalPorts.map((p) => resolvePortRef({ ref: p.id }))], undefined]);
+    const duCatalogue = resolvePortRef({ ref: navalPorts[0].id });
+    expect(carte(jouer(s, valeur('lieu', 'x', ['port'], duCatalogue))).places[0].port, 'un port du catalogue se pose avec son profil').toEqual(duCatalogue);
+    expect(refusDeLaValeur(s, valeur('lieu', 'x', ['entry'], 'nulle-part'))).toBe('horsSorte');
+    expect(jouer(s, { geste: 'nommer', nom: 'z' }), 'un lieu ne se renomme pas : aucun écrivain ne propage son identifiant').toBe(s);
+    const annule = jouer(ecrit, { geste: 'annuler' }, { geste: 'annuler' }, { geste: 'annuler' }, { geste: 'annuler' });
+    expect(carte(annule)).toEqual(RELIEE);
+  });
+
+  it('relier deux lieux pose une route depuis le lieu sélectionné vers l’un de ceux qu’il rejoint, sélectionnée sur un cran ; sans lieu offert, c’est sans objet', () => {
+    const s = jouer(ouvert(), { geste: 'document', document: 'carte' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
+    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(s), idDeLaSceneEditee(s), s.sel)).toEqual(['lieu-1']);
+    expect(jouer(s, { geste: 'ajouter', sorte: 'route' }), 'sans l’autre lieu').toBe(s);
+    expect(jouer(s, { geste: 'ajouter', sorte: 'route', avec: 'lieu-0' }), 'une boucle').toBe(s);
+    const reliee = jouer(s, { geste: 'ajouter', sorte: 'route', avec: 'lieu-1' });
+    expect([reliee.sel, carte(reliee).routes, reliee.historique.passe.length]).toEqual([{ type: 'route', id: 'trajet-0' }, [{ id: 'trajet-0', a: { id: 'lieu-0' }, b: { id: 'lieu-1' }, km: 10, modes: ['pied'] }], s.historique.passe.length + 1]);
+    const depuis = jouer(reliee, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
+    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(depuis), idDeLaSceneEditee(depuis), depuis.sel), 'la paire est reliée dans les deux sens').toEqual([]);
+    expect(carte(jouer(reliee, { geste: 'annuler' })).routes).toEqual([]);
+  });
+
+  it('une route écrit sa distance et gagne une péripétie neuve ; remplacer le mode qui porte un billet est refusé, dit ; ses modes vidés retombent à pied', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    expect(carte(jouer(s, valeur('route', 'r', ['km'], 25))).routes[0].km).toBe(25);
+    expect(carte(jouer(s, valeur('route', 'r', ['perils'], [peripetieNeuve()]))).routes[0].perils).toEqual([peripetieNeuve()]);
+    const remplace = valeur('route', 'r', ['modes'], ['pied', 'monture']);
+    expect(refusDeLaValeur(s, remplace)).toEqual({ regle: 'La route « r » garde ses modes : un billet y est posé sur le mode que vous retirez. Retirez d’abord le billet.' });
+    expect(jouer(s, remplace)).toBe(s);
+    const libre = jouer(s, valeur('route', 'r', ['billets']), valeur('route', 'r', ['modes'], []));
+    expect([carte(libre).routes[0].billets, carte(libre).routes[0].modes]).toEqual([undefined, ['pied']]);
+  });
+
+  it('le départ d’un billet ne s’offre qu’aux extrémités de sa route à double sens, chacune à son nom : un autre lieu de la carte est refusé', () => {
+    const TROIS: WorldMap = { ...RELIEE, places: [...RELIEE.places, { id: 'z', label: 'Z', pos: { x: 80, y: 80 }, scene: { id: 'val' } }] };
+    const s = jouer(ouvert(TROIS), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    const choix = (chemin: Segment[]) => choixDuChamp('route', carte(s).routes[0], chemin, cadreDeLaSession(s))?.map((c) => [c.valeur, c.libelle]);
+    expect([choix(['billets', 'diligence', 'depuis']), choix(['billets', 'diligence', 'depuis', 'id'])]).toEqual([[[{ id: 'x' }, 'X'], [{ id: 'y' }, 'Y']], [['x', 'X'], ['y', 'Y']]]);
+    expect(refusDeLaValeur(s, valeur('route', 'r', ['billets', 'diligence', 'depuis'], { id: 'z' }))).toBe('horsSorte');
+    expect(carte(jouer(s, valeur('route', 'r', ['billets', 'diligence', 'depuis'], { id: 'y' }))).routes[0].billets?.diligence?.depuis).toEqual({ id: 'y' });
+  });
+
+  it('l’embuscade d’une route prend sa scène, puis sa rencontre parmi celles de cette scène ; la rencontre ne se retire plus tant que l’embuscade la lance', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    const scene = jouer(s, valeur('route', 'r', ['ambush'], { scene: { id: '' }, encounter: '' }), valeur('route', 'r', ['ambush', 'scene'], { id: 'bourg' }));
+    expect(choixDuChamp('route', carte(scene).routes[0], ['ambush', 'encounter'], cadreDeLaSession(scene))?.map((c) => c.valeur)).toEqual(['enc-a', 'enc-b']);
+    expect(choixDuChamp('route', carte(scene).routes[0], ['ambush', 'entry'], cadreDeLaSession(scene))?.map((c) => c.valeur)).toEqual(['porte', 'quai']);
+    const rencontre = jouer(scene, valeur('route', 'r', ['ambush', 'encounter'], 'enc-b'));
+    expect(carte(rencontre).routes[0].ambush).toEqual({ scene: { id: 'bourg' }, encounter: 'enc-b' });
+    expect(refusDeLaValeur(scene, valeur('route', 'r', ['ambush', 'encounter'], 'enc-ailleurs'))).toBe('horsSorte');
+    const visee = jouer(rencontre, { geste: 'document', document: 'scene' }, { geste: 'selectionner', porteur: { sorte: 'rencontre', id: 'enc-b' } });
+    expect(refusDeRetrait(visee)).toBe('La rencontre « enc-b » est l’embuscade de la route « r » de la carte du monde.');
+  });
+
+  it('supprimer un lieu retire ses routes avec lui, sur un cran ; annuler les rend', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    const retire = jouer(s, { geste: 'supprimer' });
+    expect([retire.sel, carte(retire).places.map((p) => p.id), carte(retire).routes, retire.historique.passe.length]).toEqual([null, ['y'], [], s.historique.passe.length + 1]);
+    expect(carte(jouer(retire, { geste: 'annuler' }))).toEqual(RELIEE);
+    const route = jouer(s, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } }, { geste: 'supprimer' });
+    expect([carte(route).places.length, carte(route).routes]).toEqual([2, []]);
+  });
+
+  it('un avertissement d’un lieu de la carte ouvre la carte et sélectionne ce lieu', () => {
+    const casse: WorldMap = { ...RELIEE, places: [{ ...RELIEE.places[0], scene: { id: 'absente' } }, RELIEE.places[1]] };
+    const s = ouvert(casse);
+    const rang = avertissementsDeLaSession(s).findIndex((w) => w.scope === 'worldMap' && w.refId === 'x');
+    expect(rang).toBeGreaterThanOrEqual(0);
+    const vu = jouer(s, { geste: 'avertissement', rang });
+    expect([vu.document, vu.sel]).toEqual(['carte', { type: 'place', id: 'x' }]);
+  });
+
+  /** Le point `(x, y)` du plan de la carte, en unités de la position d'un lieu, sa case la partie entière. */
+  const pt = (x: number, y: number) => ({ case: { x: Math.floor(x), y: Math.floor(y) }, f: { x, y } });
+  /** `x` et `y`, sans route. */
+  const DEUX_LIEUX: WorldMap = { ...RELIEE, routes: [] };
+  const lieuxDe = (s: SessionDEdition) => carte(s).places.map((p) => [p.id, p.pos]);
+
+  it('à la sélection, l’appui sur un lieu le sélectionne, son glissé le pose au point, borné, sur un seul cran ; un clic sans glissé n’écrit rien ; l’appui sur une route la sélectionne, sur le fond plus rien', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
+    const clic = jouer(s, { geste: 'appui', point: pt(20.5, 20.5) }, { geste: 'relache', point: pt(20.5, 20.5) });
+    expect([clic.sel, clic.historique]).toEqual([{ type: 'place', id: 'x' }, s.historique]);
+    const glisse = jouer(s, { geste: 'appui', point: pt(20.5, 20.5) }, { geste: 'glisse', point: pt(30.4, 25) });
+    expect([lieuxDe(glisse), glisse.historique.passe.length]).toEqual([[['x', { x: 30, y: 25 }], ['y', { x: 60, y: 20 }]], s.historique.passe.length + 1]);
+    const loin = jouer(glisse, { geste: 'glisse', point: pt(150, -5) }, { geste: 'relache', point: pt(150, -5) });
+    expect([lieuxDe(loin)[0], loin.historique.passe.length, loin.geste]).toEqual([['x', { x: 98, y: 4 }], s.historique.passe.length + 1, null]);
+    expect(carte(jouer(loin, { geste: 'annuler' }))).toEqual(RELIEE);
+    expect(jouer(s, { geste: 'appui', point: pt(40, 20.5) }).sel).toEqual({ type: 'route', id: 'r' });
+    expect(jouer(s, { geste: 'appui', point: pt(20, 20) }, { geste: 'relache', point: pt(20, 20) }, { geste: 'appui', point: pt(40, 60) }).sel).toBeNull();
+  });
+
+  it('à l’outil Lieu, l’appui sur le fond pose un lieu neuf au point, lié à la première scène, sélectionné sur un cran ; sur un lieu, il le sélectionne', () => {
+    const s = jouer(ouvert(DEUX_LIEUX), { geste: 'document', document: 'carte' }, { geste: 'outil', outil: { mode: 'lieu' } });
+    const pose = jouer(s, { geste: 'appui', point: pt(70.6, 80.2) });
+    expect([pose.sel, carte(pose).places[2], pose.historique.passe.length]).toEqual([{ type: 'place', id: 'lieu-0' }, { id: 'lieu-0', label: expect.any(String), pos: { x: 71, y: 80 }, scene: { id: 'bourg' } }, s.historique.passe.length + 1]);
+    const sur = jouer(s, { geste: 'appui', point: pt(60, 20) });
+    expect([sur.sel, sur.historique]).toEqual([{ type: 'place', id: 'y' }, s.historique]);
+  });
+
+  it('à l’outil Chemin, une route se tire d’un lieu à un autre : son bout suit le pointeur, le relâché sur l’autre lieu la pose, sélectionnée sur un cran ; relâchée sur le fond, rien', () => {
+    const s = jouer(ouvert(DEUX_LIEUX), { geste: 'document', document: 'carte' }, { geste: 'outil', outil: { mode: 'chemin' } });
+    const tiree = jouer(s, { geste: 'appui', point: pt(20, 20) }, { geste: 'glisse', point: pt(45, 33) });
+    expect([tiree.geste, tiree.historique]).toEqual([{ sorte: 'liaison', depuis: 'x', bout: { x: 45, y: 33 } }, s.historique]);
+    const posee = jouer(tiree, { geste: 'relache', point: pt(60.5, 19.5) });
+    expect([posee.sel, carte(posee).routes, posee.historique.passe.length, posee.geste]).toEqual([{ type: 'route', id: 'trajet-0' }, [{ id: 'trajet-0', a: { id: 'x' }, b: { id: 'y' }, km: 10, modes: ['pied'] }], s.historique.passe.length + 1, null]);
+    const perdue = jouer(tiree, { geste: 'relache', point: pt(40, 60) });
+    expect([perdue.historique, perdue.geste]).toEqual([s.historique, null]);
+  });
+
+  it('sans sélection sur la carte, nommer et identifier sont sans objet : la scène garde son nom et son identifiant ; supprimer retire la carte du projet sur un cran, la scène redevenant ouverte', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
+    expect(jouer(s, { geste: 'nommer', nom: 'Autre' })).toBe(s);
+    expect(jouer(s, { geste: 'identifier', id: 'autre' })).toBe(s);
+    const retiree = jouer(s, { geste: 'supprimer' });
+    expect([retiree.document, projetEdite(retiree).worldMap, retiree.historique.passe.length]).toEqual(['scene', undefined, s.historique.passe.length + 1]);
+    expect(carte(jouer(retiree, { geste: 'annuler' }))).toEqual(RELIEE);
+  });
+
+  it('le sens d’une route s’oriente depuis l’une de ses extrémités ou dans les deux sens, sur un cran, refusé quand une autre route de la paire l’offre déjà', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    const depuisX = jouer(s, { geste: 'sens', depuis: 'x' });
+    expect([carte(depuisX).routes[0].from, depuisX.historique.passe.length, depuisX.sel]).toEqual([{ id: 'x' }, s.historique.passe.length + 1, { type: 'route', id: 'r' }]);
+    expect(jouer(depuisX, { geste: 'sens', depuis: 'x' }), 'déjà dans ce sens').toBe(depuisX);
+    const retour = jouer(depuisX, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'y' } }, { geste: 'ajouter', sorte: 'route', avec: 'x' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    expect(carte(retour).routes[1].from).toEqual({ id: 'y' });
+    expect(jouer(retour, { geste: 'sens', depuis: null }), 'le retour est déjà offert').toBe(retour);
+    expect(jouer(retour, { geste: 'sens', depuis: 'y' })).toBe(retour);
+    expect(carte(jouer(depuisX, { geste: 'sens', depuis: null })).routes[0].from).toBeUndefined();
+  });
+});
+
+describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte du monde (#3606 M5)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const BOURG: Scene = emptyScene('bourg', 6, 6);
+  const ouvert = (worldMap: WorldMap) => ouvrirLEdition({ scenes: [BOURG, emptyScene('val', 6, 6)], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const carte = (s: SessionDEdition) => projetEdite(s).worldMap!;
+  const pt = (x: number, y: number) => ({ case: { x: Math.floor(x), y: Math.floor(y) }, f: { x, y } });
+  /** `x`, au point d'intérêt `forge` (20, 30) de son plan, et `y`, à la position (20, 30) de la carte. */
+  const CARTE: WorldMap = {
+    ...emptyWorldMap('monde'),
+    places: [
+      { id: 'x', label: 'X', pos: { x: 60, y: 60 }, scene: { id: 'bourg' }, poi: [{ id: 'forge', label: 'Forge', pos: { x: 20, y: 30 }, serviceKind: { id: 'forgeron' } }] },
+      { id: 'y', label: 'Y', pos: { x: 20, y: 30 }, scene: { id: 'val' } },
+    ],
+    routes: [],
+  };
+  const surLePlan = (s = ouvert(CARTE)) => jouer(s, { geste: 'document', document: 'carte' }, { geste: 'planDuLieu', lieu: 'x' });
+  const poiDe = (s: SessionDEdition) => carte(s).places[0].poi;
+
+  it('ouvrir le plan d’un lieu le sélectionne, sans cran ; le refermer rend le plan de la carte ; un lieu inconnu, ou la scène ouverte, c’est sans objet', () => {
+    const s = surLePlan();
+    expect([s.sel, s.planDuLieu, planDuLieuOuvert(s)?.lieu.id, s.historique.passe.length]).toEqual([{ type: 'place', id: 'x' }, { poi: null }, 'x', 0]);
+    expect(jouer(s, { geste: 'planDuLieu', lieu: null }).planDuLieu).toBeNull();
+    const surLaCarte = jouer(ouvert(CARTE), { geste: 'document', document: 'carte' });
+    expect(jouer(surLaCarte, { geste: 'planDuLieu', lieu: 'absent' })).toBe(surLaCarte);
+    const surLaScene = ouvert(CARTE);
+    expect(jouer(surLaScene, { geste: 'planDuLieu', lieu: 'x' })).toBe(surLaScene);
+    expect(jouer(s, { geste: 'document', document: 'scene' }).planDuLieu, 'changer de document le ferme').toBeNull();
+  });
+
+  it('le plan ouvert reçoit le pointeur, pas la carte : l’appui y désigne le point d’intérêt touché, son glissé le pose au point, borné, sur un seul cran', () => {
+    const s = surLePlan();
+    const clic = jouer(s, { geste: 'appui', point: pt(20.5, 30.5) }, { geste: 'relache', point: pt(20.5, 30.5) });
+    expect([clic.planDuLieu, clic.sel, clic.historique]).toEqual([{ poi: 'forge' }, { type: 'place', id: 'x' }, s.historique]);
+    const glisse = jouer(s, { geste: 'appui', point: pt(20.5, 30.5) }, { geste: 'glisse', point: pt(44.6, 51) }, { geste: 'glisse', point: pt(130, -4) }, { geste: 'relache', point: pt(130, -4) });
+    expect([poiDe(glisse)?.[0].pos, glisse.historique.passe.length, glisse.geste, carte(glisse).places[1].pos]).toEqual([{ x: 100, y: 0 }, 1, null, { x: 20, y: 30 }]);
+    expect(carte(jouer(glisse, { geste: 'annuler' }))).toEqual(CARTE);
+    expect(jouer(clic, { geste: 'appui', point: pt(70, 70) }).planDuLieu, 'le fond ne désigne aucun point').toEqual({ poi: null });
+  });
+
+  it('à l’outil Épingler, l’appui sur le fond pose un point d’intérêt neuf au point, menant à la première scène dont il prend le nom, désigné sur un cran ; ses champs s’écrivent au formulaire du lieu', () => {
+    const s = jouer(surLePlan(), { geste: 'outil', outil: { mode: 'epingler' } });
+    const pose = jouer(s, { geste: 'appui', point: pt(70.4, 80.6) });
+    expect([poiDe(pose)?.[1], pose.planDuLieu, pose.historique.passe.length]).toEqual([{ id: 'poi-0', label: BOURG.label, pos: { x: 70, y: 81 }, sceneId: { id: 'bourg' } }, { poi: 'poi-0' }, s.historique.passe.length + 1]);
+    const nomme = jouer(pose, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['poi', 1, 'label'], valeur: 'Auberge' });
+    expect(poiDe(nomme)?.[1].label).toBe('Auberge');
+    expect(refusDeLaValeur(pose, { geste: 'valeur', porteur: { sorte: 'lieu', id: 'x' }, chemin: ['poi', 1, 'pos'], valeur: { x: 1, y: 1 } }), 'sa position ne s’écrit qu’au plan').toBe('nonOffert');
+    expect(choixDuChamp('lieu', carte(pose).places[0], ['poi', 1, 'sceneId'], cadreDeLaSession(pose))?.map((c) => c.valeur), 'sa scène parmi celles du projet').toEqual([{ id: 'bourg' }, { id: 'val' }]);
+  });
+
+  it('retirer le point d’intérêt désigné l’ôte du lieu sur un cran, la liste vidée retirée ; sans point désigné, c’est sans objet', () => {
+    const s = surLePlan();
+    expect(jouer(s, { geste: 'retirerPoi' })).toBe(s);
+    const designe = jouer(s, { geste: 'appui', point: pt(20, 30) }, { geste: 'relache', point: pt(20, 30) });
+    const retire = jouer(designe, { geste: 'retirerPoi' });
+    expect([carte(retire).places[0], retire.planDuLieu, retire.historique.passe.length]).toEqual([{ id: 'x', label: 'X', pos: { x: 60, y: 60 }, scene: { id: 'bourg' } }, { poi: null }, 1]);
+    expect(carte(jouer(retire, { geste: 'annuler' }))).toEqual(CARTE);
+  });
+
+  it('le plan ouvert est celui du lieu sélectionné : annuler ou rétablir sur son plan gardent ce lieu sélectionné, son point désigné s’il y est encore ; sélectionner un autre porteur le ferme', () => {
+    const s = jouer(surLePlan(), { geste: 'outil', outil: { mode: 'epingler' } }, { geste: 'appui', point: pt(70, 80) }, { geste: 'relache', point: pt(70, 80) });
+    const annule = jouer(s, { geste: 'annuler' });
+    expect([annule.sel, planDuLieuOuvert(annule)?.lieu.id, planDuLieuOuvert(annule)?.poi, poiDe(annule)]).toEqual([{ type: 'place', id: 'x' }, 'x', null, CARTE.places[0].poi]);
+    const retabli = jouer(annule, { geste: 'retablir' });
+    expect([retabli.sel, planDuLieuOuvert(retabli)?.lieu.id, poiDe(retabli)?.length]).toEqual([{ type: 'place', id: 'x' }, 'x', 2]);
+    const ailleurs = jouer(s, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'y' } }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    expect([planDuLieuOuvert(ailleurs)?.lieu.id, ailleurs.sel], 'le plan suit le lieu sélectionné').toEqual(['x', { type: 'place', id: 'x' }]);
+    const route = jouer(ouvert({ ...CARTE, routes: [{ id: 'r', from: 'x', to: 'y', mode: 'route' }] } as unknown as WorldMap), { geste: 'document', document: 'carte' }, { geste: 'planDuLieu', lieu: 'x' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    expect([route.sel, route.planDuLieu, planDuLieuOuvert(route)], 'une route sélectionnée ferme le plan').toEqual([{ type: 'route', id: 'r' }, null, undefined]);
+    expect(planDuLieuOuvert(jouer(route, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } })), 'resélectionner le lieu ne le rouvre pas').toBeUndefined();
+  });
+
+  it('annuler la pose du lieu dont le plan est ouvert ferme ce plan, la sélection tombée : jamais un plan sans son lieu à l’inspecteur', () => {
+    const pose = jouer(ouvert(CARTE), { geste: 'document', document: 'carte' }, { geste: 'outil', outil: { mode: 'lieu' } }, { geste: 'appui', point: pt(80, 80) }, { geste: 'relache', point: pt(80, 80) });
+    const neuf = carte(pose).places[2]?.id;
+    expect(neuf, 'un lieu neuf est posé').toBeDefined();
+    const plan = jouer(pose, { geste: 'planDuLieu', lieu: neuf! });
+    expect(planDuLieuOuvert(plan)?.lieu.id).toBe(neuf);
+    const annule = jouer(plan, { geste: 'annuler' });
+    expect([annule.sel, annule.planDuLieu, planDuLieuOuvert(annule), carte(annule).places.length]).toEqual([null, null, undefined, 2]);
+  });
+});
+
+describe('les axes actifs du projet, réglés sur l’écran de la carte du monde (#3606 M5, #409)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const axes = (v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'projet', id: 'projet' }, chemin: ['activeAxes'], ...(v === undefined ? {} : { valeur: v }) });
+  const surLaCarte = () => jouer(ouvrirLEdition({ id: 'p', scenes: [emptyScene('bourg', 4, 4)], narratif: NARRATIF_VIDE, worldMap: emptyWorldMap('monde') } as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'carte' });
+
+  it('ils s’écrivent au projet parmi les axes du catalogue, chacun sur un cran, la carte gardée ; un axe hors catalogue est refusé', () => {
+    const s = surLaCarte();
+    const deux = jouer(s, axes(['melee']), axes(['melee', 'tir']));
+    expect([projetEdite(deux).activeAxes, projetEdite(deux).worldMap, deux.historique.passe.length]).toEqual([['melee', 'tir'], projetEdite(s).worldMap, s.historique.passe.length + 2]);
+    expect(refusDeLaValeur(s, axes(['plongee-sous-marine']))).toBe('horsSorte');
+    expect(jouer(deux, axes(['melee', 'tir'])), 'les mêmes axes : rien ne change').toBe(deux);
+  });
+
+  it('vidés, ils sont absents du projet, qui vaut le socle', () => {
+    const vides = jouer(surLaCarte(), axes(['melee']), axes([]));
+    expect(['activeAxes' in projetEdite(vides), vides.historique.passe.length]).toEqual([false, 2]);
+    expect('activeAxes' in projetEdite(jouer(surLaCarte(), axes(['melee']), axes()))).toBe(false);
   });
 });

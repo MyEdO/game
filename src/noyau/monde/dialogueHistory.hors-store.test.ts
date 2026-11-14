@@ -25,7 +25,7 @@ function makeDialogue(): Dialogue {
   return {
     id: 'd-archive', start: { id: 'n1' },
     nodes: [
-      { id: 'n1', speakerId: 'pnj-2', desc: 'Bonjour, voyageur.', choices: [{ id: 'salut', label: 'Salut.', next: { id: 'n2' } }] },
+      { id: 'n1', speakerId: { id: 'pnj-2' }, desc: 'Bonjour, voyageur.', choices: [{ id: 'salut', label: 'Salut.', next: { id: 'n2' } }] },
       { id: 'n2', desc: 'Autre chose ?', choices: [{ id: 'non-merci', label: 'Non merci.' }] },
     ],
   };
@@ -68,7 +68,7 @@ describe('speakerEntity (helper pur)', () => {
   const dialogue = { speakerId: 'pnj-1' };
 
   it('override du nœud prime sur le speaker de session', () => {
-    expect(speakerEntity(entities, { speakerId: 'pnj-2' }, dialogue)?.id).toBe('pnj-2');
+    expect(speakerEntity(entities, { speakerId: { id: 'pnj-2' } }, dialogue)?.id).toBe('pnj-2');
   });
 
   it('sans override, retombe sur le speaker de session', () => {
@@ -80,7 +80,7 @@ describe('speakerEntity (helper pur)', () => {
   });
 
   it('id inconnu de la scène → undefined', () => {
-    expect(speakerEntity(entities, { speakerId: 'fantome' }, dialogue)).toBeUndefined();
+    expect(speakerEntity(entities, { speakerId: { id: 'fantome' } }, dialogue)).toBeUndefined();
   });
 });
 

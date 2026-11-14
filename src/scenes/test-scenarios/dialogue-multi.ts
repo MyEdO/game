@@ -6,7 +6,7 @@ import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * « Dialogue multi-interlocuteurs » (#669) : UN dialogue dont les NŒUDS alternent l'interlocuteur
- * via `DialogueNode.speakerId` (id d'une `SceneEntity` de la scène → SON portrait + SON nom, jamais
+ * via `DialogueNode.speakerId` (`{ id }` d'un personnage de la scène → SON portrait + SON nom, jamais
  * un nom en clair — AGENTS.md, § « Pour TOUT agent »). Ouvert en parlant à Gustav
  * (`dialogueId: { id: 'dlg-tablee' }`) : le nœud d'accueil n'a PAS de `speakerId` → il hérite du locuteur de
  * SESSION posé par `interagirAvecLEntite` (Gustav, l'entité qu'on a cliquée). Les nœuds suivants alternent
@@ -49,13 +49,13 @@ const construireAuberge = (): Scene => buildScene({
         },
         {
           id: 'a2',
-          speakerId: 'isolde',
+          speakerId: { id: 'isolde' },
           desc: '« Je l’ai VU, de mes yeux. Une ombre plus grande qu’une grange, au-dessus de la lisière. Phillipe ne me croit pas. »',
           choices: [{ id: 'vous-phillipe', label: '« Et vous, Phillipe ? »', next: { id: 'a3' } }],
         },
         {
           id: 'a3',
-          speakerId: 'phillipe',
+          speakerId: { id: 'phillipe' },
           desc: 'Il hausse les épaules. « Une ombre de nuage, plutôt. Isolde voit des dragons partout depuis qu’elle a lu ce roman de gare. »',
           choices: [{ id: 'vous-vous-chamaillez', label: '« Vous vous chamaillez souvent ? »', next: { id: 'a4' } }],
         },

@@ -260,7 +260,7 @@ export function testNode(test, reussite = [], echec = []) {
 
 /** Trigger de combat standard (une fois) : entrer dans le rect lance la rencontre. */
 export function fightTrigger(encounter, rect, extra = {}) {
-  return { id: `fight-${encounter}`, rect, once: true, flow: flowOf([{ type: 'startCombat', encounter }]), ...extra };
+  return { id: `fight-${encounter}`, rect, once: true, flow: flowOf([{ type: 'startCombat', encounter: { id: encounter } }]), ...extra };
 }
 
 /** onVictory standard d'une zone de l'échelle : bourse + PX + flag de porte + retour au Bourg.

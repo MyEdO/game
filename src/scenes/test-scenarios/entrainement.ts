@@ -129,7 +129,7 @@ const construireScene = (): Scene => buildScene({
       once: true,
       flow: flowFromEffects([
         { type: 'journal', desc: "Vous entrez dans la lice ; l'instructeur lance l'exercice. En garde !" },
-        { type: 'startCombat', encounter: 'enc-entrainement' },
+        { type: 'startCombat', encounter: { id: 'enc-entrainement' } },
       ]),
     },
   ],

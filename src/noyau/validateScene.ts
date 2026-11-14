@@ -469,7 +469,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       for (const m of e.members ?? []) {
         const membre = entById.get(m.entityId);
         if (!membre) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → membre inexistant « ${m.entityId} »`);
-        if (m.ridesEntityId && !entById.has(m.ridesEntityId)) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → monture inexistante « ${m.ridesEntityId} »`);
         if (!membre) continue;
         // EMPREINTE du combattant (`noyau/monde/footprint`, la même géométrie qu'au spawn) : une Grande 2×2 posée
         // au ras d'un mur déborde sur des cases qui ne l'accueillent pas — le placement se corrige à

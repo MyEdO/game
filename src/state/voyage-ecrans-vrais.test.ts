@@ -19,7 +19,8 @@ import { t } from '../i18n';
 import { activeDayWeather } from '../noyau/combatFlow';
 import { tableStepDef } from '../noyau/cascade';
 import { voyageDayCards } from '../ui/VoyageScreen';
-import { draineCascade } from '../noyau/cascade.testkit';
+import { draineCascade, type PoseDe } from '../noyau/cascade.testkit';
+import { PERIPETIES } from '../data/peripeties';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -72,6 +73,12 @@ function poseMeteo(id: string): void {
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
 }
 
+/** La route tend son embuscade (`ambush`) dans la scène de départ, sur « Attaqués ! » (table d10). */
+const embuscadeDeRoute: Partial<MapRouteTrace> = { perilDie: 8, ambush: { scene: { id: 'scene-depart' }, encounter: 'enc-brigands' } };
+const attaques = PERIPETIES.find((p) => p.kind === 'attaque')!;
+/** POSE le seuil atteint puis « Attaqués ! » sur la table des péripéties ; tout autre dé tombe de lui-même. */
+const poseEmbuscade: PoseDe = (etape) => (etape.kind === 'perilATerre' ? 8 : etape.kind === 'perilATerreTable' ? attaques.roll : undefined);
+
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
 afterEach(() => { resetDesFixes(); resetCadence(); resetRule('voyage-etapes'); resetRule('voyage-attraper-froid'); });
 
@@ -80,16 +87,16 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
   function jourInterrompu(): unknown {
     setRule('voyage-etapes', true);
     setDesFixes(true);
-    setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
+    setup(map({ km: 60, ...embuscadeDeRoute }), 'clair');
     get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
-    draineCascade(get);
+    draineCascade(get, 200, poseEmbuscade);
     const jours = get().travelPlan!.recap!.days;
     const jour = structuredClone(jours[jours.length - 1]);
     get().fenetreFermer('recitDeVoyage');
     set({ battle: null, mode: 'exploration' });
     const wm = get().worldMap!;
-    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
+    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perilDie: 0 })) } });
     return jour;
   }
 

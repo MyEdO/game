@@ -223,7 +223,7 @@ function construireScene(): Scene {
           {
             id: 'e1',
             desc: '« On… on ne faisait rien ! » Ils refusent de se rendre et tentent de forcer le passage.',
-            choices: [{ id: 'maitriser', label: 'Les maîtriser.', flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: 'enc-etudiants' }]) }],
+            choices: [{ id: 'maitriser', label: 'Les maîtriser.', flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: { id: 'enc-etudiants' } }]) }],
           },
         ],
       },

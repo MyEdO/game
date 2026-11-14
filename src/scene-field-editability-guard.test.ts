@@ -277,7 +277,8 @@ export const tracerCalque = () => {
     // 239 = mesure du 2026-08-25 (243 de l'étalon, moins les 4 `victoryCondition.edge.*` remappés sur
     // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive ci-dessus les couvre).
     // 416 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques et annotations de type descendus).
-    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(416);
+    // 415 = mesure du 2026-11-12 (#3606 S0 : les compétences de scène DÉSIGNENT, `RefASpecialisation.choix` sort).
+    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(415);
   });
 
   it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, et la marche descend dans le corps d’une fabrique', () => {
@@ -387,7 +388,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // couleurs, clés d'emplacement de palette d'un type mappé.
     // #3606 M2f1 : la marche descend dans le corps des fabriques — l'`id` d'une référence (`objetDeRef`, `grammaire/ref.ts`),
     // la prose adressée d'une réplique (`proseNommee`, `grammaire/prose.ts`) et son adresse (`grammaire/valeurs.ts`) ; et
-    // à travers l'annotation de type d'un schéma (`RefASpecialisation`, `TraitPose`, le `{ id: string }` d'un
+    // à travers l'annotation de type d'un schéma (`RefDesignee`, `TraitPose`, le `{ id: string }` d'un
     // `z.ZodType<…>`, `ChampsNommes`) ou d'un type manuscrit du document (`Calage`).
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
@@ -511,9 +512,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'Pt.x @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.y @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.z @ src/data/schemas/defs-scenes/communs.ts',
-      'RefASpecialisation.choix @ src/data/schemas/grammaire/ref.ts',
-      'RefASpecialisation.id @ src/data/schemas/grammaire/ref.ts',
-      'RefASpecialisation.spec @ src/data/schemas/grammaire/ref.ts',
+      'RefDesignee.id @ src/data/schemas/grammaire/ref.ts',
+      'RefDesignee.spec @ src/data/schemas/grammaire/ref.ts',
       'Scene.startMessage.adapteDe @ src/data/schemas/grammaire/prose.ts',
       'Scene.startMessage.source @ src/data/schemas/grammaire/prose.ts',
       'SceneEntity.upgrades.id @ src/data/schemas/grammaire/ref.ts',

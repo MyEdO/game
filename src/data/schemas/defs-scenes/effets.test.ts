@@ -191,7 +191,7 @@ describe('setTime — UNE entrée, XOR STRICT `phase` ⊕ `hour` (`minute` seule
 
 describe('sceneFlowSchema — le MÊME arbre que la grammaire, feuille `do` = `Effect` de scène', () => {
   it('accepte une feuille `do` de SCÈNE (ce que le `flowSchema` de la grammaire refuse)', () => {
-    expect(sceneFlowSchema.safeParse({ kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } }).success).toBe(true);
+    expect(sceneFlowSchema.safeParse({ kind: 'effet', effet: { type: 'startCombat', encounter: { id: 'enc-1' } } }).success).toBe(true);
   });
 
   it('accepte la feuille MÉCANIQUE `type:"ops"` — l’union `Effect` la contient', () => {
