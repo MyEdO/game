@@ -243,7 +243,7 @@ describe('ManeuverResult.helmsman — l’échec de manœuvre d’un navire enne
     banc.setState({ battle: { ...b, combatants: [...b.combatants, navire] } });
     expect(combattantEnVue(banc.getState() as unknown as Jeu, navire), 'le navire garde la vue de sa case').toBe(combattantEnVue(banc.getState() as unknown as Jeu, c));
     const avant = banc.getState().journal.length;
-    applyShipManeuver(banc.getState, navire.id, rollShipManeuver(banc.getState, navire.id, navire.id)!, 2);
+    applyShipManeuver(banc.getState, banc.setState, navire.id, rollShipManeuver(banc.getState, navire.id, navire.id)!, 2);
     return { lignes: banc.getState().journal.slice(avant), navire };
   }
   const tete = (nom: string) => t('shipManv.failLine', { helmsman: nom, ship: nom, dr: 0 }).split(' (DR')[0];

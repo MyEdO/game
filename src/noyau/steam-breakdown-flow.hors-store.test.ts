@@ -4,7 +4,7 @@ import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildSeaPlan, applySteamBreakdown, resolveSteamSave, engineerOf } from './seaVoyageFlow';
-import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
+import { STEAM_BREAKDOWNS } from '../data';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { WorldMap } from './worldMap';
 import type { PendingSteamSave } from './pendings';

@@ -21,117 +21,140 @@ script = ExtResource("5_montage")
 
 [node name="Interface" type="CanvasLayer" parent="."]
 
-[node name="Outils" type="PanelContainer" parent="Interface"]
+[node name="Ossature" type="HBoxContainer" parent="Interface"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"Ossature"
+
+[node name="Outils" type="PanelContainer" parent="Interface/Ossature"]
 custom_minimum_size = Vector2(320, 0)
 mouse_force_pass_scroll_events = false
-anchors_preset = 9
-anchor_bottom = 1.0
-grow_vertical = 2
 theme_type_variation = &"Panneau"
 
-[node name="Defilement" type="ScrollContainer" parent="Interface/Outils"]
+[node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Outils"]
 horizontal_scroll_mode = 0
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Outils/Defilement"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement"]
 theme_type_variation = &"PileSerree"
 size_flags_horizontal = 3
 
-[node name="Titre" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Titre" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Titre"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Titre"]
 script = ExtResource("3_zone")
 source = "editeur.titre"
 
-[node name="Scenes" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Scenes" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Scenes"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Scenes"]
 script = ExtResource("3_zone")
 source = "editeur.scenes"
 
-[node name="Outils" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Outils" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Outils"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Outils"]
 script = ExtResource("3_zone")
 source = "editeur.outils"
 
-[node name="Options" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Options" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Options"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Options"]
 script = ExtResource("3_zone")
 source = "editeur.options"
 
-[node name="Couches" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Couches" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Couches"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Couches"]
 script = ExtResource("3_zone")
 source = "editeur.couches"
 
-[node name="Historique" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Historique" type="HBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Historique"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Historique"]
 script = ExtResource("3_zone")
 source = "editeur.historique"
 
-[node name="Presse" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Presse" type="HBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Presse"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Presse"]
 script = ExtResource("3_zone")
 source = "editeur.presse"
 
-[node name="Fichier" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Fichier" type="HFlowContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Fichier"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Fichier"]
 script = ExtResource("3_zone")
 source = "editeur.fichier"
 
-[node name="Pointee" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Pointee" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Pointee"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Pointee"]
 script = ExtResource("3_zone")
 source = "editeur.pointee"
 
-[node name="Inspecteur" type="TabContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Logique" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Logique"]
+script = ExtResource("3_zone")
+source = "editeur.logique"
+
+[node name="Inspecteur" type="TabContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 size_flags_horizontal = 3
 clip_tabs = false
 
-[node name="Combat" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+[node name="Combat" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Combat"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur/Combat"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
 ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/statblock", "valeur/statblock/", "valeur/upgrades", "valeur/upgrades/", "valeur/postes", "valeur/postes/", "inventaire", "inventaire/", "sorts/", "profil/")
 
-[node name="Rôles" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+[node name="Rôles" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Rôles"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur/Rôles"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
 ids = PackedStringArray("valeur/dialogueId", "valeur/dialogueId/", "valeur/merchant", "valeur/merchant/", "valeur/tavernGame", "valeur/tavernGame/", "valeur/amateur", "valeur/amateur/", "valeur/usable", "valeur/usable/", "identifier/action/")
 
-[node name="Apparence" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+[node name="Apparence" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Apparence"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur/Apparence"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
 ids = PackedStringArray("valeur/appearance", "valeur/appearance/", "valeur/anim", "valeur/anim/")
 
-[node name="Identité" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+[node name="Identité" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Identité"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur/Identité"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
 
-[node name="Validation" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Validation" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Validation"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Validation"]
 script = ExtResource("3_zone")
 source = "editeur.validation"
 
-[node name="Calque" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Calque" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Calque"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Calque"]
 script = ExtResource("3_zone")
 source = "editeur.calque"
+
+[node name="Carte" type="PanelContainer" parent="Interface/Ossature"]
+visible = false
+size_flags_horizontal = 3
+theme_type_variation = &"Parchemin"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Carte"]
+script = ExtResource("3_zone")
+source = "editeur.carte"
+repli = true
+formes = PackedStringArray("plan:planDeLEditeur")
 
 [node name="Avis" type="VBoxContainer" parent="Interface"]
 anchors_preset = 5

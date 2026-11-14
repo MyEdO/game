@@ -24,7 +24,6 @@ import { findTableEntry, deDeLaTableTiree } from '../engine/tables';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { intentAllowedFor } from './netOwnership';
 import { setDataset, datasetArray } from '../data/overrides';
-import { type MutationTable } from '../data/mutations';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
@@ -183,7 +182,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     // Le registre SUIT la donnée (#1692) : une table retirée de la donnée rend irrésoluble toute
     // cascade persistée qui la tirait — refus nommé sur l'id, jamais un repli sur une autre table,
     // aucune migration de sauvegarde (`.claude/memory/user-arbitrage-saves-reset-pas-migration.md`).
-    const livrees = [...(datasetArray('mutationTables') as MutationTable[])];
+    const livrees = [...datasetArray('mutationTables')];
     const retiree = livrees[0];
     expect(tableStepDef(retiree.id), 'la table doit exister AVANT le retrait').toBeDefined();
     startCascade(banc.getState, banc.setState, {

@@ -20,7 +20,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import {
-  applySurprise, approachFearTrigger, applyAttackResult, applyCoupCritiqueSec,
+  applySurprise, approachFearTrigger, applyAttackResult, applyCoupCritiqueSec, instantaneAvantLeCoup,
   openCombatEndCascade, openRoundStartPsych,
 } from './combatFlow';
 import { createHero } from '../engine/character';
@@ -230,7 +230,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
     blinde(cible);
     seedBattleRng(5);
 
-    applyCoupCritiqueSec(g, banc.setState, cible, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0]);
+    applyCoupCritiqueSec(g, banc.setState, cible, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0], instantaneAvantLeCoup(cible));
 
     const dev = parKind('deviation');
     expect(dev, 'le jumeau n’a jamais porté le filtre d’affordance locale').toBeTruthy();

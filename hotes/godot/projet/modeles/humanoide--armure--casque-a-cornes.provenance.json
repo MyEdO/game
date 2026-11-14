@@ -1,11 +1,15 @@
 {
   "model": "humanoide--armure--casque-a-cornes.glb",
-  "model_sha256": "03fa9b8aa63938f48a5d80f88521b3c673bfba6935e15bacd348a82c3995dbaa",
-  "importe_le": "2026-11-05",
+  "model_sha256": "caa41371d4ce7559db75b15b5fdd2e08720ccad2424bcc10b0a5e53c3619e7d3",
+  "importe_le": "2026-11-14",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

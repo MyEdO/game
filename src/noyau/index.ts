@@ -123,7 +123,7 @@ export { gestesDExploration, type GesteDExploration } from './gestesDExploration
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';
 export { capDuGroupe, casesDuGroupe, porteurParId, PARTY_MAX } from './monde/combatants';
 export { labelEmplacement, seatSlotsOf, type SeatOccupant } from './monde/seating';
-export { assoirALaPlace, type PatchDeZone } from './sceneEdit';
+export { assoirALaPlace, ECRITURES_DES_PORTEURS, retraitOffert, type PatchDeZone } from './sceneEdit';
 export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
 export {
@@ -162,11 +162,15 @@ export {
   editer,
   ouvrirLEdition,
   planDeLaVolee,
+  planDuLieuOuvert,
   projetDuDepot,
   refusDOuvrage,
   refusDeLaValeur,
+  refusDeRetrait,
+  refusDuRenommage,
+  idDeLaSceneEditee,
+  projetEdite,
   sceneEditee,
-  scenesDeLaSession,
   vueDeLaScene,
   essaiDeLaScene,
   texteAEnregistrer,
@@ -180,7 +184,6 @@ export {
   PINCEAUX,
   PROFILS_DE_TOIT,
   SORTES_D_OUVERTURE,
-  champDuMessage,
   groupesDuLieu,
   versLaFautive,
   type BrouillonDArete,
@@ -190,7 +193,25 @@ export {
   type PatchDeScene,
   type SessionDEdition,
 } from './edition/session';
-export { formulaireDe } from './sceneEditLecture';
+export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
+export { orienterRoute } from './worldMapEdit';
+export { refusDeForme } from './narratifEdit';
+export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
+export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+export {
+  FORMULAIRES,
+  accesDe,
+  cleDeLElement,
+  formulaireDe,
+  retraitsDuPorteur,
+  porteurDeLaSel,
+  porteurDuProjet,
+  porteursDuProjet,
+  idDuPorteur,
+  type DonneeDuPorteur,
+  type SorteDeDocument,
+  type SorteDePorteur,
+} from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
 export {
   bornesAuPoint,
@@ -199,9 +220,10 @@ export {
   champsDuRecord,
   champsOfferts,
   choixDuNoeud,
+  clesPosees,
+  designeDesEntrees,
   elementDuNoeud,
   formeAuPoint,
-  recordDuNoeud,
   unionDuNoeud,
   varianteCourante,
   type FieldDesc,

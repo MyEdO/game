@@ -10,7 +10,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { seedBattleRng } from './battleRng';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
-import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
+import { STEAM_BREAKDOWNS } from '../data';
 import type { WorldMap } from './worldMap';
 
 let banc: Banc;

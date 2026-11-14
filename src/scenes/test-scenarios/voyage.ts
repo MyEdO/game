@@ -147,6 +147,18 @@ const construireEmbuscade = (): Scene => buildScene({
   size: [14, 9],
   terrain: 'herbe',
   heroStart: [2, 4],
+  // Le péril de la piste mène ici ; franchir la bande (x=5) déclenche l'embuscade.
+  triggers: [
+    {
+      id: 'embuscade-sous-bois',
+      rect: { x: 5, y: 0, w: 1, h: 9 },
+      once: true,
+      flow: flowFromEffects([
+        { type: 'journal', desc: 'Des silhouettes vertes jaillissent des fourrés !' },
+        { type: 'startCombat', encounter: { id: 'enc-vembuscade' } },
+      ]),
+    },
+  ],
   encounters: [{
     id: 'enc-vembuscade',
     // embuscade de route : invisibles jusqu'au combat (hidden par ennemi, l'EncounterSpec n'a pas de hidden global)
@@ -185,7 +197,6 @@ const construireCarte = (): WorldMap => ({
         chancePct: 90,
         effects: [
           { type: 'transition', scene: { id: 'test-voyage-embuscade' } },
-          { type: 'startCombat', encounter: 'enc-vembuscade' },
         ],
       }],
       ambush: { scene: { id: 'test-voyage-embuscade' }, encounter: 'enc-vembuscade' }, // cible du « Attaqués ! » (d10)

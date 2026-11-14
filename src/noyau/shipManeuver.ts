@@ -25,6 +25,7 @@ import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesM
 import { placementPenalty, translaterFormation } from './monde/shipPostes';
 import { inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { reparationTemporaireApresLaManoeuvre } from './seaVoyageFlow';
 import { t } from '../i18n';
 import { refuserGeste } from './refusVisible';
 import { findCrewRoleById, type CrewRoleData } from '../data';
@@ -241,16 +242,19 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
 /**
  * APPLIQUE une manœuvre résolue (mutation) : sur réussite, vire de `turnSteps` crans (`virerLeNavire` re-mappe les
  * arcs) ; le navire avance TOUJOURS le long du cap (`avancerLeNavire`, MDG 13 — déplacement INCONDITIONNEL,
- * M÷2 plancher). Renvoie les cases avancées. Logue le succès (via `virerLeNavire`) ou l'échec.
+ * M÷2 plancher). Renvoie les cases avancées. Logue le succès (via `virerLeNavire`) ou l'échec. Appende le Test
+ * d'Endurance de la coque tenue par une réparation temporaire (MDG 13 l.651 ; MSRC 7 l.117).
  */
-export function applyShipManeuver(get: Get, shipId: string, result: ManeuverResult, turnSteps: number): number {
-  const ship = garanti(inBattleId(get().battle, shipId), shipId, 'navire manœuvré');
+export function applyShipManeuver(get: Get, set: Set, shipId: string, result: ManeuverResult, turnSteps: number): number {
+  const ship = garanti(inBattleId(get().battle, shipId), shipId, 'applyShipManeuver');
   if (result.success) get().virerLeNavire(shipId, turnSteps); // vire + re-mappe les arcs + logue le nouveau cap
   else {
     if (result.refus != null) get().ecrireAuJournal(result.refus);
     get().ecrireAuJournal(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: nomDe(ship), dr: result.dr }));
   }
-  return get().avancerLeNavire(shipId, result.movement);
+  const advanced = get().avancerLeNavire(shipId, result.movement);
+  reparationTemporaireApresLaManoeuvre(get, set, ship);
+  return advanced;
 }
 
 /**
@@ -258,10 +262,10 @@ export function applyShipManeuver(get: Get, shipId: string, result: ManeuverResu
  * et les tests headless ; le flux différé jouable (modale) appelle `rollShipManeuver`/`applyShipManeuver`
  * séparément. `null` hors combat.
  */
-export function maneuverShip(get: Get, shipId: string, turnSteps: number, helmsmanId?: string): ManeuverResult | null {
+export function maneuverShip(get: Get, set: Set, shipId: string, turnSteps: number, helmsmanId?: string): ManeuverResult | null {
   const r = rollShipManeuver(get, shipId, helmsmanId);
   if (!r) return null;
-  const advanced = applyShipManeuver(get, shipId, r, turnSteps);
+  const advanced = applyShipManeuver(get, set, shipId, r, turnSteps);
   return { ...r, advanced };
 }
 

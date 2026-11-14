@@ -1,7 +1,6 @@
 import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 /**
- * Schéma de `etats.json` — dérivé de l'inventaire COMPLET des clés (script node, n=20/20) et de
- * `StatusData`/`EtatData` (`src/data/index.ts`). `effects` (`TriggeredEffect[]`) et
+ * Schéma de `etats.json`, d'où dérive `EtatData` (`src/data/index.ts`). `effects` (`TriggeredEffect[]`) et
  * son `Flow` récursif : MÊME algèbre que talents.json (`engine/flowCore.ts`), PROMUE dans
  * `grammaire/mecanique.ts` (`flowSchema`/`conditionSchema`/`triggeredEffectSchema`).
  * `icon` et `maison` sont des clés d'ENVELOPPE, posées par la fabrique.
@@ -18,7 +17,7 @@ import { visuelDeLumiereSchema } from './lightTones';
 export const file = 'etats.json';
 export const famille = 'entite';
 
-/** `StatusData.gating` (`src/data/index.ts`) — restriction Action/Mouvement/défense. */
+/** Restriction Action/Mouvement/défense, de même forme que `StatusData.gating` (`src/data/index.ts`). */
 const gatingSchema = nommerChamps(z.strictObject({
   action: z.literal('none').optional(),
   movement: z.enum(['none', 'half', 'crawl']).optional(),
@@ -29,7 +28,6 @@ const gatingSchema = nommerChamps(z.strictObject({
   cannotDefend: { label: 'défense impossible' },
 });
 
-/** `EtatData.recover` (`src/data/index.ts`). */
 const recoverSchema = nommerChamps(z.strictObject({
   ...jetSchema.shape,
   opposedBy: z.literal('source').optional(),

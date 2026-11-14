@@ -7,7 +7,7 @@ import { poidsDuGabarit } from '../gabarit.ts';
 import { FEMININ } from '../silhouettes.ts';
 import type { TableDeGabarit } from '../manifesteDeBase.ts';
 
-export const TABLE: TableDeGabarit = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } };
+export const TABLE: TableDeGabarit = { legs: ['racine'], arms: [], head: [], racine: 'racine', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } }, osDesSilhouettes: {} };
 
 const TAILLE = { SCALAR: 1, VEC3: 3, VEC4: 4, MAT4: 16 } as const;
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -136,7 +136,7 @@ export const osLibres = (os: readonly string[]) => tableTotale(os, () => ({ x: [
 
 /** Le manifeste qui décrit le GLB `octets` de `glbFabrique`, d'os `os`. */
 export const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
-  schema: 6, base: 'fabrique', os, bornesArticulaires: osLibres(os), chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
+  schema: 7, base: 'fabrique', os, bornesArticulaires: osLibres(os), chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
   prises: { main: { ...ATTACHE }, secondaire: { ...ATTACHE } }, silhouettes: [FEMININ], gabarit: { ...TABLE, legs: [] },
   porteur: { espece: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
   clips: { marche: [...lireGlb(octets).animations][0] },

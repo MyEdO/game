@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Combatant, Weapon } from './types';
 import type { CreatureData } from '../data';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import type { TraitInstance } from './statEntry';
 import { creatureToCombatant } from '../noyau/monde/spawn';
 import { woundsFromHit } from './woundsCalc';
@@ -16,11 +17,11 @@ import { armourCastDRPenalty } from './magic';
 /** Profil de créature de fixture : seules ses Caractéristiques, ses Traits et ses Talents comptent ici. */
 const profil = (armure: TraitInstance, talents: CreatureData['talents'] = []): Combatant =>
   creatureToCombatant({
-    id: 'fixture', type: 'creatures', label: 'Fixture', title: null, folder: null,
+    id: idDeFixture('creature', 'fixture'), type: 'creatures', label: 'Fixture', title: null, folder: null,
     char: { M: 4, 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30, B: 15 },
     traits: [armure], optionals: [], skills: [], talents, trappings: [], spells: [],
-    source: { book: 'livre-de-base', page: 0 },
-  } as unknown as CreatureData, 'fixture', { x: 0, y: 0 });
+    source: { book: 'livre-de-base', page: 0 }, appearance: { species: 'humains-reiklander' },
+  }, 'fixture', { x: 0, y: 0 });
 
 const arme = (perforante: boolean): Weapon =>
   ({ label: 'W', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: perforante ? [{ id: 'perforante' }] : [] } as unknown as Weapon);

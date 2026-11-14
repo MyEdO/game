@@ -1,0 +1,38 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "livre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "couverture",
+      "palette": "cuir"
+    },
+    {
+      "nom": "plat",
+      "palette": "cuir",
+      "blason": true
+    },
+    {
+      "nom": "pages",
+      "palette": "corne"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "c05eb0be3567dbeb7de734cbf763f3f4e232b30212c66cafce8345a28f911b83",
+    "octets": 71484
+  }
+}

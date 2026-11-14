@@ -23,7 +23,7 @@ import {
 import type { Characteristics, Combatant, SkillInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const ARCANE: SpellLike = { label: 'Sort d’essai', ecole: 'Magie des Arcanes', family: 'arcane', cn: 1, duration: { kind: 'instant' }, desc: '' };
+const ARCANE: SpellLike = { label: 'Sort d’essai', ecole: 'Magie des Arcanes', family: 'arcane', cn: 1, duration: { kind: 'instant' } };
 
 function mage(intelligence: number, advances: number, over: Partial<Combatant> = {}, id = 'c'): Combatant {
   const base: Characteristics = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };

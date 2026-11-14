@@ -15,9 +15,9 @@ import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput, type Castable
 import { emptyScene } from './scene';
 import { chebyshev } from '../../engine/grid';
 import type { Combatant, Weapon } from '../../engine/types';
-import type { SpellData } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -103,11 +103,11 @@ describe('Lot 3 — valeur de CONTRÔLE : un sort qui inflige un État (op:condi
   const controlSpell: CastableSpell = {
     id: 'choc-mental', cn: 0, range: 20, shape: 'single', landProb: 1, focusState: 'none', active: false,
     data: {
-      id: 'choc-mental', label: 'Choc mental', ecole: 'sort', subType: null, family: 'arcane', cn: 0,
+      id: idDeFixture('spell', 'choc-mental'), type: 'spells', label: 'Choc mental', ecole: 'sort', subType: null, family: 'arcane', cn: 0,
       range: null, target: null, duration: null, desc: '', missile: true, damage: 2,
       effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'sonne' } }] } },
       source: { book: 'LDB', page: 0 },
-    } as unknown as SpellData,
+    },
   };
   it('un sort qui ÉTOURDIT (op:condition) est lancé sur la cible (sa valeur intègre l’État infligé)', () => {
     const e = mk('e', 'ennemi', { x: 10, y: 10 }, { weapons: [] });

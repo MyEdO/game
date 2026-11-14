@@ -3,6 +3,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { bornesSchema, ecartDeCoPresenceDesBornes, enumNomme, idDIconeSchema, ruleValueSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
+import { estObjet } from '../../../lib/objet.mjs';
 
 export const file = 'reglesOptionnelles.json';
 export const famille = 'entite';
@@ -119,8 +120,12 @@ const doc = document(
     // deux bornes se re-branche ICI, sur la MÊME fonction partagée (`ecartDeCoPresenceDesBornes`,
     // `grammaire/valeurs.ts`) — la règle n'a qu'un porteur.
     affinerEntree: (entree) =>
-      entree.superRefine((v, ctx) => {
-        for (const message of ecartsDeLaRegle(v)) ctx.addIssue({ code: 'custom', message: `reglesOptionnelles.json « ${String(v.id)} » : ${message}` });
+      entree.refine((v): v is FormeDeControle => typeof formeDeLEntree(v) === 'object', {
+        error: (iss) => `reglesOptionnelles.json « ${estObjet(iss.input) ? String(iss.input.id) : ''} » : ${estObjet(iss.input) ? String(formeDeLEntree(iss.input)) : ''}`,
+      }).superRefine((v, ctx) => {
+        // La forme manquante est déjà refusée par le `refine` : seules les VALEURS d'une forme déclarée se jugent ici.
+        const ecarts = typeof formeDeLEntree(v) === 'object' ? ecartsDeLaRegle(v) : [];
+        for (const message of ecarts) ctx.addIssue({ code: 'custom', message: `reglesOptionnelles.json « ${String(v.id)} » : ${message}` });
         const ecart = ecartDeCoPresenceDesBornes(v as { min?: number; max?: number });
         if (!ecart) return;
         ctx.addIssue({

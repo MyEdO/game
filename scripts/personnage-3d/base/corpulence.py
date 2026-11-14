@@ -1,16 +1,17 @@
-"""Silhouette `corpulence` de la base humanoïde (#3101, décision 2) : le delta de poids max de MakeHuman, transféré au
-corps UBC par la liaison à un donneur filtrée par os (`formes.lier`).
+"""Silhouette `corpulence` de la base humanoïde (#3101, décision 2 ; #4002) : un delta de poids de MakeHuman, transféré
+au corps UBC par la liaison à un donneur filtrée par os (`formes.lier`), puis ses sillons comblés.
 
 Donneur : `3dobjs/base.obj` (corps seul, groupe `body`) chargé des cibles `macrodetails` d'un homme jeune très musclé
-(`targetservice.py` `calculate_target_stack_from_macro_info_dict`) ; la clé est la différence entre l'état poids max et
-l'état poids moyen, à genre, âge et muscle fixés. Pose commune : celle du donneur. Le donneur est mis à l'échelle et
+(`targetservice.py` `calculate_target_stack_from_macro_info_dict`), sa surface de liaison ; la clé est la différence
+entre l'état poids max et l'état poids moyen d'un homme jeune à muscle moyen (`ETAT_DU_DELTA`), à `FACTEUR`, plus les
+cibles sculptées de `CIBLES` à leur poids. Pose commune : celle du donneur. Le donneur est mis à l'échelle et
 recalé sur le tronc du squelette au repos par moindres carrés ; chaque os des membres du corps UBC prend, par son
 armature, la position, la direction et la longueur des articulations MakeHuman (groupes `joint-*` de `base.obj`). Le
 corps se pose par le skin linéaire aux poids de l'export (`poids.peau_lineaire`) et chaque sommet se lie au donneur :
 l'os dominant d'une face du donneur est celui de ses sommets aux poids du rig `game_engine` de MPFB, dont les os portent
 les noms d'UAL (`OS_DU_DONNEUR`). Le delta lu au point lié revient au repos par l'inverse de ce même skin, sommet par
-sommet ; le rabot de la clé et ses extrémités invariantes sont ceux de toutes les silhouettes
-(`silhouettes.finir_les_silhouettes`).
+sommet, et ses sillons se comblent au repos (`combler`) ; le rabot de la clé et ses extrémités invariantes sont ceux de
+toutes les silhouettes (`silhouettes.finir_les_silhouettes`).
 """
 import gzip
 import json
@@ -28,12 +29,27 @@ SOMMETS_DU_CORPS = 13380
 RACES = ('african', 'asian', 'caucasian')
 """Races de `macro.json` ; MPFB les mélange à parts égales par défaut (`get_default_macro_info_dict`)."""
 ETAT = 'male-young-maxmuscle'
-"""Genre, âge et muscle du donneur : le corps UBC est un homme jeune très musclé (« Superhero »)."""
+"""Genre, âge et muscle de la surface de liaison du donneur : le corps UBC est un homme jeune très musclé
+(« Superhero »)."""
+ETAT_DU_DELTA = 'male-young-averagemuscle'
+"""#4002"""
 REFERENCE, POIDS_MAX = 'averageweight', 'maxweight'
+FACTEUR = 1.5
+"""#4002"""
+CIBLES = (('stomach/stomach-pregnant-incr', 0.9), ('stomach/stomach-tone-decr', 1.0),
+          ('torso/measure-waist-circ-incr', 1.3), ('torso/measure-hips-circ-incr', 0.6),
+          ('buttocks/buttocks-volume-incr', 0.6), ('neck/measure-neck-circ-incr', 0.7))
+"""#4002 : `(cible sous targets/, poids)`."""
+PASSES_DE_COMBLEMENT = 40
+"""#4002"""
+GRAISSE_PLEINE = 0.02
+"""#4002 : épaisseur de graisse (m) au comblement entier."""
 OS_DU_DONNEUR = 'game_engine'
 """Le rig MPFB (`rigs/standard/weights.<rig>.json`) dont les os nomment ceux d'UAL, à la casse près."""
 ECART_MAX = 1e-4
 """Écart maximal (m) entre le corps posé portant la clé et le déplacement lié (inverse du skin)."""
+RELIEF_DE_CORPULENCE = 0.2
+"""#4002"""
 
 RECALAGE = (('joint-l-upper-leg', 'thigh_l'), ('joint-r-upper-leg', 'thigh_r'), ('joint-l-shoulder', 'upperarm_l'),
             ('joint-r-shoulder', 'upperarm_r'), ('joint-neck', 'neck_01'), ('joint-head', 'Head'))
@@ -84,6 +100,8 @@ def lire_obj(chemin):
 
 def lire_cible(chemin, taille):
     """Les déplacements d'un `.target.gz` (lignes `indice dx dy dz`, repère MakeHuman) sur `taille` sommets."""
+    if not Path(chemin).is_file():
+        raise RuntimeError(f'{chemin} : cible MakeHuman absente')
     delta = np.zeros((taille, 3))
     with gzip.open(chemin, 'rt', encoding='utf-8') as fichier:
         for ligne in fichier:
@@ -98,6 +116,15 @@ def vers_blender(points):
     return np.stack([points[:, 0], -points[:, 2], points[:, 1]], axis=1)
 
 
+def delta_du_donneur(mpfb, taille):
+    """Le delta de la clé sur les `taille` sommets du donneur, repère MakeHuman : (taille, 3)."""
+    cibles = Path(mpfb) / 'targets'
+    macro = cibles / 'macrodetails'
+    delta = FACTEUR * (lire_cible(macro / f'universal-{ETAT_DU_DELTA}-{POIDS_MAX}.target.gz', taille)
+                       - lire_cible(macro / f'universal-{ETAT_DU_DELTA}-{REFERENCE}.target.gz', taille))
+    return delta + sum(poids * lire_cible(cibles / f'{nom}.target.gz', taille) for nom, poids in CIBLES)
+
+
 def donneur(mpfb):
     """`(référence, poids max, triangles, joints)` du donneur, en repère Blender et unités MakeHuman ; ses quads sont
     coupés en triangles ; `joints` donne le centre de chaque groupe `joint-*` à la référence."""
@@ -106,8 +133,7 @@ def donneur(mpfb):
     taille = len(sommets)
     reference = sommets + sum(lire_cible(macro / f'{r}-male-young.target.gz', taille) for r in RACES) / len(RACES)
     reference = reference + lire_cible(macro / f'universal-{ETAT}-{REFERENCE}.target.gz', taille)
-    poids_max = reference + lire_cible(macro / f'universal-{ETAT}-{POIDS_MAX}.target.gz', taille) \
-        - lire_cible(macro / f'universal-{ETAT}-{REFERENCE}.target.gz', taille)
+    poids_max = reference + delta_du_donneur(mpfb, taille)
     reference, poids_max = vers_blender(reference), vers_blender(poids_max)
     joints = {nom: reference[indices].mean(axis=0) for nom, indices in groupes.items()}
     triangles = np.array([t for a, b, c, d in faces for t in ((a, b, c), (a, c, d))])
@@ -205,10 +231,28 @@ def peau_de_la_pose(squelette):
     return poses @ inverses_du_repos(squelette).astype(np.float64)
 
 
+def combler(x, deplacement, aretes, normales):
+    """`deplacement` (sommets, 3) des sommets `x` (sommets, 3), aux normales de repos unitaires `normales`, après
+    `PASSES_DE_COMBLEMENT` passes où chaque sommet avance le long de sa normale du creux qu'il fait sous la moyenne de
+    ses voisins par `aretes` (arêtes, 2), à proportion de sa graisse : la part de `deplacement` le long de sa normale,
+    rapportée à `GRAISSE_PLEINE`. Un sommet ne recule jamais."""
+    graisse = np.maximum(0.0, np.einsum('sk,sk->s', deplacement, normales))
+    comble = np.minimum(1.0, graisse / GRAISSE_PLEINE)
+    degre = np.maximum(np.bincount(aretes.ravel(), minlength=len(x)), 1).astype(np.float64)[:, None]
+    y = x + deplacement
+    for _ in range(PASSES_DE_COMBLEMENT):
+        somme = np.zeros_like(y)
+        np.add.at(somme, aretes[:, 0], y[aretes[:, 1]])
+        np.add.at(somme, aretes[:, 1], y[aretes[:, 0]])
+        creux = np.maximum(0.0, np.einsum('sk,sk->s', somme / degre - y, normales))
+        y = y + (comble * creux)[:, None] * normales
+    return y - x
+
+
 def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
-    """Pose sur `corps` (skinné à `squelette`, au repos) la shape key `corpulence` : le delta de poids max de
-    MakeHuman, lu au point lié au donneur (`formes.lier`) dans la pose du donneur, ramené au repos par l'inverse du
-    skin."""
+    """Pose sur `corps` (skinné à `squelette`, au repos) la shape key `corpulence` : le delta du donneur
+    (`delta_du_donneur`), lu au point lié au donneur (`formes.lier`) dans la pose du donneur, ramené au repos par
+    l'inverse du skin, ses sillons comblés (`combler`)."""
     import bpy
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
@@ -237,6 +281,14 @@ def ajouter_corpulence(squelette, corps, mpfb: Path) -> None:
     ecart = float(np.abs(deformer(w, porte, peau[None])[0] - posees - deplacement).max())
     if ecart > ECART_MAX:
         raise RuntimeError(f'corpulence : clé posée à {ecart:.2e} m du déplacement lié (> {ECART_MAX})')
+    monde = np.array(corps.matrix_world.to_3x3())
+    normales = np.empty(len(corps.data.vertices) * 3)
+    corps.data.vertices.foreach_get('normal', normales)
+    normales = normales.reshape(-1, 3) @ np.linalg.inv(monde)
+    normales /= np.linalg.norm(normales, axis=1, keepdims=True)
+    aretes = np.empty(len(corps.data.edges) * 2, dtype=np.int64)
+    corps.data.edges.foreach_get('vertices', aretes)
+    repos = combler(x[:, :3], repos, aretes.reshape(-1, 2), normales)
     poser_la_cle(corps, NOM, repos @ np.array(corps.matrix_world.inverted().to_3x3()).T)
     amplitude = np.linalg.norm(repos, axis=1)
     print('CORPULENCE clé posée : amplitude max', round(float(amplitude.max()), 4), 'm, moyenne',

@@ -7,7 +7,7 @@
 import { semencesDeScene } from '../data';
 import type { TravelMode } from '../engine/travel';
 import type { LandMarketProfile } from '../engine/landCargo';
-import type { MapPlace, MapRoute, MapRouteTrace, Praticabilite, RoutePeril, WorldMap } from './worldMap';
+import type { MapPlace, MapRoute, MapRouteTrace, PlacePoi, Praticabilite, RoutePeril, WorldMap } from './worldMap';
 
 type Pos = MapPlace['pos'];
 
@@ -62,6 +62,36 @@ export function majRoute(map: WorldMap, id: string, patch: PatchDeRoute): WorldM
   return { ...map, routes: map.routes.map((r) => (r.id === id ? ({ ...r, ...p } as MapRoute) : r)) };
 }
 
+/** Bornes d'une position de point d'intérêt (`PlacePoi.pos`), en % du plan de son lieu. */
+export const BORNES_DU_PLAN_DE_LIEU = { x: { min: 0, max: 100 }, y: { min: 0, max: 100 } } as const;
+
+/** Les points d'intérêt du lieu `lieu` de la carte `map` devenus `f(poi)`, une liste vidée retirée ; refusé pour un lieu
+ *  inconnu. */
+function surLesPoints(map: WorldMap, lieu: string, f: (poi: readonly PlacePoi[]) => PlacePoi[]): WorldMap {
+  const place = map.places.find((p) => p.id === lieu);
+  if (!place) return map;
+  const poi = f(place.poi ?? []);
+  return majLieu(map, lieu, { poi: poi.length ? poi : undefined });
+}
+
+/** Pose le point d'intérêt `poi` au plan du lieu `lieu`, sa position plafonnée aux bornes du plan
+ *  (`BORNES_DU_PLAN_DE_LIEU`). Refusé pour un id qu'un point de la carte porte déjà. */
+export function ajouterPoi(map: WorldMap, lieu: string, poi: PlacePoi): WorldMap {
+  if (map.places.some((p) => p.poi?.some((x) => x.id === poi.id))) return map;
+  return surLesPoints(map, lieu, (liste) => [...liste, { ...poi, pos: { x: borne(poi.pos.x, BORNES_DU_PLAN_DE_LIEU.x), y: borne(poi.pos.y, BORNES_DU_PLAN_DE_LIEU.y) } }]);
+}
+
+/** Pose le point d'intérêt `id` du lieu `lieu` à `pos`, plafonnée aux bornes du plan (`BORNES_DU_PLAN_DE_LIEU`). */
+export function deplacerPoi(map: WorldMap, lieu: string, id: string, pos: Pos): WorldMap {
+  const ici = { x: borne(pos.x, BORNES_DU_PLAN_DE_LIEU.x), y: borne(pos.y, BORNES_DU_PLAN_DE_LIEU.y) };
+  return surLesPoints(map, lieu, (liste) => liste.map((x) => (x.id === id ? { ...x, pos: ici } : x)));
+}
+
+/** Retire le point d'intérêt `id` du lieu `lieu`. */
+export function retirerPoi(map: WorldMap, lieu: string, id: string): WorldMap {
+  return surLesPoints(map, lieu, (liste) => liste.filter((x) => x.id !== id));
+}
+
 /** Coche ou décoche `mode` sur la route `id`. */
 export function basculerMode(map: WorldMap, id: string, mode: TravelMode): WorldMap {
   const r = map.routes.find((x) => x.id === id);
@@ -80,11 +110,11 @@ export function ajouterLieu(map: WorldMap, id: string, pos: Pos, scenes: readonl
   return { ...map, places: [...map.places, lieu] };
 }
 
-/** Sens d'initiation que les routes de la paire a↔b offrent déjà (`MapRouteTrace.from`). */
-function sensOfferts(map: WorldMap, a: string, b: string): Set<string> {
+/** Sens d'initiation que les routes de la paire a↔b offrent déjà (`MapRouteTrace.from`), hors de la route `sauf`. */
+function sensOfferts(map: WorldMap, a: string, b: string, sauf?: string): Set<string> {
   const sens = new Set<string>();
   for (const r of map.routes) {
-    if (!((r.a.id === a && r.b.id === b) || (r.a.id === b && r.b.id === a))) continue;
+    if (r.id === sauf || !((r.a.id === a && r.b.id === b) || (r.a.id === b && r.b.id === a))) continue;
     if (r.from == null) { sens.add(a); sens.add(b); } else sens.add(r.from.id);
   }
   return sens;
@@ -100,6 +130,18 @@ export function lierLieux(map: WorldMap, id: string, a: string, b: string): Worl
   const from = sens.size === 0 ? undefined : sens.has(a) ? b : a;
   const route: MapRoute = { id, a: { id: a }, b: { id: b }, ...(from ? { from: { id: from } } : {}), ...ROUTE_PAR_DEFAUT, modes: [...ROUTE_PAR_DEFAUT.modes] };
   return { ...map, routes: [...map.routes, route] };
+}
+
+/** Oriente la route `id` depuis son extrémité `depuis`, ou dans les deux sens (`null`). Refusé pour une route
+ *  inconnue, déjà dans ce sens, un lieu qui n'en est pas une extrémité, ou un sens qu'une autre route de la paire offre déjà
+ *  (`sensOfferts`, comme `lierLieux`). */
+export function orienterRoute(map: WorldMap, id: string, depuis: string | null): WorldMap {
+  const route = map.routes.find((r) => r.id === id);
+  if (!route || (route.from?.id ?? null) === depuis || (depuis !== null && depuis !== route.a.id && depuis !== route.b.id)) return map;
+  const autres = sensOfferts(map, route.a.id, route.b.id, id);
+  if ((depuis === null ? [route.a.id, route.b.id] : [depuis]).some((x) => autres.has(x))) return map;
+  const { from: _from, ...sans } = route;
+  return { ...map, routes: map.routes.map((r) => (r.id === id ? (depuis === null ? sans : { ...sans, from: { id: depuis } }) : r)) };
 }
 
 /** Retire les routes `ids` ; la `suite` d'un billet s'arrête avant la première route retirée. */

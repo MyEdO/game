@@ -11,26 +11,28 @@ import { schema } from './schemas/defs/regles';
 import { readFileSync } from 'node:fs';
 import livres from './books.json';
 
+/** Le fichier tel que sur le disque : l'import JSON le rend matérialisé (`desc` résolue). */
+const DISQUE: unknown = JSON.parse(readFileSync(new URL('./regles.json', import.meta.url), 'utf8'));
+const LU = schema.parse(DISQUE);
+
 describe('regles.json — prose non blanche', () => {
   it('chaque entrée rend une prose qui n’est pas faite que de blancs', () => {
-    const blanches = regles.filter((r) => r.desc.trim().length === 0).map((r) => r.id);
+    const blanches = regles.filter((r) => (r.desc ?? '').trim().length === 0).map((r) => r.id);
     expect(blanches).toEqual([]);
   });
 });
 
 describe('regles.json — adresses à fragments `blocs` seuls', () => {
-  /** Le fichier tel que sur le disque : l'import JSON le rend matérialisé (`desc` résolue). */
-  const reglesJson: unknown = JSON.parse(readFileSync(new URL('./regles.json', import.meta.url), 'utf8'));
-  const adressee = (reglesJson as { descRef?: unknown }[]).find((e) => e.descRef !== undefined)!;
-  const avec = (parts: unknown[]) => [{ ...adressee, descRef: { ...(adressee.descRef as object), parts } }];
+  const [adressee] = LU.flatMap((e) => (e.descRef === undefined ? [] : [{ ...e, descRef: e.descRef }]));
+  const avec = (parts: unknown[]) => [{ ...adressee, descRef: { ...adressee.descRef, parts } }];
 
   it('le fichier parse, et une entrée adressée par fragment `blocs` aussi', () => {
-    expect(schema.safeParse(reglesJson).success).toBe(true);
-    expect(schema.safeParse(avec((adressee.descRef as { parts: unknown[] }).parts)).success).toBe(true);
+    expect(schema.safeParse(DISQUE).success).toBe(true);
+    expect(schema.safeParse(avec(adressee.descRef.parts)).success).toBe(true);
   });
 
   it('une entrée dont la prose du livre est recopiée inline (`desc`) est REFUSÉE au parse (V3)', () => {
-    const sansAdresse: { descRef?: unknown } = { ...(adressee as object) };
+    const sansAdresse: { descRef?: unknown } = { ...adressee };
     delete sansAdresse.descRef;
     const r = schema.safeParse([{ ...sansAdresse, desc: 'Une prose recopiée du livre.' }]);
     expect(r.success).toBe(false);
@@ -39,7 +41,7 @@ describe('regles.json — adresses à fragments `blocs` seuls', () => {
 
   it('une `desc` inline est REFUSÉE au parse même quand le livre cité n’a pas d’extraction (`porteursDeProse`)', () => {
     const sansExtraction = (livres as { id: string; dir?: string }[]).find((l) => !l.dir)!;
-    const sansAdresse: { descRef?: unknown; source?: object } = { ...(adressee as object) };
+    const sansAdresse: { descRef?: unknown; source?: object } = { ...adressee };
     delete sansAdresse.descRef;
     const r = schema.safeParse([{ ...sansAdresse, desc: 'Une prose recopiée.', source: { ...sansAdresse.source, book: sansExtraction.id } }]);
     expect(r.success).toBe(false);
@@ -54,11 +56,10 @@ describe('regles.json — adresses à fragments `blocs` seuls', () => {
 });
 
 describe('regles.json — un seul libellé par Test nommé', () => {
-  const reglesJson = JSON.parse(readFileSync(new URL('./regles.json', import.meta.url), 'utf8')) as { tests?: { test: object }[] }[];
-  const porteuse = reglesJson.find((e) => e.tests?.length)!;
+  const [porteuse] = LU.flatMap((e) => (e.tests?.length ? [{ ...e, tests: e.tests }] : []));
 
   it('un `test.label` sous une entrée de `tests` est REFUSÉ : le libellé est celui de l’entrée', () => {
-    const r = schema.safeParse([{ ...porteuse, tests: porteuse.tests!.map((t, i) => (i ? t : { ...t, test: { ...t.test, label: 'Second libellé' } })) }]);
+    const r = schema.safeParse([{ ...porteuse, tests: porteuse.tests.map((t, i) => (i ? t : { ...t, test: { ...t.test, label: 'Second libellé' } })) }]);
     expect(r.success).toBe(false);
     expect(r.error?.issues.map((i) => i.path.slice(-2).join('.'))).toContain('test.label');
   });

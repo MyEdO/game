@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { rollTest, extendedTestStep, type TestResult } from './tests';
-import { findTavernGameById, resolveTavernRound, rollTavernTest, TAVERN_GAMES, TAVERN_TEST_DIFFICULTY } from './tavernGame';
+import { findTavernGameById, resolveTavernRound, rollTavernTest, TAVERN_TEST_DIFFICULTY } from './tavernGame';
+import { TAVERN_GAMES } from '../data';
 
 describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
   it('les jeux sont en données, chacun avec une règle verbatim et une source', () => {
     expect(TAVERN_GAMES.length).toBeGreaterThan(0);
     for (const g of TAVERN_GAMES) {
-      expect(g.desc.length).toBeGreaterThan(30); // règle recopiée
+      expect(g.desc?.length).toBeGreaterThan(30); // règle recopiée
       expect(g.source.book).toBe('nuits-agitees-et-dures-journees');
       // Un jeu de MISE ne se résout pas au Test : il ne déclare aucun mode, mais ses règles de pot.
       if (g.pot) expect(g.mode).toBeUndefined();

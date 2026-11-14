@@ -21,7 +21,7 @@ describe('#1692 — l’index vivant d’un dataset', () => {
   it('rend la MÊME entrée qu’une Map figée à l’import, et rien pour un id inconnu', () => {
     const cles = ids();
     const vivant = indexParId('props', props);
-    const FIGE = new Map(props.map((p) => [p.id, p] as const));
+    const FIGE = new Map<string, (typeof props)[number]>(props.map((p) => [p.id, p]));
     expect(cles.length).toBeGreaterThan(50);
     for (const id of cles) expect(vivant(id)).toBe(FIGE.get(id));
     expect(vivant('rien-de-tel')).toBeUndefined();

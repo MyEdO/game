@@ -45,6 +45,7 @@ def doublures_de_la_construction(peau, journal):
         'corps_et_secondaires': mock.MagicMock(return_value=(peau, [])), 'bornes_de_st': nul,
         'gabarit': mock.MagicMock(return_value={}), 'bornes_du_gabarit': nul, 'clear_animation': nul,
         'ajouter_feminin_et_carrure': nul, 'ajouter_corpulence': nul,
+        'lire_os_des_silhouettes': mock.MagicMock(return_value={}),
         'etats_aux_facteurs_neutres': mock.MagicMock(side_effect=lambda *_: {'etats': []}),
         'etats_du_gabarit': mock.MagicMock(side_effect=lambda _, silhouettes: {'etats': [], 'silhouettes': silhouettes}),
         'silhouettes': mock.MagicMock(return_value=['silhouette']),

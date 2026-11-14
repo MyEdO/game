@@ -29,12 +29,12 @@ import {
 } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
-import { isRation, LITRES_PAR_TONNEAU, rationsDeCale, type VivresDeCale } from '../engine/provisions';
+import { embarquerDesVivres, isRation, LITRES_PAR_TONNEAU, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
 import type { Id } from '../data/schemas/grammaire/ref';
 
 import { rollShipCritical } from '../engine/shipCritical';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { dataLabel, findCrewRoleById, refLabel } from '../data';
+import { dataLabel, findCrewRoleById, findCrewTestTypeById, refLabel } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
 import {
@@ -48,6 +48,7 @@ import {
   navireHostileEnVue,
   noteSeaLine,
   persistHullWounds,
+  reparationTemporaireDuNavire,
   setVesselHull,
   vesselManann,
   voyageShip,
@@ -229,8 +230,8 @@ function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | un
   return [...lignes, t('eff.equipageRole', { n: delta, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' })];
 }
 
-/** Gâte `pct` % des provisions à bord : chaque vivre de la cale (`vessel.provisions`) et les rations de chaque
- *  héros, arrondi à l'entier inférieur par vivre et par héros. MDG 15 l.169-170 */
+/** Gâte `pct` % des provisions à bord : chaque vivre de la cale (`vessel.provisions`, du lot le plus vieux au plus
+ *  jeune) et les rations de chaque héros, arrondi à l'entier inférieur par vivre et par héros. MDG 15 l.169-170 */
 function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
   let jetees = 0;
   const party = get().party.map((h) => {
@@ -243,12 +244,12 @@ function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
   const lignes = [t('sv.rationsSpoiled', { n: jetees })];
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return lignes;
-  const provisions: VivresDeCale = {};
+  let provisions = vessel.provisions;
   let perdues = 0;
-  for (const [id, n] of Object.entries(vessel.provisions) as [Id<'trapping'>, number][]) {
-    const gatees = Math.floor(n * pct / 100);
+  for (const id of new Set(vessel.provisions.map((l) => l.vivre))) {
+    const gatees = Math.floor(rationsDuVivre(vessel.provisions, id) * pct / 100);
     perdues += gatees;
-    provisions[id] = n - gatees;
+    provisions = retirerDuVivre(provisions, id, gatees);
   }
   set({ vessel: { ...vessel, provisions } });
   return [...lignes, t('eff.provisionsGatees', { perdues, total: rationsDeCale(provisions) })];
@@ -261,7 +262,7 @@ function ajouterDesVivres(get: Get, set: Set, jours: number, vivre: Id<'trapping
   if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
   const equipage = shipboardSouls(get()).crew;
   const rations = jours * equipage;
-  const provisions = { ...vessel.provisions, [vivre]: (vessel.provisions[vivre] ?? 0) + rations };
+  const provisions = embarquerDesVivres(vessel.provisions, vivre, rations, get().gameTime);
   set({ vessel: { ...vessel, provisions } });
   return [t('eff.provisionsJours', { n: jours, equipage, rations, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) })];
 }
@@ -270,7 +271,7 @@ function ajouterDesVivres(get: Get, set: Set, jours: number, vivre: Id<'trapping
 export function ajouterDesRations(get: Get, set: Set, n: number, vivre: Id<'trapping'>): string[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
-  const provisions = { ...vessel.provisions, [vivre]: (vessel.provisions[vivre] ?? 0) + n };
+  const provisions = embarquerDesVivres(vessel.provisions, vivre, n, get().gameTime);
   set({ vessel: { ...vessel, provisions } });
   return [t('eff.provisionsRations', { n, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) })];
 }
@@ -298,9 +299,11 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   const { difficulty } = resoudreFlowTest(node.test, { cc: condCtx(get) });
   const st = etapeDEquipage(get, type, 'testDEquipage', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
   if (!st) return false;
+  // MDG 13 l.651
+  const reparation = findCrewTestTypeById(type)?.steering ? reparationTemporaireDuNavire(get, get().travelPlan?.vehicle, st.id) : undefined;
   startCascade(get, set, {
     title: label, icon: 'voyage/ancre', purpose: 'test',
-    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.reussite, onFail: node.echec, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }],
+    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.reussite, onFail: node.echec, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }, ...(reparation ? [reparation] : [])],
   });
   return true;
 }
