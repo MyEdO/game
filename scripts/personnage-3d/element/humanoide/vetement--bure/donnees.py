@@ -52,14 +52,9 @@ CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.12, 0.014, 0.0), ('aisselle', -0.
 # anneau reste sous la ceinture publiée, que la cordelière remplace. Le ventre rond est celui du corps sous `corpulence`
 # (preset `pretre`, build 0,8), que la bure suit par ses clés.
 
-# --- Jupe : rangées horizontales sous le corsage, cône évasé depuis la ligne des hanches ---
+# --- Jupe : rangées horizontales sous le corsage, posées et pondérées sur le filet `jupe` de la base (`tissu.Filet`) ---
 Z_HANCHES = 0.90                   # base (robe)
 AISANCE_HANCHES = 0.04             # robe
-EVASEMENT_DEVANT = 1.8             # robe : de face, l'ourlet de l'illustration fait ~1,4 fois la largeur du ventre dessiné,
-                                   # bien plus que celle des hanches de la base
-EVASEMENT_ARRIERE = 3.0            # HYPOTHÈSE (dos non montré) : le cône arrière de la robe (2,8 à 0,19 m) au même rayon à
-                                   # mi-mollet sous un ourlet plus bas ; à 2,8, le mollet reculé d'Idle_Loop perçait le dos
-                                   # de la bure (rendu ; le mollet, non couvert, n'est pas mesuré par la garde `traversee`)
 OURLET_ROBE = 0.12                 # illustration : les pointes des lambeaux de l'ourlet à ~1025 px, 53 px au-dessus des plantes
                                    # (au-dessus de la cheville : tête de `foot_*` à 0,096 m, base) ; les pieds nus dessous
 LAMBEAUX_ROBE = {'profondeur': 0.08, 'creux': 0.15, 'graine': 'humanoide--vetement--bure'}
@@ -68,10 +63,6 @@ LAMBEAUX_ROBE = {'profondeur': 0.08, 'creux': 0.15, 'graine': 'humanoide--veteme
 RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60, 0.44, 0.28]   # hauteurs des rangées intermédiaires, m (HYPOTHÈSE de maillage)
 OUVERTURE_TAILLE = 0.0             # illustration : la bure est fermée devant
 OUVERTURE_OURLET = 0.0
-
-# --- Poids de la jupe : chaîne `jupe` de la base, secteurs et part des brins de `vetement--robe/donnees.py` ---
-ROTATION_RELATIVE_MAX = 120.0      # robe
-MARGE_DE_PLI = 0.8                 # robe
 
 # --- Manches : anneaux perpendiculaires à `upperarm` (fraction de l'os, aisance, pan) ; sens dans
 # `vetement--robe/donnees.py` ---

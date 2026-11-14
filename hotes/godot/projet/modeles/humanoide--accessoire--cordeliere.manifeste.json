@@ -17,20 +17,20 @@
   ],
   "emplacements": {
     "ceinture_avant": {
-      "os": "pelvis",
+      "os": "jupe_avant_01",
       "position": [
-        -0.000001,
-        0.098302,
-        0.169802
+        -0.000056,
+        0.142264,
+        0.022697
       ],
       "rotation": [
-        -0.285699,
+        -0.127848,
         0,
-        0
+        -3.141593
       ],
       "poids": {
-        "pelvis": 0.7901,
-        "spine_01": 0.2099
+        "jupe_avant_01": 0.971,
+        "jupe_avant_avant_g_01": 0.029
       }
     }
   },
@@ -41,7 +41,7 @@
     }
   ],
   "glb": {
-    "sha256": "f083ff5e74f40df3174c16a3a67591654feb87e43d275580a760308b957418d5",
-    "octets": 192412
+    "sha256": "95c3e2231a93121491c7f700d68fb816fcbee3e96a9eca3c106d7ab6102fb0c6",
+    "octets": 211212
   }
 }
