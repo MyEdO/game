@@ -84,6 +84,8 @@ export interface ReponsesCommunes {
   modeles: unknown;
   /** Les préférences de confort par défaut. */
   preferences: unknown;
+  /** Les zones du salon, sans entrée. */
+  salon: unknown;
 }
 
 /** L'entrée de `morceaux` qui demande à la partie chaque clé du manifeste `monde` (la réponse de `monde`). */
@@ -187,7 +189,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     const reponse = (methode: string, entree: unknown = null): unknown => JSON.parse(pont.appeler(methode, entree === null ? null : JSON.stringify(entree)));
     const communes = (): ReponsesCommunes => {
       const monde = reponse('monde') as MondeDuPont;
-      return { monde, morceaux: reponse('morceaux', toutesLesCles(monde)), modeles, preferences: reponse('preferences') };
+      return { monde, morceaux: reponse('morceaux', toutesLesCles(monde)), modeles, preferences: reponse('preferences'), salon: reponse('salon') };
     };
     const planche = (nom: string, titre: string, s: Suite): Planche => ({
       nom, titre,
