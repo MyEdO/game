@@ -584,7 +584,7 @@ export const CHAMPS_DE_DECISION = ['gate', 'difficultyBy', 'easierIf'] satisfies
 /** Un champ de `CHAMPS_DE_DECISION`. */
 export type ChampDeDecision = (typeof CHAMPS_DE_DECISION)[number];
 
-/** Un `FlowTest` que son PORTEUR fixe (`fixerLeTest`, `grammaire/mecanique.ts`) : les champs `K` exigés,
+/** Un `FlowTest` que son PORTEUR fixe (`porteurDeTestFixe`, `grammaire/mecanique.ts`) : les champs `K` exigés,
  *  aucune décision. */
 export type JetFixe<K extends 'skill' | 'difficulty' = never> = Omit<FlowTest, ChampDeDecision> & Required<Pick<FlowTest, K>>;
 
@@ -913,7 +913,7 @@ export function testFlow<E = EffectOp>(test: FlowTest, success: Flow<E>, fail: F
  * `maladies.json`) et escalade de séquelle (`Trauma.critTrigger`, nœud de RUNTIME — porté par
  * l'instance de Trauma, hors cardinal authoré).
  */
-export function poserEnjeu(test: FlowTest, stake: StakeRef | undefined): FlowTest {
+export function poserEnjeu<T extends FlowTest>(test: T, stake: StakeRef | undefined): T {
   if (test.stake || !stake) return test;
   return { ...test, stake };
 }

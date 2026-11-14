@@ -47,11 +47,13 @@ import { resolveFormula, applyActiveEffect } from './ops';
 import { removeActiveEffects } from './conditions';
 import { valeurSansTirage, type LectureDeCarac, type Referent } from './formule';
 import traumasJson from '../data/traumas.json';
+import { datasetDe, type EntreeDe } from '../data/datasets';
+import type * as traumasDef from '../data/schemas/defs/traumas';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
 
-export type TraumaKind = 'dechirure' | 'fracture';
-export type TraumaSeverity = 'mineur' | 'majeur';
+export type TraumaKind = NonNullable<TraumaFiche['kind']>;
+export type TraumaSeverity = NonNullable<TraumaFiche['severity']>;
 
 const LEG: HitLocation[] = ['jambeG', 'jambeD'];
 
@@ -81,59 +83,15 @@ export function plaieDAmputation(location: HitLocation): SequelleNeuve {
 }
 
 /**
- * Règle de COMPTAGE/AGRÉGATION d'une séquelle CUMULATIVE, déclarée sur SON entrée de `traumas.json` —
- * LDB 18 l.247 (dents), l.251 (doigts), l.273 (œil), l.277 (oreille), l.281 (orteils). Le moteur
- * (`permanentAmputations`, `consolidateAmputations`) applique la règle DÉCLARÉE : il n'énumère aucune
- * séquelle par id.
- */
-export interface TraumaCumul {
-  /** Regroupement des occurrences : par Localisation (LDB 18 l.251 « cette main », l.281 orteils — le
-   *  membre reste identifiable à l'écran) ou sur le PORTEUR (l.247 dents, l.273/277 organes pairés).
-   *  La QUANTITÉ perdue, elle, n'est pas ici : elle est portée par la LIGNE de Critique
-   *  (`Amputation.unites`, « Perdez 1d10 dents »). */
-  portee: 'localisation' | 'porteur';
-  /** Ops appliquées PAR PALIER de `taille` unités : leur amplitude (`mod`) est multipliée par le
-   *  nombre de paliers atteints (`floor(total / taille)`). */
-  parPalier?: { taille: number; ops: OpPassive[] };
-  /** Seuil au-delà duquel la séquelle `versTraumaId` s'applique — `remplace` (LDB 18 l.251) retire les
-   *  occurrences comptées, `ajoute` (l.273/277) les conserve. */
-  escalade?: { atLeast: number; versTraumaId: string; mode: 'remplace' | 'ajoute' };
-}
-
-/**
  * Fiche de Traumatisme (registre `traumas.json`, app-owned) : mécanique = `ops` (OpPassive[]), `desc` =
  * texte canon LDB 18 VERBATIM (DISPLAY-ONLY, jamais parsé). Couvre déchirures/fractures par localisation
  * et toutes les séquelles permanentes d'amputation (+ Cécité/Surdité agrégées). `kind`/`severity` portés
  * pour la convalescence à étapes ; `prosthesis` = annulateurs (LDB 73).
  */
-export interface TraumaFiche {
-  id: string;
-  type: 'traumas';
-  label: string;
-  desc: string;
-  ops?: OpPassive[];
-  kind?: TraumaKind;
-  severity?: TraumaSeverity;
-  prosthesis?: Trauma['prosthesis'];
-  /** Séquelle CUMULATIVE : sa règle de comptage/agrégation, en donnée (LDB 18 l.247/251/273/277/281). */
-  cumul?: TraumaCumul;
-  needsSurgery?: boolean;
-  /** Séquelle COSMÉTIQUE (cicatrice) : n'est PAS une Blessure critique comptée (`criticalWounds`) — cf. `Trauma.cosmetic`. */
-  cosmetic?: boolean;
-  /** Séquelle d'AMPUTATION/perte de membre-organe (LDB 18 l.239-285) — tag STABLE distinguant les
-   *  pénalités « qui découlent d'amputations » (LDB 85 l.195, cf. `painlessIgnores`) de toute autre
-   *  pénalité de Blessure critique. Porté par la FICHE (`Trauma` n'a pas de champ propre) — relu via
-   *  `t.traumaId` par `isAmputationTrauma`. */
-  amputation?: boolean;
-  /** Surcharge du `kind` passif (défaut : `traumaOpKind`) — cf. `Trauma.passiveKind`. */
-  passiveKind?: import('./ops').PassiveKind;
-  /** Note MAISON (règle stricte 7) — trace éditable d'un arbitrage d'un point que le RAW laisse au contexte
-   *  (« certains Tests sociaux » / « en fonction du contexte »). DISPLAY/DOC only, jamais lu pour la mécanique. */
-  maison?: string;
-}
+export type TraumaFiche = EntreeDe<typeof traumasDef>;
 
 /** Les fiches de `traumas.json`, lues ici seul : le seam (`data/overrides.ts`) les importe. */
-export const TRAUMA_FICHES = traumasJson as TraumaFiche[];
+export const TRAUMA_FICHES = datasetDe<typeof traumasDef>(traumasJson);
 const ficheById = indexParId('traumas', TRAUMA_FICHES);
 
 /** Fiche de Traumatisme par id STABLE (`traumas.json`). Lève si l'id est inconnu (réf cassée = bug data). */
@@ -437,7 +395,7 @@ export function amputationCombatPenalty(c: Combatant, weapon: Weapon): number {
   return penalty;
 }
 
-/** Fiches à règle de cumul déclarée (`TraumaCumul`) — l'ordre du registre fixe l'ordre de consolidation. */
+/** Fiches à règle de cumul déclarée (`TraumaFiche['cumul']`) — l'ordre du registre fixe l'ordre de consolidation. */
 const cumulFiches = memoParVersion('traumas', () => TRAUMA_FICHES.filter((f) => f.cumul));
 const IS_CUMUL = (t: Trauma): boolean => cumulFiches().some((f) => f.id === t.traumaId);
 

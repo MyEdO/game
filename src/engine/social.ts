@@ -88,7 +88,8 @@ export function statusMeets(actual: Status, atLeast: string): boolean {
 }
 
 /** La table Capricieux VIVANTE (MSRC 15 l.149-159) — la collection que le Codex édite (`tableauCapricieux`, `data/overrides.ts`). */
-export const TABLE_DU_CAPRICIEUX = rangeesDe<typeof capricieux>(capricieuxJson);
+type LigneDuCapricieux = RangeeDe<typeof capricieux>;
+export const TABLE_DU_CAPRICIEUX: LigneDuCapricieux[] = rangeesDe<typeof capricieux>(capricieuxJson);
 /** Le dé de la table Capricieux, lu sur sa table. */
 export const deDuCapricieux = () => deDeTirageDe<typeof capricieux>(capricieuxJson);
 
@@ -99,10 +100,11 @@ export function tirerLeCapricieux(rng: RNG): { roll: number; dr: number } {
 }
 
 /** La table de Réaction au Statut VIVANTE (LDB 08 l.38-46) — la collection que le Codex édite (`reactionAuStatut`). */
-export const TABLE_DE_REACTION_AU_STATUT = rangeesDe<typeof reactionAuStatut>(reactionAuStatutJson);
+type LigneDeReactionAuStatut = RangeeDe<typeof reactionAuStatut>;
+export const TABLE_DE_REACTION_AU_STATUT: LigneDeReactionAuStatut[] = rangeesDe<typeof reactionAuStatut>(reactionAuStatutJson);
 
 /** L'issue d'un tirage de Réaction au Statut. */
-export type IssueDeReaction = RangeeDe<typeof reactionAuStatut>['issue'];
+export type IssueDeReaction = LigneDeReactionAuStatut['issue'];
 
 /** Un tirage sur la table de Réaction au Statut (LDB 08 l.40-46) : l'issue de sa rangée. PUR. */
 export function tirerLaReactionAuStatut(rng: RNG): IssueDeReaction {

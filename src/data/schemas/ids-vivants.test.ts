@@ -11,7 +11,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { setDataset, datasetArray } from '../overrides';
 import { validateDataset } from './validate';
-import propsJson from '../props.json';
+import { props } from '../index';
 import type { MaterialEntry } from '../materials.types';
 
 const NEUVE = {
@@ -29,10 +29,10 @@ afterEach(() => { setDataset('materials', AVANT as never); });
 
 /** Le document `props.json` réel, dont la 1ʳᵉ primitive volumique référence la matière `id`. */
 function propsAvecMatiere(id: string): unknown {
-  const doc = structuredClone(propsJson) as { volume?: { primitives?: { material?: string }[] } }[];
+  const doc = structuredClone(props);
   const cible = doc.flatMap((p) => p.volume?.primitives ?? []).find((prim) => prim.material !== undefined);
   expect(cible, 'aucune primitive de `props.json` ne référence de matière — la sonde ne mesure rien').toBeTruthy();
-  cible!.material = id;
+  if (cible) Object.assign(cible, { material: id });
   return doc;
 }
 

@@ -136,8 +136,10 @@ export function documentsDesRacinesVivantes() {
  *     local désigne alors le DOCUMENT (`'vehicles.json'`), jamais une clé devinée du nom de fichier ;
  *   - l'ALIAS NU de niveau module (`const VEHICLES_LIST = vehiclesJson as VehicleData[]`,
  *     `export const IMPERIAL_MONTHS: ImperialMonth[] = calendarMonths`) — il ne copie rien, il donne
- *     un second nom au MÊME tableau vivant. Le nom dérivé hérite du dataset (même contamination par nom
- *     que celle d'`indexFiges`), et les chaînes d'alias suivent, les déclarations étant en ordre. */
+ *     un second nom au MÊME tableau vivant ; la lecture par la porte (`datasetDe<…>(miscastJson)`,
+ *     `rangeesDe<…>(json, …)`) aussi, la porte rendant la racine qu'elle reçoit. Le nom dérivé hérite
+ *     du dataset (même contamination par nom que celle d'`indexFiges`), et les chaînes d'alias
+ *     suivent, les déclarations étant en ordre. */
 export function nomsVivantsDuFichier(chemin, src, parBinding) {
   const noms = new Map();
   for (const m of src.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g)) {
@@ -160,8 +162,9 @@ export function nomsVivantsDuFichier(chemin, src, parBinding) {
     // ANCRÉE aux deux bouts et ses parties libres sont bornées : sur une déclaration-monstre (littéral
     // de milliers de caractères) elle échoue sans backtracking.
     const texte = decl.texte.replace(/\s+/g, ' ').trim();
-    const m = texte.match(/^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)(?:\s*:\s*[^=]{0,200})?\s*=\s*([A-Za-z_$][\w$]*)\s*!?\s*(?:as\s+[^;]{0,200})?;?\s*$/);
-    if (m && noms.has(m[2]) && !noms.has(m[1])) noms.set(m[1], noms.get(m[2]));
+    const m = texte.match(/^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)(?:\s*:\s*[^=]{0,200})?\s*=\s*(?:(?:datasetDe|rangeesDe)\s*<[^;]{0,200}>\s*\(\s*([A-Za-z_$][\w$]*)(?:\s*,[^;)]{0,200})?\s*\)|([A-Za-z_$][\w$]*))\s*!?\s*(?:as\s+[^;]{0,200})?;?\s*$/);
+    const source = m && (m[2] ?? m[3]);
+    if (source && noms.has(source) && !noms.has(m[1])) noms.set(m[1], noms.get(source));
   }
   return noms;
 }

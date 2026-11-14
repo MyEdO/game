@@ -19,8 +19,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "Le suivi des Activités de disculpation n'est pas modélisé en fx — se rejoue en narration/journal."
+      }
     },
     {
       "id": "encheres-esoteriques",
@@ -32,8 +31,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "L'achat du livre et son bonus aux Recherches ne sont pas modélisés en fx — se rejoue en narration/journal."
+      }
     },
     {
       "id": "trahison",
@@ -57,8 +55,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "Le Test de Dressage pour rattraper la monture n'est pas modélisé en fx — se rejoue en narration/journal."
+      }
     },
     {
       "id": "eh-tu-as-renverse-ma-pinte",
@@ -182,8 +179,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "Le malus social et la hausse du prix des aliments ne sont pas modélisés en fx pour la prochaine aventure — se rejoue en narration/journal."
+      }
     },
     {
       "id": "meteo-radieuse",
@@ -225,8 +221,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "Le Flux Sanglant n'existe pas au registre des maladies (V1) — Test et maladie se rejouent en narration/journal."
+      }
     },
     {
       "id": "complications-monstrueuses",
@@ -334,8 +329,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "L'Activité « Dernières nouvelles » n'existe pas au catalogue (V2) — se rejoue en narration/journal."
+      }
     },
     {
       "id": "animal-domestique-malade",
@@ -347,8 +341,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "Le Test de Soin aux animaux et ses conséquences ne sont pas modélisés en fx — se rejoue en narration/journal."
+      }
     },
     {
       "id": "mise-a-sac",
@@ -409,8 +402,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "Le Test de Charme et la némésis résultante ne sont pas modélisés en fx — se rejoue en narration/journal."
+      }
     },
     {
       "id": "suspect",
@@ -453,8 +445,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "Le don (objet ou bourse, et son éventuel piège) n'est pas modélisé en fx — se rejoue en narration/journal."
+      }
     },
     {
       "id": "mercenaires-particuliers",
@@ -466,8 +457,7 @@
         "book": "livre-de-base",
         "page": 193,
         "note": "Tableau des Événements, LDB 22 (table pp.193-194)"
-      },
-      "atelierNote": "La réduction de coût d'Entraînement/Apprentissage et le bonus d'Entraînement au combat ne sont pas modélisés en fx — se rejoue en narration/journal."
+      }
     }
   ]
 }

@@ -1,5 +1,6 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
+import { idDeFixture } from '../../../data/idDeFixture.testkit';
 import { scenarioEntities } from '../../../scenes/opera/furnished';
 import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
 import { findPropById } from '../../../data';
@@ -272,7 +273,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
    * de le laisser sortir en pixels.
    */
   it('chaque instance authorée d’un décor volumique couvre, à l’échelle RÉELLE de sa scène, les cases du catalogue', () => {
-    const volumiques = new Set(IDS);
+    const volumiques = new Set<string>(IDS);
     const instances = entitesAuthorees().filter((e) => e.kind === 'prop' && e.decor !== undefined && volumiques.has(e.decor.id));
     expect(gisementsDe(instances), SANS_GISEMENT).toEqual(GISEMENTS);
     const ecarts = instances.filter((e) => {
@@ -293,7 +294,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
    * volumique ne prendra jamais de cap diagonal.
    */
   it('aucune instance authorée d’un décor VOLUMIQUE ne porte un cap DIAGONAL', () => {
-    const volumiques = new Set(IDS);
+    const volumiques = new Set<string>(IDS);
     const instances = entitesAuthorees().filter((e) => e.kind === 'prop' && e.decor !== undefined && volumiques.has(e.decor.id));
     expect(gisementsDe(instances), SANS_GISEMENT).toEqual(GISEMENTS);
     expect(instances.filter((e) => e.facing && !DIR4_ORDER.includes(e.facing as Dir4))
@@ -421,7 +422,7 @@ describe('décor volumique — chaque face regarde le DEHORS, de la recette au m
     'cylindre à %i côtés, axe %s : ses `sides` faces latérales, et le compte attendu sur l’arête de couteau',
     (sides, axis) => {
       const primitive: PropPrimitive = { kind: 'cylinder', center: { xM: 0, yM: 0, hM: 0.3 }, axis, radiusM: 0.3, longueurM: 0.5, sides: sides as PropCylinderSides, material: 'fer-noirci' };
-      const prop: PropData = { id: 'cylindre-epreuve', type: 'props', label: 'Cylindre d’épreuve', volume: { capIdentite: CAP_IDENTITE_PROP, primitives: [primitive] } };
+      const prop: PropData = { id: idDeFixture('prop', 'cylindre-epreuve'), type: 'props', label: 'Cylindre d’épreuve', volume: { capIdentite: CAP_IDENTITE_PROP, primitives: [primitive] } };
       // L'axe en convention three (X = est, Y = haut, Z = sud), tiré de la MÊME table que la géométrie.
       const d = REPERE_D_AXE[axis](0, 0, 1);
       const axe = { x: d.xM, y: d.hM, z: d.yM };

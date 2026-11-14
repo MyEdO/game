@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import trappings from './trappings.json';
+import { trappings } from './index';
 import { replier } from '../lib/ordre.mjs';
 
 const DATA_DIR = __dirname;
@@ -36,11 +36,9 @@ function key(label: string): string {
   return replier(label).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-type Trapping = { id: string; label: string; formChoices?: string[] };
-
 const CATALOG = new Map<string, string>(); // clé de libellé → id de catalogue
 const FORMS = new Map<string, { id: string; form: string }>(); // clé d'une FORME de famille → entrée porteuse
-for (const t of trappings as Trapping[]) {
+for (const t of trappings) {
   if (!CATALOG.has(key(t.label))) CATALOG.set(key(t.label), t.id);
   // `formChoices` (ids de forme, ex. 'marteau_guerre') : la donnée DIT elle-même quelles armes
   // concrètes une entrée générique couvre — c'est la source du 2ᵉ signal, jamais une liste écrite ici.

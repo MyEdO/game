@@ -10,7 +10,8 @@
  *  - une Activité SANS Test n'en porte AUCUN (pas de zone d'enjeu muette au pied du volet).
  */
 import { describe, it, expect } from 'vitest';
-import { ACTIVITIES, activityRolls } from '../engine/activities';
+import { activityRolls } from '../engine/activities';
+import { ACTIVITIES } from './index';
 import {
   resolveStake, activityStakeRef, hasActivityStake,
   regles, skills, symptoms, etats, talents, qualities, spells, characteristics, psychologies,
@@ -37,7 +38,7 @@ describe('cliquet — une Activité à JET dit son ENJEU (#1117 L3)', () => {
   });
 
   it('toute Activité JOUABLE qui lance porte son enjeu (stock restant EXACTEMENT celui énuméré)', () => {
-    const sans = jouables.filter((a) => !a.stake).map((a) => a.id).sort();
+    const sans: string[] = jouables.filter((a) => !a.stake).map((a) => a.id).sort();
     const neufs = sans.filter((id) => !(id in SANS_ENJEU));
     expect(neufs, 'Activité à jet SANS enjeu — le joueur doit savoir ce que son Test met en jeu (`stake`, activities.json)').toEqual([]);
     const perimes = Object.keys(SANS_ENJEU).filter((id) => !sans.includes(id));

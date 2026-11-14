@@ -4,56 +4,22 @@
  * Le tirage du d100 et l'application des effets restent à l'appelant (boucle de voyage).
  */
 import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
-import type { Tirage } from './dice';
-import type { StageOutcome } from './activities';
-import type { JetFixe } from './flowCore';
 import incidentsMonteJson from '../data/incidents-monture.json';
 import problemesVehiculeJson from '../data/problemes-vehicule.json';
 import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as incidentsDeMonte from '../data/schemas/defs/incidents-monture';
 import type * as problemesDeVehicule from '../data/schemas/defs/problemes-vehicule';
 import rencontresJson from '../data/rencontres-edoc.json';
+import { datasetDe } from '../data/datasets';
+import type * as rencontresDef from '../data/schemas/defs/rencontres-edoc';
+import type * as mecanique from '../data/schemas/grammaire/mecanique';
+import type { z } from 'zod';
 
-/** Suite MÉCANIQUE d'un Incident de MONTE (`incidents-monture.json`, EDOC 07 l.157-174) DÉCLARÉE par
- *  l'entrée : ce que le cavalier risque au moment de l'incident, et la SÉQUELLE que la bête garde.
- *  Lue par `engine/mountTravel.ts` (résolution, allure effective, montabilité) et par le flux de
- *  voyage (soins d'étape) — jamais déduite de l'id de l'entrée. */
-export interface MountIncidentEffects {
-  /** Test du CAVALIER, sous peine d'une chute de `fallM` mètres (l.166/l.171). */
-  riderTest?: { test: JetFixe; fallM: number };
-  /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
-  ridingPenalty?: number;
-  /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */
-  forcedAllure?: 'pas' | 'trot' | 'galop';
-  /** La bête ne peut plus être montée ni attelée (Boiteux, Patte brisée). */
-  preventsMount?: boolean;
-  /** Les soins d'une halte n'effacent PAS cette séquelle (Patte brisée). */
-  notHealedByCare?: boolean;
-  /** CONDITION DE FIN posée par le `text` verbatim de l'entrée (« jusqu'à réparation de la sellerie »,
-   *  « jusqu'au remplacement du fer par un maréchal-ferrant ») — fragment d'AFFICHAGE accolé à la ligne
-   *  de séquelle par le gabarit du catalogue, jamais une mécanique. */
-  endCondition?: string;
-  /** ISSUE de la bête quand le `desc` verbatim en pose une (Patte brisée) — fragment d'AFFICHAGE. */
-  outcome?: string;
-}
-
-/** Entrée d'une table de voyage : fourchette d100 `[min,max]` (00 = 100) + libellé/texte RAW.
- *  `stageOutcome` : effet de portée Étape (cf. `StageOutcome`). `vehicleWounds` : Dégâts au VÉHICULE
- *  (`Combatant` à coque), tirés — premier crochet du véhicule-à-PV. */
-export interface TravelTableEntry {
-  min: number;
-  max: number;
-  id: string;
-  label: string;
-  desc: string;
-  /** Incidents de MONTE seuls : la séquelle et le risque déclarés par l'entrée. */
-  mount?: MountIncidentEffects;
-  stageOutcome?: StageOutcome;
-  vehicleWounds?: Tirage | null;
-  /** Dégâts aux OCCUPANTS du véhicule, en langue unique `GameOp` (EDOC 07 : Cassé = 1 Blessure ignorant
-   *  BE et PA ; Accident = 2d10 Blessures modifiées par BE et PA, min 1). Appliqués par le flux de voyage. */
-  occupantOps?: import('./ops').GameOp[];
-}
+/** Entrée d'une table de voyage (EDOC 07, EDOC 08) : sa fourchette d100, et ses suites (`mount`, `stageOutcome`,
+ *  `vehicleWounds`, `occupantOps`). */
+export type TravelTableEntry = z.output<(typeof mecanique)['travelTableEntrySchema']>;
+/** Suite MÉCANIQUE d'un Incident de MONTE (EDOC 07 l.157-174), lue par `engine/mountTravel.ts`. */
+export type MountIncidentEffects = NonNullable<TravelTableEntry['mount']>;
 
 /** Incidents de monte (EDOC 07 l.150-155). */
 export const MOUNT_INCIDENTS: TravelTableEntry[] = rangeesDe<typeof incidentsDeMonte>(incidentsMonteJson);
@@ -78,15 +44,15 @@ export function rollVehicleProblem(roll: number): TravelTableEntry {
 }
 
 /** Catégorie de Rencontre de voyage (EDOC 8 l.186-233) — déclenchée par la qualité du Test d'Activité. */
-export type EncounterCategory = 'positives' | 'fortuites' | 'dangereuses';
+export type EncounterCategory = keyof (typeof RENCONTRES)['tables'];
 
-const ENCOUNTERS = (rencontresJson as { tables: Record<EncounterCategory, TravelTableEntry[]> }).tables;
+const RENCONTRES = datasetDe<typeof rencontresDef>(rencontresJson);
 /** Dé AUTHORÉ des Rencontres (`rencontres-edoc.json`, `die`), partagé par ses trois tables, lu VIVANT à l'appel. */
-export const encounterDie = (): DeDeTable => deDeLaTableTiree(rencontresJson);
+export const encounterDie = (): DeDeTable => deDeLaTableTiree(RENCONTRES);
 
 export function encounterTable(category: EncounterCategory): TravelTableEntry[] {
-  return ENCOUNTERS[category];
+  return RENCONTRES.tables[category];
 }
 export function rollEncounter(category: EncounterCategory, roll: number): TravelTableEntry {
-  return findTableEntry(ENCOUNTERS[category], roll);
+  return findTableEntry(RENCONTRES.tables[category], roll);
 }

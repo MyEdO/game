@@ -33,7 +33,7 @@ import { bakerLesScenes, scenesDeLaDiligence } from './versionDataset.fixture';
  *  appelés à la MÊME profondeur — sans quoi la comparaison porterait sur une trame d'appel. */
 const cles = props.map((p) => p.id);
 const vivant = indexParId('props', props);
-const FIGE = new Map(props.map((p) => [p.id, p] as const));
+const FIGE = new Map<string, (typeof props)[number]>(props.map((p) => [p.id, p]));
 const fige = (id: string) => FIGE.get(id);
 
 /** Lectures par itération de banc : assez pour que la boucle domine le coût d'appel du banc. */

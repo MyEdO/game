@@ -43,7 +43,10 @@
  * `noyau/monde/volume/propVolumes.test.ts`.
  */
 import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../geometry/dir8';
+import type { z } from 'zod';
 import type { PropMaterialData } from './materials.types';
+import type { EntreeDe } from './datasets';
+import type * as propsDef from './schemas/defs/props';
 
 /**
  * Le CAP d'un décor volumique, résolu. Une entité sans `facing` vaut `S` : le défaut du monde, et le
@@ -103,13 +106,10 @@ export function rotatePropLocal(x: number, y: number, facing: Dir8): [number, nu
 export const capDecorAdmis = (estVolumique: boolean, facing: Dir8 | undefined): boolean =>
   !estVolumique || !facing || estCardinal(facing);
 
-/** Id d'une matière de décor — une entrée de `materials.json` de domaine `prop`. */
-export type PropMaterialId = string;
-
 /** Point du repère local d'une recette — MÈTRES sur les trois axes (cf. la RÈGLE D'UNITÉ, en tête). */
-export interface PropPoint3 { xM: number; yM: number; hM: number }
+export type PropPoint3 = z.output<typeof propsDef.propPoint3Schema>;
 /** Dimensions dans le repère local d'une recette — MÈTRES sur les trois axes. */
-export interface PropSize3 { xM: number; yM: number; hM: number }
+export type PropSize3 = z.output<typeof propsDef.propSize3Schema>;
 
 /** Côtés admis d'un cylindre. 12 est EXCLU : ses faces latérales tombent sur l'arête de couteau du
  *  modelé de forme (4 normales à ±45°, `noyau/monde/volume/worldTris:shadeFamily` départage alors des
@@ -131,27 +131,15 @@ export const REPERE_D_AXE: Readonly<Record<PropCylinderAxis, (a: number, b: numb
 /** Les axes admis — les clés de `REPERE_D_AXE`, seule source (schéma et validateur la lisent). */
 export const PROP_CYLINDER_AXES = Object.keys(REPERE_D_AXE) as readonly PropCylinderAxis[];
 
-/**
- * FOYER d'un décor qui éclaire : la primitive de sa recette d'où part la lumière (le lit de braises
- * d'un âtre, la coupelle d'une bougie). UNE au plus par recette (`validatePropCatalog`) — une source
- * ponctuelle a un seul foyer. Le rendu en tire la POSITION MONDE de la lampe (`noyau/monde/vision.ts`
- * `mapLights` → `LightSource.foyer`), au lieu de la poser à l'aplomb de la case : elle suit donc la
- * géométrie, cap compris. Sans `emet`, le rendu applique sa hauteur par défaut (`FLAME_LIFT_M`).
- * `true` seul est admis : `emet: false` dirait la même chose que l'absence, en une seconde graphie.
- */
-type PrimitiveEmettrice = { emet?: true };
+/** Volume élémentaire d'une recette : caisse droite, cylindre à N faces, ou prisme en pente ; `emet` en fait le FOYER
+ *  d'un décor qui éclaire (une primitive au plus par recette, `validatePropCatalog`). */
+export type PropPrimitive = z.output<typeof propsDef.propPrimitiveSchema>;
+/** Id d'une matière de décor — une entrée de `materials.json` de domaine `prop`. */
+export type PropMaterialId = PropPrimitive['material'];
 
-/** Volume élémentaire d'une recette : caisse droite, cylindre à N faces, ou prisme en pente. */
-export type PropPrimitive =
-  | ({ kind: 'box'; center: PropPoint3; size: PropSize3; material: PropMaterialId } & PrimitiveEmettrice)
-  | ({ kind: 'cylinder'; center: PropPoint3; axis: PropCylinderAxis; radiusM: number; longueurM: number; sides: PropCylinderSides; material: PropMaterialId } & PrimitiveEmettrice)
-  | ({ kind: 'prism'; center: PropPoint3; size: PropSize3; slope: 'x+' | 'x-' | 'y+' | 'y-'; material: PropMaterialId } & PrimitiveEmettrice);
-
-/** Recette volumique d'un prop : la liste de ses primitives, dans le repère local.
- *  `capIdentite` DÉCLARE ce repère — le cap auquel la recette sort telle qu'écrite. Une seule valeur
- *  est admise (`CAP_IDENTITE_PROP`), et elle est REQUISE : le repère d'une géométrie ne se déduit pas
- *  d'un commentaire, et une recette écrite sous un autre repère ne peut pas entrer en silence. */
-export interface PropVolumeRecipe { capIdentite: typeof CAP_IDENTITE_PROP; primitives: PropPrimitive[] }
+/** Recette volumique d'un prop : ses primitives dans le repère local, et le cap (`CAP_IDENTITE_PROP`) auquel elle sort
+ *  telle qu'écrite. */
+export type PropVolumeRecipe = PropData['volume'];
 
 // ————————————————————————————————————————————————————————————————
 // GÉOMÉTRIE LOCALE d'une primitive — UNE définition, deux consommateurs
@@ -345,7 +333,7 @@ export function aretesNonAppariees(polys: readonly (readonly Sommet3[])[]): { ar
  *  géométrie de la recette et subit la MÊME transformation qu'elle (`noyau/monde/seating.ts` la tourne au cap
  *  puis la divise par le `metresPerTile` de la scène). `approach`, lui, est un offset de CASE voisine —
  *  un pas de grille, pas une longueur : il ne se divise par rien. */
-export interface PropSeatSlot { id: string; anchor: PropPoint3; facing: Dir8; approach: { x: number; y: number } }
+export type PropSeatSlot = NonNullable<PropData['seatSlots']>[number];
 
 /** Matière de rendu d'une primitive : une entrée de `materials.json` de domaine `prop`. */
 export type { PropMaterialData };
@@ -358,23 +346,7 @@ export type { PropMaterialData };
  * Ligne de Vue/couvert (`lineOfSight`), la lumière (`vision`) et le monde volumique. Édité au Codex.
  * Un prop ABSENT du dataset = passable, transparent, sans couvert, sans lumière et sans empreinte.
  */
-export interface PropData {
-  id: string;
-  type: 'props';
-  /** Nom d'auteur du décor, seule source du libellé : la def d'ART du même id n'en porte pas. */
-  label: string;
-  /** Décor fouillable : l'éditeur pré-arme son action `fouiller` à la pose (`propRefPatch`). */
-  searchable?: boolean;
-  solid?: boolean;
-  opaque?: boolean;
-  cover?: 'imparfaite' | 'moyenne' | 'totale';
-  /** Source lumineuse : `radiusM` = le rayon éclairé en MÈTRES, la valeur RAW telle qu'elle est écrite
-   *  (LDB 74 l.43/58). Le LECTEUR le divise par le `metresPerTile` de la scène pour en faire les cases
-   *  d'une `LightSource` (`noyau/monde/vision.ts`, `rayonEnCases`). */
-  light?: { radiusM: number; tone?: string };
-  volume: PropVolumeRecipe;
-  seatSlots?: PropSeatSlot[];
-}
+export type PropData = EntreeDe<typeof propsDef>;
 
 /** L'empreinte d'un décor que le catalogue ne RÉSOUT pas (#877) : sa seule case. */
 const UNE_CASE: { w: number; h: number } = { w: 1, h: 1 };

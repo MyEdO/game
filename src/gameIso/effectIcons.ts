@@ -19,7 +19,7 @@ import {
   conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
   creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
 } from '../data';
-import { ACTIVITIES } from '../engine/activities';
+import { ACTIVITIES } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { deElide } from '../i18n';
 import { MISCAST_TABLES, categorieDesLignesDeLaTable } from '../engine/miscast';

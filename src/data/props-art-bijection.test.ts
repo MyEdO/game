@@ -11,12 +11,11 @@ import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
-import propsJson from './props.json';
+import { props } from './index';
 import { fileURLToPath } from 'node:url';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 const DECOR_DEFS_DIR = 'src/gameIso/catalog/decor/defs';
-const entrees = propsJson as { id: string }[];
 
 /** Les ids des defs d'ART : un fichier `<id>.ts` du répertoire des defs, hors tests. */
 const idsDArt = (): string[] =>
@@ -28,7 +27,7 @@ const idsDArt = (): string[] =>
 describe('décor — BIJECTION entre les defs d’art et les entrées de props.json', () => {
   it('chaque def d’ART a son `PropData`, et chaque `PropData` sa def d’art', () => {
     const art = idsDArt();
-    const donnee = entrees.map((p) => p.id).sort();
+    const donnee: string[] = props.map((p) => p.id).sort();
     expect(art.length, 'aucune def d’art lue : ce contrat mesurerait du néant').toBeGreaterThan(100);
     const dansLaDonnee = new Set(donnee);
     const dansLArt = new Set(art);

@@ -5,7 +5,7 @@ import { document } from '../grammaire/document';
 import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import { formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { ref, refOuSpec } from '../grammaire/ref';
-import { deitySkillPickSchema, exigerDuTest, flowTestSchema, MESSAGE_DUREE_DE_DIVINITE, refDEtatSchema } from '../grammaire/mecanique';
+import { deitySkillPickSchema, flowTestSchema, MESSAGE_DUREE_DE_DIVINITE, porteurDeTestFixe, refDEtatSchema } from '../grammaire/mecanique';
 
 export const file = 'miscast.json';
 export const famille = 'entite';
@@ -77,11 +77,11 @@ const jsonOpSchema = nommerChamps(z.strictObject({
 });
 
 /** `JsonNestedTest` (`engine/miscast.ts`). */
-const jsonNestedTestSchema = nommerChamps(z.strictObject({
+const jsonNestedTestSchema = nommerChamps(porteurDeTestFixe(z.strictObject({
   test: flowTestSchema,
   onFail: z.array(jsonOpSchema),
   onFailHard: nommerChamps(z.strictObject({ dr: z.number(), ops: z.array(jsonOpSchema) }), { dr: { label: 'DR' }, ops: { label: 'opérations' } }).optional(),
-}).superRefine(exigerDuTest('difficulty')), {
+}), 'difficulty'), {
   test: { label: 'Test' },
   onFail: { label: 'échec' },
   onFailHard: { label: 'échec aggravé' },
