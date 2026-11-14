@@ -20,6 +20,9 @@ import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
 import { mesureDuParse } from '../grammaire/ref';
+import { sitesDeLaPortee } from '../grammaire/collection-cle';
+import { OBJETS_DU_PROJET } from '../grammaire/valeurs';
+import { SCENES_DU_PROJET } from './communs';
 
 type Jouet = Record<string, unknown>;
 
@@ -209,6 +212,62 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
     doc.scenes[0].entities[0].usable!.actions[0].flow.effet.apparence = { id: 'cape' };
     const r = projetSchema.safeParse(doc);
     expect((r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`)).sort()).toEqual([...attendues].sort());
+  });
+
+  /** Les sites de `OBJETS_DU_PROJET` d'un projet, lus par `sitesDeLaPortee`, au format des repères. */
+  const sitesDe = (doc: unknown) => sitesDeLaPortee(projetSchema, doc, OBJETS_DU_PROJET).map((s) => [s.chemin.join('.'), s.parCle] as const).sort();
+  const SITES_DE_L_OBJET = POSITIONS.map(([chemin, parCle]) => [chemin.replace('@', objet.id), parCle] as const).sort();
+  type Doc = {
+    narratif: { objets: Record<string, unknown>[]; etats: unknown[] };
+    scenes: { entities: [{ usable: { actions: { flow: { effet: Record<string, unknown> } }[] } }, { appearance: Record<string, unknown> }] }[];
+  };
+
+  it('`sitesDeLaPortee` rend, sur un projet valide, les repères locaux du parse de mesure : mêmes chemins, mêmes `parCle`', () => {
+    const doc = document(objet.id);
+    const reperes = mesureDuParse(projetSchema, doc).reperes.filter((r) => r.type === 'local:narratif.objets').map((r) => [r.path.join('.'), r.parCle] as const).sort();
+    expect(sitesDe(doc)).toEqual(reperes);
+    expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET);
+  });
+
+  it.each([
+    ['un état sans `source`', (doc: Doc): void => void doc.narratif.etats.push({ id: 'etat-neuf', label: 'État neuf', forme: { kind: 'heros' } })],
+    ['une clé en trop dans l’Effet porteur', (doc: Doc): void => void (doc.scenes[0].entities[0].usable.actions[0].flow.effet.bidon = 1)],
+    ['l’objet visé sans `source`', (doc: Doc): void => void delete doc.narratif.objets[0].source],
+  ] as const)('projet fautif (%s) : `sitesDeLaPortee` rend les mêmes sites, sans parse', (_cas, fauter) => {
+    const doc = structuredClone(document(objet.id)) as unknown as Doc;
+    fauter(doc);
+    expect(projetSchema.safeParse(doc).success).toBe(false);
+    expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET);
+  });
+
+  it.each([
+    ['apparencesObjets null', (doc: Doc): void => void (doc.scenes[0].entities[1].appearance.apparencesObjets = null), 2],
+    ['op null', (doc: Doc): void => void (doc.scenes[0].entities[0].usable.actions[1].flow.effet.ops = [null]), 1],
+  ] as const)('valeur malformée (%s) : `sitesDeLaPortee` ne lève pas et la saute', (_cas, malformer, rang) => {
+    const doc = structuredClone(document(objet.id)) as unknown as Doc;
+    malformer(doc);
+    const [chemin, parCle] = POSITIONS[rang];
+    expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET.filter(([c, p]) => c !== chemin.replace('@', objet.id) || p !== parCle));
+  });
+
+  it.each([
+    ['un autre objet de la campagne', 'autre-objet'],
+    ['un id inconnu', 'objet-fantome'],
+  ])('sous un objet de la campagne, l’ouvreur intérieur juge seul (%s) : aucun site, une faute, celle du catalogue', (_cas, vise) => {
+    const doc = structuredClone(document(objet.id)) as unknown as Doc;
+    doc.narratif.objets = [{ ...objet, passive: [{ op: 'giveTrapping', trappingId: vise }] }, objetDeCampagne({ id: 'autre-objet' })];
+    expect(sitesDe(doc)).toEqual(SITES_DE_L_OBJET);
+    const r = projetSchema.safeParse(doc);
+    expect(r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`)).toEqual([
+      `narratif.objets.0.passive.0.trappingId :: « ${vise} » est absent du catalogue des objets (trappings.json).`,
+    ]);
+  });
+
+  it('`sitesDeLaPortee` lit toute portée : les scènes d’un projet commité sont ses repères locaux `scenes`', () => {
+    const doc = versDisque(diligenceProjet);
+    const reperes = mesureDuParse(projetSchema, doc).reperes.filter((r) => r.type === 'local:scenes').map((r) => r.path.join('.')).sort();
+    expect(reperes.length).toBeGreaterThan(0);
+    expect(sitesDeLaPortee(projetSchema, doc, SCENES_DU_PROJET).map((s) => s.chemin.join('.')).sort()).toEqual(reperes);
   });
 });
 

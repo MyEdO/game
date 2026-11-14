@@ -245,19 +245,49 @@ export const collectionDe = (noeud: unknown): MarqueDeCollection | undefined => 
  *  ou d'aucune, la portée déclarée VIDE (un objet hors de tout porteur de la collection). */
 export type SourceDesPortees = 'collections' | 'vide';
 
-/** Les objets construits par `ouvrirPortees`, avec les portées qu'ils ouvrent et la marque de la collection de chacune,
- *  `'vide'` pour une portée déclarée vide. */
-const OUVREURS = new WeakMap<object, ReadonlyMap<PorteeLocale, MarqueDeCollection | 'vide'>>();
+/** Un jugement de la co-descente d'un ouvreur (`ouvrirPortees`), au chemin de DONNÉE `chemin` depuis sa valeur : une référence
+ *  `id` de la portée `portee` (`parCle` : la clé d'un record), admise sans `refus` ; ou la faute `message` d'un contrôle
+ *  sous portée (`controlerSousPortee`). */
+type JugementSousPortee =
+  | { readonly chemin: readonly (string | number)[]; readonly portee: PorteeLocale; readonly id: string; readonly parCle: boolean; readonly refus: string | undefined }
+  | { readonly chemin: readonly (string | number)[]; readonly message: string };
+
+/** Un objet construit par `ouvrirPortees` : la marque de la collection de chaque portée qu'il ouvre (`'vide'` pour une portée
+ *  déclarée vide), et sa co-descente, qui rend les jugements de sa valeur ; `acceptee` y rend l'entrée de la collection que
+ *  son propre nœud accepte, `undefined` sinon. */
+interface Ouvreur {
+  readonly marques: ReadonlyMap<PorteeLocale, MarqueDeCollection | 'vide'>;
+  readonly juger: (valeur: unknown, acceptee: (entree: unknown) => unknown) => readonly JugementSousPortee[];
+}
+
+const OUVREURS = new WeakMap<object, Ouvreur>();
 
 /** Les portées locales qu'ouvre un objet construit par `ouvrirPortees`, aucune pour tout autre nœud. */
-export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (estObjet(noeud) ? [...(OUVREURS.get(noeud)?.keys() ?? [])] : []);
+export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (estObjet(noeud) ? [...(OUVREURS.get(noeud)?.marques.keys() ?? [])] : []);
+
+/** L'objet qui ouvre la portée `portee` (`ouvrirPortees`) parmi les nœuds de `schema` que sa valeur `valeur` ouvre (`ouverts`). */
+const ouvreurDeLaPortee = (schema: unknown, valeur: unknown, portee: PorteeLocale): Ouvreur | undefined =>
+  ouverts([schema], valeur).map((n) => (estObjet(n) ? OUVREURS.get(n) : undefined)).find((o) => o?.marques.has(portee));
 
 /** Les ids qu'admet la portée `portee` sous le schéma `schema`, de valeur `valeur` : ceux des entrées de sa collection,
- *  sous l'objet qui l'ouvre (`ouvrirPortees`) parmi les nœuds de `schema` que sa valeur ouvre (`ouverts`) ; `undefined`
- *  si aucun ne l'ouvre, ou si sa collection n'est pas une liste. SEULE lecture des ids d'une portée, celle du parse. */
+ *  sous l'objet qui l'ouvre (`ouvreurDeLaPortee`) ; `undefined` si aucun ne l'ouvre, ou si sa collection n'est pas une
+ *  liste. SEULE lecture des ids d'une portée, celle du parse. */
 export function idsDeLaPortee(schema: unknown, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined {
-  const marque = ouverts([schema], valeur).map((n) => (estObjet(n) ? OUVREURS.get(n)?.get(portee) : undefined)).find((m) => m !== undefined);
-  return idsSousLaMarque(marque, valeur, portee);
+  return idsSousLaMarque(ouvreurDeLaPortee(schema, valeur, portee)?.marques.get(portee), valeur, portee);
+}
+
+/** Les sites de la portée `portee` sous le schéma `schema`, de valeur `valeur`, telle quelle, fautive ou non : les
+ *  références que l'objet qui l'ouvre (`ouvreurDeLaPortee`) ADMET, par la co-descente même de son jugement au parse ;
+ *  aucun sous un ouvreur intérieur de la même portée. Chacun : la valeur, ou la clé de record (`parCle`, dernier segment
+ *  de `chemin`), `id` d'une entrée de sa collection, au chemin de DONNÉE `chemin` depuis `valeur`. Aucun si rien ne
+ *  l'ouvre. SEULE lecture des sites d'une portée. */
+export function sitesDeLaPortee(
+  schema: unknown,
+  valeur: unknown,
+  portee: PorteeLocale,
+): readonly { readonly chemin: readonly (string | number)[]; readonly id: string; readonly parCle: boolean }[] {
+  return (ouvreurDeLaPortee(schema, valeur, portee)?.juger(valeur, (e) => e) ?? []).flatMap((j) =>
+    'portee' in j && j.portee === portee && j.refus === undefined ? [{ chemin: j.chemin, id: j.id, parCle: j.parCle }] : []);
 }
 
 /** Les ids de la collection de la portée `portee`, de marque `marque`, dans la valeur `valeur` de l'objet qui l'ouvre :
@@ -316,8 +346,10 @@ export function controlerSousPortee<N extends z.ZodType>(noeud: N, portee: Porte
  * Le jugement court même quand une issue de l'arbre avorte les raffinements de l'objet (`when`) : au parse de
  * mesure, le repère d'une feuille `idDe` de l'arbre en est une (`mesureDuParse`), et une référence locale non
  * jugée ne serait pas comptée. Une collection qui n'est pas une liste, refusée par son propre nœud, ne juge
- * aucune référence de sa portée. La co-descente élague toute valeur dont aucun nœud ne mène à une référence
- * d'une portée ouverte (les PORTEURS, relevés à la construction). Sous la source `'vide'`, chaque portée est déclarée
+ * aucune référence de sa portée. La co-descente élague, par portée, toute valeur dont aucun nœud ne mène à une
+ * référence de cette portée (ses PORTEURS, relevés à la construction), et toute valeur dont un nœud est un ouvreur
+ * intérieur de la même portée : ce qu'il porte, lui seul le juge. UNE co-descente rend les jugements du parse et les
+ * sites de la portée (`sitesDeLaPortee`). Sous la source `'vide'`, chaque portée est déclarée
  * VIDE, sans collection : toute référence de l'arbre à l'une d'elles est absente de son catalogue, et une feuille
  * `idDe(…, { portee })` y vaut son catalogue seul (`refusDeLaRefLocale`).
  */
@@ -335,27 +367,66 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
     }),
   );
   const designees = new Set<PorteeLocale>();
-  const porteurs = new Set<unknown>();
+  const porteurs = new Map<PorteeLocale, Set<unknown>>(portees.map((portee) => [portee, new Set()]));
   const parents = new Map<unknown, unknown[]>();
   descendre([objet], ({ noeud }) => {
     const portee = porteeDuJugementLocal(noeud);
-    if (portee !== undefined && marques.has(portee)) {
+    const siens = portee === undefined ? undefined : porteurs.get(portee);
+    if (portee !== undefined && siens) {
       designees.add(portee);
-      porteurs.add(noeud);
+      siens.add(noeud);
     }
     for (const { noeud: enfant } of enfantsDe(noeud)) parents.set(enfant, [...(parents.get(enfant) ?? []), noeud]);
   });
-  for (const porteur of porteurs) for (const parent of parents.get(porteur) ?? []) porteurs.add(parent);
+  for (const siens of porteurs.values()) for (const porteur of siens) for (const parent of parents.get(porteur) ?? []) siens.add(parent);
   for (const portee of portees)
     if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
   const refus = (noeud: unknown, portee: PorteeLocale, id: string, admises: ReadonlyMap<string, unknown>): string | undefined =>
     admises.has(id) ? undefined : refusDeLaRefLocale(noeud, portee, id, marques.get(portee) === 'vide');
-  const ouvreur = objet.superRefine((valeur, ctx) => {
-    if (!estObjet(valeur)) return;
+  const juger = (valeur: unknown, acceptee: (entree: unknown) => unknown): readonly JugementSousPortee[] => {
+    if (!estObjet(valeur)) return [];
     const entrees = new Map(portees.flatMap((portee) => {
       const admises = entreesSousLaMarque(marques.get(portee), valeur, portee);
       return admises ? [[portee, admises] as const] : [];
     }));
+    const jugements: JugementSousPortee[] = [];
+    // Les portées que chaque point juge encore : celles de son parent, hors des ouvreurs intérieurs qui les rouvrent.
+    const actives = new Map<PointDeDonnee, readonly PorteeLocale[]>();
+    coDescendre(objet, valeur, (point) => {
+      const { noeuds, valeur: id, chemin, parent } = point;
+      const rouvertes = parent ? noeuds.flatMap(porteesOuvertes) : [];
+      const ici = (parent ? actives.get(parent)! : [...entrees.keys()]).filter(
+        (portee) => !rouvertes.includes(portee) && noeuds.some((noeud) => porteurs.get(portee)!.has(noeud)),
+      );
+      if (!ici.length) return 'elaguer';
+      actives.set(point, ici);
+      for (const noeud of noeuds) {
+        const sous = estObjet(noeud) ? CONTROLES_SOUS_PORTEE.get(noeud) : undefined;
+        const admises = sous && ici.includes(sous.portee) ? entrees.get(sous.portee) : undefined;
+        if (sous && admises)
+          for (const f of sous.controle(id, (cle) => acceptee(admises.get(cle)))) jugements.push({ chemin: [...chemin, ...f.path], message: f.message });
+        const cles = defDe(noeud)?.type === 'record' ? enfantsDe(noeud).find((e) => e.segment === '{clé}')?.noeud : undefined;
+        if (cles !== undefined && estObjet(id))
+          for (const cle of Object.keys(id)) {
+            const portee = porteeDuJugementLocal(cles, cle);
+            const admisesDeCle = portee && ici.includes(portee) ? entrees.get(portee) : undefined;
+            if (portee && admisesDeCle) jugements.push({ chemin: [...chemin, cle], portee, id: cle, parCle: true, refus: refus(cles, portee, cle, admisesDeCle) });
+          }
+      }
+      if (typeof id !== 'string') return;
+      for (const noeud of noeuds) {
+        const portee = porteeDuJugementLocal(noeud, id);
+        const admises = portee !== undefined && ici.includes(portee) ? entrees.get(portee) : undefined;
+        if (portee !== undefined && admises !== undefined) {
+          jugements.push({ chemin, portee, id, parCle: false, refus: refus(noeud, portee, id, admises) });
+          return;
+        }
+      }
+    });
+    return jugements;
+  };
+  const ouvreur = objet.superRefine((valeur, ctx) => {
+    if (!estObjet(valeur)) return;
     // Les entrées que leur propre nœud refuse : une faute de l'arbre (jamais un repère) sous leur chemin.
     const refusees = new Set(ctx.issues.filter(estUneFaute).flatMap(({ path = [] }) =>
       portees.flatMap((portee) => {
@@ -364,31 +435,11 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
         const collection = chemin.every((cle, i) => path[i] === cle) ? valeurAuChemin(valeur, chemin) : undefined;
         return Array.isArray(collection) && typeof rang === 'number' ? [collection[rang]] : [];
       })));
-    const acceptee = (e: unknown): unknown => (refusees.has(e) ? undefined : e);
-    coDescendre(objet, valeur, ({ noeuds, valeur: id, chemin }) => {
-      if (!noeuds.some((noeud) => porteurs.has(noeud))) return 'elaguer';
-      for (const noeud of noeuds) {
-        const sous = estObjet(noeud) ? CONTROLES_SOUS_PORTEE.get(noeud) : undefined;
-        const admises = sous && entrees.get(sous.portee);
-        if (sous && admises)
-          for (const f of sous.controle(id, (cle) => acceptee(admises.get(cle)))) ctx.addIssue({ code: 'custom', path: [...chemin, ...f.path], message: f.message });
-        const cles = defDe(noeud)?.type === 'record' ? enfantsDe(noeud).find((e) => e.segment === '{clé}')?.noeud : undefined;
-        if (cles !== undefined && estObjet(id))
-          for (const cle of Object.keys(id)) {
-            const portee = porteeDuJugementLocal(cles, cle);
-            const admisesDeCle = portee && entrees.get(portee);
-            if (portee && admisesDeCle) jugerRefLocale(ctx, [...chemin, cle], portee, cle, refus(cles, portee, cle, admisesDeCle), true);
-          }
-      }
-      if (typeof id !== 'string') return;
-      for (const noeud of noeuds) {
-        const portee = porteeDuJugementLocal(noeud, id);
-        const admises = portee === undefined ? undefined : entrees.get(portee);
-        if (portee !== undefined && admises !== undefined) return jugerRefLocale(ctx, chemin, portee, id, refus(noeud, portee, id, admises));
-      }
-    });
+    for (const j of juger(valeur, (e) => (refusees.has(e) ? undefined : e)))
+      if ('message' in j) ctx.addIssue({ code: 'custom', path: [...j.chemin], message: j.message });
+      else jugerRefLocale(ctx, j.chemin, j.portee, j.id, j.refus, j.parCle);
   }, { when: () => true });
-  OUVREURS.set(ouvreur, marques);
+  OUVREURS.set(ouvreur, { marques, juger });
   return ouvreur;
 }
 
