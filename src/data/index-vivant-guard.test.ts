@@ -182,6 +182,9 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     expect(indexFiges('copie.ts', parEspaceDeNoms, parBinding)).toHaveLength(1);
     const parLaCle = `import { datasetArray } from '../data/overrides';\nconst IDS = new Set(datasetArray('traits').map((t) => t.id));\n`;
     expect(indexFiges('copie.ts', parLaCle, parBinding)).toHaveLength(1);
+    // `entreesDuDataset` rend une copie : l'appel nu au niveau module fige déjà le dataset.
+    const parCopie = `import { entreesDuDataset } from '../data/overrides';\nconst TOUTES = entreesDuDataset(cle);\n`;
+    expect(indexFiges('copie.ts', parCopie, parBinding)).toHaveLength(1);
   });
 
   it('CONTRÔLE POSITIF : les dérivations qui prennent le dataset EN ARGUMENT (enveloppes) et les méthodes à COPIE', () => {

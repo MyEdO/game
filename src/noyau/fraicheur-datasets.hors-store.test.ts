@@ -55,7 +55,7 @@ const ETATS_LIVRES = [...etats];
 const SAISONS_LIVREES = [...weather];
 const VEHICULES_LIVRES = [...vehicles];
 const TRAUMAS_LIVRES = [...datasetArray('traumas')];
-const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationTable[])];
+const TABLES_MUTATION_LIVREES = [...datasetArray('mutationTables')];
 const MISCAST_MINEURE_LIVREE = [...datasetArray('imparfaiteMineure')];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
@@ -145,7 +145,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // La sonde du juge, promue en cas POSITIF : `mutations.ts` indexait `mutationTables` à l'import
     // (`TABLE_BY_ID`/`ROWS_BY_TABLE`/`MUTATION_TABLE_IDS`), si bien qu'une édition au Codex laissait
     // les lignes d'étape, le libellé et le registre des tables tirables sur l'état d'AVANT.
-    const tables = datasetArray('mutationTables') as MutationTable[];
+    const tables = datasetArray('mutationTables');
     const physique = tables.find((t) => t.id === 'physique')!;
     const avant = mutationTableRows('physique')[0];
     expect(mutationTablePlayerLabel('physique')).toBe('Tableau de Corruption physique');

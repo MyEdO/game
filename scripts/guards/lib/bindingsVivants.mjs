@@ -353,6 +353,8 @@ function motifsDeLecture(noms, espaces, parBinding, accesseurs = new Set()) {
   // Le MEMBRE d'un espace de noms et l'accès par la CLÉ s'enveloppent aussi bien qu'un binding nommé.
   const parLaCle = `datasetArray\\s*\\(\\s*['"][\\w$-]+['"]\\s*\\)(?:\\s+as\\s[^;=)]*)?`;
   for (const m of enveloppes(parLaCle)) out.push(['datasetArray(…)', m]);
+  // `entreesDuDataset` (`src/data/overrides.ts`) rend une COPIE : tout appel au niveau module fige le dataset à l'import.
+  out.push(['entreesDuDataset(…)', `(?<![.\\w])entreesDuDataset\\s*\\(`]);
   // `import * as D` ne nomme rien : c'est le MEMBRE qui désigne le dataset — tout le vocabulaire du
   // seam est donc candidat derrière un espace de noms, pas seulement ce que le fichier importe.
   for (const espace of espaces) {
@@ -415,7 +417,7 @@ export function indexFiges(chemin, src, parBinding, vivants = accesseursVivants(
   const noms = nomsVivantsDuFichier(chemin, src, parBinding);
   const espaces = espacesDeNomsDuFichier(src);
   const accesseurs = accesseursDuFichier(src, vivants);
-  if (!noms.size && !espaces.length && !accesseurs.size && !src.includes('datasetArray')) return [];
+  if (!noms.size && !espaces.length && !accesseurs.size && !/datasetArray|entreesDuDataset/.test(src)) return [];
   const out = [];
   // Motifs COMPILÉS une fois, refaits seulement quand le vocabulaire grandit (contamination par nom
   // dérivé) : les recompiler à chaque déclaration coûtait |déclarations| × |motifs| regex par fichier.

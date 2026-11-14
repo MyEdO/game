@@ -19,7 +19,7 @@ import type { JSX } from 'react';
  * `AGENTS.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useId, useMemo, useState } from 'react';
-import { datasetArray, type DatasetKey } from '../../../data/overrides';
+import { entreesDuDataset, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import {
   TYPES,
@@ -345,9 +345,9 @@ type Entree = { id: string; e: Record<string, unknown> };
 function useUnivers(source: DatasetKey | EntreesCfg['entrees'], entreesEnTete: Champ['entreesEnTete']): readonly Entree[] {
   const version = useVersionDesDatasets();
   return useMemo(() => {
-    const enTete = entreesEnTete.map((e) => ({ id: e.id, e: e as Record<string, unknown> }));
+    const enTete = entreesEnTete.map((e): Entree => ({ id: e.id, e }));
     const pris = new Set(enTete.map((x) => x.id));
-    const entrees = (typeof source === 'string' ? datasetArray(source) : source) as Record<string, unknown>[];
+    const entrees: readonly Record<string, unknown>[] = typeof source === 'string' ? entreesDuDataset(source) : source;
     const deLaSource = entrees.map((e) => ({ id: String(e.id ?? ''), e })).filter((x) => !pris.has(x.id));
     return [...enTete, ...deLaSource];
   }, [source, entreesEnTete, version]);
@@ -508,7 +508,7 @@ function FreeRefField(
 /** Valeurs DISTINCTES et non vides du champ `champ` des entrées du dataset `ds`, dans l'ordre du
  *  dataset : suggestions d'une saisie libre (`SaisieSuggeree`). */
 function valeursDistinctes(ds: DatasetKey, champ: string): string[] {
-  return [...new Set((datasetArray(ds) as Record<string, unknown>[]).flatMap((e) => (typeof e[champ] === 'string' && e[champ] ? [e[champ]] : [])))];
+  return [...new Set(entreesDuDataset(ds).flatMap((e) => (typeof e[champ] === 'string' && e[champ] ? [e[champ]] : [])))];
 }
 
 /** `valeursDistinctes` de `ds` (absent : aucune suggestion), recalculées à chaque écriture au seam

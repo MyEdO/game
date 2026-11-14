@@ -386,10 +386,8 @@ describe('plugin `wfrp:prose-source` — manifeste du corpus RÉEL du dépôt', 
 
 /**
  * Ce que le TRANSFORM fait des modules RÉELS du dépôt. Les cas ci-dessus éprouvent le CÂBLAGE sur une
- * fixture ; celui-ci éprouve la MATÉRIALISATION sur la donnée livrée et le `Source/` livré — c'est
- * l'invariant sur lequel `src/data/index.ts` s'appuie pour typer une entrée adressée avec sa `desc`
- * REQUISE (`adressee<T>`, `index.ts`) : hors Vite la forme est celle du disque (l'adresse, sans prose),
- * dans le module chargé la prose est là. Aucun cardinal en dur : la population est IMPRIMÉE, et ce qui
+ * fixture ; celui-ci éprouve la MATÉRIALISATION sur la donnée livrée et le `Source/` livré : hors Vite la
+ * forme est celle du disque (l'adresse, sans prose), dans le module chargé la prose est là. Aucun cardinal en dur : la population est IMPRIMÉE, et ce qui
  * est asserté est l'IDENTITÉ texte-résolu ⇄ texte-injecté, entrée par entrée.
  */
 describe('plugin `wfrp:prose-source` — modules RÉELS du dépôt', () => {

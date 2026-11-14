@@ -91,7 +91,7 @@ import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
 import { rule, type RuleValue } from '../../engine/policy';
 import SURINCANTATION from '../../data/surincantation.json';
-import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
+import type { ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
 import { isOptionalNote, type TraitList } from '../../engine/statEntry';
@@ -1150,10 +1150,7 @@ const CODEX_SPECS = {
   arcanePhenomena: {
     label: 'codex.fiche.magieEnvironnementale', group: 'magie', sourceRef: 'VDM 14',
     build: () => {
-      const d = datasetObject('arcanePhenomena') as {
-        saturationLevels: SaturationLevel[]; windSaturationEffects: WindSaturationEffects[];
-        phenomena: ArcanePhenomenon[]; tables: ArcaneTable[];
-      };
+      const d = datasetObject('arcanePhenomena');
       return [
         ...[...d.saturationLevels].sort((a, b) => a.order - b.order).map((l) => depuisEnveloppe(l, {
           group: tr('codex.fiche.paliersDeSaturation'),

@@ -3,7 +3,7 @@
  * et sa TRANSACTION d'enregistrement (#3059). Tout hôte les appelle ; l'écriture disque reste à l'hôte.
  */
 import {
-  datasetArray,
+  entreesDuDataset,
   setDataset,
   datasetObject,
   datasetObjectSerializeRoot,
@@ -23,6 +23,7 @@ import { serializeDataset } from './serialize';
 import { entryKey } from './index';
 import { opsMissingRefs } from './refsDOp';
 import { ecartsDeLaRegle } from './schemas/defs/reglesOptionnelles';
+import { estObjet } from '../lib/objet.mjs';
 
 type Entry = Record<string, unknown>;
 
@@ -65,7 +66,7 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
   if (!entryKey(entry).trim()) errors.push('libellé vide');
   // Refs NICHÉES (#173) : même garantie, pour les champs-réf sous un sous-objet/sous-tableau.
   for (const { key, ds, get } of NESTED_REF_FIELDS) {
-    const known = new Set((datasetArray(ds) as { id?: string }[]).map((e) => e.id).filter(Boolean));
+    const known = new Set(entreesDuDataset(ds).map((e) => e.id).filter(Boolean));
     for (const id of get(entry)) {
       if (id == null) continue;
       if (id === '') errors.push(`${key} : réf à choisir (${ds})`);
@@ -86,12 +87,12 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
 export function editableEntries(categoryKey: string): Entry[] {
   const obj = editableObjectDataset(categoryKey);
   if (obj) {
-    const data = datasetObject(obj.ds) as Record<string, unknown>;
-    if (obj.mode === 'unique') return [data as Entry];
-    const entries = Object.values(data) as Entry[];
+    const data = datasetObject(obj.ds);
+    if (obj.mode === 'unique') return [data].filter(estObjet);
+    const entries = Object.values(data).filter(estObjet);
     return entries.length ? entries : [{}];
   }
-  return datasetArray(editableDataset(categoryKey)!) as Entry[];
+  return entreesDuDataset(editableDataset(categoryKey)!);
 }
 
 /** Issue d'un enregistrement : le fichier du dataset et sa source entière sérialisée, ou les refus. */
@@ -113,7 +114,7 @@ export function enregistrerEntree(categoryKey: string, entry: Entry, index: numb
     return racineValidee(datasetObjectFile(obj.ds), root, () => setObjectDataset(obj.ds, avant as never));
   }
   const ds = editableDataset(categoryKey)!;
-  const entries = datasetArray(ds) as Entry[];
+  const entries = entreesDuDataset(ds);
   const erreurs = validateEntry(categoryKey, entry, entries, index);
   if (erreurs.length) return { ok: false, erreurs };
   const avant = entries.slice();

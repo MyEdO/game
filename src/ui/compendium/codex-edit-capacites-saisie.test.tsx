@@ -72,7 +72,7 @@ describe('atelier du Codex — capacités mécaniques offertes sous leur libell�
   }
 
   it('traits : une capacité non posée, cochée, s’enregistre', async () => {
-    const avant = (datasetArray('traits') as Porteur[]).slice();
+    const avant = datasetArray('traits').slice();
     try {
       monter('traits', 'champion');
       const libelle = metaDesChamps(capacitesDe('traits'), { exigees: true }).counterRequiresFastParry.label;
@@ -80,7 +80,7 @@ describe('atelier du Codex — capacités mécaniques offertes sous leur libell�
       expect(c.checked).toBe(false);
       act(() => { c.click(); });
       await act(async () => { container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!.click(); });
-      const pose = (datasetArray('traits') as Porteur[]).find((t) => t.id === 'champion')!;
+      const pose = datasetArray('traits').find((t) => t.id === 'champion')!;
       expect(pose.capabilities).toMatchObject({ counterOnDefenseWin: true, counterRequiresFastParry: true });
     } finally {
       setDataset('traits', avant as never);
@@ -113,7 +113,7 @@ describe('atelier du Codex — Type psychologique d’un Trait, référence au c
     expect(feuille?.type).toBe('psychology');
     const admis = idsDeLaSousListe(feuille!.type, feuille!.sousListe!);
     const psy = new Map((datasetArray('psychologies') as { id: string; label: string }[]).map((e) => [e.id, e.label]));
-    const avant = (datasetArray('traits') as Porteur[]).slice();
+    const avant = datasetArray('traits').slice();
     const porteur = avant.find((e) => e.capabilities?.psychType != null)!;
     try {
       monter('traits', porteur.id);
@@ -126,14 +126,14 @@ describe('atelier du Codex — Type psychologique d’un Trait, référence au c
       act(() => { saisir(select, autre); });
       await act(async () => { container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!.click(); });
       expect([...container.querySelectorAll('.codex-edit-errors li')].map((l) => l.textContent)).toEqual([]);
-      expect((datasetArray('traits') as Porteur[]).find((e) => e.id === porteur.id)!.capabilities!.psychType).toBe(autre);
+      expect(datasetArray('traits').find((e) => e.id === porteur.id)!.capabilities!.psychType).toBe(autre);
     } finally {
       setDataset('traits', avant as never);
     }
   });
 
   it('psychType posé se VIDE : « — (aucun) — » offert, et l’enregistrement retire la clé', async () => {
-    const avant = (datasetArray('traits') as Porteur[]).slice();
+    const avant = datasetArray('traits').slice();
     const admis = idsDeLaSousListe('psychology', declarationDeFeuilleDId(ouverts([f().noeud]).find(estFeuilleDId))!.sousListe!);
     try {
       monter('traits', 'champion');

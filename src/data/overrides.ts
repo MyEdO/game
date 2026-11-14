@@ -263,6 +263,13 @@ export function datasetArray<K extends DatasetKey>(key: K): (typeof ARRAYS)[K] {
   return ARRAYS[key];
 }
 
+/** Les entrées d'un dataset-tableau vues comme objets JSON : lecture GÉNÉRIQUE (atelier du Codex, suggestions de
+ *  saisie) d'un dataset que sa clé ne nomme qu'à l'exécution. Mêmes entrées que `datasetArray`, dans une liste neuve. */
+export function entreesDuDataset(key: DatasetKey): Record<string, unknown>[] {
+  const entrees: readonly unknown[] = ARRAYS[key];
+  return entrees.filter(estObjet);
+}
+
 /** Objet live d'un dataset-objet (même référence que l'export façade → vue live des consommateurs). */
 export function datasetObject<K extends ObjectDatasetKey>(key: K): (typeof OBJECTS)[K] {
   return OBJECTS[key];

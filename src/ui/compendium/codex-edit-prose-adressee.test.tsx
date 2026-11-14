@@ -78,8 +78,7 @@ const TERREUR = psychologies.find((p) => p.id === 'terreur')!;
 describe('atelier du Codex — la prose ADRESSÉE ne s’édite pas en double (#1389)', () => {
   it('TÉMOIN : l’entrée chargée porte bien les DEUX (l’adresse authorée, la prose matérialisée)', () => {
     expect(TERREUR.descRef, 'l’entrée n’est pas adressée — la sonde mesurerait un cas absent').toBeTruthy();
-    expect(typeof TERREUR.desc, 'le plugin n’a pas matérialisé la prose — le doublon ne peut pas naître').toBe('string');
-    expect(TERREUR.desc.length).toBeGreaterThan(100);
+    expect(TERREUR.desc?.length ?? 0, 'le plugin n’a pas matérialisé la prose — le doublon ne peut pas naître').toBeGreaterThan(100);
   });
 
   it('une entrée ADRESSÉE n’offre PAS de champ « Description » — le champ d’adresse tient sa place', () => {
