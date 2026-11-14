@@ -195,6 +195,7 @@ export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, ty
 export { orienterRoute } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
+export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 export {
   FORMULAIRES,
   accesDe,
@@ -205,7 +206,6 @@ export {
   porteurDuProjet,
   porteursDuProjet,
   idDuPorteur,
-  SOUS_ENTREES,
   type DonneeDuPorteur,
   type SorteDeDocument,
   type SorteDePorteur,

@@ -120,12 +120,11 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { ajouteEntree, etatCouvert, indiceCouple, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
 import {
-  SOUS_ENTREES,
   cheminOffert,
   choixDuChamp,
   DOCUMENTS,

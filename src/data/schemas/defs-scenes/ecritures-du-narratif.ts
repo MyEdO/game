@@ -32,6 +32,20 @@ const entreesDuNarratif = (narratif: NarratifBlock): readonly { id?: string }[] 
 const PREFIXE_D_ID = { affaires: 'affaire', indices: 'indice', presetsPnj: 'pnj', documents: 'document', etats: 'etat' } as const satisfies Partial<Record<CleDeRegistreNarratif, string>>;
 export type RegistreCreable = keyof typeof PREFIXE_D_ID;
 
+/** Les stades d'un indice ; d'un état, ses valeurs déclarées, son identité et ses repères. */
+export const STADES = ['stades'] as const;
+export const VALEURS_D_ETAT = ['forme', 'valeurs'] as const;
+export const IDENTITE = ['forme', 'identite'] as const;
+export const REPERES = [...IDENTITE, 'reperes'] as const;
+
+/** Les registres du narratif dont une entrée déclare des sous-entrées à clé (`CibleNarrative.sous`), chacune de leurs
+ *  familles, le chemin de sa sous-collection et son nom : les stades d'un indice ; les valeurs déclarées d'un état et les
+ *  repères de son identité, que sa forme rend exclusifs (`renommeAuProjet`). #3606 B8 */
+export const SOUS_ENTREES: { readonly [R in RegistreCreable]?: readonly { readonly chemin: readonly string[]; readonly famille: 'stade' | 'valeur' | 'repere' }[] } = {
+  indices: [{ chemin: STADES, famille: 'stade' }],
+  etats: [{ chemin: VALEURS_D_ETAT, famille: 'valeur' }, { chemin: REPERES, famille: 'repere' }],
+};
+
 /** Ajoute `entree` au `registre`, sous un id frais qu'aucune entrée du narratif ne porte. */
 export function ajouteEntree<R extends RegistreCreable>(narratif: NarratifBlock, registre: R, entree: Omit<NarratifBlock[R][number], 'id'>): { narratif: NarratifBlock; id: string } {
   const liste = narratif[registre] as readonly { id: string }[];

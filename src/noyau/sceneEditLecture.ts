@@ -58,7 +58,7 @@ import {
   type PresetPnj,
 } from '../data/schemas/defs-scenes/narratif';
 import { identiteDe, libelleDeLigne } from './narratifEdit';
-import { idFrais, identiteNeuve, lignesNeuves, repereNeuf, type Identite, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { IDENTITE, REPERES, STADES, VALEURS_D_ETAT, idFrais, identiteNeuve, lignesNeuves, repereNeuf, type Identite, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
@@ -920,20 +920,8 @@ function choixDeLaRoute(route: MapRoute, chemin: readonly Segment[], cadre: Cadr
 const champsDesElements = (parent: readonly Segment[], schema: unknown, elements: readonly unknown[]): CheminsOfferts =>
   [...elements.flatMap((_, i) => champsSauf(schema, ['id']).map(([cle]) => [...parent, i, cle])), [...parent, elements.length]];
 
-/** Les stades d'un indice ; d'un état, ses valeurs déclarées, son identité et ses repères, et ses lignes. */
-const STADES = ['stades'] as const;
-const VALEURS_D_ETAT = ['forme', 'valeurs'] as const;
-const IDENTITE = ['forme', 'identite'] as const;
-const REPERES = [...IDENTITE, 'reperes'] as const;
+/** Les lignes de l'identité d'un état. */
 const LIGNES = [...IDENTITE, 'lignes'] as const;
-
-/** Les registres du narratif dont une entrée déclare des sous-entrées à clé (`CibleNarrative.sous`), chacune de leurs
- *  familles, le chemin de sa sous-collection et son nom : les stades d'un indice ; les valeurs déclarées d'un état et les
- *  repères de son identité, que sa forme rend exclusifs (`renommeAuProjet`). #3606 B8 */
-export const SOUS_ENTREES: { readonly [R in RegistreCreable]?: readonly { readonly chemin: readonly Segment[]; readonly famille: 'stade' | 'valeur' | 'repere' }[] } = {
-  indices: [{ chemin: STADES, famille: 'stade' }],
-  etats: [{ chemin: VALEURS_D_ETAT, famille: 'valeur' }, { chemin: REPERES, famille: 'repere' }],
-};
 
 /** Les champs qu'offre le formulaire d'un indice : chacun de son schéma hors de son identifiant et de ses stades, et
  *  ceux de ses stades (`champsDesElements`). */
