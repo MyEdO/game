@@ -7,7 +7,7 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
-import type { FormuleSansTirage } from '../../../engine/ops';
+import type { Formula, FormuleSansTirage } from '../../../engine/ops';
 import type { RegleOptionnelleId } from '../../../engine/policy';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
@@ -795,7 +795,7 @@ export const deckCoverSchema = z.enum(['imparfaite', 'moyenne', 'totale']);
  */
 export const charKeySchema = enumNomme(CHAR_LABELS);
 
-/** Une Caractéristique et sa valeur IMPRIMÉE (`SwapGrant`, `src/engine/statEntry.ts`) : l'octroi d'une
+/** Une Caractéristique et sa valeur IMPRIMÉE (`OptionalSwap['grant']`, `src/engine/statEntry.ts`) : l'octroi d'une
  *  variante « swap » (ZI 1 l.229). */
 export const caracteristiqueChiffreeSchema = nommerChamps(
   z.strictObject({ characteristic: charKeySchema, value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
@@ -1069,12 +1069,13 @@ export const castingNumberModSchema = nommerChamps(z
     message: 'castingNumberMod : un modificateur sans `multiply`/`divide`/`delta` ne modifie rien',
   }), { multiply: { label: "multiplier" }, divide: { label: "diviser" }, round: { label: "arrondi" }, delta: { label: "variation" }, min: { label: "minimum" }, scope: { label: "portée" }, maison: { label: "arbitrage maison" }, source: { label: "source" }, desc: { label: "texte" } });
 
-/** `CountSpec` (`src/data/index.ts`) — quantité fixe ou tirage de dés. Dupliqué dans `careerLevels`/
- *  `classes`/`creatures`. */
+/** Quantité fixe ou tirage de dés (`CountSpec`). */
 export const countSpecSchema = z.union([
   nommerChamps(z.strictObject({ fixed: z.number() }), { fixed: { label: "fixé" } }),
   nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
 ]);
+/** Quantité d'une dotation : nombre fixe ou jet de dés. */
+export type CountSpec = z.infer<typeof countSpecSchema>;
 
 /** Le libellé de chaque sexe d'une apparence (`SEXES`, `src/lib/sexe.ts`). */
 const LIBELLES_DES_SEXES = { M: 'Masculin', F: 'Féminin' } as const satisfies Readonly<Record<SexeDApparence, string>>;
@@ -1240,7 +1241,7 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
  *  jet-associé/pions/écart d'Avantage/Blessures infligées/Blessures maximales/Taille du navire/valeur de la
  *  cargaison/valeur liée/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
-export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]]));
+export const formulaSchema: z.ZodType<Formula> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<Formula>, ...z.ZodType<Formula>[]]));
 
 /** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
  *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses

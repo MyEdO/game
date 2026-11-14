@@ -36,9 +36,8 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
-import { resolveStake, findById, combatStakeRef, regles, type StakeRef } from '../data';
+import { resolveStake, findById, combatStakeRef, regles, type StakeRef, TAVERN_GAMES } from '../data';
 import { ACTIVITIES } from '../engine/activities';
-import { TAVERN_GAMES } from '../engine/tavernGame';
 import { CRITIQUE_DOCS } from '../data/criticals';
 import { scanFlowTestEngineRoll, siteLabel } from '../../scripts/guards/lib/flowTestEngineRoll.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -323,7 +322,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   };
 
   /** Le Test « à la touche » authoré par le sort (forme réelle de `morsure-de-l-hiver`). */
-  const testOnHit = { trigger: 'onHit', on: 'victime', flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } } as unknown as TriggeredEffect;
+  const testOnHit: TriggeredEffect = { trigger: 'onHit', on: 'victime', flow: { kind: 'test', test: { skill: { id: 'resistance' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } };
 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();

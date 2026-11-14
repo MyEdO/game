@@ -618,7 +618,7 @@ const noeudDuTrait = () => champsDeclares(traitInstanceSchema)!.find(([cle]) => 
  *  l'ordre de sa fiche, puis les Traits standard (drapeau `standard`), puis le reste. */
 function rangDOffreDuTrait(fiche: CreatureData | undefined): (id: unknown) => number {
   const facultatifs = (fiche?.optionals ?? []).flatMap((o) => (isOptionalNote(o) ? [] : [o.id]));
-  const standard = new Set(traits.filter((t) => t.standard).map((t) => t.id));
+  const standard = new Set<string>(traits.filter((t) => t.standard).map((t) => t.id));
   return (id) => {
     const rang = facultatifs.indexOf(id as string);
     return rang >= 0 ? rang : facultatifs.length + (standard.has(id as string) ? 0 : 1);

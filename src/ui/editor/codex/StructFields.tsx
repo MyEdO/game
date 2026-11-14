@@ -37,10 +37,10 @@ import type {
   SpecEntry,
 } from '../../../data';
 import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
-import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
+import type { Id, RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById } from '../../../data';
+import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, idDObjet, trappingsInstanciables } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
@@ -499,6 +499,10 @@ function ChoiceList({ ds, value, onChange }: { ds: 'skills' | 'talents'; value: 
 
 const isText = (t: TrappingRef): t is { text: string; count?: CountSpec } => 'text' in t;
 const isPossession = (t: TrappingRef): t is DotationDePossession => 'type' in t;
+/** L'id que rend un `RefField` à fiche unique : l'id nu, ou la référence `{ id, spec? }`. */
+const idDuChoix = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'object' && v !== null && 'id' in v && typeof v.id === 'string' ? v.id : '');
+/** L'objet d'une rangée « Réf. (catalogue) » neuve : le premier du catalogue, que l'auteur remplace au sélecteur. */
+const premierObjet = (): Id<'trapping'> | undefined => idDObjet(trappingsInstanciables()[0]?.id);
 
 export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | undefined; onChange: (v: TrappingRef[]) => void }) {
   const list = value ?? [];
@@ -523,7 +527,13 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
           <div className="fieldrow">
             <select
               value={kindOf(t)}
-              onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' || e.target.value === 'creature' ? { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
+              onChange={(e) => {
+                const c = 'count' in t ? t.count : undefined;
+                const id = premierObjet();
+                if (e.target.value === 'text') set(i, { text: '', count: c });
+                else if (e.target.value === 'vehicle' || e.target.value === 'creature') set(i, { id: '', type: e.target.value, count: c, ...('label' in t && t.label ? { label: t.label } : {}) });
+                else if (id) set(i, { id, count: c });
+              }}
             >
               <option value="ref">Réf. (catalogue)</option>
               <option value="vehicle">Véhicule (vehicles.json)</option>
@@ -538,21 +548,21 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
             : isPossession(t) && t.type === 'vehicle'
               ? (
                 <>
-                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                   <label className="dr">nom<input placeholder={findVehicleById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                 </>
               )
               : isPossession(t)
                 ? (
                   <>
-                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+                    <RefField cfg={creatureCfg} fieldKey="bete" value={t.id} onChange={(v) => set(i, { id: idDuChoix(v), type: t.type, count: t.count, ...(t.label ? { label: t.label } : {}) })} />
                     <label className="dr">nom<input placeholder={findCreatureById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
                   </>
                 )
-                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}
+                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => { const id = idDObjet(idDuChoix(v)); if (id) set(i, { id, count: 'count' in t ? t.count : undefined }); }} />}
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Possession</button>
+      <button className="btn small" onClick={() => { const id = premierObjet(); if (id) onChange([...list, { id }]); }}>+ Possession</button>
     </div>
   );
 }
@@ -640,20 +650,19 @@ export function DomainEffectsField(
     onCastBonus: (v: DomainData['castBonus']) => void; onMissile: (v: DomainData['missile']) => void; onCasterOps: (v: DomainData['casterOps']) => void;
   },
 ) {
-  const etatOpts = datasetArray('etats') as { id: string; label: string }[];
+  const etatOpts = datasetArray('etats');
   return (
     <div className="ed-field">
       <span>attributs du domaine (LDB 48 — bonus d'incantation conditionnel / mitigation de Projectile / ops au lanceur)</span>
       <div className="ed-subfield">
-        <label className="dr"><input type="checkbox" checked={!!castBonus} onChange={(e) => onCastBonus(e.target.checked ? { perCondition: '', radiusStat: 'force-mentale', bonus: 10 } : undefined)} /> Bonus d'incantation conditionnel</label>
+        <label className="dr"><input type="checkbox" checked={!!castBonus} onChange={(e) => onCastBonus(e.target.checked && etatOpts[0] ? { perCondition: etatOpts[0].id, radiusStat: 'force-mentale', bonus: 10 } : undefined)} /> Bonus d'incantation conditionnel</label>
         {castBonus && (
           <div className="tf-row">
             <label className="dr">par État
               {/* #173 : `perCondition` est l'id de l'État (résolu par `stacks(c, cb.perCondition)`,
                   noyau/combatFlow.ts — cf. ConditionInstance.name), pas son libellé → sélecteur id→label,
                   pas de datalist par label. */}
-              <select value={castBonus.perCondition} onChange={(e) => onCastBonus({ ...castBonus, perCondition: e.target.value })}>
-                <option value="">— (choisir un État) —</option>
+              <select value={castBonus.perCondition} onChange={(e) => { const etat = etatOpts.find((o) => o.id === e.target.value); if (etat) onCastBonus({ ...castBonus, perCondition: etat.id }); }}>
                 {etatOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
               </select>
             </label>

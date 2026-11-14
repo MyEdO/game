@@ -11,7 +11,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import type { CombatEventCtx } from './combatEvents';
 import { hasCondition, COND } from '../engine/conditions';
-import { applyAttackResult, applyCoupCritiqueSec, applyCast, resolveDeviation } from './combatFlow';
+import { applyAttackResult, applyCoupCritiqueSec, instantaneAvantLeCoup, applyCast, resolveDeviation } from './combatFlow';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
@@ -96,7 +96,8 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
     const aPleinesPA = evaluateMissile(caster, t, spell, cr).woundsLost ?? 0;
     setBattle([caster, t]);
     castMissile(caster, t, spell, { critical: true });
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true);
     return { aPleinesPA, cible: live(t.id) };
   };
 
@@ -143,9 +144,10 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
         .filter((e) => !e.lethal)
         .reduce((a, e) => (critImmediateSummary(e.ops ?? []).woundsLost > critImmediateSummary(a.ops ?? []).woundsLost ? e : a));
       banc.getState().jetImposerLeResultat('cascadeTirage', ligne.max - (etape.table?.mod ?? 0), etape.id);
-      const dev = devSteps()[0].deviation!;
+      const [tiree] = devSteps();
+      const dev = tiree.deviation!;
       expect(dev.crit.entryId, 'le dé posé atteint la ligne choisie').toBe(ligne.id);
-      resolveDeviation(banc.getState, banc.setState, dev, devier);
+      resolveDeviation(banc.getState, banc.setState, tiree.id, dev, devier);
       return { aPleinesPA, perte: critImmediateSummary(ligne.ops ?? []).woundsLost, cible: live('T') };
     };
     const subi = tranche(false);
@@ -181,7 +183,7 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
   it('héros victime AVEC armure → pousse une étape `self` (Critique « sec », overkill 0)', () => {
     const v = mk('heros', 'V', { armour: uniformArmour(3) });
     setBattle([v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined, instantaneAvantLeCoup(v));
     const dev = devSteps()[0]?.deviation;
     expect(dev?.mode).toBe('self');
     if (dev?.mode === 'self') {
@@ -194,8 +196,8 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
   it('« Dévier » → −1 PA, Critique ignoré (criticalWounds inchangé)', () => {
     const v = mk('heros', 'V', { armour: uniformArmour(3) });
     setBattle([v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined);
-    resolveDeviation(banc.getState, banc.setState, devSteps()[0].deviation!, true);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined, instantaneAvantLeCoup(v));
+    resolveDeviation(banc.getState, banc.setState, devSteps()[0].id, devSteps()[0].deviation!, true);
     expect(armourSum(live('V'))).toBe(17); // 18 − 1
     expect(live('V').criticalWounds ?? 0).toBe(0);
   });
@@ -203,8 +205,8 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
   it('« Subir » → Critique appliqué (criticalWounds +1, PA intacte)', () => {
     const v = mk('heros', 'V', { armour: uniformArmour(3) });
     setBattle([v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined);
-    resolveDeviation(banc.getState, banc.setState, devSteps()[0].deviation!, false);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined, instantaneAvantLeCoup(v));
+    resolveDeviation(banc.getState, banc.setState, devSteps()[0].id, devSteps()[0].deviation!, false);
     expect(armourSum(live('V'))).toBe(18); // PA intacte
     expect(live('V').criticalWounds ?? 0).toBe(1);
   });
@@ -237,7 +239,8 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     const t = mk('heros', 'h-cible', { armour: uniformArmour(4) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: true });
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true);
     const h = live('h-cible');
     expect(armourSum(h)).toBe(23);          // 24 − 1 PA sacrifié
     expect(h.wounds.current).toBe(23);      // 30 − 6 (base) − 1 (recalcul PA−1)
@@ -249,7 +252,8 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     const t = mk('heros', 'h-cible', { armour: uniformArmour(4) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: true });
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, false);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, false);
     expect(live('h-cible').criticalWounds ?? 0).toBe(1);
   });
 
@@ -305,7 +309,8 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     const t = mk('heros', 'h-cible', { armour: uniformArmour(4), wounds: blessuresDeBase(30, 5) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: false });
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, false);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, false);
     expect(live('h-cible').criticalWounds ?? 0).toBe(1);
   });
 
@@ -314,7 +319,8 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     const t = mk('heros', 'h-cible', { armour: uniformArmour(4), wounds: blessuresDeBase(30, 5) });
     setBattle([caster, t]);
     castMissile(caster, t, missileSpell(), { critical: false });
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true);
     expect(armourSum(live('h-cible'))).toBe(23); // 24 − 1
     expect(live('h-cible').criticalWounds ?? 0).toBe(0);
   });
@@ -392,7 +398,8 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
     const h = mk('heros', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: blessuresDeBase(15, 3) });
     setBattle([e, h]);
     applyAttackResult(banc.getState, banc.setState, e, h, weapon, overkillRes());
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, true);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true);
     const hh = live('h1');
     expect(hh.armour.corps).toBe(2);          // 1 PA sacrifié
     expect(hh.criticalWounds ?? 0).toBe(0);   // Blessure Critique de dépassement ignorée
@@ -403,7 +410,8 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
     const h = mk('heros', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: blessuresDeBase(15, 3) });
     setBattle([e, h]);
     applyAttackResult(banc.getState, banc.setState, e, h, weapon, overkillRes());
-    resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, false);
+    const tiree = tireLaSeverite();
+    resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, false);
     expect(live('h1').criticalWounds ?? 0).toBe(1);
   });
 });
@@ -478,9 +486,10 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
     castMissile(caster, t, missileSpell(), { critical: true });
     expect(relancee, 'la graine sépare les deux Localisations').not.toBe(touche);
     expect(devSteps()[0].critSeverity?.location, 'la fenêtre au lieu né').toBe(relancee);
-    const dev = tireLaSeverite().deviation!;
+    const tiree = tireLaSeverite();
+    const dev = tiree.deviation!;
     expect(dev.mode === 'projectile' && dev.touche.critLocation, 'la décision voyage sur la touche').toBe(relancee);
-    resolveDeviation(banc.getState, banc.setState, dev, false);
+    resolveDeviation(banc.getState, banc.setState, tiree.id, dev, false);
     draineCascade(banc.getState);
     const journal = banc.getState().battle!.log.map((l) => l.text);
     expect(live('h-cible').criticalWounds).toBe(1);
@@ -502,7 +511,7 @@ describe('Après la Blessure critique infligée (LDB 10 ; LDB 18 l.15 ; #1595 c.
     const a = mk('ennemi', 'a', { talents: fb ? [{ talentId: 'frappe-blessante', times: fb }] : [] } as never);
     const v = mk('ennemi', 'v', { wounds: blessuresDeBase(30, pb) });
     setBattle([a, v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 44, 'double', { attackerId: a.id }, [], a);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 44, 'double', { attackerId: a.id }, [], a, instantaneAvantLeCoup(v));
     return live('v');
   };
 

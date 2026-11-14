@@ -188,7 +188,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
       return pa > 0 ? [{ localisation: locationLabel(l, c.bodyShape), pa }] : [];
     }),
     traits: (c.traits ?? []).map((tp) => ({ libelle: traitLisible(tp, nom), desc: effectiveEntry(findTraitById(tp.id))?.desc ?? null })),
-    mutations: (c.mutations ?? []).map((m) => ({ libelle: m.label, desc: m.desc })),
+    mutations: (c.mutations ?? []).map((m) => ({ libelle: m.label, desc: m.desc ?? null })),
     competences: c.skills.map((sk) => ({
       libelle: skillInstanceLabel(sk), valeur: testValue(c, { skill: sk }),
       caracteristique: effectiveSkillCharKey(c, { skill: sk }), avances: sk.advances,

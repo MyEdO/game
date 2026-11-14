@@ -14,17 +14,14 @@
  */
 import { RNG, rollDice } from '../engine/dice';
 import { findTableEntry, type DeDeTable } from '../engine/tables';
-import type { Mutation, MutationDeCatalogue } from '../engine/corruption';
+import type { Mutation } from '../engine/corruption';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import { deDeTirageDe } from './rangees';
 import type { EntreeDe } from './datasets';
-import { findMutationById, mutationTables } from './index';
+import { findMutationById, mutationTables, type MutationData } from './index';
 import { stripBookMarker } from './bookMarker';
 import { indexParId, memoParVersion } from './versionDataset';
 import type { PlayerText } from '../i18n/playerText';
-
-/** Une MUTATION (entité, `mutations.json`) : identité + effets, INDÉPENDANTE de toute table de tirage. */
-export type MutationData = MutationDeCatalogue & { type: 'mutations' };
 
 /** Une TABLE de Corruption (`mutationTables.json`) : plages de son dé de tirage `die` → référence de
  *  mutation par id. `id` STABLE (langue-indépendant — 'physique'/'mentale'/'khorne'…) ; `label` = affichage. */
@@ -114,7 +111,7 @@ export function mutationAt(table: string, roll: number): Mutation {
 /** SOUS-TABLE d'une mutation tirée sur `table` (ex. « Tête bestiale » EDOC) : `${subTable}${suffixe}`,
  *  où le suffixe est l'alignement de la table courante (« edoc-phys-khorne » → « -khorne »). `null` si
  *  la mutation n'en a pas, ou si la sous-table alignée n'existe pas (tables LDB, sans suffixe). */
-export function mutationSubTableFor(table: string, m: { subTable?: string }): string | null {
+export function mutationSubTableFor(table: string, m: Pick<MutationData, 'subTable'>): string | null {
   if (!m.subTable) return null;
   const suffix = table.includes('-') ? table.slice(table.lastIndexOf('-')) : '';
   return tableParId(m.subTable + suffix) ? m.subTable + suffix : null;

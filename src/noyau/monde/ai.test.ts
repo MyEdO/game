@@ -6,6 +6,7 @@ import { distanceDeContact } from './footprint';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { SpellData } from '../../data';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
@@ -13,10 +14,10 @@ const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false
 /** Sort RÉSOLU minimal (`CastableSpell`) — porte un `data: SpellData` réduit aux champs lus par
  *  l'évaluateur (effects/missile/damage/opposed). Défaut = Projectile magique mono-cible jouable. */
 function spellData(over: Partial<SpellData> = {}): SpellData {
-  return { id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over } as SpellData;
+  return { id: idDeFixture('spell', 'sp'), type: 'spells', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over };
 }
 function castable(over: Partial<CastableSpell> & { id?: string } = {}): CastableSpell {
-  const data = over.data ?? spellData({ id: over.id ?? 'sp', missile: true, damage: 8 });
+  const data = over.data ?? spellData({ id: idDeFixture('spell', over.id ?? 'sp'), missile: true, damage: 8 });
   return { id: over.id ?? data.id, data, cn: over.cn ?? data.cn ?? 0, range: over.range ?? null, shape: over.shape ?? 'single', landProb: over.landProb ?? 1, focusState: over.focusState ?? 'none', active: over.active ?? false };
 }
 

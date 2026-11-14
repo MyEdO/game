@@ -33,6 +33,10 @@ CHARNIERE_M = 0.10
 FONDU_D_OS_M = 0.12
 """Hauteur, en mètres, autour de l'articulation de deux os d'un brin, sur laquelle une nappe passe de l'un à l'autre
 (`Filet.poids`)."""
+EGALITE_DE_ZONE_M = 1e-5
+"""Écart de distance, en mètres, sous lequel deux zones sont aussi proches d'une face (`Base.zones_des_faces`) : le
+point le plus proche d'une face posée sur la couture de deux zones est sur leurs deux bords, à des distances que
+l'arrondi de la machine départage (la robe de #4002 : 61 faces à égalité, écarts de 1e-8 à 3e-7 m)."""
 
 
 def direction(theta):
@@ -293,48 +297,66 @@ class Base:
             bpy.ops.object.join()
         return copies[0]
 
-    def decouper_par_zone(self, piece):
-        """La pièce découpée en un objet par zone du corps (#2972) : chaque face va à la zone de la base la plus proche
-        de son centre au repos ; chaque objet porte sa zone (`zone`, exportée en `extras.zone`) et garde les normales
-        de la pièce entière, pour que la couture ne marque pas l'ombrage. Elles sont figées en normales libres (attribut
-        de coin `custom_normal`), copiées au bit près : encodées dans les espaces de normale de Blender, elles se
-        redécodaient, aux sommets que la découpe laisse en éventails disjoints, à quelques 1e-4 d'écart, fusionnés ou
-        non par l'export glTF selon l'arrondi de la machine (#3865). Rend les objets."""
+    def zones_des_faces(self, piece):
+        """Par face de `piece`, la zone de la base la plus proche de son centre au repos ; des zones à égalité
+        (`EGALITE_DE_ZONE_M`), la première par nom."""
         noms = sorted(self.zones)
-        sup = self.porteur(noms)
-        bornes = np.cumsum([len(self.corps(n)[1]) for n in noms])
-        me = piece.data
-        normales = np.empty(len(me.loops) * 3, dtype=np.float32)
-        me.corner_normals.foreach_get('vector', normales)
-        me.attributes.new('custom_normal', 'FLOAT_VECTOR', 'CORNER').data.foreach_set('vector', normales)
-        attribut = me.attributes.new('zone_de_la_face', 'INT', 'FACE')
-        for p in me.polygons:
-            face = sup['arbre'].find_nearest(piece.matrix_world @ p.center)[2]
-            attribut.data[p.index].value = int(np.searchsorted(bornes, face, side='right'))
-        bpy.ops.object.select_all(action='DESELECT')
-        bpy.context.view_layer.objects.active = piece
-        piece.select_set(True)
-        restantes = sorted({d.value for d in attribut.data})
-        bpy.ops.object.mode_set(mode='EDIT')
-        for z in restantes[1:]:
-            bm = bmesh.from_edit_mesh(piece.data)
-            couche = bm.faces.layers.int['zone_de_la_face']
-            for f in bm.faces:
-                f.select_set(False)
-            for f in bm.faces:
-                if f[couche] == z:
-                    f.select_set(True)
-            bmesh.update_edit_mesh(piece.data)
-            bpy.ops.mesh.separate(type='SELECTED')
-        bpy.ops.object.mode_set(mode='OBJECT')
-        objets = [o for o in bpy.context.selected_objects if o.type == 'MESH']
+        arbres = [porteur_de(*self.corps(n))['arbre'] for n in noms]
+        zones = []
+        for p in piece.data.polygons:
+            centre = piece.matrix_world @ p.center
+            d = np.array([a.find_nearest(centre)[3] for a in arbres])
+            zones.append(noms[int(np.flatnonzero(d <= d.min() + EGALITE_DE_ZONE_M)[0])])
+        return zones
+
+    def decouper_par_zone(self, piece):
+        """La pièce découpée (`decouper`) en un objet par zone du corps (#2972) : chaque face va à la zone de la base la
+        plus proche de son centre au repos ; chaque objet porte sa zone (`zone`, exportée en `extras.zone`). Rend les
+        objets."""
         nom = piece.name
-        for o in objets:
-            z = noms[o.data.attributes['zone_de_la_face'].data[0].value]
-            o.data.attributes.remove(o.data.attributes['zone_de_la_face'])
+        objets = decouper(piece, self.zones_des_faces(piece))
+        for z, o in objets:
             o['zone'] = z
             o.name = o.data.name = f'{nom}-{z}'
-        return objets
+        return [o for _, o in objets]
+
+
+def decouper(piece, parties):
+    """La pièce découpée en un objet par valeur de `parties` (une par face) ; chaque objet garde les normales de la
+    pièce entière, pour que la couture ne marque pas l'ombrage. Elles sont figées en normales
+    libres (attribut de coin `custom_normal`), copiées au bit près : encodées dans les espaces de normale de Blender,
+    elles se redécodaient, aux sommets que la découpe laisse en éventails disjoints, à quelques 1e-4 d'écart, fusionnés
+    ou non par l'export glTF selon l'arrondi de la machine (#3865). Rend les couples (valeur, objet)."""
+    me = piece.data
+    normales = np.empty(len(me.loops) * 3, dtype=np.float32)
+    me.corner_normals.foreach_get('vector', normales)
+    if 'custom_normal' in me.attributes:
+        me.attributes.remove(me.attributes['custom_normal'])
+    me.attributes.new('custom_normal', 'FLOAT_VECTOR', 'CORNER').data.foreach_set('vector', normales)
+    valeurs = sorted(set(parties))
+    attribut = me.attributes.new('partie_de_la_face', 'INT', 'FACE')
+    attribut.data.foreach_set('value', [valeurs.index(p) for p in parties])
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = piece
+    piece.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    for k in range(1, len(valeurs)):
+        bm = bmesh.from_edit_mesh(piece.data)
+        couche = bm.faces.layers.int['partie_de_la_face']
+        for f in bm.faces:
+            f.select_set(False)
+        for f in bm.faces:
+            if f[couche] == k:
+                f.select_set(True)
+        bmesh.update_edit_mesh(piece.data)
+        bpy.ops.mesh.separate(type='SELECTED')
+    bpy.ops.object.mode_set(mode='OBJECT')
+    objets = []
+    for o in bpy.context.selected_objects:
+        if o.type == 'MESH':
+            objets.append((valeurs[o.data.attributes['partie_de_la_face'].data[0].value], o))
+            o.data.attributes.remove(o.data.attributes['partie_de_la_face'])
+    return objets
 
 
 def lambeaux(L, n):

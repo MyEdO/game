@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
-import { applyAttackResult, applyCast, applyCoupCritiqueSec, resolveAttack } from './combatFlow';
+import { applyAttackResult, applyCast, applyCoupCritiqueSec, instantaneAvantLeCoup, resolveAttack } from './combatFlow';
 import type { CritChoice } from '../engine/magic';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascade.testkit';
 import { createHero } from '../engine/character';
@@ -166,7 +166,7 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
     const { H, cible } = coupQuiDepasse(false, { pa: 1, endurance: 10 });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(banc.getState().pendingCascade ?? null).toBeNull();
@@ -433,7 +433,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     setRule('combat-deviation-critique', false);
     const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     return { cible, log };
   }
 
@@ -611,7 +611,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   });
 
   it("immunité de Domaine (Manifestation de Ghur) : une émission, sans Blessure ni Critique", () => {
-    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } };
+    const bete = { ...findSpellById('carreau')!, domainId: { id: 'bete' } as const };
     const { emis, cible } = lance((c) => { c.traits = [...(c.traits ?? []), { id: 'manifestation-de-ghur' }] as never; }, { sort: bete });
     expect(emis).toEqual([{ phase: 'applyCast', to: cible.id, critiques: 0, woundsLost: 0, cwAuMoment: 0 }]);
   });

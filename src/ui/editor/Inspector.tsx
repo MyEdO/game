@@ -50,7 +50,6 @@ import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../noyau/monde/facades';
-import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../data/sons/musique';
 import {
   findCreatureById,
@@ -64,6 +63,7 @@ import {
   siegeEngines,
   libelleDAuteur,
   MERCHANT_ARCHETYPES,
+  TAVERN_GAMES,
 } from '../../data';
 import {
   renameActionAuthoree,

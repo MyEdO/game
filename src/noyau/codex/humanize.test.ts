@@ -21,7 +21,7 @@ const AUCUN_ETAT: readonly EtatDeclare[] = [];
  *  contient un a laissé fuir un id BRUT. */
 const KEBAB_IDS: string[] = [
   ...etats, ...talents, ...traits, ...groups, ...maladies, ...symptoms, ...skills, ...creatures,
-].map((x) => x.id).concat(CHAR_KEYS).filter((id) => id.includes('-'));
+].map((x): string => x.id).concat(CHAR_KEYS).filter((id) => id.includes('-'));
 
 const firstKebab = (s: string): string | undefined => KEBAB_IDS.find((id) => s.includes(id));
 

@@ -90,6 +90,8 @@ var _zones: Array[Zone] = []
 var _ajouts := {}
 ## La publication de l'écran, attendue jusqu'à ce que l'interface soit mise en page (`_publier_l_ecran`).
 var _publication: PublicationDeLEcran
+## Les attentes au pont en vol : le fichier du roster. Une reprise dont l'attente n'y est plus rend la main.
+var _en_vol := {}
 
 
 func _ready() -> void:
@@ -132,6 +134,12 @@ func _ready() -> void:
 	if not _pont.essai and scenario == "":
 		scenario = await _choisir_un_scenario()
 	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
+
+
+## Sorti de l'arbre (l'accueil revenu, `_revenir_a_l_accueil`), il n'y revient pas (#4195) : ses attentes en vol sont
+## abandonnées (`_en_vol`).
+func _exit_tree() -> void:
+	_en_vol.clear()
 
 
 ## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
@@ -197,7 +205,11 @@ func _jouer_le_roster(jeu: Dictionary) -> void:
 	if reponse.has("fichier"):
 		_pont.enregistrer_un_fichier(PontDuNoyau.HEROS, reponse.fichier.nom, reponse.fichier.texte)
 	if reponse.has("choix"):
+		var jeton := RefCounted.new()
+		_en_vol[jeton] = true
 		var choisi := await _pont.choisir_un_fichier(PontDuNoyau.HEROS)
+		if not _en_vol.erase(jeton):
+			return
 		_suivre(_pont.appeler("roster", {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
 
 

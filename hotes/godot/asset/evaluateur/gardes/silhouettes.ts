@@ -4,9 +4,11 @@
  * Avec `st` et les deux formes de carrure, chaque silhouette hors carrure est prise à 1, seule ; la carrure par
  * `poidsDeCarrure` aux `st` de `pointsDeCarrure`. Sinon, chaque silhouette est prise seule à 1, même nommée carrure,
  * et la mesure de carrure vaut `null`. Sous chaque
- * silhouette et la carrure à une borne de `st`, le centre de chaque anneau articulaire (`anneauxArticulaires`) reste à
- * moins de `FRACTION_DU_RAYON` × son rayon de repos, et au moins un sommet du corps bouge de plus de
- * `DEPLACEMENT_INERTE_M`. L'épaisseur (rayon de l'anneau le plus épais au repos) suit `st` à `TOLERANCE_EPAISSEUR`
+ * silhouette et la carrure à une borne de `st`, au moins un sommet du corps bouge de plus de `DEPLACEMENT_INERTE_M` ;
+ * sous chaque état dont aucune silhouette de poids non nul n'a d'entrée dans `osDesSilhouettes`, le centre de chaque
+ * anneau articulaire (`anneauxArticulaires`) reste à moins de `FRACTION_DU_RAYON` × son rayon de repos ; un état porté
+ * par les os ne contrôle aucun centre (#4002 issuecomment-6826035694).
+ * L'épaisseur (rayon de l'anneau le plus épais au repos) suit `st` à `TOLERANCE_EPAISSEUR`
  * près, en écart relatif ; l'écart des 5 rapports au segment entre les extrêmes (linéarité) se rapporte. L'état des
  * shape keys trouvé à l'entrée est restauré à la sortie.
  */
@@ -61,7 +63,8 @@ export interface MesureDeSilhouette {
   readonly poids: Readonly<Record<string, number>>;
   /** Le plus grand déplacement d'un sommet du corps depuis la référence, en mètres. */
   readonly deplacementMax: number;
-  /** L'anneau au plus grand déplacement de centre, en fraction de son rayon de repos ; `null` sans anneau. */
+  /** L'anneau au plus grand déplacement de centre, en fraction de son rayon de repos ; `null` sans anneau ou pour un
+   *  état porté par les os. */
   readonly centrePire: { readonly os: string; readonly rapport: number } | null;
 }
 
@@ -202,11 +205,14 @@ export interface SujetDeSilhouettes {
   /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
   readonly silhouettes: readonly string[];
   readonly st?: TableDeGabarit['st'];
+  /** Les silhouettes portées par les os : celles qui y ont une entrée. Absent sans table de gabarit : aucune. */
+  readonly osDesSilhouettes?: TableDeGabarit['osDesSilhouettes'];
   readonly poidsDesFormes: PoidsDesFormes;
 }
 
-export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesFormes }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
+export function mesurerSilhouettes({ scene, corps, silhouettes, st, osDesSilhouettes = {}, poidsDesFormes }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
   const anneaux = anneauxArticulaires(corps);
+  const porte = (poids: Readonly<Record<string, number>>) => Object.entries(poids).some(([nom, p]) => p !== 0 && osDesSilhouettes[nom] !== undefined);
   const ecarts: Ecart[] = [];
   return sousLesFormes(scene, silhouettes, (poserSur) => {
     const poser = (poids: Readonly<Record<string, number>>) => poserSur(poids, corps);
@@ -228,6 +234,7 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesForm
       const { positions, sections } = mesurer(poids);
       const deplacement = deplacementMax(reference.positions, positions);
       if (deplacement <= DEPLACEMENT_INERTE_M) ecarts.push({ garde: GARDE, code: 'silhouette-inerte', valeur: deplacement, seuil: DEPLACEMENT_INERTE_M, detail: `${nom} : plus grand déplacement d’un sommet du corps, en m` });
+      if (porte(poids)) return { nom, poids, deplacementMax: deplacement, centrePire: null };
       const rapports = sections.map((s, i) => {
         const r = reference.sections[i];
         return r.rayon > 0 ? Math.hypot(s.centre[0] - r.centre[0], s.centre[1] - r.centre[1], s.centre[2] - r.centre[2]) / r.rayon : 0;

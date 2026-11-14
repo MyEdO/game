@@ -15,7 +15,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { TAVERN_GAMES } from '../engine/tavernGame';
+import { TAVERN_GAMES } from './index';
 
 const CHAPITRE = 'Source/Warhammer v4 - Nuits agitees & dures journees/16 - JEUX DE TAVERNE.md';
 
@@ -45,12 +45,18 @@ function blocsDeJeu(): { brut: string[]; recolle: string[] } {
 
 describe('tavernGames.json — chaque `desc` est le VERBATIM de sa règle dans Source/ (règle 5)', () => {
   const { brut, recolle } = blocsDeJeu();
+  /** La prose de chaque jeu, telle que le module chargé la matérialise. */
+  const proses = TAVERN_GAMES.flatMap((g) => (g.desc === undefined ? [] : [{ id: g.id, desc: g.desc }]));
+
+  it('chaque jeu porte sa prose (`exiges: [desc]`, `defs/tavernGames.ts`)', () => {
+    expect(proses.map((g) => g.id)).toEqual(TAVERN_GAMES.map((g) => g.id));
+  });
 
   // Le catalogue est un SOUS-ENSEMBLE du chapitre tant que des jeux restent à ingérer : ce test
   // NOMME ce qui manque, de sorte que l’ingestion d’un jeu se voie ici (la liste doit décroître).
   it('les jeux du chapitre encore ABSENTS du catalogue sont nommés (#1279 S4-a, dette de vocabulaire)', () => {
     // Un bloc est INGÉRÉ si une desc lui est égale, ou le prolonge (cas du paragraphe recollé).
-    const ingere = (b0: string) => TAVERN_GAMES.some((g) => g.desc === b0 || g.desc.startsWith(b0.replace(/\s+$/, '')));
+    const ingere = (b0: string) => proses.some((g) => g.desc === b0 || g.desc.startsWith(b0.replace(/\s+$/, '')));
     const absents = brut.filter((b0) => !ingere(b0));
     expect(absents.map((a0) => a0.slice(0, 45))).toEqual([
       'la partie se joue en 7 tours. À chaque tour, ',   // QUESTIONS - RÉPONSES
@@ -58,7 +64,7 @@ describe('tavernGames.json — chaque `desc` est le VERBATIM de sa règle dans S
     ]);
   });
 
-  for (const g of TAVERN_GAMES) {
+  for (const g of proses) {
     it(`${g.id} : desc byte-identique au bloc « Jeu : » du chapitre`, () => {
       const trouve = brut.includes(g.desc) || recolle.includes(g.desc);
       // L'échec doit MONTRER l'écart, pas dire « false ».
@@ -78,7 +84,7 @@ describe('tavernGames.json — chaque `desc` est le VERBATIM de sa règle dans S
   it('le RECOLLAGE par-dessus une ancre de folio ne sert qu’aux règles qui enjambent une page', () => {
     // Il est structurel et rare : le mesurer empêche qu'il devienne une tolérance fourre-tout qui
     // masquerait une vraie divergence.
-    const parRecollage = TAVERN_GAMES.filter((g) => !brut.includes(g.desc) && recolle.includes(g.desc));
+    const parRecollage = proses.filter((g) => !brut.includes(g.desc) && recolle.includes(g.desc));
     expect(parRecollage.map((g) => g.id)).toEqual(['alvatafl']);
   });
 });

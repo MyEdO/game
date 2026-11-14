@@ -1479,7 +1479,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      * `{ base, composition, emblemes? }` : l'id d'une base servie par le dernier `modeles`, une composition (section
      * « Composition d'un personnage »)
      *
-     * @returns `{ montes, manquants, rapport, gabarit, morphes, materiaux, palette }` (`composerSurLaBase`,
+     * @returns `{ montes, manquants, rapport, gabarit, morphes, materiaux, reliefs, palette }` (`composerSurLaBase`,
      * `composition.ts`, qui compose aussi le corps de chaque combattant) ; refusé avant tout `modeles`, sur une base
      * qu'il n'a pas servie, sur une composition que `lireComposition` refuse, et sur des surcharges `emblemes` que
      * `lireSurchargesDEmblemes` refuse (table de lignes vers `{ id }` d’un emblème connu ou `null`)

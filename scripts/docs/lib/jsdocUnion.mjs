@@ -5,7 +5,8 @@ import { contexteImports, estAppelDeclare } from '../../guards/lib/canonUnique.m
 // des littéraux d'objet et des intersections) et extraction du JSDoc de chaque membre. Consommé par
 // scripts/docs/build-effects.mjs (union `effectSchema` de src/data/schemas/defs-scenes/effets.ts) et
 // scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
-// `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
+// `Condition`/`Flow` de src/engine/flowCore.ts, schémas `effectTriggerSchema`/`effectTargetingSchema` de
+// src/data/schemas/grammaire/mecanique.ts par `readSchemaUnionMembers`).
 import * as ts from 'typescript/unstable/ast'
 import { TypeFlags, SymbolFlags } from 'typescript/unstable/sync'
 import { existsSync, readFileSync } from 'node:fs'
@@ -484,4 +485,63 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
     try { libererSessions(programmes.values(), erreurs) }
     finally { programmes.clear() }
   }
+}
+
+/**
+ * Membres de la SORTIE d'un schéma zod déclaré `const nom = …` au premier niveau de `sf` — le vocabulaire lu à sa
+ * source quand le type du moteur en dérive (`z.output`). Un `enumNomme({ cle: 'Libellé', … })` rend ses clés (JSDoc de
+ * la clé en rôle), une `variante(libellé, schéma)` les membres de son schéma, un `z.union([ … ])` ceux de chaque
+ * option, une forme `z.strictObject({ … })` sous ses décorateurs son type objet, nommé par sa première clé.
+ * Rend `{ decl, doc, rows: [{ name, texte, fieldGroups, role }] }` : `rows` a la forme de `readUnionMembers`, `texte`
+ * est le membre écrit en TypeScript, `doc` le JSDoc de la déclaration.
+ */
+export function readSchemaUnionMembers(sf, text, nom, tool) {
+  const abandon = (m) => { console.error(`${tool} — ${m}`); process.exit(1) }
+  const constantes = new Map()
+  sf.forEachChild((n) => {
+    if (ts.isVariableStatement(n)) for (const d of n.declarationList.declarations) if (ts.isIdentifier(d.name)) constantes.set(d.name.text, d)
+  })
+  const decl = constantes.get(nom)
+  if (!decl?.initializer) abandon(`schéma « ${nom} » introuvable`)
+  const statement = decl.parent.parent
+  const appel = (n, f) => ts.isCallExpression(n) && (ts.isIdentifier(n.expression) ? n.expression.text === f : ts.isPropertyAccessExpression(n.expression) && n.expression.getText(sf) === f)
+  const sansOptionnel = (n) => {
+    let optionnel = false
+    while (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'optional') { optionnel = true; n = n.expression.expression }
+    return { n, optionnel }
+  }
+  const typeDe = (init) => {
+    if (appel(init, 'z.enum') && ts.isArrayLiteralExpression(init.arguments[0])) return init.arguments[0].elements.map((e) => `'${e.text}'`).join(' | ')
+    if (appel(init, 'z.literal') && ts.isStringLiteral(init.arguments[0])) return `'${init.arguments[0].text}'`
+    for (const t of ['number', 'string', 'boolean']) if (appel(init, `z.${t}`)) return t
+    return abandon(`champ zod non traduit en type : ${init.getText(sf)}`)
+  }
+  const lire = (n) => {
+    if (ts.isIdentifier(n)) {
+      const d = constantes.get(n.text)
+      if (!d?.initializer) abandon(`« ${n.text} » n'est pas un schéma du fichier`)
+      return lire(d.initializer)
+    }
+    if (appel(n, 'enumNomme') && ts.isObjectLiteralExpression(n.arguments[0])) {
+      let prec = n.arguments[0].properties.pos
+      return n.arguments[0].properties.map((p) => {
+        const cle = p.name.getText(sf).replace(/^['"]|['"]$/g, '')
+        const role = jsdocRole(text.slice(prec, p.getStart(sf)))
+        prec = p.getEnd()
+        return { name: cle, texte: `'${cle}'`, fieldGroups: [], role }
+      })
+    }
+    if (appel(n, 'variante')) return lire(n.arguments[1])
+    if (appel(n, 'z.union') && ts.isArrayLiteralExpression(n.arguments[0])) return n.arguments[0].elements.flatMap(lire)
+    if (appel(n, 'z.strictObject') && ts.isObjectLiteralExpression(n.arguments[0])) {
+      const champs = n.arguments[0].properties.map((p) => {
+        const { n: init, optionnel } = sansOptionnel(p.initializer)
+        return { nom: p.name.getText(sf) + (optionnel ? '?' : ''), type: typeDe(init) }
+      })
+      return [{ name: `{ ${champs[0].nom} … }`, texte: `{ ${champs.map((c) => `${c.nom}: ${c.type}`).join('; ')} }`, fieldGroups: [champs.slice(1).map((c) => c.nom)], role: null }]
+    }
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.arguments[0]) return lire(n.arguments[0])
+    return abandon(`forme de schéma non lue dans « ${nom} » : ${n.getText(sf).slice(0, 60)}`)
+  }
+  return { decl, doc: jsdocBody(text.slice(statement.getFullStart(), statement.getStart(sf))), rows: lire(decl.initializer) }
 }

@@ -1,11 +1,15 @@
 {
   "model": "humanoide--armure--plastron.glb",
-  "model_sha256": "aa9bceceffb0c15bac763ab622aead1b1cdfe4636015d6f57e70c23118ebf634",
-  "importe_le": "2026-11-06",
+  "model_sha256": "f6069c739ef9ea987c5c5f6b8affb6e08ca2d40cac530b0ea8702ba4e0322ced",
+  "importe_le": "2026-11-14",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

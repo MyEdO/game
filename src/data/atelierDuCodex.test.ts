@@ -17,10 +17,10 @@ import { scatter } from '../engine/scatter';
 import { tirerLaReactionAuStatut, tirerLeCapricieux } from '../engine/social';
 
 type Entree = Record<string, unknown>;
-const traits = () => datasetArray('traits') as unknown as Entree[];
-let avant: Entree[] = [];
+const traits = () => datasetArray('traits');
+let avant = traits().slice();
 beforeEach(() => { avant = traits().slice(); });
-afterEach(() => { setDataset('traits', avant as never); });
+afterEach(() => { setDataset('traits', avant); });
 
 describe('enregistrerEntree — transaction d’une entrée éditée', () => {
   it('une entrée valide est posée à sa position et rendue en forme disque', () => {

@@ -63,8 +63,17 @@ import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves'
 import { valeurNeuveDe } from '../valeursNeuves';
 import { refusDeLaValeur, refusDeRetrait } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { creatures, findCreatureById, MERCHANT_ARCHETYPES, navalPorts, siegeEngines, spells, talents, traits } from '../../data';
-import { TAVERN_GAMES } from '../../engine/tavernGame';
+import {
+  creatures,
+  findCreatureById,
+  MERCHANT_ARCHETYPES,
+  navalPorts,
+  siegeEngines,
+  spells,
+  talents,
+  traits,
+  TAVERN_GAMES,
+} from '../../data';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';

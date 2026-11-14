@@ -2,9 +2,10 @@
 son `modele.py`, l'exporte en GLB et écrit son dossier de production (`production.py`), que valide
 `npm run godot:valider -- <element.json> <base.manifeste.json> <glb>` et qu'importe `node hotes/godot/importer.mjs`.
 
-Les GLB lus viennent du cache des modèles (`CACHE_DES_MODELES` de `hotes/godot/asset/release.ts`, rempli par
-`npm run caches-3d`), chacun sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.manifeste.json` :
-la base, et les éléments publiés qu'une pièce contourne. L'élément reçoit les licences des packs de la base, dont il
+Les GLB lus viennent du cache des modèles (`CACHE_DES_MODELES` de `hotes/godot/asset/release.ts`, rempli par son
+`recupererModeles`, que joue `npm run godot:sonde`), chacun sous l'empreinte que le dépôt épingle dans
+`hotes/godot/projet/modeles/<id>.manifeste.json` : la base, les éléments publiés qu'une pièce contourne, et l'élément
+lui-même pour une reprise. L'élément reçoit les licences des packs de la base, dont il
 emprunte le squelette.
 
 `donnees.py` porte `MANIFESTE` (les champs publiés propres à l'élément : `categorie`, `cle`, `liaison`, et pour une pièce
@@ -14,7 +15,11 @@ skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de pal
   de base) ; ils pendent à l'os de cette prise ;
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
   transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
-  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste.
+  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste ;
+- `squelette` ou `surface` repris du GLB publié (`element/publie.py`, #3761) : `modele.py` porte `reprendre(materiaux, base,
+  glb)` au lieu de `construire` et reçoit le GLB épinglé de l'élément ; `donnees.py` ne porte que `MANIFESTE` (ses
+  `emplacements` recopiés du manifeste publié), `MATERIAUX` (valeurs lues dans les matériaux du GLB publié) et
+  `BUDGET_TRIANGLES`.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton \\
         --sortie <dossier neuf hors du dépôt>
@@ -66,7 +71,7 @@ def epingle(id_, cache):
     attendue = lire(MODELES / f"{id_}.manifeste.json")["glb"]["sha256"]
     chemin = cache / f"{attendue}.glb"
     if not chemin.exists():
-        raise ValueError(f"{chemin} : GLB de {id_} absent du cache des modèles (npm run caches-3d)")
+        raise ValueError(f"{chemin} : GLB de {id_} absent du cache des modèles (npm run godot:sonde)")
     empreinte = hashlib.sha256(chemin.read_bytes()).hexdigest()
     if empreinte != attendue:
         raise ValueError(f"{chemin} : empreinte {empreinte}, {id_} épinglé est {attendue}")
@@ -188,12 +193,18 @@ def construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire):
     return octets, objets, {}, triangles
 
 
-def construire_squelette(D, modele, manifeste_de_base, glb_de_base, cache, temporaire):
-    """La pièce du modèle, ses clés transférées, découpée par zone et exportée avec l'armature de la base."""
+def construire_squelette(D, modele, manifeste_de_base, glb_de_base, cache, id_, temporaire):
+    """La pièce du modèle, ses clés transférées, découpée par zone, ou les objets repris du GLB publié de `id_`
+    (`reprendre`), exportés avec l'armature de la base."""
     base = tissu.Base(glb_de_base, manifeste_de_base, lambda id_: epingle(id_, cache))
-    piece = modele.construire(D, habillage.materiaux(D["MATERIAUX"]), base)
-    triangles = triangles_de([piece], D["BUDGET_TRIANGLES"])
-    objets = base.decouper_par_zone(piece)
+    materiaux = habillage.materiaux(D["MATERIAUX"])
+    if hasattr(modele, "reprendre"):
+        objets = modele.reprendre(materiaux, base, epingle(id_, cache))
+        triangles = triangles_de(objets, D["BUDGET_TRIANGLES"])
+    else:
+        piece = modele.construire(D, materiaux, base)
+        triangles = triangles_de([piece], D["BUDGET_TRIANGLES"])
+        objets = base.decouper_par_zone(piece)
     octets = exporter(temporaire, base.rig, objets, skinne=True)
     offerts = {"emplacements": base.emplacements} if base.emplacements else {}
     return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **offerts}, triangles
@@ -221,7 +232,7 @@ def main():
         octets, objets, propres, triangles = construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire)
     elif mode in ("squelette", "surface"):
         octets, objets, propres, triangles = construire_squelette(D, modele, manifeste_de_base, glb_de_base, args.cache,
-                                                                  temporaire)
+                                                                  id_, temporaire)
     else:
         raise ValueError(f"{args.element} : liaison {mode} sans constructeur")
     temporaire.unlink()

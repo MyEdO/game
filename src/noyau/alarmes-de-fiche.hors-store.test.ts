@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { sheetAlarms, alarmsFingerprint, atterritSurEtat, empreinteDeFiche } from './alarmesDeFiche';
 import type { Combatant, Trauma, ItemInstance } from '../engine/types';
 import type { Disease } from '../engine/disease';
-import type { Mutation } from '../engine/corruption';
 import { ciblePsy, libelleDeCible } from '../engine/psych/ciblage';
 import { groups, psychologies, psychologyLabel } from '../data';
 import type { PsychType } from '../engine/psychology';
@@ -111,7 +110,7 @@ describe('sheetAlarms', () => {
     const fp1 = alarmsFingerprint(sheetAlarms(hero));
     const fp2 = alarmsFingerprint(sheetAlarms(hero));
     expect(fp1).toBe(fp2);
-    hero.mutations = [{ label: 'Griffes', kind: 'physique' } as Mutation];
+    hero.mutations = [{ id: 'griffes', type: 'mutations', label: 'Griffes', desc: '', kind: 'physique', roll: 1 }];
     const fp3 = alarmsFingerprint(sheetAlarms(hero));
     expect(fp3).not.toBe(fp1);
   });

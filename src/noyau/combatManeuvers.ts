@@ -38,7 +38,15 @@ import { testValue, skillBaseValue } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
-import { creatureAttacks, attaqueDeCle, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
+import {
+  creatureAttacks,
+  attaqueDeCle,
+  attaquesNaturelles,
+  attaqueNaturelle,
+  type AttackKind,
+  type CreatureAttack,
+  type ManoeuvreComposee,
+} from '../engine/creatureAttacks';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/grammaire/valeurs';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
@@ -468,7 +476,7 @@ export function maneuverDefensePending(s: Jeu): boolean {
  * (`{indiceOf}`) et la marge (`ctx.sl` : slThreshold/valuePerSL). NE PPELLE PAS `checkBattleOver`.
  */
 export function resolveManeuver(
-  get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, indice: number, atk: TestResult | null, spent: number, chosenTarget?: Combatant,
+  get: Get, set: SetFn, attacker: Combatant, def: ManoeuvreComposee, indice: number, atk: TestResult | null, spent: number, chosenTarget?: Combatant,
 ): boolean {
   const battle = get().battle;
   if (!battle || battle.over || !attacker.pos) return false;
@@ -584,7 +592,7 @@ function maneuverDefenseLabel(tgt: Combatant, defense: NonNullable<ManeuverDef['
  *  ciblé (jumeau de la cascade de Psychologie), le jet d'attaquant FIGÉ dans `meta.opposed.aT`. À la
  *  fermeture, le store reprend le tour de la créature (`maneuverResume`). */
 function openManeuverDefenseCascade(
-  get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, indice: number, atk: TestResult, spent: number, heroes: Combatant[],
+  get: Get, set: SetFn, attacker: Combatant, def: ManoeuvreComposee, indice: number, atk: TestResult, spent: number, heroes: Combatant[],
 ): void {
   const attackerLabel = dataLabel(def.label);
   const steps: CascadeStep[] = heroes.map((h) => {

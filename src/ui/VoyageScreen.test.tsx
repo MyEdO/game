@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { CampaignVessel } from '../noyau/etat';
-import type { VivresDeCale } from '../engine/provisions';
+import { lotsDeCale } from '../engine/caleDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';
@@ -31,7 +31,7 @@ const vessel = (): CampaignVessel => ({
   vehicleId: 'cogue', label: 'Le Cormoran',
   morale: { score: 62, lastMoraleWeek: 0, factors: [] },
   wounds: { current: 8, max: 20 },
-  provisions: { 'ration-biscuits-de-mer': 5, 'ration-nourriture-preservee': 4 } as VivresDeCale,
+  provisions: lotsDeCale({ 'ration-biscuits-de-mer': 5, 'ration-nourriture-preservee': 4 }, 0),
   cargo: [{ uid: 'lot-1', cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
 });
 

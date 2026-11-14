@@ -888,7 +888,7 @@ const ETAPE_A_LA_MAIN_STOCK: Record<string, number> = {
   'src/noyau/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
   // RELAIS d'une ligne DÉJÀ montée par le monteur (rien à recalculer ici) — EXEMPTION AU SITE
   'src/noyau/restFlow.ts': 1, // `deferredUpkeepSteps` : `montee` recopie base/target/mods/clamped de la
-  // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:178). Le scanner est TEXTUEL : il ne voit pas
+  // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:202). Le scanner est TEXTUEL : il ne voit pas
   // cette provenance, il compte le littéral — la raison la dit.
   // MONTAGES à la main — dette RÉELLE restante hors combat, à router par `rollStep`
   'src/engine/rest.ts': 3, // bilan EAGER de la modale de Repos (`RestRoll` : type + 2 collectes)

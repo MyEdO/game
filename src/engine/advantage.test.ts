@@ -4,7 +4,7 @@ import { advantageCap, advantageCapFor, gainAdvantage, avantageApresPerte } from
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
 import { applyOps, avantageDeCampSansFiche } from './ops';
-import { TAVERN_GAMES } from './tavernGame';
+import { TAVERN_GAMES } from '../data';
 import { createHero } from './character';
 import { desDuTest } from './dice.testkit';
 

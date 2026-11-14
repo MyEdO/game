@@ -11,7 +11,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState, GesteDeSuite } from './etat';
-import { advanceTurn, aiTurnLog, clearAiTurnLog, finalizeHeroDeath, maybeRunEnemyTurn } from './combatFlow';
+import { advanceTurn, aiTurnLog, clearAiTurnLog, finalizeHeroDeath, instantaneAvantLeCoup, maybeRunEnemyTurn } from './combatFlow';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { seedBattleRng } from './battleRng';
@@ -679,7 +679,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     qui('h').fate = 1;
     cliquerLaCharge();
     jouerLaSequence();
-    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
+    finalizeHeroDeath(g, banc.setState, qui('h'), instantaneAvantLeCoup(qui('h')), qui('e'));
     expect(!!g().pendingFateSave, 'chemin : le Destin est offert').toBe(true);
     g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
@@ -712,7 +712,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
   it('P8 (graine 4) : le Destin dépensé sur le tour d’un héros manuel sans geste en attente ne finit pas son tour', () => {
     chargeManuelle(4, { reactive: false });
     qui('h').fate = 1;
-    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
+    finalizeHeroDeath(g, banc.setState, qui('h'), instantaneAvantLeCoup(qui('h')), qui('e'));
     g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
@@ -725,7 +725,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.reprendreTout();
     frapper();
     expect([attaques('h', 'e'), b().acted], 'chemin : l’Action est prise par la frappe').toEqual([1, true]);
-    finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
+    finalizeHeroDeath(g, banc.setState, qui('h'), instantaneAvantLeCoup(qui('h')), qui('e'));
     g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
