@@ -2045,7 +2045,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const z = narratif.vue.zones;
     expect([boutonDe(narratif, 'document/narratif').presse, boutonDe(narratif, 'annuler').refus !== null]).toEqual([true, true]);
     expect([z['editeur.scenes'], z['editeur.outils'], z['editeur.options'], z['editeur.couches'], z['editeur.carte']]).toEqual([[], [], [], [], []]);
-    expect(z['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.id)).toEqual(['logique/affaires', 'logique/indices', 'logique/presetsPnj', 'logique/documents', 'logique/etats', 'logique/ecart']);
+    expect(z['editeur.logique'].filter((el) => el.type === 'ligne').map((el) => el.id)).toEqual(['logique/affaires', 'logique/indices', 'logique/presetsPnj', 'logique/documents', 'logique/etats', 'logique/objets', 'logique/ecart']);
     expect(z['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne' && el.texte.startsWith('ecran.')), 'chaque registre a son texte').toEqual([]);
     expect([...new Set(z['editeur.inspecteur'].map((el) => el.id.split('/').slice(0, 2).join('/')))]).toEqual(['valeur/ouverture', 'valeur/cloture']);
     const scene = presser(boutonDe(narratif, 'document/scene'));
@@ -2055,7 +2055,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
   it('« Ajouter » crée une entrée de chaque registre créable, sélectionnée, son inspecteur à son nom et à son formulaire ; un champ s’y écrit', () => {
     const { appel, presser, narratif } = surLeNarratif();
     let e = narratif;
-    for (const sorte of ['affaires', 'indices', 'presetsPnj', 'documents', 'etats']) {
+    for (const sorte of ['affaires', 'indices', 'presetsPnj', 'documents', 'etats', 'objets']) {
       const avant = liste(e, sorte);
       e = presser(boutonDe(e, `logique/${sorte}/ajouter`));
       const neuve = liste(e, sorte).filter((id) => !avant.includes(id));

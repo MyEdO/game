@@ -3,13 +3,15 @@
  * l'entrée), propagation d'un renommage à toute référence, retrait refusé tant qu'une référence désigne.
  * Chaque résultat : aucune référence pendante (`fautesDeSites`), un narratif qui parse.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { emptyScene, type Scene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { porteurDeLId, refusDeRenommage, refusDeRetrait, renommeAuProjet, retireDuProjet, type ProjetEdite } from './narratifEdit';
 import { narratifSchema, type NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { fautesDeSites, sitesDuProjet } from '../data/schemas/defs-scenes/refs-narratives';
 import { creatures } from '../data';
+import * as collectionCle from '../data/schemas/grammaire/collection-cle';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 
 const narratif = (): NarratifBlock => ({
   ...emptyNarratif(),
@@ -116,5 +118,55 @@ describe('retireDuProjet', () => {
     expect((v.narratif.etats[0].forme as { valeurs: { id: string }[] }).valeurs.map((x) => x.id)).toEqual(['calme']);
     expect(refusDeRetrait(v, { registre: 'etats', id: 'humeur', sous: 'calme' })).toBe('Un état énuméré garde au moins une valeur.');
     sain(v);
+  });
+});
+
+describe('objets du narratif : sites par clé ∪ sites de la portée ouverte sur leur registre (#4171)', () => {
+  const objet = objetDeCampagne();
+  const autre = objetDeCampagne({ id: 'hache-de-campagne', label: 'Hache de campagne' });
+  /** Le projet aux deux objets de campagne, le premier donné par un déclencheur de la salle. */
+  const avecObjets = (): ProjetEdite => {
+    const p = projet();
+    p.narratif = { ...p.narratif, objets: [objet, autre] };
+    p.scenes[0].triggers.push({ id: 'don', rect: { x: 1, y: 1, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: objet.id } } });
+    return p;
+  };
+  const cible = { registre: 'objets', id: objet.id } as const;
+
+  it('renommer vers un id déjà pris : un autre objet de campagne, une possession du catalogue, une créature ; refusé, dit, projet inchangé', () => {
+    const p = avecObjets();
+    const pris = [autre.id, 'arme-simple', creatures[0].id];
+    expect(pris.map((id) => refusDeRenommage(p.narratif, cible, id))).toEqual([
+      'Identifiant « hache-de-campagne » déjà porté par l\'objet « Hache de campagne »',
+      'Identifiant « arme-simple » déjà porté par la règle globale (créature/possession)',
+      `Identifiant « ${creatures[0].id} » déjà porté par la règle globale (créature/possession)`,
+    ]);
+    expect(pris.map((id) => renommeAuProjet(p, cible, id))).toEqual(pris.map(() => p));
+  });
+
+  it('un objet que rien ne désigne se retire ; celui que donne un déclencheur se refuse, la salle nommée', () => {
+    const p = avecObjets();
+    expect(refusDeRetrait(p, { registre: 'objets', id: autre.id })).toBeUndefined();
+    expect(retireDuProjet(p, { registre: 'objets', id: autre.id }).narratif.objets.map((o) => o.id)).toEqual([objet.id]);
+    expect(refusDeRetrait(p, cible)).toBe('Encore désigné par : scène « Le relais » — changez ou retirez ces références d\'abord.');
+  });
+
+  it('un registre sans portée (`documents`) : ses sites sont ceux par clé, sans co-descente (`sitesDeLaPortee` jamais lu) ; un objet la paie', () => {
+    /** Les co-descentes d'une portée (`sitesDeLaPortee`, espionnée sur son namespace) pendant `f`. */
+    const coDescentes = (f: () => void): number => {
+      let n = 0;
+      const ns = collectionCle as unknown as Record<string, unknown>;
+      const vrai = ns.sitesDeLaPortee as (...a: unknown[]) => unknown;
+      vi.spyOn(ns, 'sitesDeLaPortee', 'get').mockReturnValue((...a: unknown[]) => (n++, vrai(...a)));
+      f();
+      vi.restoreAllMocks();
+      return n;
+    };
+    const p = avecObjets();
+    expect(coDescentes(() => {
+      expect(refusDeRetrait(p, { registre: 'documents', id: 'doc-affiche' })).toBe('Encore désigné par : scène « Le relais » — changez ou retirez ces références d\'abord.');
+      expect(effets(renommeAuProjet(p, { registre: 'documents', id: 'doc-affiche' }, 'doc-placard'))[0]).toEqual({ type: 'document', documentId: 'doc-placard' });
+    })).toBe(0);
+    expect(coDescentes(() => refusDeRetrait(p, cible))).toBe(1);
   });
 });

@@ -14,6 +14,7 @@ import { cleDuChapitre, type SourceDeLEdition } from './adresseDeProse';
 import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
 import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { emptyNarratif } from '../monde/campaignNarratif';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
 import {
@@ -719,6 +720,7 @@ const PORTEURS: { readonly [S in SorteDePorteur]: readonly DonneeDuPorteur[S][] 
   presetsPnj: [{ id: 'pnj-1', base: { id: creatureSemee() } }],
   documents: [{ id: 'doc', titre: 'L’affiche', prose: 'VOYAGEURS' }],
   etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
+  objets: [objetDeCampagne()],
   ecart: [{ entree: 'EDO-01#x', motif: 'm' }],
   narratif: [NARRATIF_VIDE],
 };
@@ -764,9 +766,10 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(unionDuNoeud(trappingRefSchema)?.variantes.map((v) => v.libelle)).toEqual(['une parmi', 'objet du catalogue', 'ligne de texte', 'mention', 'possession', 'somme d’argent', 'arme au choix']);
   });
 
-  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {
+  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, quatre champs d’un objet de campagne, et chaque op non typée', () => {
     expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
       'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
+      ...['ammoRangeMod', 'damage', 'derivedWeapon/reach', 'price'].map((champ) => `objets/${champ}`),
       ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
     ].sort());
   });

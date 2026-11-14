@@ -360,6 +360,14 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
   anti-collision globale), résolveur (`resolveursDuNarratif.ts`), narratif vide (`emptyNarratif`) et éditeur la
   lisent. Un registre de plus = une ligne de cette table.
+- **Références d'une entrée.** Une entrée d'un registre est désignée par les clés de `REFERENCES_NARRATIVES` et par
+  les sites de la portée que la racine du projet ouvre sur sa collection (`sitesDeLaPortee` ; aujourd'hui
+  `OBJETS_DU_PROJET`, `narratif.objets` : `giveTrapping.trappingId`, clés `apparencesObjets`) — `sitesLocaux`,
+  `src/noyau/narratifEdit.ts`. Renommer réécrit les deux (valeur remplacée, ou clé de record renommée à son rang) sur
+  un cran ; retirer est refusé tant que l'un d'eux désigne l'entrée, ses lieux nommés. À l'éditeur Godot, chaque
+  registre créable (`RegistreCreable`, objets compris) se liste à la zone Logique, se crée par son corps neuf
+  (`CORPS_NEUFS`, `src/noyau/sceneEdit.ts` ; un objet naît sans `source`, que son schéma dit absente) et s'édite par
+  le formulaire tiré du schéma de son entrée (`FORMULAIRES_DES_REGISTRES`, `src/noyau/sceneEditLecture.ts`).
 - **Remettre un document.** L'Effect `{ type: 'document', documentId }` désigne une entrée de
   `narratif.documents` ; `apply` la résout (`documentDuNarratif`) et ouvre la modale `DocumentModal`
   (`store.document`, qui porte `documentId` : sa prose est nommée par les identités, § 9). L'Effet est
