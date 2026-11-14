@@ -73,7 +73,8 @@ import {
 import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
-import { porteeDeLaFeuille } from '../data/schemas/grammaire/ref';
+import { declarationDeFeuilleDId, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
+import { entree as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
 import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuContexte, type ContexteDuChamp, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
@@ -91,6 +92,7 @@ import {
   estUnNavireAPonts,
   navalPorts,
   findCreatureById,
+  choixDeLaFeuilleDId,
   findTrappingById,
   profilsStandard,
   refEstVolumique,
@@ -1032,13 +1034,15 @@ const APPARENCES_DU_PRESET = [['apparence', 'apparencesObjets'], ['profil', 'app
  *  ses champs, chacun hors de son identifiant, que le renommage propage (`renommeAuProjet`), et les choix de son
  *  contexte ; d'un indice, ses champs (`champsDeLIndice`) aux choix de son contexte (`choixDeLIndice`) ; d'un PNJ, les
  *  choix du sien (`choixDuPreset`) ; d'un état, ses champs (`champsDeLEtat`), ses retraits déclarés (`retraitsDeLEtat`)
- *  et les choix de son contexte (`choixDeLEtat`). */
+ *  et les choix de son contexte (`choixDeLEtat`) ; d'un objet, ses champs hors aussi de son enveloppe de catalogue
+ *  (`type`, que pose son corps neuf). */
 const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<FormulaireDuPorteur<DonneeDuPorteur[R]>, 'schema' | 'champs' | 'retraits' | 'choix'> } = {
   affaires: { schema: affaireSchema, champs: () => champsSauf(affaireSchema, ['id']) },
   indices: { schema: indiceSchema, champs: champsDeLIndice, choix: choixDeLIndice },
   presetsPnj: { schema: presetPnjSchema, champs: () => champsSauf(presetPnjSchema, ['id']), choix: choixDuPreset },
   documents: { schema: documentNarratifSchema, champs: () => champsSauf(documentNarratifSchema, ['id']) },
   etats: { schema: etatNarratifSchema, champs: champsDeLEtat, retraits: retraitsDeLEtat, choix: choixDeLEtat },
+  objets: { schema: trappingEntree, champs: () => champsSauf(trappingEntree, ['id', 'type']) },
 };
 
 /** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection
@@ -1268,19 +1272,25 @@ type Ouvreur = readonly [unknown, unknown];
  *  la carte du monde de son projet et son projet. */
 const ouvreursDuCadre = (porteur: Ouvreur, { scene, projet }: CadreDuPorteur): readonly Ouvreur[] => [porteur, [sceneSchema, scene], [worldMapSchema, projet.worldMap], [projetSchema, projet]];
 
-/** Les ids qu'admet la portée de la feuille locale parmi `noeuds` (`porteeDeLaFeuille`), résolus par le parse
- *  (`idsDeLaPortee`) sur le premier des `ouvreurs` qui l'ouvre ; `undefined` sans feuille locale, ou si aucun ne l'ouvre. */
+/** Les ids qu'admet la portée que déclare une feuille parmi `noeuds` (`porteeDuJugementLocal` : `ref(portee)`, ou
+ *  `idDe(type, sousListe, { portee })`), résolus par le parse (`idsDeLaPortee`) sur le premier des `ouvreurs` qui l'ouvre ;
+ *  `undefined` sans une telle feuille, ou si aucun ne l'ouvre. */
 function idsDeLaFeuilleLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly string[] | undefined {
-  const portee = noeuds.map(porteeDeLaFeuille).find((p) => p !== undefined);
+  const portee = noeuds.map((n) => porteeDuJugementLocal(n)).find((p) => p !== undefined);
   return portee && ouvreurs.map(([ouvreur, valeur]) => idsDeLaPortee(ouvreur, valeur, portee)).find((ids) => ids !== undefined);
 }
 
+/** Les choix du catalogue d'une feuille `idDe(type, sousListe, { portee })` parmi `noeuds` (`choixDeLaFeuilleDId`), qu'une
+ *  référence ouverte offre avant ceux de sa portée ; aucun pour `ref(portee)`. */
+const choixDuCatalogueOuvert = (noeuds: readonly unknown[]): ChoixDuContexte[] =>
+  noeuds.map(declarationDeFeuilleDId).flatMap((d) => (d?.portee ? choixDeLaFeuilleDId(d).map((e) => ({ valeur: e.id, libelle: e.label, refus: null })) : []));
+
 /** Les choix d'une référence LOCALE aux nœuds `noeuds`, parmi les portées des `ouvreurs` : d'une feuille locale, chaque
- *  id que sa portée admet ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé entier ; `undefined`
- *  sinon. */
+ *  id que sa portée admet, après ceux de son catalogue si elle est ouverte (`choixDuCatalogueOuvert`) ; d'une référence
+ *  `{ id }` dont l'identifiant en est une, chacun posé entier ; `undefined` sinon. */
 function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
   const ids = idsDeLaFeuilleLocale(noeuds, ouvreurs);
-  if (ids) return ids.map((id) => ({ valeur: id, libelle: id, refus: null }));
+  if (ids) return [...choixDuCatalogueOuvert(noeuds), ...ids.map((id) => ({ valeur: id, libelle: id, refus: null }))];
   const emboites = idsDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
   return emboites?.map((id) => ({ valeur: { id }, libelle: id, refus: null }));
 }

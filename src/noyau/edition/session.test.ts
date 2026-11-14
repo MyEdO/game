@@ -64,6 +64,8 @@ import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves'
 import { valeurNeuveDe } from '../valeursNeuves';
 import { refusDeLaValeur, refusDeRetrait, refusDuRenommage } from './session';
 import { identiteNeuve } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
+import { projetSchema } from '../../data/schemas/defs-scenes/projet';
+import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { refusDeForme } from '../narratifEdit';
 import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
@@ -1502,7 +1504,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     const s = ouvert(emptyNarratif());
     expect(jouer(s, { geste: 'ajouter', sorte: 'indices' }), 'aucune affaire à rattacher').toBe(s);
     expect(ECRITURES_DES_PORTEURS.indices.refusDeCreer?.(projetEdite(s), idDeLaSceneEditee(s), null)).toBe('Créez d’abord une affaire.');
-    const crees = (['affaires', 'indices', 'presetsPnj', 'documents', 'etats'] as const).reduce((acc, sorte) => jouer(acc, { geste: 'ajouter', sorte }), s);
+    const crees = (['affaires', 'indices', 'presetsPnj', 'documents', 'etats', 'objets'] as const).reduce((acc, sorte) => jouer(acc, { geste: 'ajouter', sorte }), s);
     const n = narratif(crees);
     expect([n.affaires, n.indices, n.documents, n.etats]).toEqual([
       [{ id: 'affaire-1', titre: 'Nouvelle affaire' }],
@@ -1511,7 +1513,8 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
       [{ id: 'etat-1', label: 'Nouvel état', forme: { kind: 'heros' } }],
     ]);
     expect(n.presetsPnj).toEqual([{ id: 'pnj-1', base: { id: [...creatures].sort((a, b) => a.label.localeCompare(b.label))[0].id } }]);
-    expect([crees.sel, crees.historique.passe.length]).toEqual([{ type: 'etats', id: 'etat-1' }, s.historique.passe.length + 5]);
+    expect(n.objets).toEqual([{ id: 'objet-1', type: 'trappings', label: 'Nouvel objet', categorie: 'trapping', subType: null, availability: null, qualities: [], price: null }]);
+    expect([crees.sel, crees.historique.passe.length]).toEqual([{ type: 'objets', id: 'objet-1' }, s.historique.passe.length + 6]);
   });
 
   it('une entrée écrit ses champs, sur un cran ; son identifiant et la liste de ses stades ne s’écrivent pas au formulaire', () => {
@@ -1704,5 +1707,72 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     const scene = jouer(lit, { geste: 'document', document: 'scene' }, { geste: 'selectionner', porteur: { sorte: 'declencheur', id: 't0' } });
     const declencheur = sceneEditee(scene).triggers[0];
     expect(choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', 'stade'], cadreDeLaSession(scene))?.map((c) => c.valeur)).toEqual(['lue', 'dechiffree']);
+  });
+  /** Le cas canonique de #4171 : l'objet de campagne référencé aux quatre positions (Effet et GameOp `giveTrapping`
+   *  d'un décor, clé `apparencesObjets` d'un personnage, devant une clé du catalogue, et du PNJ `pnj-de-sonde`), plus un
+   *  état neuf sans provenance : le projet est FAUTIF. */
+  const OBJET = objetDeCampagne();
+  const apparencesVers = (id: string) => ({ [id]: { id: 'epee' }, 'arme-simple': { id: 'epee' } });
+  const CAMPAGNE = {
+    type: 'projet', id: 'campagne', label: 'Campagne', versionContenu: 1, maison: 'fixture de test — aucun livre ne publie cette campagne',
+    narratif: {
+      ...emptyNarratif(),
+      objets: [OBJET],
+      presetsPnj: [{ id: 'pnj-de-sonde', base: { id: 'gobelin' }, apparence: { apparencesObjets: apparencesVers(OBJET.id) } }],
+      etats: [{ id: 'etat-1', label: 'Nouvel état', forme: { kind: 'heros' } }],
+    },
+    scenes: [{ ...emptyScene('relais', 4, 4), label: 'Le relais', entities: [
+      { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, usable: { actions: [
+        { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: OBJET.id } } },
+        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: OBJET.id }] } } },
+      ] } },
+      { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: apparencesVers(OBJET.id) } },
+    ] }],
+  };
+  const campagne = () => jouer(ouvrirLEdition(structuredClone(CAMPAGNE) as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'narratif' });
+  /** Les fautes du projet de la session `s` au parse de son schéma, sous l'enveloppe de `CAMPAGNE`. */
+  const fautesDuProjet = (s: SessionDEdition) => {
+    const r = projetSchema.safeParse({ ...CAMPAGNE, ...projetEdite(s) });
+    return r.success ? [] : r.error.issues.map((i) => i.path.join('.'));
+  };
+  /** Les quatre positions de l'objet dans le projet de `s` : deux valeurs, puis les clés des deux records d'apparence. */
+  const positions = (s: SessionDEdition) => {
+    const [coffre, pnj] = projetEdite(s).scenes[0].entities as unknown as [
+      { usable: { actions: { flow: { effet: { trappingId?: string; ops?: { trappingId: string }[] } } }[] } },
+      { appearance: { apparencesObjets: Record<string, unknown> } },
+    ];
+    const [fouiller, ouvrir] = coffre.usable.actions.map((a) => a.flow.effet);
+    const preset = narratif(s).presetsPnj[0] as { apparence: { apparencesObjets: Record<string, unknown> } };
+    return [fouiller.trappingId, ouvrir.ops![0].trappingId, pnj.appearance.apparencesObjets, preset.apparence.apparencesObjets];
+  };
+
+  it('un objet de campagne référencé aux quatre positions (#4171) : le retrait est refusé, ses lieux nommés ; le renommage réécrit les deux valeurs et les deux clés sur un cran, le projet fautif, sans autre faute que la sienne ; annuler le rend', () => {
+    const s = choisir(campagne(), 'objets', OBJET.id);
+    expect(fautesDuProjet(s), 'le projet de départ ne porte que la faute de l’état neuf').toEqual(['narratif.etats.0.source']);
+    expect(refusDeRetrait(s)).toBe('Encore désigné par : le PNJ « Gobelin », scène « Le relais » — changez ou retirez ces références d\'abord.');
+    expect(jouer(s, { geste: 'supprimer' })).toBe(s);
+    const renomme = jouer(s, { geste: 'nommer', nom: 'hache-du-projet' });
+    expect([narratif(renomme).objets.map((o) => o.id), renomme.sel, renomme.historique.passe.length]).toEqual([['hache-du-projet'], { type: 'objets', id: 'hache-du-projet' }, s.historique.passe.length + 1]);
+    expect(positions(renomme)).toEqual(['hache-du-projet', 'hache-du-projet', apparencesVers('hache-du-projet'), apparencesVers('hache-du-projet')]);
+    expect(positions(renomme).slice(2).map((r) => Object.keys(r as object)), 'la clé renommée garde son rang').toEqual([['hache-du-projet', 'arme-simple'], ['hache-du-projet', 'arme-simple']]);
+    expect(fautesDuProjet(renomme)).toEqual(['narratif.etats.0.source']);
+    const annule = jouer(renomme, { geste: 'annuler' });
+    expect(projetEdite(annule)).toEqual(projetEdite(s));
+  });
+
+  it('un objet de campagne se crée par son geste, sans provenance : seule faute du projet ; son formulaire écrit son nom et sa catégorie (#4171)', () => {
+    const cree = jouer(campagne(), { geste: 'ajouter', sorte: 'objets' });
+    expect([narratif(cree).objets.map((o) => o.id), cree.sel]).toEqual([[OBJET.id, 'objet-2'], { type: 'objets', id: 'objet-2' }]);
+    expect(fautesDuProjet(cree).sort()).toEqual(['narratif.etats.0.source', 'narratif.objets.1.source']);
+    const ecrit = jouer(cree, valeur('objets', 'objet-2', ['label'], 'Hache du relais'), valeur('objets', 'objet-2', ['categorie'], 'melee'));
+    expect([narratif(ecrit).objets[1].label, narratif(ecrit).objets[1].categorie, ecrit.historique.passe.length]).toEqual(['Hache du relais', 'melee', cree.historique.passe.length + 2]);
+    expect([refusDeLaValeur(cree, valeur('objets', 'objet-2', ['id'], 'x')), refusDeLaValeur(cree, valeur('objets', 'objet-2', ['type'], 'trappings'))]).toEqual(['nonOffert', 'nonOffert']);
+  });
+
+  it('le `trappingId` d’un Effet `giveTrapping` d’un déclencheur offre le catalogue des possessions puis les objets de la campagne (#4171)', () => {
+    const s = jouer(campagne(), { geste: 'document', document: 'scene' });
+    const declencheur = { id: 'don', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: OBJET.id } } } as Scene['triggers'][number];
+    const offerts = choixDuChamp('declencheur', declencheur, ['flow', 'effet', 'trappingId'], cadreDeLaSession(s))!.map((c) => c.valeur);
+    expect([offerts.includes('arme-simple'), offerts[offerts.length - 1]]).toEqual([true, OBJET.id]);
   });
 });

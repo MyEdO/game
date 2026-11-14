@@ -120,7 +120,7 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { SOUS_ENTREES, ajouteEntree, etatCouvert, indiceCouple, type CorpsNeuf, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import type { CibleNarrative } from '../data/schemas/defs-scenes/refs-narratives';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { refusDeRenommage, refusDeRetrait as refusDeRetraitNarratif, renommeAuProjet, retireDuProjet } from './narratifEdit';
@@ -1572,9 +1572,10 @@ function routeCreee(projet: ProjetDEdition, _sceneId: string, depuis: Sel, avec?
 }
 
 /** Le corps neuf d'une entrée de chaque registre créable du narratif, dans le narratif `narratif`, celui que pose
- *  l'éditeur web (`NarratifEditor.tsx` : `addAffaire`, `addIndice`, `addPreset`, `addDocument`, `addEtat`) ; ou le refus
- *  de la créer, dit : un indice sans affaire à rattacher. */
-const CORPS_NEUFS: { readonly [R in RegistreCreable]: (narratif: NarratifBlock) => Omit<NarratifBlock[R][number], 'id'> | string } = {
+ *  l'éditeur web (`NarratifEditor.tsx` : `addAffaire`, `addIndice`, `addPreset`, `addDocument`, `addEtat`) ; d'un objet,
+ *  une possession sans provenance, que son schéma dit fautive tant que l'auteur ne la pose pas ; ou le refus de la créer,
+ *  dit : un indice sans affaire à rattacher. */
+const CORPS_NEUFS: { readonly [R in RegistreCreable]: (narratif: NarratifBlock) => CorpsNeuf<R> | string } = {
   affaires: () => ({ titre: tr('ecran.editeur.narratif.affaireNeuve') }),
   indices: ({ affaires: [affaire] }) => (affaire
     ? { affaireId: affaire.id, kind: 'indice', titre: tr('ecran.editeur.narratif.indiceNeuf'), stades: [{ id: 'stade-1', prose: '' }] }
@@ -1585,6 +1586,7 @@ const CORPS_NEUFS: { readonly [R in RegistreCreable]: (narratif: NarratifBlock) 
   },
   documents: () => ({ titre: tr('ecran.editeur.narratif.documentNeuf'), prose: '' }),
   etats: () => ({ label: tr('ecran.editeur.narratif.etatNeuf'), forme: { kind: 'heros' } }),
+  objets: () => ({ type: 'trappings', label: tr('ecran.editeur.narratif.objetNeuf'), categorie: 'trapping', subType: null, availability: null, qualities: [], price: null }),
 };
 
 /** Ce que l'écriture d'une entrée d'un registre du narratif lui fait porter, la règle de son écrivain web : chaque stade

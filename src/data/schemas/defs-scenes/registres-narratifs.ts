@@ -22,27 +22,24 @@ export type CleDeRegistreNarratif = ClesDeListeAId<NarratifBlock>;
 /** Une ligne de registre : sa clé dans `NarratifBlock`, le complément de nom de ses messages de faute
  *  (« l'id d'affaire »), le nom d'une de ses entrées pour l'auteur (« l'affaire »), le sujet d'une
  *  référence qui ne résout pas (« affaire inconnue »), celui d'une référence encore vide (« aucune
- *  affaire choisie »), et
- *  `idAuSchema` — l'`id` vide est-il déjà refusé par le schéma de l'élément (`false` : l'élément est
- *  un `z.custom`, le raffinage dit l'absence). */
+ *  affaire choisie »). */
 export interface RegistreNarratif {
   readonly cle: CleDeRegistreNarratif;
   readonly de: string;
   readonly nom: string;
   readonly inconnu: string;
   readonly aucun: string;
-  readonly idAuSchema: boolean;
 }
 
 /** La table, keyée par registre : son type EXIGE chaque liste de `NarratifBlock` (une liste sans ligne
  *  ne compile pas), et l'ordre de ses clés est celui des registres partout où ils s'énumèrent. */
 const TABLE: { readonly [K in CleDeRegistreNarratif]: Omit<RegistreNarratif, 'cle'> } = {
-  affaires: { de: 'd\'affaire', nom: 'l\'affaire', inconnu: 'affaire inconnue', aucun: 'aucune affaire choisie', idAuSchema: true },
-  indices: { de: 'd\'indice', nom: 'l\'indice', inconnu: 'indice inconnu', aucun: 'aucun indice choisi', idAuSchema: true },
-  presetsPnj: { de: 'de preset PNJ', nom: 'le PNJ', inconnu: 'preset de PNJ inconnu', aucun: 'aucun preset de PNJ choisi', idAuSchema: true },
-  objets: { de: 'd\'objet', nom: 'l\'objet', inconnu: 'objet inconnu', aucun: 'aucun objet choisi', idAuSchema: false },
-  etats: { de: 'd\'état de campagne', nom: 'l\'état de campagne', inconnu: 'état de campagne non déclaré', aucun: 'aucun état de campagne choisi', idAuSchema: true },
-  documents: { de: 'de document', nom: 'le document', inconnu: 'document inconnu', aucun: 'aucun document choisi', idAuSchema: true },
+  affaires: { de: 'd\'affaire', nom: 'l\'affaire', inconnu: 'affaire inconnue', aucun: 'aucune affaire choisie' },
+  indices: { de: 'd\'indice', nom: 'l\'indice', inconnu: 'indice inconnu', aucun: 'aucun indice choisi' },
+  presetsPnj: { de: 'de preset PNJ', nom: 'le PNJ', inconnu: 'preset de PNJ inconnu', aucun: 'aucun preset de PNJ choisi' },
+  objets: { de: 'd\'objet', nom: 'l\'objet', inconnu: 'objet inconnu', aucun: 'aucun objet choisi' },
+  etats: { de: 'd\'état de campagne', nom: 'l\'état de campagne', inconnu: 'état de campagne non déclaré', aucun: 'aucun état de campagne choisi' },
+  documents: { de: 'de document', nom: 'le document', inconnu: 'document inconnu', aucun: 'aucun document choisi' },
 };
 
 export const REGISTRES_NARRATIFS: readonly RegistreNarratif[] = (Object.keys(TABLE) as CleDeRegistreNarratif[]).map((cle) => ({ cle, ...TABLE[cle] }));

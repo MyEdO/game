@@ -5,6 +5,10 @@ import { apparencesAdmissiblesDObjet } from '../../apparencesObjets';
 import { entityAppearanceSchema } from './valeurs';
 import { sceneSchema } from '../defs-scenes/scene';
 import { emptyScene } from '../../../noyau/monde/scene';
+import { validateDataset } from '../validate';
+import spells from '../../spells.json';
+import presets from '../../presets-de-personnage.json';
+import creatures from '../../creatures.json';
 
 const scene = (apparences: Record<string, string>) => ({
   ...emptyScene('scene-test', 2, 2),
@@ -27,10 +31,6 @@ describe('apparences d’objets d’auteur : références validées au parse de 
     const resultat = sceneSchema.safeParse(scene({ 'arme-simple': 'apparence-inconnue' }));
     expect(resultat.success).toBe(false);
     expect(JSON.stringify(resultat.error?.issues)).toContain('apparence-inconnue');
-  });
-
-  it('refuse une clé de trapping inconnue', () => {
-    expect(sceneSchema.safeParse(scene({ 'trapping-inconnu': 'hache_naine' })).success).toBe(false);
   });
 
   it('refuse les apparences connues étrangères à leur objet dans les trois formes d’auteur', () => {
@@ -67,5 +67,39 @@ describe('apparences d’objets d’auteur : références validées au parse de 
 
   it('refuse une clé inconnue sur EntityAppearance', () => {
     expect(entityAppearanceSchema.safeParse({ champInconnu: {} }).success).toBe(false);
+  });
+});
+
+/** Une copie de `v` où la première GameOp `giveTrapping` donne `id`. */
+function avecPremierObjetDonne(v: unknown, id: string): boolean {
+  if (Array.isArray(v)) return v.some((e) => avecPremierObjetDonne(e, id));
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  if (o.op === 'giveTrapping' && typeof o.trappingId === 'string') return (o.trappingId = id), true;
+  return Object.values(o).some((e) => avecPremierObjetDonne(e, id));
+}
+
+describe('un catalogue désigne la portée des objets de la campagne sans l’ouvrir : l’objet vaut le catalogue seul', () => {
+  const FANTOME = 'objet-fantome';
+  const REFUS = `« ${FANTOME} » est absent du catalogue des objets (trappings.json).`;
+  const copie = <T>(x: T): T => JSON.parse(JSON.stringify(x));
+
+  it('spells.json : une GameOp `giveTrapping` vers un objet absent du catalogue est refusée', () => {
+    const donnee = copie(spells);
+    expect(avecPremierObjetDonne(donnee, FANTOME)).toBe(true);
+    expect(validateDataset('spells.json', donnee)).toContain(REFUS);
+  });
+
+  it('presets-de-personnage.json : une clé `apparencesObjets` absente du catalogue est refusée', () => {
+    const donnee = copie(presets) as Record<string, unknown>[];
+    donnee[0].apparencesObjets = { [FANTOME]: { id: 'epee' } };
+    expect(validateDataset('presets-de-personnage.json', donnee)).toContain(REFUS);
+  });
+
+  it('creatures.json : une clé `appearance.apparencesObjets` absente du catalogue est refusée', () => {
+    const donnee = copie(creatures) as Record<string, unknown>[];
+    const porteuse = donnee.find((e) => 'appearance' in e)!;
+    (porteuse.appearance as Record<string, unknown>).apparencesObjets = { [FANTOME]: { id: 'epee' } };
+    expect(validateDataset('creatures.json', donnee)).toContain(REFUS);
   });
 });

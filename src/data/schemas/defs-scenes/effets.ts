@@ -14,7 +14,7 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  * (transition/dialogue/combat…) et sur `conditionSchema` : aucune structure n'est recopiée.
  */
 import { z } from 'zod';
-import { validerApparenceDonnee } from '../grammaire/valeurs';
+import { avecApparenceDObjetDonne, OBJETS_DU_PROJET } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
 import {
@@ -151,13 +151,13 @@ export const clearObjectiveSchema = nommerChamps(z.strictObject({ type: z.litera
 
 /** Objet donné par `giveTrapping` : feuille OUVERTE de `INSTANCIABLE_PAR_ID`, FORME DE SORTIE déclarée
  *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
-const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true });
+const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET });
 
 /** Donne un objet à un héros (défaut : le premier). `trappingId` = objet à stats de la campagne
  *  (`narratif.objets`) ou du catalogue, feuille OUVERTE de `INSTANCIABLE_PAR_ID` ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
  *  stats. L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES
  *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `teinte` = recoloration. */
-export const giveTrappingSchema = nommerChamps(z.strictObject({
+export const giveTrappingSchema = nommerChamps(avecApparenceDObjetDonne(z.strictObject({
   type: z.literal('giveTrapping'),
   trappingId: objetDonneSchema.optional(),
   custom: z.string().optional(),
@@ -175,7 +175,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+})), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que

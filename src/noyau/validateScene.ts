@@ -16,8 +16,11 @@ import { byId, stakeSpeaks, matieresDe } from '../data';
 import { individusNommes } from '../engine/psych/ciblage';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { PERSONNAGES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
-import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
-import { narratifSchema, validerReferencesDObjetsDansCampagne } from '../data/schemas/defs-scenes/narratif';
+import { idsDeLaPortee, ouvrirPortees } from '../data/schemas/grammaire/collection-cle';
+import { OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
+import { metaDesChamps, nommerChamps } from '../data/schemas/grammaire/meta';
+import { z } from 'zod';
+import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
@@ -94,10 +97,26 @@ export function architectureSelectionForWarning(warning: Warning): ArchitectureW
  *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
  *  verdicts — les réfs se résolvent au catalogue VIVANT. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
-const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object, narratif?: NarratifBlock): readonly Faute[] | null =>
-  verdictsDeSchema(objet, [schema, narratif], () => validerFormeVivante(narratif
-    ? schema.superRefine((_valeur, ctx) => validerReferencesDObjetsDansCampagne(narratif.objets, ctx))
-    : schema, objet)?.fautes ?? null);
+const fautesDeSchema = (schema: z.ZodType, objet: object, narratif?: NarratifBlock): readonly Faute[] | null =>
+  verdictsDeSchema(objet, [schema, narratif], () => {
+    if (!narratif) return validerFormeVivante(schema, objet)?.fautes ?? null;
+    const fautes = (validerFormeVivante(sousLesObjetsDuProjet(schema), { narratif: { objets: narratif.objets }, valeur: objet })?.fautes ?? [])
+      .filter((f) => f.chemin[0] === 'valeur')
+      .map((f) => ({ ...f, chemin: f.chemin.slice(1), lieu: f.lieu.slice(1) }));
+    return fautes.length ? fautes : null;
+  });
+
+/** `schema` sous la portée des objets de la campagne (`OBJETS_DU_PROJET`), qu'ouvre la racine du projet : la valeur
+ *  validée sous `valeur`, les objets du narratif sous `narratif.objets`, comme au projet. */
+const OUVREURS_DES_OBJETS = new Map<z.ZodType, z.ZodType>();
+function sousLesObjetsDuProjet(schema: z.ZodType): z.ZodType {
+  const connu = OUVREURS_DES_OBJETS.get(schema);
+  if (connu) return connu;
+  const narratif = nommerChamps(z.strictObject({ objets: narratifSchema.shape.objets }), { objets: metaDesChamps(narratifSchema, { exigees: true }).objets });
+  const ouvreur = ouvrirPortees(nommerChamps(z.strictObject({ narratif, valeur: schema }), { narratif: { label: 'Bloc narratif' }, valeur: { label: 'valeur' } }), [OBJETS_DU_PROJET]);
+  OUVREURS_DES_OBJETS.set(schema, ouvreur);
+  return ouvreur;
+}
 
 /** PORTÉE d'une faute pour l'éditeur (clic → sélection), par la suite des LISTES à clé que son lieu
  *  traverse depuis la racine ; les clés rencontrées nomment la sélection. Choix d'ÉCRAN : une façade
@@ -213,7 +232,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
   // Le SCHÉMA du narratif (`narratifSchema`) : un narratif VIVANT de l'éditeur ne repasse pas par le parse, l'auteur
   // l'apprend ici, comme pour la carte.
   if (narratif) {
-    for (const faute of fautesDeSchema(narratifSchema, narratif) ?? []) {
+    for (const faute of fautesDeSchema(narratifSchema, narratif, narratif) ?? []) {
       const f = fautifDe(faute.lieu, 'narratif');
       out.push({ level: 'error', sceneId: 'narratif', scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
     }

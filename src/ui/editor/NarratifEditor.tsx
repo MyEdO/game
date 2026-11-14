@@ -28,6 +28,7 @@ import {
   lignesNeuves,
   repereNeuf,
   stadeCouple,
+  type CorpsNeuf,
   type Identite,
   type RegistreCreable,
 } from '../../data/schemas/defs-scenes/ecritures-du-narratif';
@@ -155,7 +156,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
     return true;
   };
   /** Crée une entrée (`ajouteEntree`) et la sélectionne. */
-  const ajoute = <R extends RegistreCreable>(registre: R, entree: Omit<NarratifBlock[R][number], 'id'>, choisir: (id: string) => void) => {
+  const ajoute = <R extends RegistreCreable>(registre: R, entree: CorpsNeuf<R>, choisir: (id: string) => void) => {
     const out = ajouteEntree(narratif, registre, entree);
     poserNarratif(out.narratif);
     choisir(out.id);

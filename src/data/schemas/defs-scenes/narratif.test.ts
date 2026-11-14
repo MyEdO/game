@@ -9,6 +9,8 @@ import { narratifSchema } from './narratif';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { idsDeLaSousListe, mesureDuParse } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
+import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
+import { findTrappingById } from '../../index';
 
 const vide = emptyNarratif();
 const ouverture = { titre: 'L’Ennemi Intérieur', pitch: 'Nos héros forment un groupe hétéroclite.' };
@@ -126,7 +128,7 @@ describe('narratifSchema — `couvre` et `ecartes` (#2290)', () => {
 
 describe('narratifSchema — apparence d’un objet embarqué (#2972)', () => {
   const [forme, autre] = idsDeLaSousListe('apparence', RACINE_D_APPARENCE);
-  const objet = { id: 'objet-de-sonde', label: 'Objet de sonde', type: 'divers', shape: { id: forme }, formChoices: [forme, autre] };
+  const objet = objetDeCampagne({ id: 'objet-de-sonde', label: 'Objet de sonde', shape: { id: forme }, formChoices: [forme, autre] });
 
   it('le parse de mesure d’un objet à forme ne lève pas et rend ses références `apparence`, au chemin de la donnée', () => {
     const { reperes } = mesureDuParse(narratifSchema, { ...vide, objets: [objet] });
@@ -139,5 +141,37 @@ describe('narratifSchema — apparence d’un objet embarqué (#2972)', () => {
     const r = narratifSchema.safeParse({ ...vide, objets: [{ ...objet, shape: { id: 'forme-inconnue-de-sonde' } }] });
     expect(r.success).toBe(false);
     expect(r.error?.issues.map((i) => i.path.join('.'))).toContain('objets.0.shape.id');
+  });
+});
+
+/** #4171 — l'objet de campagne est une entrée ENTIÈRE du catalogue des possessions (`defs/trappings.ts`, `entree`). */
+describe('narratifSchema — objet de campagne au schéma du catalogue (#4171)', () => {
+  const chemins = (objet: Record<string, unknown>) => {
+    const r = narratifSchema.safeParse({ ...vide, objets: [objet] });
+    return r.success ? [] : r.error.issues.map((i) => i.path.join('.'));
+  };
+  const sans = (cles: readonly string[], objet: Record<string, unknown> = objetDeCampagne()) =>
+    Object.fromEntries(Object.entries(objet).filter(([k]) => !cles.includes(k)));
+
+  it('l’objet de la fixture parse', () => {
+    expect(chemins(objetDeCampagne())).toEqual([]);
+  });
+
+  it('sans `source`, sans `categorie`, sans `qualities` : refusé, chaque champ au chemin de sa faute', () => {
+    expect(chemins(sans(['source', 'categorie', 'qualities']))).toEqual(expect.arrayContaining(['objets.0.source', 'objets.0.categorie', 'objets.0.qualities']));
+  });
+
+  it('une clé inconnue est refusée', () => {
+    const r = narratifSchema.safeParse({ ...vide, objets: [{ ...objetDeCampagne(), cleInconnue: 1 }] });
+    expect(r.error?.issues.map((i) => [i.path.join('.'), i.code, (i as { keys?: string[] }).keys])).toEqual([['objets.0', 'unrecognized_keys', ['cleInconnue']]]);
+  });
+
+  it('une armure sans `shape` est refusée : l’affinage du catalogue suit l’embarquement', () => {
+    const armure = sans(['shape'], { ...findTrappingById('calotte-de-cuir')!, id: 'calotte-de-campagne', label: 'Calotte de campagne' });
+    expect(chemins(armure)).toEqual(['objets.0.shape']);
+  });
+
+  it('sans `id` : refusé au chemin de l’id', () => {
+    expect(chemins(sans(['id']))).toEqual(['objets.0.id']);
   });
 });

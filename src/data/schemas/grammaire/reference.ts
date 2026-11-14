@@ -14,14 +14,18 @@ import {
   difficultySchema,
   enumNomme,
   formuleSansTirageSchema,
+  genreDArmeSchema,
   maisonSchema,
   matiereDArmureSchema,
   parLocalisationSchema,
   plageSchema,
+  reachSchema,
   secondarySourceRefSchema,
   sizeCategorySchema,
   sourceRefSchema,
   varianteDeCibleSchema,
+  weaponDamageSpecSchema,
+  weaponRangeSpecSchema,
 } from './valeurs';
 import { marquerProduit } from './interne/produits';
 import {
@@ -275,6 +279,39 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
   mains: { label: 'Tenue à une main', hint: 'L’arme y est tenue à une main' },
 }), 'melee');
 
+
+/** LDB 73 */
+export const weaponSchema = nommerChamps(z.strictObject({
+  label: z.string(),
+  type: genreDArmeSchema,
+  damage: weaponDamageSpecSchema,
+  reach: z.union([reachSchema, z.null()]).optional(),
+  range: z.union([weaponRangeSpecSchema, z.null()]).optional(),
+  qualities: z.array(qualityRefSchema),
+  subType: ref('weaponGroup').optional(),
+  weaponGroup: ref('weaponGroup').optional(),
+  soloSimple: z.boolean().optional(),
+  indirect: z.boolean().optional(),
+  /** LDB 62 l.278 */
+  bladed: z.boolean().optional(),
+  /** LDB 47 */
+  organicProjectile: z.boolean().optional(),
+  hands: z.union([z.literal(1), z.literal(2)]).optional(),
+}), {
+  label: { label: 'Libellé' },
+  type: { label: 'Type' },
+  damage: { label: 'Dégâts' },
+  reach: { label: 'Allonge' },
+  range: { label: 'Portée' },
+  qualities: { label: 'Qualités' },
+  subType: { label: 'Sous-type' },
+  weaponGroup: { label: 'Groupe d’armes' },
+  soloSimple: { label: 'Simple à manier seul' },
+  indirect: { label: 'Tir indirect' },
+  bladed: { label: 'Arme à lame' },
+  organicProjectile: { label: 'Projectile organique' },
+  hands: { label: 'Mains' },
+});
 
 /** `TrappingRef` (`src/data/index.ts`) — par id de catalogue (+ quantité, + Atouts ATTACHÉS `qualities`
  *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),

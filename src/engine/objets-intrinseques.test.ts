@@ -93,7 +93,7 @@ describe('propriétés intrinsèques de l’objet (#2967)', () => {
   it('les passifs de campagne restent ceux de la naissance après édition de la fiche', () => {
     const { hero, objet, item } = porteurDObjetDeCampagne(idsDeTest, 'hache_naine', { passive: [
       { op: 'skillDRBonus', skill: { id: 'orientation' }, bonus: 3 },
-      { op: 'light', radiusM: 8, tone: { id: 'ambre' } },
+      { op: 'light', radiusM: 8, tone: { id: 'lanterne' } },
     ] });
     hero.pos = { x: 2, y: 3 };
     expect(skillDRBonus(hero, { id: 'orientation' })).toBe(3);
