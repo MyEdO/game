@@ -8,9 +8,14 @@ import numpy
 from mathutils.bvhtree import BVHTree
 
 RABOT = 0.9
-"""Facteur dont une passe de `raboter` multiplie une clé aux nœuds de ses arêtes marquées : valeur
-d'ingénierie #3104 (capture r9 du 2026-11-04 : 53 passes, `feminin` garde 85 % de son amplitude et 5 cm au sein,
-contre 68 % et 3,4 cm à 0,7)."""
+"""Facteur dont une passe de `raboter` multiplie une clé de force 1 aux nœuds de ses arêtes marquées, `RABOT ** s` à
+force s : valeur d'ingénierie #3104 (capture r9 du 2026-11-04 : 53 passes, `feminin` garde 85 % de son amplitude et
+5 cm au sein, contre 68 % et 3,4 cm à 0,7)."""
+PENTE_DU_RABOT = 3
+"""Anneaux de nœuds autour de la région rabotée d'une clé où une passe de `raboter` descend en pente de `RABOT ** s`
+à 1 (#4002). Une marche, la région à `RABOT ** s` contre des voisins à 1, creuse passe après passe un sillon d'un
+nœud de large, que la clé montre en pli au repos ; la pente répartit la même baisse sur une bande, que la clé montre
+en creux doux."""
 STAGNATION_M = 1e-3
 """Baisse par passe du plus grand décalage mesuré sous laquelle la région de rabot d'une clé gagne un anneau
 (`raboter`) : valeur d'ingénierie #3104 (constructions du 2026-11-04 : sans anneau, r16 garde 80 arêtes par clé en
@@ -71,36 +76,54 @@ def aux_noeuds(champ, noeud):
     return valeur / numpy.maximum(numpy.bincount(noeud, minlength=n), 1).reshape(-1, *[1] * (champ.ndim - 1))
 
 
+def anneaux_des_marquees(aretes, force, profondeur, n):
+    """Par nœud (`n` nœuds), sa distance en arêtes aux extrémités des arêtes de `aretes` de `force` non nulle, -1
+    au-delà de `profondeur`, et la force de l'extrémité la plus proche, la plus forte à égalité, 0 au-delà :
+    (nœuds,) entier, (nœuds,) réel."""
+    distance = numpy.full(n, -1)
+    proche = numpy.zeros(n)
+    marquees = force > 0
+    numpy.maximum.at(proche, aretes[marquees].ravel(), numpy.repeat(force[marquees], 2))
+    distance[proche > 0] = 0
+    for r in range(1, profondeur + 1):
+        front = distance == r - 1
+        for depuis, vers in ((0, 1), (1, 0)):
+            pas = front[aretes[:, depuis]] & (distance[aretes[:, vers]] < 0)
+            numpy.maximum.at(proche, aretes[pas, vers], proche[aretes[pas, depuis]])
+        distance[(distance < 0) & (proche > 0)] = r
+    return distance, proche
+
+
 def region_locale(aretes, masque, anneaux, n):
     """Par nœud (`n` nœuds), s'il est extrémité d'une arête de `aretes` que marque `masque`, ou à au plus `anneaux`
-    arêtes d'une telle extrémité : (nœuds,) booléen."""
-    dans = numpy.zeros(n, dtype=bool)
-    dans[aretes[masque].ravel()] = True
-    for _ in range(anneaux):
-        dans[aretes[dans[aretes].any(axis=1)].ravel()] = True
-    return dans
+    arêtes d'une telle extrémité (`anneaux_des_marquees`) : (nœuds,) booléen."""
+    return anneaux_des_marquees(aretes, numpy.asarray(masque, dtype=float), anneaux, n)[0] >= 0
 
 
 def raboter(champ, noeud, aretes, facteur, mesurer, passes_max, cumul=None):
     """Les champs de décalages `champ` (sommets, clés, 3) multipliés par `facteur` (sommets,) et par le rabot cumulé
     `cumul` (sommets, clés) d'un rabot précédent (par défaut 1), rabotés passe après passe jusqu'à ce que `mesurer`
-    (champs complets, rabot cumulé de chaque sommet et clé -> (champs mesurés, masque booléen (arêtes, clés))) ne
-    marque plus aucune arête. Chaque passe repart des champs mesurés : une projection, comme la correction des
-    silhouettes, s'y applique avant le rabot suivant. Une passe multiplie chaque clé marquée par `RABOT` sur les nœuds
-    `noeud` de ses arêtes `aretes` marquées (`region_locale`), et la laisse intacte ailleurs ; la région d'une clé gagne
-    un anneau de voisins dès que le plus grand décalage mesuré de la clé y baisse de moins de `STAGNATION_M` sur une
-    passe. Un sommet de `facteur` nul reste nul. Les sommets d'un même nœud reçoivent la même valeur. Rend les champs
-    mesurés de la dernière passe, le nombre de passes et le rabot cumulé. Une arête marquée dont les deux extrémités
-    ont un `facteur` nul, qu'aucune passe ne change, ou une arête marquée au-delà de `passes_max` passes, arrête la
-    construction."""
+    (champs complets, rabot cumulé de chaque sommet et clé -> (champs mesurés, force (arêtes, clés) dans [0, 1])) ne
+    marque plus aucune arête, une arête marquée pour une clé quand sa force y est non nulle (#4002). Chaque passe
+    repart des champs mesurés : une projection, comme la correction des silhouettes, s'y applique avant le rabot
+    suivant. Une passe multiplie chaque clé marquée par `RABOT ** s` sur les nœuds `noeud` de ses arêtes `aretes`
+    marquées, s la plus grande force de leurs arêtes marquées ; la région d'une clé gagne un anneau de voisins dès que
+    le plus grand décalage mesuré de la clé y baisse de moins de `STAGNATION_M` sur une passe, ses nœuds à la force de
+    l'extrémité marquée la plus proche (`anneaux_des_marquees`). Les nœuds à r anneaux de la région, 1 ≤ r ≤
+    `PENTE_DU_RABOT`, reçoivent `RABOT ** (s · (1 − r / (PENTE_DU_RABOT + 1)))`, s la force du nœud raboté le plus
+    proche ; la clé reste intacte ailleurs. Un sommet de `facteur` nul reste nul. Les sommets d'un même nœud
+    reçoivent la même valeur. Rend les champs mesurés de la dernière passe, le nombre de passes et le rabot cumulé.
+    Une arête marquée dont les deux extrémités ont un `facteur` nul, qu'aucune passe ne change, ou une arête marquée
+    au-delà de `passes_max` passes, arrête la construction."""
     libre = (facteur > 0)[:, None, None]
     cumul = aux_noeuds(numpy.ones(champ.shape[:2]) if cumul is None else cumul, noeud)
     valeur = aux_noeuds(champ * facteur[:, None, None], noeud) * cumul[:, :, None]
     anneaux = numpy.zeros(valeur.shape[1], dtype=int)
     rabotees = {}
     for passe in range(passes_max + 1):
-        mesures, marquees = mesurer(valeur[noeud] * libre, cumul[noeud])
-        marquees = numpy.asarray(marquees)
+        mesures, forces = mesurer(valeur[noeud] * libre, cumul[noeud])
+        forces = numpy.asarray(forces, dtype=float)
+        marquees = forces > 0
         if not marquees.any():
             return mesures, passe, cumul[noeud]
         tenues = marquees & (facteur[aretes] == 0).all(axis=1)[:, None]
@@ -115,10 +138,14 @@ def raboter(champ, noeud, aretes, facteur, mesurer, passes_max, cumul=None):
                 anneaux[cle] += 1
         rabotees = {}
         for cle in numpy.flatnonzero(marquees.any(axis=0)):
-            dans = region_locale(aretes, marquees[:, cle], anneaux[cle], len(valeur))
+            distance, s = anneaux_des_marquees(aretes, forces[:, cle], anneaux[cle] + PENTE_DU_RABOT, len(valeur))
+            touches = distance >= 0
+            dans = touches & (distance <= anneaux[cle])
+            pente = numpy.clip(distance[touches] - anneaux[cle], 0, None) / (PENTE_DU_RABOT + 1)
+            rabot = RABOT ** (s[touches] * (1 - pente))
             rabotees[cle] = (dans, numpy.linalg.norm(valeur[dans, cle], axis=-1).max())
-            valeur[dans, cle] *= RABOT
-            cumul[dans, cle] *= RABOT
+            valeur[touches, cle] *= rabot[:, None]
+            cumul[touches, cle] *= rabot
 
 
 def voisins(rig, noms):

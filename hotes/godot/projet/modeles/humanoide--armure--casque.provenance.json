@@ -1,11 +1,15 @@
 {
   "model": "humanoide--armure--casque.glb",
-  "model_sha256": "057c4bafe1b4dd22bee1ae329c09f6cf4b8be0fdd2c2bcffadaf28bca985afe5",
-  "importe_le": "2026-11-06",
+  "model_sha256": "a898fcf9b9afa4fd9172703f4e48ad54696cfc72a05d17885c55d6f29278ba6b",
+  "importe_le": "2026-11-14",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

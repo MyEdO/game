@@ -13,12 +13,13 @@ import { seedBattleRng } from './battleRng';
 import { creditBourse } from './bourseFlow';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { effectiveChar } from '../engine/characteristics';
+import { testValue } from '../engine/skills';
 import { setRule, resetRule, rule } from '../engine/policy';
 import { emptyScene } from './monde/scene';
 import { fixtureText } from '../i18n/fixtureText';
 import { t } from '../i18n';
 import { resultLine } from './rollSeam';
-import type { Combatant, SkillInstance } from '../engine/types';
+import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type SkillInstance } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { GenreDeCascade } from './tablesPosees';
@@ -77,7 +78,7 @@ describe('mer — réparation temporaire de l’Entretien du soir (MDG 13 l.651,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 30, max: 50 } },
     } as never);
   });
-  afterEach(() => resetRule('mer-reparation-temporaire-difficulte'));
+  afterEach(() => { resetRule('mer-reparation-temporaire-difficulte'); resetRule('mer-reparation-temporaire-reparation-difficulte'); });
 
   const prendreLaMer = () => set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])! });
   /** Le reste de la journée que la Progression insère. */
@@ -101,6 +102,16 @@ describe('mer — réparation temporaire de l’Entretien du soir (MDG 13 l.651,
     expect(st.base).toBe(effectiveChar(get().travelPlan!.vehicle!, 'endurance'));
     setRule('mer-reparation-temporaire-difficulte', 'difficile');
     expect(testsDeReparation(journee())[0].difficulty).toBe('difficile');
+  });
+
+  it('l’Entretien du soir, qui remplace le Test de réparation temporaire, se joue à sa Difficulté (MDG 13 l.649, MDG 14 l.120)', () => {
+    prendreLaMer();
+    const drDeLEntretien = () => Number(journee().find((s) => s.kind === 'equipage-entretien')!.meta?.aggregateFlatDR ?? 0);
+    const parDefaut = drDeLEntretien();
+    const defaut = rule('mer-reparation-temporaire-reparation-difficulte') as Difficulty;
+    setRule('mer-reparation-temporaire-reparation-difficulte', 'tresDifficile');
+    expect(drDeLEntretien() - parDefaut).toBe((DIFFICULTY_MODIFIERS.tresDifficile - DIFFICULTY_MODIFIERS[defaut]) / 10);
+    expect(DIFFICULTY_MODIFIERS[defaut], 'le défaut est dans la fourchette Complexe à Très Difficile').toBeLessThanOrEqual(DIFFICULTY_MODIFIERS.complexe);
   });
 
   it('un échec inflige 1d10−4 Dégâts à la coque, planchés à 0 ; une réussite n’en inflige aucun', () => {
@@ -253,7 +264,7 @@ describe('fleuve — réparation temporaire d’une coque percée (MSRC 7 l.115-
     plan.vehicle!.wounds.current = 30;
     set({ travelPlan: { ...plan, river: { ...plan.river!, holed: true } } });
   });
-  afterEach(() => { resetRule('fleuve-reparation-temporaire-navigation'); resetRule('fleuve-reparation-temporaire-degats'); });
+  afterEach(() => { resetRule('fleuve-reparation-temporaire-navigation'); resetRule('fleuve-reparation-temporaire-degats'); resetRule('fleuve-reparation-temporaire-reparation-difficulte'); });
 
   const testsDeReparation = (steps: readonly BuiltCascadeStep[]) => steps.filter((s) => s.kind === 'fleuve-reparation-temporaire');
   const journee = () => buildRiverDayCascade(get, set, route).steps;
@@ -320,6 +331,15 @@ describe('fleuve — réparation temporaire d’une coque percée (MSRC 7 l.115-
     expect(testsDeReparation(issue?.insert ?? [])).toEqual([]);
   });
 
+  it('le calfatage d’une coque percée se joue à la Difficulté de la règle maison, surfacé comme en ligne (MSRC 7 l.115)', () => {
+    setRule('fleuve-reparation-temporaire-reparation-difficulte', 'tresDifficile');
+    const percer = () => { seedBattleRng(8); set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, holed: false } } }); return appliquer(etapeJouee('fleuveDetectionDePeril', { result: { roll: 99, target: 40, sl: -5, success: false }, meta: { perilId: 'rochers' } })); };
+    const breche = percer()?.insert?.find((s) => s.kind === 'fleuveReparationDeBreche');
+    expect(breche?.difficulty).toBe('tresDifficile');
+    set({ party: [{ ...get().party[0], aiControlled: true }] });
+    expect(resultLine(percer()?.consequences ?? [])).toContain(`(Métier ${DIFFICULTY_LABELS.tresDifficile})`);
+  });
+
   it('sur le navire de campagne, le marqueur vit au navire : une nouvelle descente joue encore le Test', () => {
     set({ vessel: { vehicleId: 'barge', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, wounds: { current: 10, max: 30 } } } as never);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', route)!;
@@ -330,5 +350,48 @@ describe('fleuve — réparation temporaire d’une coque percée (MSRC 7 l.115-
     set({ travelPlan: null });
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', route)! });
     expect(testsDeReparation(journee())).toHaveLength(1);
+  });
+});
+
+describe('fleuve — le Test de réparation temporaire du gréement (MSRC 7 l.115)', () => {
+  /** Un batelier dont le seul Métier de réparation est `spec`. */
+  function reparateur(id: string, seed: number, spec: string, advances: number): Combatant {
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: id, motivation: 'x', seed, id });
+    h.skills = h.skills.filter((s) => s.id !== 'metier');
+    for (const [sid, adv, sp] of [['ramer', 50], ['voile', 45, 'chaland'], ['metier', advances, spec]] as const) {
+      h.skills.push({ id: sid, spec: sp, characteristic: skillCharacteristicById(sid), advances: adv } as SkillInstance);
+    }
+    return h;
+  }
+  const charpentier = () => reparateur('r-bran', 21, 'charpentier', 30);
+
+  beforeEach(() => {
+    seedBattleRng(7);
+    set({
+      party: [charpentier()], battle: null, lieu: 'A', travelRecap: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], journal: [],
+      worldMap: carteDuReik, vessel: null,
+    } as never);
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', routeDuReik)!;
+    set({ travelPlan: { ...plan, river: { ...plan.river!, broken: true } } });
+  });
+  afterEach(() => resetRule('fleuve-reparation-temporaire-reparation-difficulte'));
+
+  const reparation = () => buildRiverDayCascade(get, set, routeDuReik).steps.find((s) => s.kind === 'fleuveReparationDeCommande')!;
+  const cible = (d: Difficulty) => testValue(get().party[0], { skill: { id: 'metier', spec: 'charpentier' } }) + DIFFICULTY_MODIFIERS[d];
+
+  it('le meilleur des deux Métiers répare, Charpentier compris (MSRC 7 l.115)', () => {
+    set({ party: [reparateur('r-cb', 21, 'construction-de-bateaux', 10), reparateur('r-ch', 22, 'charpentier', 60)] });
+    const metier = (spec: string, i: number) => testValue(get().party[i], { skill: { id: 'metier', spec } });
+    expect(metier('construction-de-bateaux', 0)).toBeLessThan(metier('charpentier', 1));
+    expect(reparation().actorId).toBe('r-ch');
+  });
+
+  it('le Charpentier jette la réparation temporaire sans malus, à la Difficulté de la règle maison', () => {
+    const defaut = rule('fleuve-reparation-temporaire-reparation-difficulte') as Difficulty;
+    expect(reparation().difficulty).toBe(defaut);
+    expect(reparation().target).toBe(cible(defaut));
+    setRule('fleuve-reparation-temporaire-reparation-difficulte', 'tresDifficile');
+    expect(reparation().difficulty).toBe('tresDifficile');
+    expect(reparation().target).toBe(cible('tresDifficile'));
   });
 });

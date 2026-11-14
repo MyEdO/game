@@ -1,11 +1,15 @@
 {
   "model": "humanoide--tete--humain.glb",
-  "model_sha256": "4b32f01a44569b568223e95f4b095d0762fb4af063c204c0671e1ed641b129ba",
-  "importe_le": "2026-11-05",
+  "model_sha256": "16e7dd65282f8f0b1831efcbe2007bb2072ee456002a1436be612cf400768efd",
+  "importe_le": "2026-11-14",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

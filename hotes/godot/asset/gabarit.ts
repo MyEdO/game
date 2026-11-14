@@ -53,8 +53,9 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
  *   les conserve avec chaque groupe pour `etats_ponderes` en Python ; leur absence est refusée par
  *   `topologie-silhouettes-absente`.
  * - `groupes_de_peau` (`scripts/personnage-3d/base/cuisson_gabarit.py`) rend, par jeu de facteurs,
- *   `(états, matrices, longueurs des clips)` : les matrices de peau au repos puis à chaque instant de chaque clip,
- *   lues en memmap. `GroupePondere` en tire la clause de chaque échantillon, le repos puis chaque clip, que la
+ *   `(états, matrices, longueurs des clips)` : par état, sa pile de matrices de peau au repos puis à chaque instant
+ *   de chaque clip, lue en memmap, la même pile partagée entre les états de mêmes poids des silhouettes à os
+ *   (`osDesSilhouettes`). `GroupePondere` en tire la clause de chaque échantillon, le repos puis chaque clip, que la
  *   correction des poids distingue dans ses plans de coupe.
  * - `extremes` est la mesure commune de la finition, de la porte R et de la correction des poids. La finition
  *   applique `etats_ponderes` puis `extremes` aux matrices de repos de chaque jeu de facteurs, et à celles des clips
@@ -62,20 +63,30 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
  *   `gabarit_*` que `cuisson_des_champs` cuit sur ces champs sous les poids courants : le même calcul sur les mêmes
  *   entrées que la cuisson de la phase gabarit. Une clé croisée ne lit que le champ de sa silhouette ; seuls les
  *   champs changés depuis la mesure précédente sont recuits, et l'opération `cles` nomme la silhouette de chaque clé.
- *   À chaque instant et dans chaque cellule, `extremes` certifie le minimum par la borne triangulaire (minimum des
+ *   Au repos, dans chaque cellule, `extremes` certifie le minimum par la borne triangulaire (minimum des
  *   coins moins la demi-somme des normes des colonnes), puis résout le QP sur les cellules que cette borne ne
  *   certifie pas : quatre bords et point stationnaire intérieur. Le rapport garde la même longueur de référence sans
  *   silhouettes `l_b`. La trace porte le minimum, sa nature EXACT ou CERTIFIÉ (dans ce cas `bas` est une borne
  *   inférieure), la cellule, les poids de l’argmin exact sur toute arête en défaut, et l’instant. Sa portée est «
  *   exact sur les silhouettes, aux facteurs de `etatsDuGabarit` » : au repos l’arête est bilinéaire en silhouettes ×
- *   facteurs. `mesurer_domaine` et `diagnostic_poids` lisent cette trace ; la finition attribue chaque arête en
- *   défaut, au repos ou en clip, aux silhouettes de poids non nul de son argmin.
+ *   facteurs. En clip, l'arête se juge aux seuls états, les coins des cellules, par leur clause de clip, écrasement
+ *   et étirement (#4002) : le maximum du continu est à un coin, par convexité ; le minimum strictement entre des
+ *   coins sains, distance de l'origine au plan affine des vecteurs d'arête, est l'écrasement passager d'un mélange
+ *   de poids dans un pli de clip, toléré ; un coin écrasé reste une faute, par la clause de son état.
+ *   `mesurer_domaine` et `diagnostic_poids` lisent cette trace ; la finition donne à chaque silhouette rabotée de
+ *   poids non nul d'un état en défaut, ou de l'argmin d'une arête en défaut au repos, sa part de la faute
+ *   (`parts_des_fautes`, `silhouettes.py`, #4002) : la baisse relative de l'excès en log quand son champ et ses clés
+ *   dérivées passent à poids nul au même point, rapportée à la plus grande des silhouettes rabotées du site, 1 à
+ *   chacune quand aucune ne baisse. Une silhouette portée, qui déplace les os, a la part 0.
  * - Une couche par domaine : défaut d'une silhouette, au repos ou en clip aux facteurs neutres → clés (finition des
  *   clés, sous les poids de la phase neutre) ; défaut en clip du neutre, ou que la finition laisse aux clés →
  *   correction des poids de la phase silhouettes, qui mesure les mêmes états sous les clips posés au sol.
- *   `raboter_sous_correction` (`silhouettes.py`) conserve les masques par clé : chaque passe de `formes.raboter`
- *   multiplie par `RABOT`, sur les nœuds de leurs arêtes en défaut (`region_locale`, qui gagne un anneau quand la clé
- *   y stagne sous `STAGNATION_M`), les clés participantes aux états actuellement en défaut, au repos du domaine comme
+ *   `raboter_sous_correction` (`silhouettes.py`) compte les fautes par site, un état ou la clause de domaine au repos d'un
+ *   groupe : une faute de site présente quand les clés rabotées sont nulles est au socle, hors du rabot (#4002).
+ *   Chaque passe de `formes.raboter` multiplie par `RABOT ** s`, sur les nœuds de leurs arêtes en défaut (région qui
+ *   gagne un anneau quand la clé y stagne sous `STAGNATION_M`), s la plus grande part de la clé aux sites en défaut
+ *   hors du socle, puis en pente jusqu'à 1 sur `PENTE_DU_RABOT` anneaux autour (`formes.anneaux_des_marquees`), les
+ *   clés participantes aux états actuellement en défaut, au repos du domaine comme
  *   sous les clips aux facteurs neutres ; chaque clé garde sa forme partout ailleurs (#3104). Les défauts se mesurent
  *   sur le champ que `correction` rend de cette passe, qui répartit la part imposée par les anneaux au prorata du
  *   rabot cumulé de chaque nœud, et la passe suivante rabote ce champ corrigé. La vraie amplitude des silhouettes aux
@@ -187,6 +198,7 @@ export interface PoseDuGabarit {
   readonly jambes: readonly string[];
   readonly clipsPlantes: readonly string[];
   readonly echelleDeVitesse: number;
+  readonly deplacementsDesOs: Readonly<Record<string, readonly [number, number, number]>>;
 }
 
 /** Ce que `poseDuGabarit` lit d'un manifeste de base ; la construction n'en a que la table. */
@@ -208,8 +220,9 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  * sans cumul d'une image à l'autre. L'os `racine.os` voit son échelle de pose multipliée par `echelle`, chaque os
  * enfant la composante Y de sa position de pose, et, sur un clip planté, les jambes se plient (`poserLeGabarit`) :
  *
- * - `poseDuGabarit(manifeste, facteurs)` → `{ racine: { os, echelle }, enfantsDe: Record<os, facteur>, echellesDesOs:
- *   Record<os, [x, y, z]>, pieds: os[], echelleDeVitesse: number, jambes: os[], clipsPlantes: string[] }`. L'os
+ * - `poseDuGabarit(manifeste, facteurs, silhouettes)` → `{ racine: { os, echelle }, enfantsDe: Record<os, facteur>,
+ *   echellesDesOs: Record<os, [x, y, z]>, pieds: os[], echelleDeVitesse: number, jambes: os[], clipsPlantes:
+ *   string[], deplacementsDesOs: Record<os, [x, y, z]> }`. `silhouettes` : la sortie de `poidsDeSilhouettes`. L'os
  *   `racine.os` reçoit l'échelle uniforme `sl`. Chaque enfant os direct d'un os de `enfantsDe` reçoit sa position
  *   locale animée avec Y multiplié par le facteur de son parent ; X, Z, rotations et échelles des enfants sont
  *   conservés. La construction peut fournir uniquement la table `gabarit`. `pieds` relaie `appuis.pieds` pour les
@@ -218,6 +231,9 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  *   pour la marche de l'atelier (`MarcheDeLAtelier`). `jambes` relaie `gabarit.legs` ; `clipsPlantes`
  *   (`clipsPlantes(manifeste)`) liste, chacun une fois, le clip du rôle `marche` de `clips` et de chaque maniement de
  *   `clipsDeuxMains` : les marches que la construction plante (#3314).
+ * - `deplacementsDesOs` (`deplacementsDesOs`) : par os, Σ_s `silhouettes[s]` × `gabarit.osDesSilhouettes[s][os]`.
+ * - Seuls les os à somme non nulle y figurent.
+ * - Chaque translation s'ajoute à la position locale animée de l'os, après le Y multiplié.
  *
  * Le manifeste de base, schéma `VERSION_DU_SCHEMA_DE_BASE`, porte `appuis.plusBas`, une liste non vide de copies de
  * géométrie : chaque candidat contient `position`, triplet en espace de bind, `os`, une à quatre influences `{ nom,
@@ -226,9 +242,10 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  * indice de sommet livré. La construction les sélectionne avant l'export sur le corps entier par `selectionner_appuis`
  * (`scripts/personnage-3d/base/selection_appuis.py`), qui les copie en repère glTF par `copies_d_appui`. Les matrices
  * de peau proviennent du transport binaire de `groupes_de_peau`, groupées par facteurs ; `matricesDePeauDuGabarit`
- * applique `poserLeGabarit` et `bindsAuGabarit` aux poses de tous les clips, jambes pliées sur les instants des clips
- * plantés (drapeau par échantillon, repos compris, dont le nombre doit égaler celui des poses). Le skinning vectoriel
- * unique de `poids.py` fournit les positions, chaque mélange de matrices servant tous les états de son groupe.
+ * applique `poserLeGabarit` et `bindsAuGabarit`, os déplacés par les silhouettes de l'état compris, aux poses de tous
+ * les clips, jambes pliées sur les instants des clips plantés (drapeau par échantillon, repos compris, dont le nombre
+ * doit égaler celui des poses). Le skinning vectoriel unique de `poids.py` fournit les positions, chaque mélange de
+ * matrices servant tous les états de son groupe qui partagent sa pile.
  * L'évaluateur conserve three pour les mesures. La grille nommée `grilleDesAppuis` vaut G = (∏ k∈{legs,arms,head}
  * ({FACTEURS_NEUTRES[k]} ∪ {c.extremite | c∈sensCuitsDuGabarit(bornes), c.cle=k})) ×
  * `coinsDeSilhouettesAtteignables(manifeste.gabarit, manifeste.silhouettes)` ; la règle « jamais les deux carrures »
@@ -244,7 +261,19 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  * S_b = `(1, f, 1)` sous `legs` et `arms`, `(f, f, f)` sous `head`. Les hôtes disposent ainsi des multiplicateurs du
  * décalage local d'un emplacement ou d'une prise sur cet os ; ce champ ne modifie pas l'échelle du squelette.
  */
-export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit, facteurs: GabaritResolu): PoseDuGabarit {
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function deplacementsDesOs({ osDesSilhouettes }: Pick<TableDeGabarit, 'osDesSilhouettes'>, silhouettes: Readonly<Record<string, number>>): Record<string, readonly [number, number, number]> {
+  const somme: Record<string, [number, number, number]> = {};
+  for (const [silhouette, poids] of Object.entries(silhouettes)) {
+    for (const [os, t] of Object.entries(osDesSilhouettes[silhouette] ?? {})) {
+      const s = (somme[os] ??= [0, 0, 0]);
+      for (let k = 0; k < 3; k++) s[k] += poids * t[k];
+    }
+  }
+  return Object.fromEntries(Object.entries(somme).filter(([, t]) => t.some((v) => v !== 0)));
+}
+
+export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit, facteurs: GabaritResolu, silhouettes: Readonly<Record<string, number>>): PoseDuGabarit {
   const enfantsDe: Record<string, number> = {};
   const echellesDesOs: Record<string, readonly [number, number, number]> = {};
   for (const cle of CLES_DU_GABARIT) {
@@ -254,7 +283,7 @@ export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit,
       echellesDesOs[nom] = cle === 'head' ? [facteur, facteur, facteur] : [1, facteur, 1];
     }
   }
-  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], jambes: gabarit.legs, clipsPlantes: clipsPlantes(clips), echelleDeVitesse: facteurs.sl };
+  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], jambes: gabarit.legs, clipsPlantes: clipsPlantes(clips), echelleDeVitesse: facteurs.sl, deplacementsDesOs: deplacementsDesOs(gabarit, silhouettes) };
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */

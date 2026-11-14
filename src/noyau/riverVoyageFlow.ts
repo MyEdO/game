@@ -47,10 +47,11 @@ import { travelSpeed, type TravelMode } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
 import { propulsionDuNavire, type PropulsionDuNavire } from '../engine/shipBuild';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
-import { voyageStakeRef, findVehicleById, refLabel, specLabel } from '../data';
+import { voyageStakeRef, findVehicleById, refLabel } from '../data';
 import type { StakeRef } from '../data';
 import { partyCargoTotalEnc, nomDuNavire } from './carriers';
 import { partyAssisted, possesses, refusPersonneNePeutTenter } from '../engine/skills';
+import { maxBy } from '../engine/pick';
 import { rollTest, ECHEC_SANS_JET, type TestResult } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -366,11 +367,11 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // MSRC 7 l.117
   pousseSi(steps, reparationTemporaireDuBateau(get, `fleuve-jour-${river.daysAfloat}`));
 
-  // 1. Réparation du gréement/avirons brisés d'une étape précédente (l.78-82 / note 5) : rend le contrôle.
+  // 1. Réparation du gréement/avirons brisés d'une étape précédente (l.78-82 / note 5), réparation temporaire (l.115) : rend le contrôle.
   if ((river.broken || river.horsDeControle)) {
     const repair = bestShipwright(get);
     if (repair) pousseSi(steps, riverStep('river-repair', 'fleuveReparationDeCommande', repair.actor, t('step.riverRepair'), 'voyage/reparer',
-      refLabel('skills', { id: 'metier' }), repair.ligne, TEMPORARY_REPAIR.difficulty, undefined,
+      refLabel('skills', { id: 'metier' }), repair.ligne, reparationTemporaireDifficulty(), undefined,
       { stake: voyageStakeRef('fleuve-reparation-greement', { malusDeDerive: driftNavPenalty(), malusHorsDeControle: OUT_OF_CONTROL.navPenalty }) }));
     else logs.push(t('fleuve.greementSansReparateur'));
   }
@@ -653,45 +654,36 @@ function applyBoatCritical(get: Get, set: Set, plan: TravelPlan, river: RiverVoy
   return insert;
 }
 
-/** Le meilleur réparateur de bateau (l.107-117) : Métier (Construction de bateaux), sinon Métier
- *  (Charpentier) à −10. Soutien LDB 12. `null` si personne. Source UNIQUE (calfatage + réparation du
- *  gréement) — rend AUSSI la DÉCLARATION du jet (`ligne`), le malus du réparateur de substitution
- *  compris : c'est ici, et nulle part ailleurs, qu'on sait quelle spécialisation a servi. */
+/** Le meilleur réparateur de la réparation temporaire : le meilleur des deux Métiers, Construction de
+ *  bateaux et Charpentier, soutenu (LDB 12) ; `null` si personne. Rend la DÉCLARATION du jet (`ligne`). MSRC 7 l.115 */
 function bestShipwright(get: Get): { actor: Combatant; value: number; ligne: BandLigne } | null {
-  const build = partyAssisted(get().party, { skill: { id: 'metier', spec: SPEC.constructionBateaux } });
-  if (build) {
-    return {
-      actor: build.actor, value: build.value,
-      ligne: { test: { skill: { id: 'metier', spec: SPEC.constructionBateaux } }, valeur: build.value, soutien: build.support },
-    };
-  }
-  const c = partyAssisted(get().party, { skill: { id: 'metier', spec: SPEC.charpentier } });
-  if (!c) return null;
-  // Réparateur de SUBSTITUTION (`MSRC 5 l.113-117`) : le −10 est DÉJÀ fondu dans la valeur jetée,
-  // donc il se déclare en `dansLaValeur` — le monteur le sort de la base et le rend en chip NOMMÉE.
-  const penalty = TEMPORARY_REPAIR.charpentierPenalty;
-  const value = c.value + penalty;
-  return {
-    actor: c.actor, value,
-    ligne: {
-      test: { skill: { id: 'metier', spec: SPEC.charpentier } }, valeur: value, soutien: c.support,
-      dansLaValeur: [{ label: specLabel('skills', 'metier', SPEC.charpentier), value: penalty, famille: 'jet' as const, ref: { category: 'skills', id: 'metier' } }],
-    },
-  };
+  const r = maxBy([SPEC.constructionBateaux, SPEC.charpentier].flatMap((spec) => {
+    const test = { skill: { id: 'metier', spec } };
+    const a = partyAssisted(get().party, test);
+    return a ? [{ test, a }] : [];
+  }), (x) => x.a.value);
+  return r && { actor: r.item.a.actor, value: r.item.a.value, ligne: { test: r.item.test, valeur: r.item.a.value, soutien: r.item.a.support } };
+}
+
+/** Difficulté des Tests de réparation temporaire (calfatage, gréement) : règle maison
+ *  `fleuve-reparation-temporaire-reparation-difficulte`. MSRC 7 l.115 */
+function reparationTemporaireDifficulty(): Difficulty {
+  return rule('fleuve-reparation-temporaire-reparation-difficulte') as Difficulty;
 }
 
 /** Coque PERCÉE (« Y a un trou », l.101-105) : le bateau prend l'eau et coule en E minutes ; on tente une
- *  réparation temporaire (Métier Construction de bateaux/Charpentier, Complexe — l.113-117), INFLUENÇABLE
+ *  réparation temporaire (l.113-117), INFLUENÇABLE
  *  (#270, `fleuveReparationDeBreche`) quand le jet du réparateur se surface — sinon inline. */
 function holeBoat(get: Get, set: Set, plan: TravelPlan, tell: (l: string[]) => void, idPrefix: string): BuiltCascadeStep[] {
   tell(spoilVesselCargoOnLeak(get, set)); // la coque prend l'eau → voie d'eau gâte 1d10 Enc (lot D #327)
   const minutes = holeSinkMinutes(effectiveChar(plan.vehicle!, 'endurance')); // « coule en E minutes » (l.103)
   const repair = bestShipwright(get);
+  const difficulty = reparationTemporaireDifficulty();
   if (repair && surfaceOf(get, repair.actor.id)) {
     tell([t('fleuve.coquePercee', { min: minutes })]);
     const st = monoStep({
       id: `${idPrefix}-hole`, kind: 'fleuveReparationDeBreche', actor: repair.actor, icon: 'voyage/reparer',
-      label: t('step.fleuveReparationDeBreche'), rollLabel: refLabel('skills', { id: 'metier' }), difficulty: TEMPORARY_REPAIR.difficulty,
+      label: t('step.fleuveReparationDeBreche'), rollLabel: refLabel('skills', { id: 'metier' }), difficulty,
       ligne: repair.ligne,
       stake: voyageStakeRef('fleuve-calfatage', { minutes }),
     });
@@ -701,8 +693,8 @@ function holeBoat(get: Get, set: Set, plan: TravelPlan, tell: (l: string[]) => v
   if (repair) {
     // Repli SANS pilote humain (pas d'étape insérée ci-dessus) : aucune rangée nulle part pour ce
     // jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
-    const res = rollTest(repair.value, TEMPORARY_REPAIR.difficulty, rng);
-    tell([t('fleuve.coquePerceeEnLigne', { min: minutes, diff: DIFFICULTY_LABELS[TEMPORARY_REPAIR.difficulty], roll: res.roll, target: res.target, issue: t(res.success ? 'fleuve.voieDEauColmatee' : 'fleuve.calfatageRate') })]);
+    const res = rollTest(repair.value, difficulty, rng);
+    tell([t('fleuve.coquePerceeEnLigne', { min: minutes, diff: DIFFICULTY_LABELS[difficulty], roll: res.roll, target: res.target, issue: t(res.success ? 'fleuve.voieDEauColmatee' : 'fleuve.calfatageRate') })]);
     if (res.success) {
       // Réparation temporaire (l.116) : restaure 1d10 Blessures de coque.
       const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, tirer(TEMPORARY_REPAIR.woundsPerRepair, rng));
