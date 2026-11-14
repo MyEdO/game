@@ -7,9 +7,10 @@
  * cible (« (Cheval) », « (Feu) », « (Tiléens) ») ou de portée (« (50) »). Cette fonction les
  * démêle UNE fois pour TOUT le code (combat ET Codex) — fini les regex recopiées par consommateur.
  */
-import type { CharKey, Difficulty, EffectSource } from './types';
-import type { SizeCategory } from './size';
+import type { Difficulty, EffectSource } from './types';
+import type { z } from 'zod';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
+import type { optionalEntrySchema } from '../data/schemas/defs/creatures';
 import type { MatiereDArmure } from '../data/schemas/grammaire/valeurs';
 import { hashSeed, makeRNG } from './dice';
 import { lirePlage, type ParLocalisation, type Plage } from './classementDeTrait';
@@ -225,46 +226,17 @@ export type TraitList = TraitInstance[];
  *  jamais la valeur, qu'une fourchette laisse à la résolution. */
 export type TraitsDesignes = readonly Pick<TraitInstance, 'id' | 'arg'>[];
 
-/**
- * OPTIONNEL COMPOSÉ (LDB 76) — élément de la liste `optionals` d'une créature IRRÉDUCTIBLE à un
- * `TraitInstance` : une NOTE de variante d'auteur. Deux formes (discriminées par `note`) :
- *  - `all-traits` : joker « n'importe quel Trait peut être ajouté » (Mutant, LDB 83 l.91) ;
- *  - `swap` : variante « remplacer des Traits par un bonus » (Grand Loup ZI 1 l.229, Griffon ZI).
- * `label` = texte source VERBATIM (Markdown), affiché tel quel (JAMAIS reformulé) ; les autres champs
- * pilotent l'APPLICATION au spawn. Distinguée d'un `TraitInstance` par la présence de `note` (jamais d'`id`).
- */
-/** Un octroi ÉLÉMENTAIRE d'une variante « swap » : bonus signé sur UNE caractéristique, OU une
- *  compétence à valeur de Test IMPRIMÉE (verbatim, pas une avance calculée). Une variante composite
- *  (Vouivre ZI : « +20 en I, Int et Soc » + « Discrétion (Rurale) 65 ») en cumule PLUSIEURS. */
-export type SwapGrant = { characteristic: CharKey; value: number } | { id: string; spec?: string; value: number };
-export interface OptionalWildcard {
-  note: 'all-traits';
-  /** Texte source VERBATIM (« Tous les traits »). */
-  label: string;
-}
-export interface OptionalSwap {
-  note: 'swap';
-  /** Texte source VERBATIM (« Remplacer Bestial par un bonus de +20 en Soc »). */
-  label: string;
-  /** `id`s STABLES des Traits RETIRÉS du profil quand la variante est choisie. */
-  remove: string[];
-  /** Bonus(-ent) octroyé(s) en échange : une ou plusieurs caractéristiques/compétences, + leur valeur
-   *  (Vouivre ZI : +20 en I, Int et Soc + Discrétion (Rurale) 65 → 4 octrois). */
-  grant: SwapGrant[];
-  /** Catégorie de Taille APPLIQUÉE par la même variante (posée dans les deux sens : Grand Loup
-   *  Moyenne→Grande, Vouivre Énorme→Grande) — remplace celle du bestiaire, aucune formule d'écart. */
-  size?: SizeCategory;
-  /** Blessures FINALES imposées par la variante (Vouivre : « réduire ses B à 42 ») — remplace la
-   *  valeur imprimée ET la formule par Taille (LDB 85), aucune des deux ne s'applique plus. */
-  wounds?: number;
-}
-export type OptionalNote = OptionalWildcard | OptionalSwap;
-/** Élément de la liste `optionals` (LDB 76) : Trait facultatif ordinaire posé OU note composée. */
-export type OptionalEntry = TraitPose | OptionalNote;
+/** Élément de la liste `optionals` (LDB 76, `optionalEntrySchema`, `data/schemas/defs/creatures.ts`) : Trait
+ *  facultatif posé, ou NOTE composée discriminée par `note` — joker « tous les Traits » (Mutant, LDB 83 l.91) ou
+ *  « swap » (Grand Loup ZI 1 l.229, Griffon ZI), dont le `label` est le texte source verbatim. */
+export type OptionalEntry = z.output<typeof optionalEntrySchema>;
+/** La note composée d'`optionals`, jamais un Trait posé. */
+export type OptionalNote = Extract<OptionalEntry, { note: string }>;
+/** La note « swap » : les Traits qu'elle retire, ce qu'elle octroie, la Taille et les Blessures qu'elle impose. */
+export type OptionalSwap = Extract<OptionalNote, { note: 'swap' }>;
 
 /** Une entrée d'`optionals` est-elle une NOTE composée (vs un Trait posé ordinaire) ? */
-export const isOptionalNote = (e: OptionalEntry): e is OptionalNote =>
-  typeof (e as OptionalNote).note === 'string';
+export const isOptionalNote = (e: OptionalEntry): e is OptionalNote => 'note' in e;
 
 /** Nom canonique seul (raccourci pour les lookups Codex/registre). */
 export const statName = (raw: string): string => parseStatEntry(raw).name;

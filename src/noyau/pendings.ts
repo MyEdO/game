@@ -16,10 +16,10 @@ import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet, JetPose } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBreakdown } from '../engine/combat';
-import type { AttackKind } from '../engine/creatureAttacks';
+import type { AttackKind, ManoeuvreComposee } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
-import type { ManeuverDef, StakeRef, SpellData } from '../data';
+import type { StakeRef, SpellData } from '../data';
 import type { CastResult, CritChoice, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { PsychType, TypeAcquis } from '../engine/psychology';
@@ -1618,7 +1618,7 @@ export interface ManeuverDefenseFreeze {
   /** Créature attaquante (référent des effets/formules). */
   attackerId: string;
   /** La manœuvre telle que l'attaque la résout (composée avec son Type pour un Souffle, `souffleDuType`). */
-  def: ManeuverDef;
+  def: ManoeuvreComposee;
   /** Indice de la manœuvre (Dégâts = 4 + BF pour une arme naturelle, LDB 85). */
   indice: number;
   /** Avantage dépensé (marge des manœuvres à Avantage VARIABLE, ex. Regard +1 DR/Av, LDB 85 l.290). */

@@ -205,14 +205,14 @@ const poseDeTrait = (regime: RegimeDeCible): z.ZodType<TraitPose> => {
 /** Le Trait posé d'un document du CATALOGUE : la Cible d'un Trait psy y est un Groupe. */
 export const traitInstanceSchema = nommerNoeud(poseDeTrait('catalogue'), { label: 'Trait' });
 
-/** Un octroi d'une note « swap » (`SwapGrant`, `engine/statEntry.ts`) : un bonus sur une Caractéristique, ou une
+/** Un octroi d'une note « swap » (`OptionalSwap['grant']`, `engine/statEntry.ts`) : un bonus sur une Caractéristique, ou une
  *  Compétence à la valeur de Test imprimée. */
 const swapGrantSchema = z.union([
   caracteristiqueChiffreeSchema,
   refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
 ]);
 
-/** `OptionalSwap` (`engine/statEntry.ts`) — la note « swap » d'un statbloc (Grand Loup ZI 1 l.229, Griffon ZI) : son
+/** La note « swap » (`OptionalSwap`, `engine/statEntry.ts`, en dérive) d'un statbloc (Grand Loup ZI 1 l.229, Griffon ZI) : son
  *  `label` source VERBATIM et ses champs d'application. Composée par les `optionals` du Bestiaire (`defs/creatures.ts`)
  *  et par ceux d'une entité de scène (`defs-scenes/scene.ts`). */
 export const optionalSwapSchema = nommerNoeud(nommerChamps(z.strictObject({

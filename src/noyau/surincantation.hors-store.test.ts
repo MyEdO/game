@@ -16,14 +16,15 @@ import { overcastAxesFor, type OvercastAxis } from '../engine/overcast';
 import { castAfterCrit, castOvercastBudget } from '../engine/magic';
 import { castOvercastAxes, aiOvercastPlan } from './combatFlow';
 import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
+import type { EntreeVivante } from '../data/datasets';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
 /** Sort d'épreuve : seuls Portée, Cible, Durée, famille et NI comptent ici. */
-const sort = (id: string, champs: Pick<SpellData, 'family' | 'range' | 'target' | 'duration' | 'cn'>): SpellData => ({
+const sort = (id: string, champs: Pick<SpellData, 'family' | 'range' | 'target' | 'duration' | 'cn'>): EntreeVivante<SpellData> => ({
   id, type: 'spells', label: id, ecole: 'Épreuve', subType: null, desc: '', effects: { kind: 'sequence', etapes: [] },
   source: { book: 'livre-de-base', page: 243 }, ...champs,
-} as SpellData);
+});
 
 const UN = { kind: 'count', n: 1 } as const;
 const ROUNDS = { kind: 'rounds', value: { charOf: 'force-mentale' } } as const;
@@ -38,7 +39,7 @@ const FIXTURES = {
   puissanceVdm: sort('epreuve-puissance-vdm', { family: 'arcane', cn: 5, range: { kind: 'distance', value: 6, unit: 'm' }, target: UN, duration: ROUNDS }),
   puissance: sort('epreuve-puissance', { family: 'arcane', cn: 30, range: { kind: 'distance', value: 6, unit: 'm' }, target: UN, duration: ROUNDS }),
   priere: sort('epreuve-priere', { family: 'beni', cn: 4, range: { kind: 'distance', value: 6, unit: 'm' }, target: UN, duration: ROUNDS }),
-} satisfies Record<string, SpellData>;
+} satisfies Record<string, EntreeVivante<SpellData>>;
 
 const original = [...spells];
 beforeAll(() => { setDataset('spells', [...original, ...Object.values(FIXTURES)]); });
@@ -58,7 +59,7 @@ function lanceur() {
 
 /** Ouvre l'incantation de `spell` hors combat, pose le jet par ses coutures (`jetLancer('incantation')`, dé fixé `de`),
  *  joue `corps` puis ferme la partie. */
-function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grimoire?: true } = {}, de = 3, reglesMaison: Record<string, unknown> = {}): void {
+function lancer(spell: EntreeVivante<SpellData>, corps: (partie: Partie) => void, extra: { grimoire?: true } = {}, de = 3, reglesMaison: Record<string, unknown> = {}): void {
   const L = lanceur();
   const partie = creerPartie({
     ...etatInitialDuJeu(), party: [L],

@@ -52,7 +52,7 @@ describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datali
   });
 
   it('domains.castBonus.perCondition (réf NICHÉE) : id d’État résolvable → OK ; libellé → bloquant', () => {
-    const domains = datasetArray('domains') as unknown as Entry[];
+    const domains = datasetArray('domains');
     const base = domains[0];
     expect(validateEntry('domains', { ...base, castBonus: { perCondition: 'en-flammes', radiusStat: 'force-mentale', bonus: 10 } }, domains, 0)).toEqual([]);
     const errs = validateEntry('domains', { ...base, castBonus: { perCondition: 'En flammes', radiusStat: 'force-mentale', bonus: 10 } }, domains, 0);

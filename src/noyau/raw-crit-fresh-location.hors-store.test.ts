@@ -10,6 +10,7 @@ import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';
 import { emptyScene } from './monde/scene';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../data/idDeFixture.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -39,7 +40,7 @@ const caster = (): Combatant =>
   })) as unknown as Combatant;
 
 const missile = (): SpellData =>
-  ({ id: 'dard', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 }) as SpellData;
+  ({ id: idDeFixture('spell', 'dard'), type: 'spells', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 });
 
 const critCast: CastResult = { cast: true, roll: 50, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
 

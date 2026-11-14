@@ -83,15 +83,14 @@ describe('noms accessibles uniques — éditeur Narratif', () => {
 });
 
 describe('noms accessibles uniques — entrée du Codex à rangées', () => {
-  type Domaine = { id: string; label: string; windModifiers?: unknown[]; tables?: Record<string, string>; effects?: unknown[] };
   it('domaine à rangées (listes de valeurs, rangées d’objets, record de textes) : aucun contrôle sans nom, aucun doublon', () => {
-    const domaines = datasetArray('domains') as Domaine[];
+    const domaines = datasetArray('domains');
     const d = domaines.find((x) => (x.windModifiers?.length ?? 0) >= 2 && Object.keys(x.tables ?? {}).length >= 1);
     expect(d, 'aucun domaine à deux rangées windModifiers et une table — la mesure ne porte sur rien').toBeTruthy();
     // Les éditeurs d'op des effets déclenchés sont hors de cette mesure (#2100) : l'entrée mesurée n'en
     // porte pas. Une seconde table rend le record de textes à deux rangées.
     const tables = { ...d!.tables, 'second-role': Object.values(d!.tables!)[0] };
-    setDataset('domains', domaines.map((x) => (x === d ? { ...x, effects: [], tables } : x)) as never);
+    setDataset('domains', domaines.map((x) => (x === d ? { ...x, effects: [], tables } : x)));
     monter(<CodexEdit categoryKey="domains" id={d!.id} onClose={() => {}} />);
     const r = defautsDeNoms(container.querySelector('.codex-edit-form')!);
     expect(r.total).toBeGreaterThan(20);

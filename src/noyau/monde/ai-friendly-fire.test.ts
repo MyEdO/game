@@ -11,13 +11,14 @@ import { emptyScene } from './scene';
 import type { Combatant } from '../../engine/types';
 import type { SpellData } from '../../data';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
+import { idDeFixture } from '../../data/idDeFixture.testkit';
 
 // Sort de ZONE de CONTRÔLE (aveugle tous les couverts) — ZÉRO dégât : tout le « mal » passe par l'État.
 const BLIND_AOE: SpellData = {
-  id: 'nuee-aveuglante', label: 'Nuée aveuglante', ecole: 'sort', subType: null, family: 'arcane', cn: 0,
+  id: idDeFixture('spell', 'nuee-aveuglante'), type: 'spells', label: 'Nuée aveuglante', ecole: 'sort', subType: null, family: 'arcane', cn: 0,
   range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 },
   effects: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'aveugle' } }] } }] },
-} as unknown as SpellData;
+};
 
 const castable = (): CastableSpell => ({ id: BLIND_AOE.id, data: BLIND_AOE, cn: 0, range: 20, shape: { area: { radius: 3 } }, landProb: 1, focusState: 'none', active: false });
 const scene = emptyScene('scene-test', 20, 20);

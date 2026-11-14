@@ -10,8 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Puce } from '../../../src/hote/elements';
-import { findCreatureById, findTalentById, findTraitById, sourceRefLabel } from '../../../src/data';
-import spells from '../../../src/data/spells.json';
+import { findCreatureById, findSpellById, findTalentById, findTraitById, sourceRefLabel } from '../../../src/data';
 
 const { appel } = table();
 
@@ -73,7 +72,7 @@ describe('la fiche d’un combattant par le pont', () => {
     expect(descDe(findTalentById('magie-des-arcanes')).startsWith(arcanes.replace(/…$/, '')), 'une description longue : son premier paragraphe, coupé au mot').toBe(true);
     expect(arcanes.length <= 300 && !arcanes.includes('\n'), 'qui se lit d’un coup d’œil').toBe(true);
     const flechette = puces(s, 'sorts').find((p) => p.libelle === 'Fléchette');
-    expect(flechette?.detail, 'un sort se nomme ; sa description au survol').toBe(spells.find((x) => x.id === 'flechette')!.desc);
+    expect(flechette?.detail, 'un sort se nomme ; sa description au survol').toBe(findSpellById('flechette')?.desc);
     expect(s.vue.zones['fiche.source'], 'un héros n’a pas de profil sourcé').toEqual([]);
 
     const possessions = sectionDeLaFiche(s.vue, 'possessions') as Bouton[];
