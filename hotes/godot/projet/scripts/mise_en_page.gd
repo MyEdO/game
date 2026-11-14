@@ -3,7 +3,7 @@
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
-## appui sur ce qui est porté et sa place à côté des autres objets du même point, le coin d'une bulle au-dessus
+## appui sur ce qui est porté et sa place à côté des autres objets du même point ou sur eux, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
@@ -30,6 +30,9 @@ const ZOOM_MAXIMAL := 3.0
 const TOLERANCE_D_IMAGE := 0.001
 ## Le jeu, en mètres, entre les boîtes de deux objets rangés côte à côte au même point (`decalage_a_cote`).
 const JEU_ENTRE_RANGES := 0.02
+## Le tour, autour de l'axe de son os, au-delà duquel un objet rangé à côté des précédents d'un point passerait de
+## l'autre côté du corps : il s'empile alors sur eux (`s_empile`, #4254).
+const PLACE_DU_POINT := QUART_DE_TOUR
 ## Le jeu, en mètres, entre un objet rangé et ce qui est porté dessous (`recul_d_appui`, `pivot_sur_la_case`).
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
@@ -707,6 +710,13 @@ static func tour_a_cote(emplacement: Basis, point: Vector3, tour: float, sens: f
 	if tour_de_rangement(emplacement, point, 0.0, sens) > 0.0:
 		return tour + fin_precedente + jeu - debut
 	return tour + debut_precedent - jeu - fin
+
+
+## Vrai si un objet rangé au tour `tour` à côté des précédents d'un point sort de la place du point
+## (`PLACE_DU_POINT`) : un rouleau large, à côté d'un bâton au dos, passait devant la poitrine, une faux à côté d'un
+## bâton à l'épaule se couchait en travers des épaules (#4254).
+static func s_empile(tour: float) -> bool:
+	return absf(tour) > PLACE_DU_POINT
 
 
 ## L'azimut du point `point` autour de l'axe Y de son os (atan2 de x sur z), compté depuis l'azimut `depuis`, dans

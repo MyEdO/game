@@ -29,9 +29,11 @@ MANIFESTE = {
 MATERIAUX = {
     'parchemin': ('corne', ((0.8, 0.78, 0.72), 0.0, 0.9)),
     'cire': ('accent', ((0.5, 0.5, 0.5), 0.0, 0.5)),
+    'encre': (None, ((0.02, 0.015, 0.01), 0.0, 0.8)),
 }
 """Illustration : parchemin écru, l'emplacement `corne` des pages du livre (`rigide--livre`) ; cire rouge, l'emplacement
-`accent` du preset (`tissu-rouge`). Gris de construction."""
+`accent` du preset (`tissu-rouge`). Gris de construction. L'encre, brun noir, n'a pas d'emplacement : sa couleur est
+celle du GLB."""
 
 BUDGET_TRIANGLES = 800           # procédure du skill, section 7 : accessoire
 
@@ -53,7 +55,7 @@ de la cordelière (le milieu de ses sommets, nœud et bouts compris, tombait à 
 PORTEE = 0.6                     # m : départ des visées vers la bure, depuis le centre de la corde (comme la cordelière)
 
 FEUILLE = {'largeur': 0.2, 'hauteur': 0.25, 'au_dessus': 0.025, 'epaisseur': 0.002, 'jeu': 0.002,
-           'colonnes': 8, 'rangs': 5}
+           'colonnes': 8, 'rangs': 10}
 """HYPOTHÈSES : la feuille, de `au_dessus` de la corde à `hauteur - au_dessus` dessous, sa face à `jeu + epaisseur` de la
 bure, sous la corde (la cordelière à 6 mm, `JEU`). Illustration : largeur sur hauteur ≈ 0,87."""
 DECHIRURES = [0.0, 0.014, 0.004, 0.02, 0.008, 0.0, 0.016, 0.006, 0.012]
@@ -74,5 +76,29 @@ RUBAN = {'longueur': 0.12, 'largeur': 0.026, 'epaisseur': 0.0015, 'jeu': 0.001, 
 """Bande de parchemin qui pend sous le sceau, à `jeu` sur la feuille. Illustration : ≈ 20 px de large, 125 px de long, la
 queue d'aronde en bas ; HYPOTHÈSE : raccourcie à 0,12 m sous le sceau pour laisser les cuisses, et sa pointe dérive de
 `derive` vers la droite du personnage."""
+
+ECRITURE = {'sous': 0.035, 'interligne': 0.017, 'trait': 0.0035, 'marge': 0.014, 'espace': 0.006, 'jeu': 0.001,
+            'autour': 0.006}
+"""Les lignes d'écriture de la feuille et de la bande (Clément, 2026-11-14, #3867 : « Et le papier blanc, il n est pas
+sensé avoir des écritures desssu ? ») : chaque mot un trait d'encre de `trait` de haut, à `jeu` au-dessus du parchemin ;
+sur la feuille, la première ligne `sous` la corde, une ligne par `interligne`, de la `marge` droite du personnage à sa
+`marge` gauche, chaque mot à `espace` du précédent, qui saute le sceau et la bande à `autour` près et s'arrête à la marge.
+Illustration : des lignes manuscrites sombres sur toute la feuille et le long de la bande ; HYPOTHÈSE : les longueurs."""
+LIGNES = [
+    [0.03, 0.018, 0.026, 0.014, 0.03, 0.02],
+    [0.022, 0.03, 0.012, 0.026, 0.02, 0.024],
+    [0.016, 0.028, 0.02, 0.03, 0.018, 0.022],
+    [0.03, 0.014, 0.024, 0.02, 0.026, 0.018],
+    [0.02, 0.026, 0.03, 0.016, 0.022, 0.026],
+    [0.026, 0.018, 0.022, 0.028, 0.02],
+    [0.014, 0.03, 0.02, 0.024, 0.018],
+    [0.028, 0.016, 0.026, 0.022],
+    [0.02, 0.024, 0.018, 0.026],
+]
+"""HYPOTHÈSE : la longueur de chaque mot, m, ligne par ligne, de haut en bas ; une ligne s'arrête au premier mot qui passerait
+la marge."""
+LIGNES_DU_RUBAN = {-0.0055: [0.02, 0.016, 0.022], 0.0055: [0.018, 0.024, 0.014]}
+"""HYPOTHÈSE : par décalage (m) depuis le milieu de la bande, vers la gauche du personnage, les mots qui la descendent
+depuis le bas du sceau (`ECRITURE['autour']` sous lui), jusqu'à la queue d'aronde."""
 
 ANGLE_LISSE = 40                 # degrés : arêtes plus vives que cet angle gardées vives
