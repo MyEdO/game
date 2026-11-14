@@ -56,7 +56,9 @@ import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance,
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax } from '../engine/talentEffects';
 import {
+  findQualityById,
   findTrappingById,
+  idDObjet,
   findTalentById,
   findSpellById,
   refLabel,
@@ -433,17 +435,18 @@ function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atou
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const metier = h && metierOf(h);
+  const id = idDObjet(trappingId);
   const t = findTrappingById(trappingId);
   // Gamme/Disponibilité/matériaux : dérivation PARTAGÉE avec le catalogue UI (craftSpecOf).
   const spec = t && craftSpecOf(t);
-  if (!st || !h || !metier || !t || !spec) return;
+  if (!st || !h || !metier || !id || !t || !spec) return;
   const { tier, avail, materialsBrass: materials } = spec;
   const target = craftTarget(tier, avail, atouts.length, defauts.length);
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(materials)), recipient: heroId, purpose: 'artisanat' });
   // `payWithAllocation` remplace l'entrée `party` du héros débité (nouvelle référence) — re-résoudre
   // AVANT de muter `craft`, sinon la mutation porterait sur l'objet PÉRIMÉ (perdue au `set` suivant).
   const h2 = get().party.find((x) => x.id === heroId)!;
-  h2.craft = { trappingId, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
+  h2.craft = { trappingId: id, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
   set({ party: [...get().party] });
   get().ecrireAuJournal(msg('if.craftStart', {
     name: h.label, cost: formatMoney(fromBrass(materials)), label: t.label, dr: target.dr, skill: skillInstanceLabel(metier),
@@ -628,7 +631,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!h.craft) return { lines: [] };
       const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible d’Artisanat');
       if (done) {
-        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
+        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].flatMap((id) => { const q = findQualityById(id); return q ? [{ id: q.id }] : []; }) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
           h.items = [...(h.items ?? []), it];
           autoStowNewItem(h, it); // #204 : rangement par défaut
@@ -1251,7 +1254,7 @@ export function choixDInterlude(get: Get, set: Set) {
       ouvrage: poser('ouvrage'),
       ajouterLaQualite: (q, pid) => {
         const c = composee(pid);
-        composer(pid, qualitesDArtisanat().atouts.includes(q) ? { ...c, atouts: [...c.atouts, q] } : { ...c, defauts: [...c.defauts, q] });
+        composer(pid, qualitesDArtisanat().atouts.some((a) => a === q) ? { ...c, atouts: [...c.atouts, q] } : { ...c, defauts: [...c.defauts, q] });
       },
       retirerLaQualite: (q, pid) => {
         const c = composee(pid);

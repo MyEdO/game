@@ -404,8 +404,8 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
                               Consommée par : sorts, Imparfaites (miscast), mutations, traits, qualités
                               (`passive`), effets déclenchés (`Flow`/`Trigger`), CONSOMMABLES. Jalon 2.6 :
                               PerSL (échelle par DR), onlyGroups, grantTrait/grantTalent/augmentWeapon/…
-                              CATALOGUE GÉNÉRÉ des ops (+ `Condition`/`Flow`/`EffectTrigger` de
-                              flowCore.ts) : `docs/vocabulaire-mecanique.md` (`npm run docs:vocabulaire`)
+                              CATALOGUE GÉNÉRÉ des ops (+ `Condition`/`Flow` de flowCore.ts,
+                              `EffectTrigger` de son schéma) : `docs/vocabulaire-mecanique.md` (`npm run docs:vocabulaire`)
                               — index par CONCEPT en français, résolution mesurée (« exécutée » /
                               « inerte au switch » / « hors switch » : les deux dernières = impur résolu
                               par src/state, ou passif lu par un collecteur — jamais « inutilisable »),

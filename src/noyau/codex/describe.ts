@@ -9,9 +9,9 @@
 import type { CodexRow, CodexSection } from './registry';
 import { opRows } from './opRows';
 import type { GameOp } from '../../engine/ops';
-import type { Flow, TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { walkFlow } from '../../engine/flowCore';
+import { walkFlow, type TriggeredEffect } from '../../engine/flowCore';
 import { refLabel, testSkillLabel } from '../../data';
 import { statName } from '../../engine/statEntry';
 import { onLabel } from './triggerLabels';

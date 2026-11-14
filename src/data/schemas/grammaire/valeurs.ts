@@ -1069,12 +1069,13 @@ export const castingNumberModSchema = nommerChamps(z
     message: 'castingNumberMod : un modificateur sans `multiply`/`divide`/`delta` ne modifie rien',
   }), { multiply: { label: "multiplier" }, divide: { label: "diviser" }, round: { label: "arrondi" }, delta: { label: "variation" }, min: { label: "minimum" }, scope: { label: "portée" }, maison: { label: "arbitrage maison" }, source: { label: "source" }, desc: { label: "texte" } });
 
-/** `CountSpec` (`src/data/index.ts`) — quantité fixe ou tirage de dés. Dupliqué dans `careerLevels`/
- *  `classes`/`creatures`. */
+/** Quantité fixe ou tirage de dés (`CountSpec`). */
 export const countSpecSchema = z.union([
   nommerChamps(z.strictObject({ fixed: z.number() }), { fixed: { label: "fixé" } }),
   nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
 ]);
+/** Quantité d'une dotation : nombre fixe ou jet de dés. */
+export type CountSpec = z.infer<typeof countSpecSchema>;
 
 /** Le libellé de chaque sexe d'une apparence (`SEXES`, `src/lib/sexe.ts`). */
 const LIBELLES_DES_SEXES = { M: 'Masculin', F: 'Féminin' } as const satisfies Readonly<Record<SexeDApparence, string>>;

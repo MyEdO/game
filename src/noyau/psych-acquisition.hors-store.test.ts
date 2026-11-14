@@ -11,7 +11,7 @@ import { sceneFearSources } from './encounterPsychFlow';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { groupesPercus } from '../engine/groups';
 import { carryOverState } from '../engine/persistence';
-import { finalizeHeroDeath } from './combatFlow';
+import { finalizeHeroDeath, instantaneAvantLeCoup } from './combatFlow';
 import { applierDe } from './cascade';
 import { draineEtapes, draineEtLit } from './cascade.testkit';
 import { bandStep, resultLines } from './rollSeam';
@@ -61,14 +61,14 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue
   const skaven = () => adversaire(['skaven']);
 
   it('règle ON + Calme ÉCHOUE → Animosité envers la Cible ; un 2ᵉ échec même Cible → Haine (remplace)', () => {
-    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: hero() });
     seedBattleRng(1); // Calme (FM 30) échoue
     banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     let got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('skaven') }]);
 
     // Deuxième frôlement de la mort face aux mêmes Skavens → l'Animosité devient une Haine.
-    setBattle([got, skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    setBattle([got, skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: instantaneAvantLeCoup(got) });
     seedBattleRng(1);
     banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
@@ -76,7 +76,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue
   });
 
   it('règle ON + Calme RÉUSSIT → aucun Trait acquis', () => {
-    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: hero() });
     seedBattleRng(7); // Calme (FM 30) réussit
     banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
@@ -85,7 +85,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue
 
   it('règle OFF → aucune acquisition même sur échec de Calme', () => {
     resetRule('psycho-acquisition-optionnelle'); // défaut = OFF
-    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
+    setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1', avantLeCoup: hero() });
     seedBattleRng(1);
     banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
@@ -108,7 +108,7 @@ describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath �
   const frolerLaMort = (foe: Combatant, p: Partial<Combatant> = {}) => {
     const h = hero({ label: 'Hardi', groups: ['humain'], ...p });
     setBattle([h, foe], null);
-    finalizeHeroDeath(banc.getState, banc.setState, h, 'hit', 10, foe);
+    finalizeHeroDeath(banc.getState, banc.setState, h, instantaneAvantLeCoup(h), foe);
     seedBattleRng(1); // Calme (FM 30) échoue
     banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
   };

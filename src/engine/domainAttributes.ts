@@ -86,7 +86,7 @@ export function domainOnHitEffects(spell: SpellDomainRef): TriggeredEffect[] {
   // `DomainData.effects` est typé avec la feuille `Effect` complète (couche state, pour l'éditeur de
   // Flow partagé) ; un rider de Domaine ne porte JAMAIS de transition/dialogue (que des `GameOp`), donc
   // le rétrécir à la feuille `EffectOp` engine-pure est SAIN (signature publique du moteur = pure, #8).
-  return (findDomainById(spell.domainId?.id)?.effects ?? []) as TriggeredEffect[];
+  return findDomainById(spell.domainId?.id)?.effects ?? [];
 }
 
 /** Bonus d'incantation lié à l'ENVIRONNEMENT (LDB 48 l.690 — Vie/Ghyran : « Recevez un bonus de +10 aux
