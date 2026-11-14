@@ -13,6 +13,15 @@
 
 - [Cadre général « Entre deux aventures »](#cadre-général--entre-deux-aventures-)
 - [Tableau des Événements (d100)](#tableau-des-événements-d100)
+  - [Allié inculpé](#allié-inculpé)
+  - [Enchères ésotériques](#enchères-ésotériques)
+  - [Imprévu](#imprévu)
+  - [Météo défavorable](#météo-défavorable)
+  - [Maladie pernicieuse](#maladie-pernicieuse)
+  - [Colporteur](#colporteur)
+  - [Animal domestique malade](#animal-domestique-malade)
+  - [Soupçonné d'hérésie](#soupçonné-dhérésie)
+  - [Considération inattendue](#considération-inattendue)
 - [Argent à gaspiller](#argent-à-gaspiller)
 - [Devoirs et Responsabilités](#devoirs-et-responsabilités)
   - [Avec le pouvoir (Niveaux 3-4)](#avec-le-pouvoir-niveaux-3-4)
@@ -121,6 +130,78 @@ Lancer **1d100** par Personnage. Certains événements n'affectent que le Person
 | 98–00 | **Mercenaires Particuliers** | Entraînement/Apprentissage particulier, Compétences et Talents **martiaux** : −20 % des coûts (LDB 22 l.135). *Entraînement au Combat* : +20 % à tout Test adapté. |
 
 **Implémente :** [État calculé](../implemente.generated.md#4eactivitestableau-des-evenements-d100)
+
+### Allié inculpé
+
+**Source :** LDB 22 l.10-12.
+
+> « Un Personnage avec une Licence de la Guilde de Droit peut dépenser une Activité pour libérer l'allié en réussissant un Test de **Savoir (Loi) Accessible (+20)**. À défaut, trois Activités dépensées par le groupe le disculperont […]. Si l'allié est libéré, gagnez une Faveur Majeure […]. Dans le cas contraire, l'allié sera pendu ! »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitesallie-inculpe)
+
+### Enchères ésotériques
+
+**Source :** LDB 22 l.14-16.
+
+> « Si vous êtes capable de payer le prix demandé de 10 CO, le livre est à vous ! […] les Personnages Lettrés qui tentent une Activité *Recherche de Savoir* gagnent +20 à leur Test. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitesencheres-esoteriques)
+
+### Imprévu
+
+**Source :** LDB 22 l.22-24.
+
+> « Si vous réussissez un Test de **Dressage (Cheval) Accessible (+20)**, votre animal bien dressé revient vers la main qui le nourrit. Si vous échouez, votre destrier est parti […]. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitesimprevu)
+
+### Météo défavorable
+
+**Source :** LDB 22 l.54-56.
+
+> « Pour la prochaine aventure, tous les Tests de Compétences sociales subissent une pénalité de -10 […] et le prix des aliments augmente de 20 % […]. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitesmeteo-defavorable)
+
+### Maladie pernicieuse
+
+**Source :** LDB 22 l.66-68.
+
+> « Faites un Test d'**Endurance Facile (+40)**. Sur un succès, la maladie vous épargne. […] Contractez le Flux Sanglant […]. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitesmaladie-pernicieuse)
+
+### Colporteur
+
+**Source :** LDB 22 l.97-99.
+
+> « Pour le prix d'un pichet de bière – 3sc –, vous recevez un bonus de +10 pour toutes les Activités *Dernières nouvelles* que vous tentez. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitescolporteur)
+
+### Animal domestique malade
+
+**Source :** LDB 22 l.101-103.
+
+> « Faites un Test de **Soin aux animaux Intermédiaire (+0)**. Sur un succès, votre animal s'en sort. Sinon, la malheureuse créature meurt. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitesanimal-domestique-malade)
+
+### Soupçonné d'hérésie
+
+**Source :** LDB 22 l.117-119.
+
+> « Il faut un Test de **Charme Très Difficile (-30)** pour convaincre le chasseur de votre innocence. Sinon, cela signifie que vous avez gagné une némésis […]. »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitessoupconne-d-heresie)
+
+### Considération inattendue
+
+**Source :** LDB 22 l.129-131.
+
+> « Les marques de reconnaissance peuvent varier d'un simple objet de grande qualité à une bourse d'argent (disponible au début de la prochaine aventure). »
+
+**Implémente :** [État calculé](../implemente.generated.md#4eactivitesconsideration-inattendue)
 
 ---
 

@@ -1702,7 +1702,8 @@ export const tableDesCheveux = datasetDe<typeof couleurDesCheveux>(hairsJson);
 /** Les rangées du Tableau de couleur des yeux. */
 export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux);
 /** Les rangées du Tableau de couleur des cheveux. */
-export const hairs = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
+type CouleurDeCheveux = RangeeDe<typeof couleurDesCheveux>;
+export const hairs: CouleurDeCheveux[] = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
 /** Le dé du Tableau de couleur des yeux, lu à l'appel. */
 export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
 /** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
@@ -1927,7 +1928,8 @@ export const cargaisonsAleatoires = datasetDe<typeof tableauDesCargaisons>(carga
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson);
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */
-export const peripeties = rangeesDe<typeof tableDesPeripeties>(peripetiesJson);
+type Peripetie = RangeeDe<typeof tableDesPeripeties>;
+export const peripeties: Peripetie[] = rangeesDe<typeof tableDesPeripeties>(peripetiesJson);
 
 /** Réseau routier impérial (EDOC 3 « Les routes et grandes routes » et EDOC 6 « Patrouilleurs
  *  routiers ») — catalogue de CALIBRATION d'une `MapRoute` : classes de route et leurs largeurs,

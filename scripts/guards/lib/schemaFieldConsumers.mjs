@@ -383,7 +383,7 @@ function natureDuType(root, type) {
   if (type.flags & TypeFlags.AnyOrUnknown) return { raison: `type \`${type.flags & TypeFlags.Any ? 'any' : 'unknown'}\`` }
   const decl = (type.getAliasSymbol() ?? type.getSymbol())?.declarations?.[0]?.resolve()
   if (!decl) return type.isUnionType() || type.isIntersectionType() ? { raison: `${type.isUnionType() ? 'union' : 'intersection'} anonyme`, composee: true } : { raison: 'type calculé sans déclaration' }
-  if (!DECLARATIONS_NOMMEES.some(est => est(decl)) || !decl.name) return { raison: 'littéral anonyme `{…}`' }
+  if (!DECLARATIONS_NOMMEES.some(est => est(decl)) || !decl.name) return { raison: 'littéral anonyme `{…}`', anonyme: true }
   const home = norm(relative(root, decl.getSourceFile().fileName))
   if (home.startsWith('../') || home.includes('node_modules/')) return { raison: `type \`${decl.name.text}\` d'une bibliothèque` }
   return { decl, type: decl.name.text, home }
@@ -444,7 +444,9 @@ export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEF
     const vues = duDataset.filter(c => c.path.length <= entree.length && c.path.every((k, i) => entree[i] === k))
     // Une entrée DÉRIVÉE n'a pas de déclaration propre — instanciation d'alias générique (`DatasetDuDocument`), ou
     // union des cas d'une charge par discriminant : elle se nomme par l'alias du dépôt qui l'adopte.
-    const derivee = n => n.decl ? n.decl.typeParameters?.length > 0 : n.composee
+    // La RANGÉE d'un document à rangées est le nœud nommé `rangee` de son def : son littéral anonyme se nomme
+    // de même par l'alias `RangeeDe` qui l'adopte.
+    const derivee = n => n.decl ? n.decl.typeParameters?.length > 0 : n.composee || (aRangees && n.anonyme)
     const adoptee = n => !derivee(n) ? n : adoptants.get(`${d.file}#${aRangees ? 'rangee' : 'entree'}`) ?? (n.decl ? { raison: 'type dérivé sans alias qui l’adopte (`EntreeDe`/`DatasetDe`/`RangeeDe`)' } : n)
     const natures = vues.flatMap(c => typesDuChemin(checker, c, entree.slice(c.path.length)).map(t => ({ ...adoptee(natureDuType(root, t)), site: siteDe(root, c.node) })))
     for (const n of natures.filter(n => n.decl)) {
