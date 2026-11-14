@@ -5,7 +5,16 @@ import { footprintN } from '../noyau/monde/footprint';
 import { peurTerreurFromSize } from './psychology';
 import { SIZE_RANGED_MOD, effectiveSize, sizeDamageMultiplier, forceOpposedOutcome } from './size';
 import { woundsFromHit } from './woundsCalc';
-import { isStructure, isEngin, structureImmune, siegeMultiplier, structureCombatant, ramVsNonDoor, structureEnduranceMult, structureTaille } from './structures';
+import {
+  isStructure,
+  isEngin,
+  structureImmune,
+  siegeMultiplier,
+  structureCombatant,
+  ramVsNonDoor,
+  structureEnduranceMult,
+  structureTaille,
+} from './structures';
 import { improvisedProfile } from './weaponDamage';
 import { bonus } from './characteristics';
 import { resolveMeleePassive } from './combat';

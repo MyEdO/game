@@ -18,7 +18,29 @@
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { CascadeStep } from './pendings';
-import { pickActiveModalKey, modalOwnerOf, voyageHubActive, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, SURFACES_HORS_PENDING, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type CleDeRegistre, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type SurfaceHorsPendingDef, type VerbesDeFenetre } from './modalArbiter';
+import {
+  pickActiveModalKey,
+  modalOwnerOf,
+  voyageHubActive,
+  autoPolicyOf,
+  modaleActive,
+  pendingOuvert,
+  HORS_MODAL,
+  MODAL_DEFS,
+  SURFACES_HORS_PENDING,
+  AUCUN_VERBE_DE_JOUEUR,
+  cleDuGeste,
+  type AutoPolicy,
+  type CleDeRegistre,
+  type FenetreAValider,
+  type FenetreQuiSeFerme,
+  type GesteDuJeu,
+  type HorsModalDef,
+  type ModalDef,
+  type RangeeDeFenetre,
+  type SurfaceHorsPendingDef,
+  type VerbesDeFenetre,
+} from './modalArbiter';
 import { maladresseCourante, stepInteraction } from './cascade';
 import type { HostJet } from './slotsDeJet';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';

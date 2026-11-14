@@ -28,7 +28,17 @@
  * `domain:'structure'`), lue à l'apparence d'arête du noyau (`apparenceDArete`, `../facades`). Ce module tient
  * aussi le voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
-import { heightAt, sceneMetresPerTile, type ArchitectureBody, type CellSide, type BuildingMass, type Scene, type SceneDesToits, type WallSeg, type WallSide } from '../scene';
+import {
+  heightAt,
+  sceneMetresPerTile,
+  type ArchitectureBody,
+  type CellSide,
+  type BuildingMass,
+  type Scene,
+  type SceneDesToits,
+  type WallSeg,
+  type WallSide,
+} from '../scene';
 import { memoByRef, memoByRefDeps } from '../sceneMemo';
 import { aretesA } from '../wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../sceneEdit';

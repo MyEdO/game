@@ -13,11 +13,24 @@ import { tableTotale } from '../../lib/tableTotale';
 import { EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { Icon } from '../Icon';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { EMPTY_FLOW, type EffectOp } from '../../engine/flowCore';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, genreDeCible, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import {
+  spells,
+  trappingDesObjetsPuisDuCatalogue,
+  refLabel,
+  WATER_EXPOSURE,
+  vehicles,
+  findVehicleById,
+  crewRoles,
+  memoParVersion,
+  creatureSemee,
+  vehiculeSeme,
+  libelleOuAbsence,
+  type TrappingData,
+} from '../../data';
 import { useId } from 'react';
 import { ObjetDonneField } from './ObjetDonneField';
 import { type Effect } from '../../data/schemas/defs-scenes/effets';
@@ -32,7 +45,6 @@ import { ScheduleSpecFields } from './ScheduleSpecFields';
 import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/refField/RefField';
 import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../../noyau/codex/libellesNarratifs';
 import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
-import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { NumberField } from '../NumberField';
@@ -136,7 +148,7 @@ export interface Ctx {
   cibles: TableDeCibles;
   /** Narratif du projet, que désignent les références narratives (`REFERENCES_NARRATIVES`), et dont
    *  l'Effet `giveTrapping` résout les objets avant le catalogue (`trappingDesObjetsPuisDuCatalogue`).
-   *  Absent = racine de CATALOGUE : ni objet de projet, ni Effect à référence narrative (`menuDEffets`). */
+   *  Absent = racine de CATALOGUE : ni objet de projet, ni autre feuille que `ops` (`menuDEffets`). */
   narratif?: NarratifBlock;
   /** La famille mécanique du porteur (`familleDesEffets`) : Conditions et ops qu'il admet. Absent = famille fermée. */
   famille?: FamilleMecanique;
@@ -173,19 +185,17 @@ export const EFFECT_MENU_GROUPS: TypeMenuGroup[] = EFFECT_GROUPS.map(([g, types]
   items: types.map((t) => ({ key: t, label: <><Icon id={EFFECT_ICON[t]} size="sm" /> {EFFECT_LABEL[t]}</> })),
 }));
 
-/** Types d'Effet dont la fabrique pose une référence narrative (clé de `REFERENCES_NARRATIVES`). */
-const TYPES_A_REF_NARRATIVE: ReadonlySet<Effect['type']> = new Set(
-  EFFECT_TYPES.filter((t) => Object.keys(EFFECT_HANDLERS[t].make()).some((k) => k in REFERENCES_NARRATIVES)),
-);
+/** La seule feuille qu'admet une racine de CATALOGUE : son Flow est `flowSchema` (`grammaire/mecanique.ts`), à feuilles
+ *  `EffectOp` — aucun Effect de scène, aucune référence narrative (#679 R4). */
+const FEUILLE_DE_CATALOGUE: EffectOp['type'] = 'ops';
 
-/** Le vocabulaire d'une racine SANS narratif (catalogue, #679 R4) : un Effect qui désignerait un document
- *  de campagne romprait la portabilité du paquet de catalogue. */
-const MENU_SANS_NARRATIF: TypeMenuGroup[] = EFFECT_MENU_GROUPS
-  .map((g) => ({ ...g, items: g.items.filter((it) => !TYPES_A_REF_NARRATIVE.has(it.key as Effect['type'])) }))
+/** Le vocabulaire d'une racine de catalogue : la seule feuille `ops`. */
+const MENU_DE_CATALOGUE: TypeMenuGroup[] = EFFECT_MENU_GROUPS
+  .map((g) => ({ ...g, items: g.items.filter((it) => it.key === FEUILLE_DE_CATALOGUE) }))
   .filter((g) => g.items.length > 0);
 
 /** Les types d'Effet que propose une racine — lu par « + Effet », « + Bloc » et le changement de type. */
-export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_SANS_NARRATIF);
+export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_DE_CATALOGUE);
 
 /** Ce que révèle un `revealClue` sans stade (`revealClue`, `noyau/monde/clues.ts`) : `title` du champ ; le résumé
  *  d'une rangée en porte la forme COURTE. */
@@ -277,8 +287,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'mealParty': return `Repas du groupe`;
     case 'interlude': return `Interlude : ${e.weeks ?? 1} semaine(s)`;
     case 'grantFavor': return `Faveur ${e.level} envers ${e.owedTo || '?'} (${e.heroId || '1ᵉʳ héros'})`;
-    case 'startCombat': return `Combat : ${e.encounter || '?'}`;
-    case 'startPursuit': return `Poursuite (${e.partyRole === 'pursuing' ? 'groupe poursuit' : 'groupe fuit'}) — Distance ${e.distance ?? 4}, ${(e.foes ?? []).length} adversaire(s)${e.encounter ? ` → ${e.encounter}` : ''}`;
+    case 'startCombat': return `Combat : ${e.encounter?.id || '?'}`;
+    case 'startPursuit': return `Poursuite (${e.partyRole === 'pursuing' ? 'groupe poursuit' : 'groupe fuit'}) — Distance ${e.distance ?? 4}, ${(e.foes ?? []).length} adversaire(s)${e.encounter ? ` → ${e.encounter.id}` : ''}`;
     case 'startMassBattle': {
       const b: MassBattleSpec = e.battle ?? {};
       const rounds = b.plannedRounds ?? 1;
@@ -372,8 +382,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'clearObjective' && (
           <input placeholder="id de l'objectif à retirer (vide = tous)" value={e.id ?? ''} onChange={(ev) => upd({ id: ev.target.value || undefined })} />
         )}
-        {TYPES_A_REF_NARRATIVE.has(effect.type) && !ctx.narratif && (
-          <p className="hint">Ce catalogue ne connaît aucune campagne : cet Effet ne s’y pose pas.</p>
+        {effect.type !== FEUILLE_DE_CATALOGUE && !ctx.narratif && (
+          <p className="hint">Ce catalogue n’admet que des opérations : cet Effet ne s’y pose pas.</p>
         )}
         {(effect.type === 'poserEtat' || effect.type === 'designerHeros') && ctx.narratif && (
           <RefField
@@ -872,7 +882,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </div>
         )}
         {effect.type === 'startCombat' && (
-          <select value={e.encounter ?? ''} onChange={(ev) => upd({ encounter: ev.target.value })}>
+          <select value={e.encounter?.id ?? ''} onChange={(ev) => upd({ encounter: { id: ev.target.value } })}>
             <option value="">— rencontre —</option>
             {ctx.encounters.map((en) => (
               <option key={en.id} value={en.id}>
@@ -897,7 +907,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             </label>
             <RefField cfg={{ ds: 'skills', single: true, spec: true }} label="Compétence de Mouvement" value={e.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string }) || { id: '' } })} />
             <label>Rencontre au rattrapage
-              <select value={e.encounter ?? ''} onChange={(ev) => upd({ encounter: ev.target.value })}>
+              <select value={e.encounter?.id ?? ''} onChange={(ev) => upd({ encounter: ev.target.value ? { id: ev.target.value } : undefined })}>
                 <option value="">— aucune (dénouement narratif) —</option>
                 {ctx.encounters.map((en) => <option key={en.id} value={en.id}>{en.id}</option>)}
               </select>

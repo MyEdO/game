@@ -1,6 +1,7 @@
 // Carte du VOCABULAIRE MÉCANIQUE — GÉNÉRÉE depuis les unions discriminées du moteur pur :
 //   `GameOp`                                            → src/engine/ops.ts
-//   `Condition` / `Flow` / `EffectTrigger` / `EffectTargeting` → src/engine/flowCore.ts
+//   `Condition` / `Flow`                                → src/engine/flowCore.ts
+//   `EffectTrigger` / `EffectTargeting`, sortie de leurs schémas → src/data/schemas/grammaire/mecanique.ts
 // Sortie : docs/vocabulaire-mecanique.md. Re-run : node scripts/docs/build-vocabulaire.mjs
 // (npm run docs:vocabulaire).
 // Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
@@ -22,7 +23,7 @@ import { readFileSync } from 'node:fs'
 import { parLibelle, listerArbre } from '../guards/lib/lister.mjs'
 import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import { basename } from 'node:path'
-import { loadSource, findAlias, aliasDoc, readUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
+import { loadSource, findAlias, aliasDoc, readUnionMembers, readSchemaUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { mesurerCanaux } from './lib/canauxMecaniques.mjs'
 import { estObjet } from '../../src/lib/objet.mjs'
@@ -31,6 +32,7 @@ import { estObjet } from '../../src/lib/objet.mjs'
 function rendu() {
   const OPS_SRC = 'src/engine/ops.ts'
   const FLOW_SRC = 'src/engine/flowCore.ts'
+  const MECA_SRC = 'src/data/schemas/grammaire/mecanique.ts'
   const OUT = 'docs/vocabulaire-mecanique.md'
   const TOOL = 'build-vocabulaire'
 
@@ -197,6 +199,7 @@ function rendu() {
   // ---------------------------------------------------------------------------
   const ops = loadSource(OPS_SRC)
   const flow = loadSource(FLOW_SRC)
+  const meca = loadSource(MECA_SRC)
 
   const gameOpAlias = findAlias(ops.sf, 'GameOp', TOOL, OPS_SRC)
   const { rows: opRows, rawCount: opRawCount } = readUnionMembers(ops.sf, ops.text, gameOpAlias, 'op', TOOL)
@@ -274,8 +277,8 @@ function rendu() {
 
   let out = `# Vocabulaire mécanique du moteur — GÉNÉRÉ\n\n`
   out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-vocabulaire.mjs\` (\`npm run docs:vocabulaire\`) — NE PAS ÉDITER À LA MAIN.\n`
-  out += `> Sources : l'union \`GameOp\` de \`src/engine/ops.ts\` et les unions \`Condition\`/\`Flow\`/\`EffectTrigger\`/\n`
-  out += `> \`EffectTargeting\` de \`src/engine/flowCore.ts\`. Vocabulaire d'EFFET et de LOGIQUE partagé par les sorts,\n`
+  out += `> Sources : l'union \`GameOp\` de \`src/engine/ops.ts\`, les unions \`Condition\`/\`Flow\` de \`src/engine/flowCore.ts\`\n`
+  out += `> et les schémas \`effectTriggerSchema\`/\`effectTargetingSchema\` de \`${MECA_SRC}\`. Vocabulaire d'EFFET et de LOGIQUE partagé par les sorts,\n`
   out += `> traits, talents, états, maladies, qualités d'arme, consommables et flux de combat.\n`
   out += `> Le vocabulaire de SCÈNE (\`Effect\`) vit dans \`docs/campagne-effects.md\`.\n\n`
 
@@ -321,7 +324,7 @@ function rendu() {
     const herite = e.heritage.length ? ` (étend ${e.heritage.map((h) => `\`${h}\``).join(', ')})` : ''
     out += `| \`${e.entite}\`${herite} | \`${e.fichier}:${e.ligne}\` | ${c('passive')} | ${c('effects')} | ${c('drapeaux')} |\n`
   }
-  out += `\n_${CANAUX.entites.length} entités déclarant au moins un canal. Une entité qui étend une autre HÉRITE de ses canaux — la\ntable ne montre que les champs DÉCLARÉS (\`EtatData\`/\`PsychologyData\` tiennent les leurs de \`StatusData\`)._\n\n`
+  out += `\n_${CANAUX.entites.length} entités déclarant au moins un canal. Une entité qui étend une autre HÉRITE de ses canaux — la\ntable ne montre que les champs DÉCLARÉS (\`PsychologyData\` tient les siens de \`StatusData\`)._\n\n`
 
   out += `### Le vocabulaire des drapeaux (${CANAUX.typesDrapeaux.length} types)\n\n`
   out += `| Type | Site | Drapeaux déclarés |\n|---|---|---|\n`
@@ -360,10 +363,7 @@ function rendu() {
   // Section d'un vocabulaire de flowCore. Le préambule est le JSDoc porté par la DÉCLARATION d'alias
   // (verbatim de la source) ; `intro` ne sert qu'aux unions qui n'en portent pas. La colonne « Champs »
   // disparaît pour une union de littéraux (aucun membre n'en a).
-  function section(title, src, aliasName, discriminant, header, intro, opts = {}) {
-    const alias = findAlias(src.sf, aliasName, TOOL, FLOW_SRC)
-    const { rows } = readUnionMembers(src.sf, src.text, alias, discriminant, TOOL, opts)
-    const preamble = aliasDoc(src.text, alias, src.sf)
+  function table(title, rows, preamble, header, intro, source) {
     const withFields = rows.some((r) => r.fieldGroups.some((g) => g.length))
     let s = `\n## ${title}\n\n`
     if (preamble) s += `${preamble}\n\n`
@@ -374,8 +374,18 @@ function rendu() {
         ? `| \`${r.name}\` | ${renderFields(r.fieldGroups)} | ${esc(r.role)} |\n`
         : `| \`${r.name}\` | ${esc(r.role)} |\n`
     }
-    s += `\n_${rows.length} entrées — dérivées de \`${FLOW_SRC}\`._\n`
+    s += `\n_${rows.length} entrées — dérivées de \`${source}\`._\n`
     return s
+  }
+  function section(title, src, aliasName, discriminant, header, intro, opts = {}) {
+    const alias = findAlias(src.sf, aliasName, TOOL, FLOW_SRC)
+    const { rows } = readUnionMembers(src.sf, src.text, alias, discriminant, TOOL, opts)
+    return table(title, rows, aliasDoc(src.text, alias, src.sf), header, intro, FLOW_SRC)
+  }
+  // Un vocabulaire que le moteur DÉRIVE d'un schéma (`z.output`) se lit à ce schéma.
+  function sectionDeSchema(title, schema, header, intro) {
+    const { rows, doc } = readSchemaUnionMembers(meca.sf, meca.text, schema, TOOL)
+    return table(title, rows, doc, header, intro, MECA_SRC)
   }
 
   out += section(
@@ -388,17 +398,15 @@ function rendu() {
     flow, 'Flow', 'kind', '`kind`',
     null,
   )
-  out += section(
+  out += sectionDeSchema(
     'EffectTrigger — les déclencheurs d\'effet',
-    flow, 'EffectTrigger', 'kind', 'Déclencheur',
+    'effectTriggerSchema', 'Déclencheur',
     'Valeurs du champ `trigger` d\'un `TriggeredEffect`, dispatchées par `fireTriggers` (`src/noyau/triggeredEffects.ts`).',
-    { allowLiterals: true },
   )
-  out += section(
+  out += sectionDeSchema(
     'EffectTargeting — la ou les cibles d\'un effet déclenché',
-    flow, 'EffectTargeting', 'kind', 'Cible',
+    'effectTargetingSchema', 'Cible',
     'Valeurs du champ `on` d\'un `TriggeredEffect`.',
-    { allowLiterals: true },
   )
   return {
     out,

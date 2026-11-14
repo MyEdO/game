@@ -43,11 +43,10 @@ function saisir(champ: HTMLInputElement, valeur: string) {
 /** Noms accessibles CALCULÉS portés par plusieurs contrôles (boutons compris). */
 const nomsDupliques = (): string[] => defautsDeNoms(container).doublons;
 
-type Domaine = { id: string; label: string; windModifiers?: Record<string, unknown>[] };
 
 describe('atelier du Codex — noms positionnés des champs en rangée (#1993)', () => {
   it('rangées à JsonField et DescRefField : chaque champ de chaque rangée a son nom, tous uniques', () => {
-    const domaines = datasetArray('domains') as Domaine[];
+    const domaines = datasetArray('domains');
     const d = domaines.find((x) => (x.windModifiers?.length ?? 0) >= 2);
     expect(d, 'aucun domaine à deux rangées windModifiers — la mesure ne porte sur rien').toBeTruthy();
     // Un sous-champ tableau-de-tableaux retombe sur `JsonField` ; `descRef` monte `DescRefField`.
@@ -68,7 +67,7 @@ describe('atelier du Codex — noms positionnés des champs en rangée (#1993)',
 
   type Yeux = { id: string; label: string; color?: Record<string, string> };
   const yeuxARecord = (): Yeux => {
-    const e = (datasetArray('eyes') as Yeux[]).find((x) => Object.keys(x.color ?? {}).length >= 2);
+    const e = datasetArray('eyes').find((x) => Object.keys(x.color ?? {}).length >= 2);
     expect(e, 'aucune couleur d’yeux à record de deux clés — la mesure ne porte sur rien').toBeTruthy();
     return e!;
   };

@@ -8,7 +8,18 @@ import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
-import { buildIndex, chapitreDuParagraphe, chapitresDeLaSection, citationsEnTete, classifyQuote, continuations, regenerations, scan, sitesLow, RAWDIR } from './reanchor.mjs'
+import {
+  buildIndex,
+  chapitreDuParagraphe,
+  chapitresDeLaSection,
+  citationsEnTete,
+  classifyQuote,
+  continuations,
+  regenerations,
+  scan,
+  sitesLow,
+  RAWDIR,
+} from './reanchor.mjs'
 import { avecAtlasFixture } from './atlasFixture.mjs'
 
 // La fiche vit SOUS un cœur : un Atlas est PARTITIONNÉ, et la couture refuse une page de règles

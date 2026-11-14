@@ -20,7 +20,25 @@ import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
 import type { RosterMontre } from './roster';
-import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Paysage, type Plan, type Puce, type Saisie, type Ton } from './elements';
+import {
+  elementsDesGestes,
+  ligne,
+  resume,
+  type Bouton,
+  type Choix,
+  type Element,
+  type Entite,
+  type FicheOuverte,
+  type Formulaire,
+  type Jet,
+  type Ligne,
+  type PanneauDeLHote,
+  type Paysage,
+  type Plan,
+  type Puce,
+  type Saisie,
+  type Ton,
+} from './elements';
 
 /**
  * @contrat Vue
@@ -360,7 +378,7 @@ const departDuTrajet = (tr: TrajetEnVue): Choix => ({
 
 /** Le plan de la carte en élément : chaque lieu à sa place, celui du groupe en `alerte`, chaque route qui part d'ici
  *  en `reussite` ; sous chaque lieu, `sous`. */
-const planDeLaCarte = (id: string, plan: PlanDeLaCarte, sous: (l: LieuDuPlan) => Element[]): Plan => ({
+export const planDeLaCarte = (id: string, plan: PlanDeLaCarte, sous: (l: LieuDuPlan) => Element[]): Plan => ({
   type: 'plan', id,
   points: plan.lieux.map((l) => ({ type: 'point', id: l.id, nom: l.nom, x: l.x, y: l.y, ton: l.ici ? 'alerte' : 'neutre', elements: sous(l) })),
   traits: plan.routes.map((r) => ({ id: r.route, de: r.de, vers: r.vers, ton: r.depuisIci ? 'reussite' : 'neutre' })),

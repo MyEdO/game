@@ -30,7 +30,7 @@ import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, roundSL,
   specialsApplicables, difficulteDuJoueur, difficulteDeBase,
-  TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type CampDeTaverne, type TavernGame, type TavernGameResult, type TavernSpecial,
+  TAVERN_TEST_DIFFICULTY, type CampDeTaverne, type TavernGame, type TavernGameResult, type TavernSpecial,
 } from '../engine/tavernGame';
 import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
 import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
@@ -61,9 +61,46 @@ import type { BatchParticipant } from './pendings';
 import { rollBatchParticipant, pushStep, rollTableStep, type TableStepDef } from './cascade';
 import { combatStakeRef } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
-import { startSequence, resolveSequenceTie, recitDuDepartage, sequenceCumulsDeLaManche, sequenceDrBonus, sequencePhaseOf, sequenceScoreOf, sequenceTableRow, resolveSequencePotTurn, sequencePotIssue, resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, activeSequence, setSequenceChargeUtile, setSequenceCumuls, PERTE_DU_TOUR, DECROISSANCE_DU_TOUR } from './sequenceCore';
-import { SEQUENCE_PURPOSE, SEQUENCE_BORNE, type SequenceBoard, type SequenceCloseCtx, type SequenceParams, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
-import { type SequencePotTurn, type SequenceThrowTurn, type SequenceThrowOutcome, type SequenceVolleyRules, type SequenceVolleyRow, type SequenceSide, type SequenceCombinedRules } from '../engine/sequenceVocab';
+import {
+  startSequence,
+  resolveSequenceTie,
+  recitDuDepartage,
+  sequenceCumulsDeLaManche,
+  sequenceDrBonus,
+  sequencePhaseOf,
+  sequenceScoreOf,
+  sequenceTableRow,
+  resolveSequencePotTurn,
+  sequencePotIssue,
+  resolveSequenceThrow,
+  sequenceThrowGain,
+  sequenceThrowRow,
+  sequenceVolleyRounds,
+  activeSequence,
+  setSequenceChargeUtile,
+  setSequenceCumuls,
+  PERTE_DU_TOUR,
+  DECROISSANCE_DU_TOUR,
+} from './sequenceCore';
+import {
+  SEQUENCE_PURPOSE,
+  SEQUENCE_BORNE,
+  type SequenceBoard,
+  type SequenceCloseCtx,
+  type SequenceParams,
+  type SequenceRound,
+  type SequenceState,
+  type SequenceVerdict,
+} from './sequenceContract';
+import {
+  type SequencePotTurn,
+  type SequenceThrowTurn,
+  type SequenceThrowOutcome,
+  type SequenceVolleyRules,
+  type SequenceVolleyRow,
+  type SequenceSide,
+  type SequenceCombinedRules,
+} from '../engine/sequenceVocab';
 import type { RNG } from '../engine/dice';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
@@ -73,7 +110,7 @@ import type { Scene } from './monde/scene';
 import { jetSurfaced } from './sieges';
 import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate, pluriel } from '../i18n';
-import { dataLabel, testSkillLabel } from '../data';
+import { dataLabel, testSkillLabel, TAVERN_GAMES } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';

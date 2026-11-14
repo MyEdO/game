@@ -1,4 +1,4 @@
-"""Données de `humanoide--accessoire--bandouliere-a-parchemins` (le Sorcier, #3743), lues par `modele.py` : la variante
+"""Données de `humanoide--accessoire--bandouliere-a-parchemins` (le Sorcier, #3743), lues par le kit des sangles (`element/sangle.py`) : la variante
 `bandouliere-a-parchemins` de la pièce `baudrier` de la garde-robe, dont elle garde l'emplacement `epaule_d`.
 
 Illustration directrice : ligne de `INDEX.md` du recueil `illustrations-wfrp` « Sorcier | sorcier | `carrieres/sorcier.png` |
@@ -34,21 +34,28 @@ ZONES = ['torse', 'hanches']      # zones du tronc que la sangle ceint
 
 CONTOURNE = {'robe': 'humanoide--vetement--robe'}
 """La sangle repose sur la robe publiée du preset `sorcier` : elle en emprunte les poids et les clés (ses meshes des zones
-`ZONES_DE_LA_ROBE`), comme le pan et le bas de l'écharpe de la capuche, posés sur la même robe
+`ZONES_DU_SUPPORT`), comme le pan et le bas de l'écharpe de la capuche, posés sur la même robe
 (`vetement--capuche/donnees.py`, `MATIERES_DE_LA_ROBE`) ; elle passe sous ce pan et sous l'écharpe. Liée au seul tronc et
 posée à 4,4 cm de lui, elle passait devant l'écharpe et le pan (jusqu'à 19,8 mm en ClimbUp_1m, porte r25)."""
-MATIERES_DE_LA_ROBE = ['robe', 'dessous', 'poitrine']
-ZONES_DE_LA_ROBE = ['torse', 'hanches', 'bras_haut_d']
+MATIERES_DU_SUPPORT = ['robe', 'dessous', 'poitrine']
+ZONES_DU_SUPPORT = ['torse', 'hanches', 'bras_haut_d']
 
 EPAULE = -0.12
 """x du point d'épaule (HYPOTHÈSE) : l'illustration passe la sangle sur l'épaule droite, entre le cou et la pointe de
 l'épaule ; base : le cou va jusqu'à x = ±0,10, la tête de `upperarm_r` est à x = -0,21. Sa hauteur et sa profondeur sont
-celles du haut de la robe à cet x : le haut du tronc passe au-dessus de l'encolure, où la sangle ne trouve aucune robe."""
+celles du milieu de la crête de la robe à cet x (`CRETE`) : le haut du tronc passe au-dessus de l'encolure, où la sangle
+ne trouve aucune robe."""
+CRETE = 0.001
+"""m : les points de la robe à x = `EPAULE` qui sont à moins de `CRETE` du plus haut forment sa crête, dont le point
+d'épaule prend le milieu. Le bord de l'encolure y est à plat (robe publiée : trois points à z = 1,5576, de y = 0,011 à
+0,114) : le seul plus haut s'y départage par le bruit du flottant, qui change d'un export de la robe à l'autre."""
+TRANCHE_EPAULE = 0.015            # m : demi-largeur, en x, de la tranche de robe où se cherche la crête autour d'`EPAULE`
 
 HANCHE = 1.25
 """z du point de hanche, au flanc gauche du tronc à cette hauteur. Illustration : la sangle arrive à la ceinture sur la
 hanche gauche ; base : la ceinture publiée monte jusqu'à z = 1,126. HYPOTHÈSE : la sangle s'arrête au-dessus ; la ceinture
 la traversait en clip à 1,15 (15 mm sous `carrure_plus`) et à 1,20 (14 mm accroupi, Crouch_Fwd_Loop)."""
+TRANCHE_HANCHE = 0.01             # m : demi-hauteur, en z, de la tranche du tronc où se prend le flanc autour d'`HANCHE`
 
 LARGEUR = 0.045                   # illustration : ~23 px, soit ~4,5 cm
 SEGMENTS = 40                     # colonnes autour du tronc (HYPOTHÈSE de maillage)

@@ -19,7 +19,7 @@ import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
-import { itemCapabilitiesSchema } from '../defs/trappings';
+import { itemCapabilitiesSchema } from './valeurs';
 import { GATES_D_ACTION, MODES_DE_CIBLAGE, PORTEES_D_INTENTION, RUNS_D_ACTION, SELECTEURS_D_ACTION } from '../defs/actions';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
@@ -139,7 +139,7 @@ const NOMMES = [
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|distance|zone|adversairesAutour|toutAutour|soi',
-  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
+  'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume|vegetal',
   'physique|mentale',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
   // Disponibilité (LDB 59) et récolte (ZI 13 l.286), en ids nommés.

@@ -7,7 +7,18 @@ import { correspondGlob } from '../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest, estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeParLaSurvie, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
+import {
+  COUCHES,
+  PAQUETS_DE_L_HOTE_WEB,
+  SURFACE_DU_NOYAU,
+  dossierDe,
+  estZone,
+  fermeParLaSurvie,
+  fermeture,
+  paquetFerme,
+  porteManquee,
+  zoneDe,
+} from '../scripts/guards/lib/couches.mjs';
 
 /**
  * BANC DES MURS DE COUCHE (#1709, #2882 ; AGENTS.md règle stricte 3).

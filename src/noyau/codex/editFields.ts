@@ -179,7 +179,7 @@ export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] |
  *  booléen ; `undefined` pour tout autre nœud. */
 export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
   const formes = ouverts([noeud]);
-  const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.ouverte && datasetDeLEspaceDuType(d.type) !== undefined);
+  const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.portee && datasetDeLEspaceDuType(d.type) !== undefined);
   if (feuilles.length) {
     const vus = new Set<unknown>();
     const membres = formes.filter((n) => !estTransparent(n) && ['enum', 'literal'].includes(defDe(n)?.type ?? '')).flatMap((n) => choixDuNoeud(n) ?? []);
@@ -235,6 +235,14 @@ export function champsDuRecord(record: FieldDesc, donnee: Record<string, unknown
   const kind = kindDuNoeud('', valeur);
   const bornes = kind === 'number' ? bornesDuNoeud(valeur) : undefined;
   return cles.map((c) => ({ key: c.cle, label: c.libelle, kind, nullable: true, noeud: valeur, ...(bornes ? { bornes } : {}), ...(record.contexte ? { contexte: record.contexte } : {}) }));
+}
+
+/** Le champ `f` est-il un record (`recordDuNoeud`) dont les clés sont posées au chemin `ici` : par son contexte
+ *  (`FieldDesc.contexte`), sinon par les valeurs de son nœud de clé (`choixDuNoeud`) ? Un record à clé ouverte que rien
+ *  ne pose ne l'est pas. */
+export function clesPosees(f: FieldDesc, ici: readonly (string | number)[]): boolean {
+  const record = recordDuNoeud(f.noeud);
+  return record !== undefined && (f.contexte?.choix(ici) ?? choixDuNoeud(record.cle)) !== undefined;
 }
 
 /** Une variante d'une union : la valeur de son discriminant (vide : la variante d'une union à présence qui ne le porte
@@ -363,11 +371,14 @@ export function formeAuPoint(noeud: unknown, valeur: unknown): { noeud: unknown;
   return { noeud: formeDeLaValeur(n, valeur) ?? n, tenus };
 }
 
-/** La clé `cle`, de nœud `noeud`, s'écrit-elle au formulaire ? Une clé `id` qui n'est pas une référence (`idDe`, `ref`
- *  d'une portée locale, ou référence emboîtée `{ id }` d'une op) est une identité, qui se change par son geste dédié,
- *  qui la propage. */
-export const cleOfferte = (cle: string, noeud: unknown): boolean =>
-  cle !== 'id' || ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined || porteeDeLaFeuille(n) !== undefined || estRefEmboitee(n));
+/** Les valeurs du nœud `noeud` sont-elles des entrées, d'un catalogue ou d'une portée locale : sa fermeture porte-t-elle
+ *  une référence (`idDe`, `ref` d'une portée locale, ou référence emboîtée `{ id }`) ? */
+export const designeDesEntrees = (noeud: unknown): boolean =>
+  ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined || porteeDeLaFeuille(n) !== undefined || estRefEmboitee(n));
+
+/** La clé `cle`, de nœud `noeud`, s'écrit-elle au formulaire ? Une clé `id` qui n'est pas une référence
+ *  (`designeDesEntrees`) est une identité, qui se change par son geste dédié, qui la propage. */
+export const cleOfferte = (cle: string, noeud: unknown): boolean => cle !== 'id' || designeDesEntrees(noeud);
 
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
  *  clés de l'échantillon (pour une union, la variante objet que l'échantillon satisfait) ? */

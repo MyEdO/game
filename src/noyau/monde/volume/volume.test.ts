@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { CASES_PAR_MORCEAU, blocDeLaCase, couronnesDuMonde, retraitDuMonde, toitsDuMonde, toitsLeves, volumeDuMonde, type MorceauDuMonde, type RetraitDuMonde, type VolumeDuMonde } from './volume';
+import {
+  CASES_PAR_MORCEAU,
+  couronnesDuMonde,
+  retraitDuMonde,
+  toitsDuMonde,
+  toitsLeves,
+  volumeDuMonde,
+  type MorceauDuMonde,
+  type RetraitDuMonde,
+  type VolumeDuMonde,
+  blocDeLaCase,
+} from './volume';
 import { clearedSpace, nappeKey, shelterField } from './toits';
 import { perimeterWallSegs } from '../../sceneEdit.testkit';
 import { emptyScene, parapetTilesAbove, sceneMetresPerTile, setDoorOpen, setStructureDown, setTileCollapsed, type Scene } from '../scene';

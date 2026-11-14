@@ -11,7 +11,20 @@ import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
 import { createHero } from '../../engine/character';
 import { hydratePoste, itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
-import { creatures, findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import {
+  creatures,
+  findCreatureById,
+  findGroupeDArmureById,
+  findPlanDEspeceById,
+  findSpeciesById,
+  findTenueDeCarriere,
+  findTrappingById,
+  piecesCouvrant,
+  piecesDeLObjet,
+  raceAppearance,
+  weaponGroups,
+  type GroupeDArmure,
+} from '../../data';
 import { findTierEntry } from '../../engine/tables';
 import { resetData, setDataset } from '../../data/overrides';
 import { localisationsDeLoc } from '../../engine/classementDeTrait';

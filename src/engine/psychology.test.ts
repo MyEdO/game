@@ -1,6 +1,20 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
-import { parsePsychTraits, peurTerreurFromSize, pasDePeur, psychBranchOps, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue, sourceCombattant } from './psychology';
+import {
+  parsePsychTraits,
+  peurTerreurFromSize,
+  pasDePeur,
+  psychBranchOps,
+  isFrenzyCapable,
+  resolveFrenzyEntry,
+  targetedTrigger,
+  resolveCalmeSimple,
+  calmeDeLAnimositeAcquise,
+  traumaOnImpossibleAmbition,
+  effectivePsychTraits,
+  calmeValue,
+  sourceCombattant,
+} from './psychology';
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';

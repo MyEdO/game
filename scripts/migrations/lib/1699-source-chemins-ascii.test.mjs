@@ -7,7 +7,17 @@ import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
-import { migrer, planDeRenommage, reecrireChemins, reecrireLiensRelatifs, couplesTextuels, couplesDeBasenames, formeWindows, formeEchappee, STOCK_ANCRES_VIDES } from '../2026-09-14-1699-source-chemins-ascii.mjs'
+import {
+  migrer,
+  planDeRenommage,
+  reecrireChemins,
+  reecrireLiensRelatifs,
+  couplesTextuels,
+  couplesDeBasenames,
+  formeWindows,
+  formeEchappee,
+  STOCK_ANCRES_VIDES,
+} from '../2026-09-14-1699-source-chemins-ascii.mjs'
 import { lancerGit } from '../../test/gitDeBanc.mjs'
 
 const LIVRE = "Source/Livre d'Épreuve é"

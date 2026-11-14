@@ -145,7 +145,7 @@ export function ritualReduction(c: Combatant, spell: { ritual?: { reduced?: Ritu
   if (!red) return null;
   for (const t of casterTalents(c)) {
     if (t.kind === 'chaos' && red.chaosMagic) return red;
-    if (t.kind === 'arcane' && t.spec != null && red.domains.includes(t.spec)) return red;
+    if (t.kind === 'arcane' && t.spec != null && red.domains.some((d) => d === t.spec)) return red;
   }
   return null;
 }

@@ -227,7 +227,7 @@ export function shipStationOuverte(traits: NavalTraitRef[] | undefined, id: stri
 function crewHitVictims(hull: Combatant, crew: Combatant[], crewTarget: CrewTarget, rng: RNG): { victims: Combatant[]; fermees: string[] } {
   if ('poste' in crewTarget) return { victims: posteCrew(hull, crew, rng), fermees: [] };
   if ('role' in crewTarget) return { victims: marinsDuRole(exposedCrew(crew), crewTarget.role.id), fermees: [] };
-  const ouvertes = crewTarget.stations.filter((id) => shipStationOuverte(hullNavalTraits(hull), id));
+  const ouvertes: string[] = crewTarget.stations.filter((id) => shipStationOuverte(hullNavalTraits(hull), id));
   return {
     victims: exposedCrew(crew).filter((c) => c.shipStation !== undefined && ouvertes.includes(c.shipStation)),
     fermees: crewTarget.stations.filter((id) => !ouvertes.includes(id)),

@@ -2,7 +2,20 @@
 import { describe, it, expect } from 'vitest';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
+import {
+  CharacterCreator,
+  CareerScreen,
+  CharScreen,
+  SpeciesRaceScreen,
+  SkillsScreen,
+  StarScreen,
+  TrappingsScreen,
+  DetailsScreen,
+  PresentationScreen,
+  PettySpellsSection,
+  careerLevelTalentsTitle,
+  TrappingChoiceSlot,
+} from './CharacterCreator';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche } from '../../engine/trappingChoices';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';

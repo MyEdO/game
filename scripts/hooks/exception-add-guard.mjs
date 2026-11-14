@@ -1,7 +1,16 @@
 // Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) des tables d'exceptions de garde : doctrine
 // `user-doctrine-gardes-jamais-de-ask` (2026-07-13, 2026-09-28) ; juge de diff : `.claude/agents/juge.md`.
 import { existsSync, readFileSync } from 'node:fs'
-import { OUTILS_ECRITURE, cheminDEcriture, cheminVise, ecritLeFichierEntier, ecrituresDe, fichierExistait, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs'
+import {
+  OUTILS_ECRITURE,
+  cheminDEcriture,
+  cheminVise,
+  ecritLeFichierEntier,
+  ecrituresDe,
+  fichierExistait,
+  texteAvant,
+  texteNeuf,
+} from '../guards/lib/contratGarde.mjs'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 
 // Gardes-tests connus, par leur NOM NU : une liste de noms se compare en CHAÎNE, jamais par regex

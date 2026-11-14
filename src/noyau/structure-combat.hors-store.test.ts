@@ -1,7 +1,17 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyAttackResult, applyStructureCriticalToTarget, applyCriticalToTarget, applyCast, checkBattleOver, collapseStructure, weaponContextOf, resolveRoundBoundary, STRUCTURE_CRIT_TABLE } from './combatFlow';
+import {
+  applyAttackResult,
+  applyStructureCriticalToTarget,
+  applyCriticalToTarget,
+  applyCast,
+  checkBattleOver,
+  collapseStructure,
+  weaponContextOf,
+  resolveRoundBoundary,
+  STRUCTURE_CRIT_TABLE,
+} from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';

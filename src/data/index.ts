@@ -4,26 +4,56 @@
  * aucune migration ne les régénère.
  */
 import type { IconId } from './icons/types';
-import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
+import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, MatiereDArmure } from './schemas/grammaire/valeurs';
-import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
+import {
+  dansLaSousListe,
+  espaceDe,
+  idDe,
+  idsDe,
+  idsDeLaSousListe,
+  lireLEspace,
+  porteLeMarqueur,
+  type FeuilleDId,
+  type Id,
+  type RefASpecialisation,
+  type RefDesignee,
+  type RefTypee,
+  type TypeEntite,
+} from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
-import { CATEGORIE_CODEX_DU_FICHIER, CLES_CODEX, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
+import {
+  CATEGORIE_CODEX_DU_FICHIER,
+  CLES_CODEX,
+  DATASET_DE_LA_CATEGORIE,
+  DATASET_DE_L_ESPACE,
+  type CleCodex,
+  type CleDeDataset,
+  type DatasetDeCategorie,
+} from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { ClasseDeQualite, DotationDeMention, DotationDePossession, Somme } from './schemas/grammaire/reference';
+import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema, type specsSourceSchema } from './schemas/grammaire/valeurs';
+import {
+  natureDeMentionSchema,
+  symptomSeveritySchema,
+  type NatureDeMention,
+  type harvestRaritySchema,
+  type harvestDangerSchema,
+  type specsSourceSchema,
+  type CountSpec,
+} from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { z } from 'zod';
 import type { traitCapabilitiesSchema } from './schemas/defs/traits';
-import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { estObjet } from '../lib/objet.mjs';
@@ -43,6 +73,7 @@ import skillsJson from './skills.json';
 import talentsJson from './talents.json';
 import etatsJson from './etats.json';
 import psychologyJson from './psychology.json';
+import type * as psychologyDef from './schemas/defs/psychology';
 import maladiesJson from './maladies.json';
 import traitsJson from './traits.json';
 import qualitiesJson from './qualities.json';
@@ -100,10 +131,22 @@ import type * as booksDef from './schemas/defs/books';
 import { books } from './livres';
 import type * as vehiclesDef from './schemas/defs/vehicles';
 import type * as qualitiesDef from './schemas/defs/qualities';
+import type * as tavernGamesDef from './schemas/defs/tavernGames';
+import type * as talentsDef from './schemas/defs/talents';
+import type * as traitsDef from './schemas/defs/traits';
+import type * as creaturesDef from './schemas/defs/creatures';
+import type * as spellsDef from './schemas/defs/spells';
+import type * as maneuversDef from './schemas/defs/maneuvers';
+import type * as domainsDef from './schemas/defs/domains';
+import type * as etatsDef from './schemas/defs/etats';
+import type * as maladiesDef from './schemas/defs/maladies';
+import type * as symptomsDef from './schemas/defs/symptoms';
+import type * as mutationsDef from './schemas/defs/mutations';
+import type { symptomCapabilitiesSchema } from './schemas/defs/symptoms';
+import type { qualityCapabilitiesSchema } from './schemas/defs/qualities';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
 import { datasetDe, type DatasetDe, type EntreeDe } from './datasets';
-import type { PropData } from './props.types';
 import type * as pregensDef from './schemas/defs/pregens';
 import type { MerchantArchetypeDef } from './merchants.types';
 import type * as criticalsDef from './schemas/defs/criticals';
@@ -111,7 +154,6 @@ import type * as miscastDef from './schemas/defs/miscast';
 import type * as structureCriticalsDef from './schemas/defs/structure-criticals';
 import type * as artilleryMisfireDef from './schemas/defs/artillery-misfire';
 import type * as crewTestTypesDef from './schemas/defs/crew-test-types';
-import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as couleurDesYeux from './schemas/defs/eyes';
 import type * as couleurDesCheveux from './schemas/defs/hairs';
@@ -202,7 +244,9 @@ import tavernGamesJson from './tavernGames.json';
 import peripetiesJson from './peripeties.json';
 import reseauRoutierJson from './reseau-routier.json';
 import massBattleJson from './mass-battle.json';
+import type * as massBattleDef from './schemas/defs/mass-battle';
 import grappleJson from './grapple.json';
+import type * as grappleDef from './schemas/defs/grapple';
 import reglesJson from './regles.json';
 import disponibiliteJson from './disponibilite.json';
 import waterExposureJson from './water-exposure.json';
@@ -217,81 +261,45 @@ import type * as actionsDef from './schemas/defs/actions';
 import axesJson from './axes.json';
 import seaNavigationJson from './sea-navigation.json';
 import seaPerilsJson from './sea-perils.json';
+import seaEventsJson from './sea-events.json';
+import steamBreakdownJson from './steam-breakdown.json';
 import seaWeatherJson from './sea-weather.json';
 import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
-import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, Difficulty, type StakeForm } from '../engine/types';
-import type { MutationData } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
-import type { DiseaseDef } from './schemas/defs/maladies';
-import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
-import { type DiceSpec, formatDice } from '../engine/dice';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type StakeForm } from '../engine/types';
+import { formatDice } from '../engine/dice';
 import { formuleDeMonnaie, type Money } from '../engine/money';
-import { sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+// runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+import {
+  sizeFromProfile,
+  sizeFromTalents,
+} from '../engine/size';
 import type { VarianteDeCible } from './schemas/grammaire/valeurs';
 import type * as seaNavigationDef from './schemas/defs/sea-navigation';
-import type { SeaPerilsData } from './schemas/defs/sea-perils';
 import type * as seaCargoDef from './schemas/defs/sea-cargo';
+import type * as propsDef from './schemas/defs/props';
+import type * as reglesDef from './schemas/defs/regles';
+import type * as waterExposureDef from './schemas/defs/water-exposure';
+import type * as seaPerilsDef from './schemas/defs/sea-perils';
+import type * as seaShantiesDef from './schemas/defs/sea-shanties';
+import type * as seaEventsDef from './schemas/defs/sea-events';
+import type * as steamBreakdownDef from './schemas/defs/steam-breakdown';
 import type * as landCargoDef from './schemas/defs/land-cargo';
 
 /** Règle d'EMPOIGNADE en DONNÉE (LDB 14 l.159-169) : `init` = ops à la touche d'une Empoignade déclarée
  *  (Empêtré + relation via le flag `grapple`) ; `win` = les 3 options du Test opposé GAGNÉ (l.161), appliquées
  *  avec `ctx.sl = DR`. La mécanique vit ICI (GameOp éditables), le flux `pendingGrapple` n'orchestre que le choix. */
-export interface GrappleRule {
-  init: import('../engine/ops').GameOp[];
-  win: { degats: import('../engine/ops').GameOp[]; empetrer: import('../engine/ops').GameOp[]; liberer: import('../engine/ops').GameOp[] };
-  source?: SourceRef;
-}
-export const GRAPPLE = grappleJson as GrappleRule;
+export const GRAPPLE = datasetDe<typeof grappleDef>(grappleJson);
 
-/**
- * Dataset dont la prose est ADRESSÉE (`descRef`, #1389) : sur le DISQUE, l'entrée porte son adresse
- * et PAS de `desc` — c'est la forme que TypeScript voit du module JSON. Le module CHARGÉ, lui, est
- * toujours MATÉRIALISÉ : le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`,
- * pendant Vite de `materialiser`) injecte dans chaque nœud adressé la `desc` que son adresse résout,
- * au build comme en dev et sous vitest — c'est la SEULE porte de chargement des `src/data/*.json`.
- * Ce helper NOMME cet écart à UN endroit, au lieu d'un `as unknown as` recopié par famille migrée.
- */
-const adressee = <T>(json: unknown): T[] => json as T[];
-
-/** Mode d'exposition hydrique (MSRC 16 l.5/37) : ingestion volontaire (« boit de l'eau de rivière sans
- *  la faire bouillir ») ou immersion (chute/nage — « uniquement à l'immersion » pour le tableau 2). */
-export type WaterExposureMode = 'ingestion' | 'immersion';
-/** Dérivation AUTOMATIQUE d'un modificateur d'exposition depuis le Combatant (tableau 2 « Blessures et
- *  États », MSRC 16 l.35-47) : PB restants/perdus, PAR pion d'un État, présence d'un État. */
-export type WaterExposureAuto =
-  | { kind: 'woundsRemaining'; op: '<='; value: number }
-  | { kind: 'woundsLost'; op: '>='; value: number }
-  | { kind: 'woundsLost'; op: 'between'; min: number; max: number }
-  | { kind: 'perCondition'; condition: string }
-  | { kind: 'hasCondition'; condition: string };
-/** Un modificateur d'exposition hydrique : tableau 1 « Source d'eau » (choix d'AUTEUR de la zone d'eau)
- *  ou tableau 2 « Blessures et États » (dérivé du Combatant via `auto`). « Tous les modificateurs
- *  peuvent être cumulés » (MSRC 16 l.13). NB : « Par État Assommé » (MSRC) → id LDB `sonne` (le LDB 16 n'a
- *  pas d'État « Assommé » ; le même chapitre écrit « État *Sonné* » p.92 — glissement de traduction). */
-export interface WaterExposureModifier {
-  id: string;
-  label: string;
-  mod: number;
-  appliesTo: WaterExposureMode[];
-  table: 'source-d-eau' | 'blessures-et-etats';
-  auto?: WaterExposureAuto;
-}
-/** Tables d'exposition hydrique (MSRC 16 l.13-63) : Test de Résistance Intermédiaire modifié ; raté →
- *  dé de `diseases` « +10 pour chaque DR négatif » → maladie CONTRACTÉE (le Test d'exposition EST le test — pas de
- *  second Test de Contraction). `rerollUnlessWounded` : « Relancez si le Personnage n'est pas blessé ». */
-export interface WaterExposureData {
-  id: string;
-  label: string;
-  desc: string;
-  test: { skill: RefDesignee; difficulty: import('../engine/types').Difficulty };
-  rollModPerNegativeSL: number;
-  modifiers: WaterExposureModifier[];
-  diseases: { die: string; entries: { min: number; max: number; disease: string; rerollUnlessWounded?: boolean }[] };
-  source: SourceRef;
-}
-export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
+/** Tables d'exposition hydrique (MSRC 16 l.13-63), lues par `engine/waterExposure.ts`. */
+export type WaterExposureData = DatasetDe<typeof waterExposureDef>;
+/** Un modificateur d'exposition hydrique (MSRC 16 l.13, l.23-47). */
+export type WaterExposureModifier = WaterExposureData['modifiers'][number];
+/** Mode d'exposition hydrique (MSRC 16 l.5, l.37). */
+export type WaterExposureMode = WaterExposureModifier['appliesTo'][number];
+export const WATER_EXPOSURE = datasetDe<typeof waterExposureDef>(waterExposureJson);
 
 /** CASCADE d'un enjeu de `stakes.json` : la famille de jets qu'il sert — ses valeurs sont celles de
  *  `StakeKey.dataset` (`schemas/defs/stakes.ts`). */
@@ -311,7 +319,7 @@ export type CombatStakeId = IdsParEspace['stakes.json?cascade=combat'];
 /** ENJEU d'une ACTIVITÉ (#1117 L3) — porté par l'ENTITÉ elle-même (`activities.json`), pas par un
  *  fichier d'enjeux tiers : une Activité EST déjà une entrée Codex éditable qui porte sa règle en
  *  `desc` verbatim. Le catalogue au type de son schéma. */
-export const ACTIVITY_STAKES = datasetDe<typeof activitiesDef>(activitiesStakeJson);
+export const ACTIVITIES = datasetDe<typeof activitiesDef>(activitiesStakeJson);
 
 /** REGISTRE DES ACTIONS de combat (`actions.json`, spec HUD « Zone 12 ») : une entrée = un acte
  *  offert au joueur, avec son identité STABLE, son affichage, sa règle Codex, son coût et les IDS
@@ -471,7 +479,7 @@ const STAKE_ENTRY_POOLS: Partial<Record<CleCodex, PoolDEntrees>> = {
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
-  tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
+  tavernGames: (id) => TAVERN_GAMES.some((g) => g.id === id),
   // Catégories atteignables par l'ENTITÉ SOURCE d'un effet (`CATEGORY_BY_SOURCE_KIND`, engine/types) —
   // la table est TOTALE côté source, donc le pool l'est aussi : sans elles, un jet exigé par un objet
   // ou un Talent replierait en silence sur le foyer de son `kind`.
@@ -482,7 +490,7 @@ const STAKE_ENTRY_POOLS: Partial<Record<CleCodex, PoolDEntrees>> = {
   etats: (id) => etats.some((e) => e.id === id),
   creatures: (id) => creatures.some((c) => c.id === id),
   regles: (id) => regles.some((r) => r.id === id),
-  activities: (id) => ACTIVITY_STAKES.some((a) => a.id === id),
+  activities: (id) => ACTIVITIES.some((a) => a.id === id),
   // La COMPÉTENCE testée est le foyer quand le jet n'existe que par elle (cumuler l'Avantage :
   // Intuition/Savoir/Survie/Prière portent chacune SA phrase de combat, LDB 09).
   skills: (id) => !!byId('skill', id),
@@ -581,7 +589,7 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     // (catégorie Codex `activities`, où vit sa `desc` verbatim) — une fiche `regles.json` doublon
     // serait le péché de l'amendement A. Une entrée peut NOMMER un autre foyer (`rule`) quand la
     // règle vit ailleurs (Augure → la table des Symboles).
-    const e = ACTIVITY_STAKES.find((x) => x.id === key.kind);
+    const e = ACTIVITIES.find((x) => x.id === key.kind);
     if (!e?.stake) return undefined;
     return { text: e.stake, rule: e.rule ? cibleCodex(e.rule) : { category: 'activities', id: e.id } };
   }
@@ -792,96 +800,12 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  (Difficulté du Venin — vocabulaire `Difficulty`). Absent = specs inline (`SpecEntry[]`). */
 export type SpecsSource = z.output<typeof specsSourceSchema>;
 export type SkillData = EntreeDe<typeof skillsDef>;
-/** UN « matcher » de Test (recodage de la ligne « Tests : » du livre, cf. `TalentTest`) : à quel(s)
- *  Test(s) le talent se rapporte. `skill` (référence de Compétence `{id, spec?}`, XOR `characteristic`) OU `characteristic`
- *  (Caractéristique nue). La `spec` de la référence est la spécialisation FIXE ; `specFromInstance` =
- *  « (Au choix) » → matche la spec CHOISIE de l'instance (`t.spec`). `when` = contexte MÉCANISABLE (Condition combat — auto si vraie) ; `manual` =
- *  contexte NARRATIF inmécanisable (« quand vous soulevez ») → advisory, JAMAIS auto-appliqué. */
-export interface TestMatch {
-  skill?: RefDesignee;
-  characteristic?: import('../engine/types').CharKey;
-  specFromInstance?: boolean;
-  /** EXCLUT une spécialisation (matche toute spec SAUF celle-ci) — Linguistique « Langue (toutes) » qui
-   *  « ne fonctionne pas avec Langue (Magick) » : `{ skill:{id:'langue'}, exceptSpec:'magick' }`. */
-  exceptSpec?: string;
-  when?: import('../engine/flowCore').Condition;
-  manual?: boolean;
-}
-/** Champ « Tests » d'un Talent (LDB 10 : +1 DR/niveau sur un Test lié RÉUSSI). `raw` = la ligne du livre
- *  VERBATIM (affichage Codex, rule 5) ; `matches` = la forme STRUCTURÉE id-based lue par la logique
- *  (`talentTestSLBonus`/`castTestTalentDR`) — la logique ne lit JAMAIS `raw`. */
-export interface TalentTest {
-  raw: string;
-  matches: TestMatch[];
-}
-export interface TalentData {
-  /** Identifiant STABLE (slug du libellé d'origine) — cible des références structurées, robuste au
-   *  renommage du `label`. Source unique pour `findTalentById`. */
-  id: string;
-  type: 'talents';
-  label: string;
-  /** Maxi d'acquisitions (LDB 10 « Schéma des Talents ») : un nombre fixe, ou le BONUS d'une
-   *  caractéristique (`{bonusOf}`, structuré — remplace la chaîne « Bonus de X » re-parsée par regex),
-   *  ou `null` = sans limite (ex-« Aucun »). */
-  max: number | { bonusOf: import('../engine/types').CharKey } | 'sortsDuDomaine' | null;
-  /** Ligne « Tests » recodée : `{ raw verbatim (Codex), matches[] structuré (logique) }`. `null` = le
-   *  talent ne se rapporte à aucun Test. */
-  test: TalentTest | null;
-  desc: string;
-  specs?: SpecEntry[];
-  /** Catégorie de Taille CONFÉRÉE par le talent (Massif → `grande`, Petit → `petite`, LDB 85 l.344-354) —
-   *  lue par `createHero` (#572), même vocabulaire que la Taille de créature (`SizeCategory`). */
-  size?: import('../engine/size').SizeCategory;
-  /** Source du pool de spéc (via `SPEC_SOURCES`/`specPoolOf`/`specLabel`) : `arcaneDomains` (Magie des
-   *  Arcanes → Domaines `arcane` de `domains.json`, AFFICHE le Lore), `cultBlessings`/`cultMiracles`/
-   *  `cultChaos` (Béni / Invocation / Magie du Chaos → `gods.id` filtrés, AFFICHE le nom du dieu) ou
-   *  `seaShanties` (Chanson de marin). Quand présent, `specs[]` est ABSENT (le pool dérive). */
-  specsSource?: SpecsSource;
-  /** Ids de `groups.json` accordés au porteur du Talent (`groupesDe`). Absent = aucun Groupe. */
-  grantGroups?: string[];
-  /** Le `spec` de ce Talent nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
-   *  `grantGroups` sont accordés au porteur (`groupesDe`) — Béni (Sigmar) fait un « sigmarite ». Absent =
-   *  aucun Groupe. */
-  grantSpecGroups?: true;
-  /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que le porteur PRATIQUE — il
-   *  compte donc dans les Domaines TENUS et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
-   *  `VDM 02 l.190-192`), lu par `heldArcaneDomains` (`engine/careerSlots`). Volontairement DISTINCT de
-   *  `specsSource: 'arcaneDomains'`, qui ne décrit que le POOL de spécialisations offert au picker : un
-   *  Talent futur pourrait nommer un Domaine sans en octroyer la pratique. */
-  grantsArcaneDomain?: true;
-  /** Le domaine de ce Talent accepte-t-il un TEXTE LIBRE hors `specs[]` ? Même sémantique que
-   *  `SkillData.specsOpen` (absent/`false` = FERMÉ, `spec` DOIT être un id de `specs[]`). */
-  specsOpen?: boolean;
-  /** Trait de créature conféré, la spécialisation de l'instance en argument (`traitsConferes`). LDB 10 l.506, l.548 */
-  confereTrait?: { id: string };
-  source: SourceRef;
-  /** Emplacements SECONDAIRES du même Talent (`sourceRefs.ts`), l'ancre `source` restant la seule à
-   *  porter la `desc`. */
-  alsoIn?: SecondaryRef[];
-  /** Effets MÉCANIQUES authorés (déclencheur → ops du Flow) — Talents « effet sur événement » (Assaut
-   *  féroce `onHit`, Frappe réactive `onCharged`…), appliqués par `noyau/triggeredEffects` exactement comme
-   *  les traits. Type-only (le moteur reste pur). Édité au Codex par `TriggeredEffectsField`. */
-  effects?: TriggeredEffect[];
-  /** Modificateurs PASSIFS continus (Coup puissant, Dur à cuire…) en `OpPassive[]` — MÊME vocabulaire que les
-   *  sorts/traits, lus par le collecteur passif (`talentPassiveMods` → `passiveMods`, kind `intrinseque`,
-   *  répété par niveau). Édité au Codex par `GameOpEditor`. L'octroi d'attaque gratuite (Frénésie) vit ici :
-   *  `grantFreeAttack{when:'available'}`, lu par `availableAttacks`. */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Capacités de combat/jeu (LDB 10) en DONNÉE : sac de flags lu par `featuresOf`/`dispatch` (Coup
-   *  puissant `meleeDamageBonus`, Riposte, Tueur, castingKind…). Remplace les `combatFeatures/defs/*.ts`. */
-  combat?: import('../engine/combatFeatures/types').CombatFeature;
-  /** `true` = contenu de RÉFÉRENCE (PNJ/campagne scriptée), pas un Talent de progression PJ standard —
-   *  le RAW lui-même le dit explicite (« ne sont pas accessibles à d'autres personnes dans des
-   *  circonstances normales », EDOC 13 l.83 ; « Carrière destinée uniquement aux PNJ … avec la
-   *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
-   *  Lu par `computeObtainability` (`scripts/data/lib/obtainabilityGraph.ts`, #326) pour exempter la
-   *  garde `obtainability-guard.test.ts` — jamais un silence sur un Talent sans chemin d'octroi PJ. */
-  codexOnly?: true;
-  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `TraitData.maison`/`CreatureData.maison`) —
-   *  porte la CITATION du passage et la couture qui manque quand le Talent n'a PAS de `passive`/`effects`/`combat`
-   *  alors que sa prose donne une mécanique (#1011). Jamais lu par le moteur. */
-  maison?: string;
-}
+/** Talent (LDB 10), son id fermé sur l'union générée (`Id<'talent'>`). */
+export type TalentData = EntreeDe<typeof talentsDef>;
+/** Champ « Tests » d'un Talent (LDB 10) : `raw` verbatim (Codex), `matches` lus par la logique. */
+export type TalentTest = NonNullable<TalentData['test']>;
+/** UN « matcher » de Test d'un Talent (`TalentTest.matches`). */
+export type TestMatch = TalentTest['matches'][number];
 /** Capacités IRRÉDUCTIBLES d'un objet (drapeaux NON exprimables en GameOp) — canal `capabilities`, MÊME
  *  logique que `TraitCapabilities`/`QualityCapabilities` : règles que le moteur INTERROGE par id, jamais
  *  par le nom FR de l'objet. Lues par `engine/capabilities` (`itemCapability` par-objet, `hasCapability`
@@ -969,7 +893,7 @@ export interface TrappingData {
    *  enchantements d'arme et les traits) : Canon à flammes nain — « 2 + DR États En flammes à chaque cible
    *  affectée » (ADE II 8 l.243). Propagé Trapping → ItemInstance → Weapon (`onHitEffects`), dispatché
    *  par `fireTriggers('onHit')` sur la cible primaire ET les cibles de la zone d'Explosion. */
-  onHitEffects?: import('../engine/flowCore').TriggeredEffect[];
+  onHitEffects?: TriggeredEffect[];
   /** PORTÉE MINIMALE de tir (bande) : la cible plus proche que cette bande REFUSE le tir (≠ malus). Machines
    *  de siège à distance = `'courte'` (pas de Bout Portant, ADE II 8 l.253) ; trébuchet/mortier =
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
@@ -1019,7 +943,7 @@ export interface TrappingData {
   /** Encombrement (Points d'Encombrement). Honnête : la donnée porte aussi des STRINGS pour des cas
    *  NON-ENCOMBRANTS / non chiffrés — `'ND'` (ateliers : on ne les transporte pas) et `'Variable'`
    *  (arme improvisée). Ces strings sont traitées comme 0 au calcul (`itemFromTrappingById`). */
-  enc: number | 'ND' | 'Variable' | null;
+  enc?: number | 'ND' | 'Variable' | null;
   /** Taille PRÉVUE pour l'objet (ADE II 2 l.706-710) — présente sur la version « taille ogre » d'une
    *  possession ordinaire (`enc` reste la valeur CLASSIQUE, doublée au runtime, `totalEncumbrance`). Absente
    *  sur le catalogue NATIVEMENT ogre (massue ogre, pansière ogre… l.604 : Enc déjà entré à sa valeur pleine,
@@ -1030,7 +954,7 @@ export interface TrappingData {
    *  « Variable » l.31) ou null, VALIDÉ au chargement par le schéma zod (`schemas/defs/trappings.ts`).
    *  NE conflate PLUS aucune Portée de tir : ni nombre, ni formule « BFx3 » (→ `range:{bf}`), ni
    *  modificateur de munition « Moitié de l'arme »/« +50 »/« Comme l'arme » (→ `ammoRangeMod`). */
-  reach: import('../engine/types').ReachValue | null;
+  reach?: import('../engine/types').ReachValue | null;
   /** Portée de TIR — SPEC non résolue (`WeaponRangeSpec`) : `number` = mètres FIXES (arc/arbalète/
    *  pistolet…), `{bf}` = Bonus de Force × bf mètres (armes de JET — javelot/bombe…). Absent/null pour
    *  la mêlée et les munitions (qui héritent de l'arme). Résolue à l'usage par `effectiveRange`. */
@@ -1039,10 +963,10 @@ export interface TrappingData {
    *  `{add}` mètres ±). Appliqué en combat (`porteeDeTir`) à l'arme qui tire cette munition. « Comme
    *  l'arme » = absent/null (Portée de l'arme inchangée). Sorti de `reach` (qui n'est qu'une Allonge mêlée). */
   ammoRangeMod?: import('../engine/types').AmmoRangeMod | null;
-  loc: string | null;
-  pa: number | null;
+  loc?: string | null;
+  pa?: number | null;
   /** Dégâts d'arme STRUCTURÉS (cf. `WeaponDamageSpec`) — remplace la chaîne « +BF+4 » re-parsée au runtime. */
-  damage: import('../engine/types').WeaponDamageSpec | null;
+  damage?: import('../engine/types').WeaponDamageSpec | null;
   /** Qualités d'arme/armure (`QualityRef` : id + Indice éventuel « Solide 3 » → value, spec = arg éventuel). */
   qualities: QualityRef[];
   desc?: string;
@@ -1134,78 +1058,21 @@ export const merchantFamilies = datasetDe<typeof merchantFamiliesDef>(merchantFa
 export type HarvestRarity = z.infer<typeof harvestRaritySchema>;
 export type HarvestDanger = z.infer<typeof harvestDangerSchema>;
 
-export interface CreatureData {
-  /** `id` STABLE (slug) — clé de résolution runtime/données (scènes, encounters). « Plus de label » :
-   *  les références pointent l'id (robuste au renommage/multilangue) ; le `label` ne sert qu'à l'affichage. */
-  id: string;
-  label: string;
-  title: string | null;
-  /** `true` = individu NOMMÉ (vs rôle générique / espèce de bestiaire) ; absent/`false` = générique.
-   *  SOURCE UNIQUE de la nommé-ité — ne PAS l'inférer de `title`. Éditable au Codex. */
-  named?: boolean;
-  folder: string | null;
-  char: Partial<Record<CharKey | 'M' | 'B', number | null>>;
-  /** Traits POSÉS (`TraitPose[]`) — source app-owned migrée du parsing de chaînes (de-POC), résolus au
-   *  spawn (`traitsDuPorteur`). */
-  traits: import('./schemas/grammaire/reference').TraitPose[];
-  /** OPTIONNELS (LDB 76) — affichés au Codex, choisissables au spawn : Traits posés ordinaires OU
-   *  NOTES composées (joker « tous les traits », variante « remplacer des Traits par un bonus », ZI). */
-  optionals: import('../engine/statEntry').OptionalEntry[];
-  /** Compétences STRUCTURÉES (`SkillRef` par id stable + valeur de Test imprimée) — fin du parsing
-   *  de chaînes « Calme 58 ». Le bestiaire stocke des refs ; `skillRefLabel` reformate à l'affichage. */
-  skills: SkillRef[];
-  /** Talents STRUCTURÉS (`TalentRef` par id stable + niveau/spécialisation). `talentRefLabel` les rend
-   *  à l'affichage ; au spawn, `talentsFromBook` en fait des `TalentInstance` (`talentId` + `spec`). */
-  talents: TalentRef[];
-  /** Possessions (`TrappingRef`). */
-  trappings: TrappingRef[];
-  /** Sorts connus — ids de `spells.json`. */
-  spells: string[];
-  desc?: string;
-  source: SourceRef;
-  /** Apparence par défaut UNIFIÉE (plan P2) — UN seul bloc éditable porté par l'enregistrement, couche
-   *  de défaut sous une éventuelle surcharge de scène. Même format que `EntityAppearance` (éditeur de
-   *  scène) → une SEULE structure d'apparence dans toute l'app. */
-  /** #2993 : son espèce range son corps au plan de bestiaire (`planDeBestiaire`). */
-  appearance: EntityAppearance & { species: string };
-  /** Récolte « Précieuses Entrailles » (ZI) : rareté + dangerosité (→ coût par Enc des pièces,
-   *  cf. engine/harvest) et usages supposés des organes. Porté par la créature (pas de table //). */
-  harvest?: { rarity: HarvestRarity; danger: HarvestDanger; uses: string };
-  /** Ids de `groups.json` de cette créature (Traits psy ciblés, LDB 21 — `groupsFor`) : sa CATÉGORIE
-   *  (« demon », « bete »…) et, le cas échéant, le Groupe du dieu du Chaos qu'elle sert. Absent = aucun. */
-  grantGroups?: string[];
-  /** Entrée du bestiaire dont cette créature est une espèce ou une variante : `groupsFor` lui en ajoute
-   *  les Groupes déclarés, de genre en genre. Absent = la créature est son propre genre. */
-  genre?: { id: string };
-  /** Cette entrée du bestiaire suit-elle les règles de PERSONNAGE (#143/#152 — Corruption LDB 19,
-   *  composant d'incantation LDB 46, Tests de fin de combat Maladie/Corruption LDB 18/20) ? Rétro-flag
-   *  du bestiaire HUMAIN (Cultiste, Brigand, Voleur… — ce sont des Personnages, pas des créatures
-   *  génériques) ; propagé au spawn par `creatureToCombatant` (même prédicat unique `followsCharacterRules`,
-   *  `engine/relations.ts`, que `CustomStatblock.followsCharacterRules` côté éditeur). Absent = créature. */
-  followsCharacterRules?: boolean;
-  /** EDO 01 l.504 ; LDB 19. */
-  corruption?: number;
-  /** Facette ACHAT (marché/possession de carrière) — LDB 70, EDOC 07. */
-  purchase?: { price: Money; availability?: Availability };
-  /** Arbitrage NON-verbatim documentant un ou plusieurs champs (ex. `char`/`purchase` approximés
-   *  faute de statbloc imprimé) — même patron que `ActivityData.maison`, `TraumaData.maison`. */
-  maison?: string;
-}
-/** Base PARTAGÉE d'un STATUT porté pilotant des effets en DONNÉES — soit un État (LDB 16, `EtatData`), soit
- *  un état psychologique (LDB 21, `PsychologyData`). Porte le vocabulaire commun : modificateurs PASSIFS
+/** Créature du bestiaire (LDB 76), son id fermé sur l'union générée (`Id<'creature'>`). */
+export type CreatureData = EntreeDe<typeof creaturesDef>;
+/** Base d'un état psychologique porté (LDB 21, `PsychologyData`), de même vocabulaire que l'État (LDB 16,
+ *  `EtatData`, dérivé de `schemas/defs/etats.ts`). Porte le vocabulaire commun : modificateurs PASSIFS
  *  (`passive: OpPassive[]`, MÊME éditeur `GameOpEditor` que traits/atouts) ET effets DÉCLENCHÉS
  *  (`effects: TriggeredEffect[]`). Folding UNIQUE : `passiveMods` (passifs) + `fireStatusEffects` (déclenchés)
  *  itèrent indifféremment États et états psy → zéro duplication de schéma ni de collecteur. */
 export interface StatusData {
   /** id STABLE (slug du libellé) — cible des instances (`ConditionInstance.name` / `PsychAffliction.type`). */
   id: string;
-  type: 'etats';
+  type: 'psychology';
   label: string;
-  desc: string;
-  /** ADRESSE du passage quand la prose n'est pas recopiée (#1389). Elle vit À CÔTÉ de la `desc` dans
-   *  la vue TS parce qu'un module CHARGÉ porte les deux : l'adresse authorée, et le texte que le
-   *  plugin en matérialise (`adressee`, plus bas). Sur le DISQUE, l'une exclut l'autre (V1 du refine
-   *  `grammaire/prose.ts`). */
+  /** Prose : `desc` inline ou son adresse `descRef` (#1389), que le plugin `wfrp:prose-source` matérialise en `desc`
+   *  au chargement (V1 du refine `grammaire/prose.ts`). */
+  desc?: string;
   descRef?: DescRef;
   source: SourceRef;
   /** Modificateurs PASSIFS continus (pénalité de Test, `incomingAttackMod`, `sbBonus`…) en `OpPassive[]`, lus
@@ -1217,67 +1084,12 @@ export interface StatusData {
   /** Restriction d'Action / de Mouvement / de défense imposée par le STATUT (États : À Terre/Sonné/
    *  Inconscient/Surpris/Empêtré ; et Psychologie — « Etat comme Psy »), lue en DONNÉES par les prédicats
    *  moteur `canTakeAction`/`effectiveMovement`/`cannotDefend` via le collecteur `conditionGating` (jamais
-   *  une branche par-nom). Sur `StatusData` → partagée par `EtatData` ET `PsychologyData`. */
+   *  une branche par-nom). Même forme que le `gating` de l'État (`schemas/defs/etats.ts`). */
   gating?: { action?: 'none'; movement?: 'none' | 'half' | 'crawl'; cannotDefend?: true };
 }
 
-export interface EtatData extends StatusData {
-  /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
-  grantGroups?: string[];
-  /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
-  typeDeDegats?: { id: string };
-  /** La marque de l'État sur son porteur (#3834) : sa teinte, son visuel et son son en boucle. */
-  marqueCouleur: string;
-  marqueVisuel?: VisuelDeLumiere;
-  marqueSon?: { id: string };
-  /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
-   *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
-  perStack?: boolean;
-  /** Le nombre de pions vu par les `effects` (le `{stacks:'self'}` des dégâts par-round) est RÉDUIT du
-   *  niveau de cette capacité de combat chez la cible — ex. Hémorragique réduit par Endurci (`bleedIgnore`,
-   *  LDB 10). Clé de `CombatFeature` ; lu génériquement par `fireConditionEffects` (jamais codé par-nom). */
-  stacksReducedBy?: string;
-  /** Récupération de l'État par une ACTION (LDB 16 : Empêtré « se libérer » l.66 = Test OPPOSÉ de Force
-   *  contre la source de l'empêtrement ; En flammes « se rouler » l.84 = Test d'Athlétisme simple). Lue par
-   *  l'action `recover` (IA inline ET flux joueur — SOURCE UNIQUE `resolveRecoverTest`) au lieu des branches
-   *  par-nom. `opposedBy:'source'` → opposé contre la Force d'entrave : `escapeStrength` FIGÉE en priorité
-   *  (vaut même source absente), sinon Force de la source VIVANTE. Retire 1 + DR pions sur succès. */
-  recover?: { skill?: RefDesignee; characteristic?: import('../engine/types').CharKey; opposedBy?: 'source'; difficulty?: import('../engine/types').Difficulty; opposedDifficulty?: import('../engine/types').Difficulty; enjeu: string; form: StakeForm };
-  /** VERROU DE TYPE : tant que cette Condition est fausse, AUCUNE instance de cet État ne se retire
-   *  (À Terre — `LDB 18 l.15`). Même champ, même algèbre et même porte de parse que le verrou d'INSTANCE
-   *  (`ConditionInstance.lockedUntil`) ; lu par `isConditionLocked`. */
-  lockedUntil?: import('../engine/flowCore').Condition;
-  /** Ce que le joueur lit quand `lockedUntil` tient (fragment français, éditable). */
-  lockedReason?: string;
-  /** Blessures RENDUES quand une dépense de Détermination retire cet État — `LDB 17 l.61`. Le soin
-   *  précède le retrait : c'est lui qui lève le verrou d'À Terre. */
-  resolveHeals?: number;
-  /** Cet État VERROUILLE l'Action : le Mouvement + l'Action doivent servir à fuir/se cacher (Brisé, LDB 16
-   *  l.52). Drapeau DÉCLARATIF lu en DONNÉES par `isActionLocked`/`restrictingConditions` (engine/conditions),
-   *  partagé par le gate de hotbar (`armerLeMode`) ET l'IA (dépense PROACTIVE de Détermination pour se
-   *  ressaisir) — plus de nom d'État en dur. */
-  restrictsAction?: boolean;
-  /** Cet État ne porte JAMAIS plus d'un pion, quelle que soit la cause — LDB 16 l.115 (Inconscient :
-   *  « soit vous êtes *Inconscient*, soit vous ne l'êtes pas »), l.37 (À Terre), l.137 (Surpris).
-   *  Drapeau DÉCLARATIF lu par `addCondition`/`syncDerivedConditions` (engine/conditions) — la pose,
-   *  dérivée ou native, y est bornée à 1 par CONSTRUCTION. */
-  nonCumulable?: boolean;
-  /** Cet État SUIT le porteur hors du combat (LDB 16 : Brisé l.57, Empoisonné l.70, En flammes l.77,
-   *  Exténué l.91, Hémorragique l.107, Inconscient l.116 ; Munition logée LDB 62 l.250) — par opposition
-   *  au transitoire, retiré au teardown. Drapeau DÉCLARATIF lu par `isPersistentCondition`
-   *  (engine/persistence), seul juge du report vers le groupe et du carry-in au combat suivant. */
-  persistsAfterCombat?: boolean;
-  /** AFFICHAGE (couche UI, hors RAW LDB 16) : icône du registre `<Icon>` (id `famille/nom`) + sévérité
-   *  0-100 (≥50 = incapacitant → créneau unique de l'ordre de bataille). Lus par `effectIcons.conditionMeta`. */
-  icon?: IconId;
-  severity?: number;
-  /** Dangerosité IA de l'État infligé, en « Blessures espérées » (contrôle > simple malus) — lue par
-   *  `aiSpellValue.opValue` (`op:'condition'`). Absente → menace mineure (1). */
-  aiThreat?: number;
-  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `TraitData.maison`/`NavalTraitData.maison`/
-   *  `CreatureData.maison`) — porte la CITATION du passage et la couture qui manque. Jamais lu par le moteur. */
-  maison?: string;
-}
+/** État (LDB 16), son id fermé sur l'union générée (`Id<'etat'>`). */
+export type EtatData = EntreeDe<typeof etatsDef>;
 
 /** État PSYCHOLOGIQUE en DONNÉES (LDB 21) — `id` = `PsychType` (`frenesie`, à terme `peur`/`terreur`/…).
  *  Étend `StatusData` (passive/effects mutualisés) ; n'ajoute que la capacité propre à la psychologie. */
@@ -1355,515 +1167,36 @@ export interface PsychologyData extends StatusData {
 }
 /** Rangée des Tableaux de couleur des yeux / des cheveux (LDB 05 l.742-768), par colonne `RaceKey` (#313). */
 export type DetailColorData = RangeeDe<typeof couleurDesYeux>;
-/** MANŒUVRE de combat (attaque naturelle activée — LDB 85) — ENTITÉ ÉDITABLE de PREMIÈRE CLASSE (au
- *  même titre qu'un Sort) : son propre dataset `maneuvers.json`, sa catégorie Codex, ses effets
- *  AUTHORÉS en GameOp (`effects`). Un trait l'OCTROIE (`TraitData.grantsManeuvers`) ; le résolveur
- *  générique (`noyau/combatManeuvers.resolveManeuver`) la joue ENTIÈREMENT depuis cette donnée — jamais
- *  une table en dur ni un applier par type. `kind` ne sert QU'À l'anim/pose/icône (jamais à résoudre).
- *  La géométrie/portée/opposition restent moteur (règle 3) ; Dégâts (`wounds`) + États = data. */
-/** Mesure de géométrie de manœuvre en MÈTRES (Portée/Souffle) : `bonus(ref)` de la carac `bonusOf` (référent
- *  = Attaquant pour la Portée, Cible au centre pour le Souffle, RAW l.251) + constante `plus`. Résolue par
- *  `measureMeters` (`combatManeuvers`) — remplace la formule-chaîne FR re-parsée par regex au runtime. */
-export interface ManeuverMeasure {
-  bonusOf?: CharKey;
-  plus?: number;
-}
-export interface ManeuverDef {
-  id: string;
-  type: 'maneuvers';
-  label: string;
-  /** Anim/pose/icône SEULEMENT (pas la résolution) — type d'attaque naturelle (geste distinct). */
-  kind: import('../engine/creatureAttacks').AttackKind;
-  /** Déclenchement RAW : Action normale, gratuite (coût d'Avantage), ou gratuite à la Charge. */
-  activation: 'action' | 'free' | 'charge';
-  coutEnAvantage: number;
-  /** Gestion de l'Avantage dépensé : `fixe` = `coutEnAvantage` (défaut) ; `variable` = le joueur
-   *  CHOISIT (Regard : +1 DR par Avantage, LDB 85 l.290) ; `tout` = dépense tout (Hurlement, l.170). */
-  modeDAvantage?: 'fixe' | 'variable' | 'tout';
-  /** Caractéristique du jet de l'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
-   *  absent = AUCUN jet d'attaquant (Hurlement : chaque cible teste sa Résistance). */
-  stat?: 'capacite-de-combat' | 'capacite-de-tir';
-  /** Défense opposée : Esquive / Parade, Initiative (Regard), Résistance/auto sans opposition. */
-  defense?: 'esquive' | 'parade' | 'init' | 'resist' | 'auto';
-  /** Mode de ciblage (le résolveur en dérive la géométrie moteur). `soi` = capacité SUR SOI (pas de
-   *  cible adverse ni d'opposition — transformation, mue, auto-buff) : les `effects` s'appliquent au
-   *  porteur. `adversairesAutour` / `toutAutour` = même géométrie (rayon autour de l'attaquant), populations
-   *  DIFFÉRENTES : le camp adverse quand le texte le désigne (Middenheim 04 l.11 « contre ses ennemis »),
-   *  TOUT le monde quand il ne le désigne pas (LDB 85 l.170 « Toutes les créatures vivantes »). */
-  ciblage: 'melee' | 'distance' | 'zone' | 'adversairesAutour' | 'toutAutour' | 'soi';
-  /** Portée / Souffle STRUCTURÉS (`ManeuverMeasure`) — mètres = `bonus(ref) + plus`. `range` résolu contre
-   *  l'Attaquant, `blast` contre la cible au centre (RAW l.251). Remplace la formule-chaîne re-parsée au runtime. */
-  range?: ManeuverMeasure;
-  blast?: ManeuverMeasure;
-  /** Attaque magique (Souffle, Étreinte glaciale) → soumise à la Résistance à la Magie, etc. */
-  magic?: boolean;
-  /** La zone se remplit de fumée (`souffleDuType`). LDB 85 l.329 */
-  fumee?: boolean;
-  /** Écart de Taille minimal sur la cible au contact : la manœuvre est ouverte à TOUT combattant, sans
-   *  trait (`attaquesNaturelles`). LDB 85 l.387 ; LDB 85 l.344 */
-  ecartDeTailleMin?: number;
-  /** Groupe d'armes (id de `weaponGroups`) de l'arme synthétisée par `freeAttackWeapon`. */
-  subType?: RefDesignee;
-  /** Dégâts de l'arme synthétisée ; absent = l'Indice du trait qui octroie la manœuvre. */
-  damage?: import('../engine/types').WeaponDamageSpec;
-  /** Effets AUTHORÉS (Dégâts `wounds` + États) appliqués quand la manœuvre touche (`onHit`) — MÊME
-   *  vocabulaire que les sorts (Flow d'ops), exécutés par `applyTriggeredEffects`. */
-  effects?: TriggeredEffect[];
-  /** Folio du Trait PROJETANT — la manœuvre ne porte AUCUNE prose (#1226) : sa description est celle du
-   *  trait, résolue à l'affichage par `traitProjectingManeuver`. */
-  source?: SourceRef;
-  /** ENJEU porté par l'ENTRÉE (#1117 L2, patron `ActivityDef.stake`/`PsychologyData.stake`) : les
-   *  `effects` d'une manœuvre sont AUTHORÉS entrée par entrée (aucune formule commune), donc un
-   *  gabarit au `kind` serait tautologique. Rendu par `resolveStake` (dataset `combat`, kind
-   *  `combat-manoeuvre-defense`, `entryId` = l'id de la manœuvre) : il PRIME sur le gabarit du kind. */
-  stake?: string;
-  /** FORME déclarée de l'enjeu — `verbatim` (contigu au Source) ou `descripteur` (assemblage des ops). */
-  stakeForm?: StakeForm;
-  /** Valeurs des trous de `stake`, posées par la composition (`souffleDuType`) ; aucune entrée n'en porte. */
-  enjeu?: Record<string, string>;
-  /** Rendu visuel et sonore d'une manœuvre de zone (`rendus.json`) ; celui d'un Souffle composé est celui de son Type
-   *  (`souffleDuType`). */
-  rendu?: { id: string };
-}
+/** Manœuvre au catalogue (LDB 85), son id fermé sur l'union générée (`Id<'maneuver'>`) ; la joue `resolveManeuver` (`noyau/combatManeuvers`). */
+export type ManeuverDef = EntreeDe<typeof maneuversDef>;
+/** Portée/Souffle d'une manœuvre en mètres (`measureMeters`, `noyau/combatManeuvers`). */
+export type ManeuverMeasure = NonNullable<ManeuverDef['range']>;
 /** Drapeaux de CAPACITÉ IRRÉDUCTIBLES d'un trait (LDB 85) — décisions d'IA/psychologie, règles de
  *  résolution de combat, capacités de construction/déplacement/vision : NI un modificateur (`passive`)
  *  NI un effet déclenché (`effects`), mais une règle que le moteur INTERROGE. Édité au Codex. Le
  *  seuil/type éventuel (Démoniaque 8+, Immunité (Poison)) vient de l'INDICE/arg de l'INSTANCE, pas d'ici. */
 export type TraitCapabilities = z.infer<typeof traitCapabilitiesSchema>;
-/** Trait de créature (LDB 85) : libellé canonique + desc VERBATIM (affichée à l'inspecteur). */
-export interface TraitData {
-  /** Identifiant STABLE (slug du libellé) — clé d'instance/lookup, indépendant de la langue. */
-  id: string;
-  type: 'traits';
-  label: string;
-  /** Sens de la valeur NUMÉRIQUE `value` de l'instance (Difficulté, Indice, Degré…) — `label` affiché
-   *  devant/autour du nombre. Absent = le trait ne porte pas de valeur numérique. */
-  indice?: { label: string };
-  /** L'Indice est un nombre de PA, qu'une instance peut poser Localisation par Localisation
-   *  (`TraitPose.parLocalisation`), sa matière avec (`TraitPose.matiere`) — lus par `armureDuTrait`, la saisie
-   *  et les migrations. LDB 85 l.37-39. */
-  parLocalisation?: boolean;
-  /** L'instance porte-t-elle un champ `range` (portée en mètres/cases : Souffle, Aura…) ? Absent/`false` = non. */
-  range?: boolean;
-  /** Trait d'ATTAQUE : son Indice est celui des Dégâts (« +N ») et une instance peut conférer des Traits à
-   *  ses touches (`TraitPose.confere`). LDB 85 l.31-33 ; ZI 03 l.75, l.77 */
-  attaque?: boolean;
-  /** L'Indice de Dégâts du Trait inclut déjà le Bonus de Force (`WeaponDamageSpec.bfInclus`). LDB 85 l.35,
-   *  l.47, l.83, l.237, l.405 */
-  bfInclus?: true;
-  /** Une instance peut fixer la Difficulté des Tests qui éliminent l'État que le Trait inflige
-   *  (`TraitPose.difficulte`). LDB 16 l.70 ; MDG 16 l.226 */
-  difficulte?: boolean;
-  /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `ciblesPsy`/`diseases`/`sizes`/
-   *  `mutations`/`breathTypes`/`weaponGroups*`…). Le pool DÉRIVE alors du registre, jamais d'une liste en dur. */
-  specsSource?: SpecsSource;
-  /** L'`arg` de ce Trait nomme une entrée de son registre (`SPEC_SOURCES[specsSource].entree`) dont les
-   *  `grantGroups` sont accordés au porteur (`groupesDe`). Absent = l'`arg` n'ouvre aucun Groupe. */
-  grantSpecGroups?: true;
-  /** L'`arg` accepte un TEXTE LIBRE (argument authentiquement descriptif, hors registre). Absent/`false`
-   *  = FERMÉ (l'`arg` DOIT être un id du pool `specsSource`). */
-  specsOpen?: boolean;
-  /** Trait EXCLU d'un octroi EN MASSE des Traits d'une créature — `LDB 48 l.23` : « Gagnez tous les
-   *  Traits standards de la créature sauf Bestial. » Lu par `polymorphOps` (`engine/polymorph`). */
-  nonTransferable?: boolean;
-  desc: string;
-  source: SourceRef;
-  /** Emplacement SECONDAIRE (#563) — même Trait réimprimé/à cheval ailleurs (ex. Fouissement : ZI 23
-   *  ET 134). Accessors `allLocations`/`sourceBooks` (`src/data/sourceRefs.ts`). */
-  alsoIn?: SecondaryRef[];
-  /** Effets MÉCANIQUES authorés (déclencheur → ops du Flow) — Traits « effet sur événement » (Toile,
-   *  Sang corrosif, Régénération…) appliqués par `noyau/triggeredEffects`, jamais par un handler en dur.
-   *  Type-only (le moteur reste pur : la donnée référence le Flow sans en dépendre à l'exécution). */
-  effects?: TriggeredEffect[];
-  /** Manœuvres OCTROYÉES par ce trait (Morsure, Attaque caudale, Souffle…) — `RefDesignee[]` vers le dataset
-   *  `maneuvers`. Un trait d'attaque naturelle octroie sa/ses manœuvre(s) ; `engine/creatureAttacks`
-   *  les résout par id (`findManeuverById`). Le trait Souffle en octroie plusieurs (un par Type). */
-  grantsManeuvers?: RefDesignee[];
-  /** Modificateurs de PROFIL PASSIFS (Élite +20 CC/CT/FM, Brutal −1 M…) en `OpPassive[]` — le MÊME vocabulaire
-   *  d'ops que les sorts et `Trauma.ops`, CONTINUS (sans wrapper Flow/déclencheur, ≠ `effects`) : édités par
-   *  `GameOpEditor` (le composant de liste d'ops existant), lus par le collecteur passif (`traitPassiveMods`
-   *  → liveTraits) qui leur AFFECTE le `kind` `intrinseque` (comme la séquelle dérive le sien). */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Drapeaux de CAPACITÉ irréductibles (décisions IA/psy, résolution, build/déplacement/vision) —
-   *  lus PAR ID par `engine/traits/dispatch`. Édité au Codex. */
-  capabilities?: TraitCapabilities;
-  /** Capacités d'AUTRES traits du même porteur ANNULÉES par ce trait (« entraîné à IGNORER son Trait
-   *  X » — LDB 85 : Dressé (Dompté) ignore Bestial). Mécanisme GÉNÉRIQUE de suppression, lu par
-   *  `traitCapability` : une capacité supprimée par n'importe quel trait porté répond false. */
-  suppressesCapabilities?: (keyof TraitCapabilities)[];
-  /** AURA de combat : projette des `passive` OpPassive[] sur les combattants À PORTÉE (Perturbant : −20 aux
-   *  Tests à `rangeChar` mètres, LDB 85 l.262 ; `affects` = quel camp est touché ; l'émetteur ne se touche
-   *  jamais).
-   *  Recalculée chaque Round par le hook GÉNÉRIQUE `recompute-auras`, accumulée dans `Combatant.auraMods`
-   *  (emballée en `PassiveMod`, le trait émetteur en `src`), lue par `combatTestPenaltyParts` — pool
-   *  NON-CUMUL, « une seule fois, peu importe le nombre d'ennemis Perturbants » — et par
-   *  `skillDRBonus`/`charDRBonusOf`. Aucun code par-nom. */
-  aura?: {
-    rangeChar: CharKey;
-    affects?: 'ennemis' | 'allies' | 'tous';
-    passive: import('../engine/ops').OpPassive[];
-  };
-  /** Trait STANDARD (LDB 76 l.28-31 : « ajoutés à la liste Facultative de TOUTES les créatures ») —
-   *  proposé par le picker de Traits facultatifs sur n'importe quel bestiaire. Édité au Codex. */
-  standard?: boolean;
-  /** Arbitrage NON-verbatim documentant l'entrée (même patron que `NavalTraitData.maison`/`CreatureData.maison`) —
-   *  porte la CITATION du passage et la couture qui manque quand le Trait n'a PAS de `passive`/`effects`/`aura`
-   *  alors que sa prose donne une mécanique (#1011). Jamais lu par le moteur. */
-  maison?: string;
-}
-/** Drapeaux/marqueurs de CAPACITÉ IRRÉDUCTIBLES d'une qualité d'arme/armure/objet (LDB 62-63) — règles
- *  que le moteur INTERROGE (résolution de combat, économie d'artisanat) : NI un modificateur (`passive`)
- *  NI un effet déclenché (`effects`). Lus PAR ID par `engine/qualities/dispatch`.
- *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) sont portés par l'instance (`QualityInstance.value`)
- *  — la capability n'est qu'un marqueur de PRÉSENCE, jamais le porteur de l'Indice. Édité au Codex. */
-export interface QualityCapabilities {
-  // Résolution de combat (mêlée)
-  fastStrike?: boolean;   // Rapide : pré-emption d'initiative + −10 parade adverse non-Rapide
-  slowStrike?: boolean;   // Lente : frappe en dernier
-  fumbleOn9?: boolean;    // Dangereuse : Maladresse sur tout Test raté incluant un 9
-  fumbleDigits?: number[]; // Seuil de Maladresse paramétrable (chiffre en dizaines OU unités) — AA 08 l.544
-  pushback?: boolean;     // Perturbante : repousse au lieu de blesser
-  piegeALame?: boolean;    // Piège-lame : piéger/briser une lame sur un Critique défensif
-  damagesArmour?: boolean;// Taille : endommage l'armure/le bouclier frappé
-  // (Taillade « État sur Critique » n'est PLUS une capability : `effects:[{trigger:'onCrit'}]` data-driven.)
-  // Armes à feu / chargeurs
-  firearm?: boolean;            // Poudre noire / Explosion : Incident de Tir + terreur (Nerveux)
-  canFireWhileEngaged?: boolean;// Pistolet : tir au contact
-  magazine?: boolean;           // À Répétition : chargeur (Indice)
-  salvo?: number;               // Salve : chargeur (Indice), pénalité de chaque tir suivant du Round
-  areaFire?: boolean;           // Tir de zone : nuage de projectiles (Indice)
-  explosion?: boolean;          // À Explosion : tous à Indice m du point cible subissent DR+Dégâts + États de l'arme (LDB 62 l.254)
-  crewedTeam?: number;          // Arme d'équipe : sous-effectif (Indice), pénalité par Défaut redoublé
-  parryAP?: boolean;            // Protectrice : Indice PA en opposant (Indice)
-  // Objet / artisanat (LDB 60)
-  encDelta?: number;            // Léger −1 / Volumineux +1 Encombrement
-  // Armure (LDB 63)
-  layerable?: boolean;          // Flexible : superposition sous une couche non Flexible
-  apIgnoredOnEven?: boolean;    // Partielle : PA ignorés sur jet pair ou Critique
-  apIgnoredOnImpaleCrit?: boolean; // Points faibles : PA ignorés sur Critique Empaleuse
-  // Siège (ADE II 8)
-  siege?: boolean;              // Atout Siège : double les Dégâts aux structures, outrepasse Résistant/Impénétrable
-  ram?: boolean;                // Bélier : la pièce n'endommage QUE les portes (ADE II 8 l.249) — lu par engine/structures
-  // Marqueurs
-  unbreakable?: boolean;        // Incassable : insensible aux dégâts/destruction
-  magic?: boolean;              // Magique : attaques magiques (blesse l'Éthéré)
-  repetable?: boolean;          // Peut être pris plusieurs fois : LDB 60 l.26 ; LDB 60 l.30
-  withheldOnRestraint?: boolean; // Retirée quand on Retient ses coups (AA 07 l.61 — Empaleuse/Percutante/Perforante)
-  /** Préséance : cette qualité l'emporte sur les `beats` (ids) si toutes deux présentes (Imprécise > Précise, Lente > Rapide). */
-  beats?: string[];
-}
-/** Atout/Défaut d'arme (LDB 62-63) : libellé + desc VERBATIM + effets déclenchés authorés (mêmes
- *  `TriggeredEffect` que les Traits — un Atout « à la touche : 1d10 + Empêtré » s'édite au Codex). */
-export interface QualityData {
-  /** id STABLE (slug du libellé) — cible des `RefDesignee` de qualité, robuste au renommage. */
-  id: string;
-  type: 'qualities';
-  label: string;
-  /** POLARITÉ : Atout (bénéfique) / Défaut (handicap) — `id` de `qualityTypes.json`. Trois PAIRES de
-   *  rubriques : objet `LDB 60 l.9`/`l.40`, arme `LDB 62 l.217`/`l.309`, armure `LDB 63 l.68`/`l.80`. */
-  polarite: 'atout' | 'defaut';
-  subType: EntreeDe<typeof qualitiesDef>['subType'];
-  desc: string;
-  source?: SourceRef;
-  /** Emplacement SECONDAIRE (#563) — même Qualité réimprimée/à cheval ailleurs (ex. Tir de zone :
-   *  AA 89 + MDG 102). Accessors `allLocations`/`sourceBooks` (`src/data/sourceRefs.ts`). */
-  alsoIn?: SecondaryRef[];
-  effects?: TriggeredEffect[];
-  /** Modificateurs PASSIFS continus (objet Laid : −10 aux Tests de Soc ; PASSIFS d'arme : weaponRollMod/
-   *  weaponDamageMod/armourPierce/critOnRoll) en `OpPassive[]` — MÊME vocab/éditeur (`GameOpEditor`) que les
-   *  traits et les sorts ; lus par `engine/qualities/dispatch` (par id) et le collecteur passif. */
-  passive?: import('../engine/ops').OpPassive[];
-  /** Drapeaux/marqueurs de CAPACITÉ irréductibles (résolution combat, artisanat) — lus PAR ID par
-   *  `engine/qualities/dispatch`. Édité au Codex. */
-  capabilities?: QualityCapabilities;
-  /** Cette qualité est INDICÉE (LDB 60 l.28) — forme de `TraitData.indice`, plus l'UNITÉ imprimée avec
-   *  la valeur quand le livre en pose une (`AA 08 l.87` « Taillade (XA) » ; `LDB 62 l.66` « Recharge 1 »
-   *  n'en a pas). Lue par `qualityRefLabel`. */
-  indice?: { label: string; unite?: string };
-  /** Qualité d'ASPECT (LDB 60 l.24 ; LDB 60 l.52) : une apparence d'objet peut naître d'elle (`defs/apparences.ts`). */
-  aspect?: true;
-}
-/** Capacités IRRÉDUCTIBLES d'un symptôme de maladie — drapeaux lus par la machinerie de cycle
- *  (`engine/disease`), pour les comportements non exprimables en GameOp continu. */
-export interface SymptomCapabilities {
-  blocksHealing?: boolean;   // « Blessé »/Gangrène : bloque la guérison d'1 PB par symptôme (LDB 20 l.145)
-  amputation?: boolean;      // Gangrène : Test quotidien, échecs > BE → Localisation perdue (l.176)
-  contagious?: boolean;      // Toux & éternuements : expose l'entourage (l.206)
-  nausea?: boolean;          // Nausée : Sonné sur Test de déplacement raté en combat (l.194)
-  endTest?: boolean;         // Persistant : Test de fin de Durée (difficulté portée par l'instance, l.200)
-  persistentActive?: boolean; // Vers de carie : la phase active NE guérit JAMAIS naturellement (dégénérescence quotidienne jusqu'à la Mort, MSRC 16 l.90-101)
-}
-/** Symptôme de maladie (LDB 20) — entité de DONNÉE éditable au Codex, mécaniques en GameOp / 3 canaux
- *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` = ops de
- *  chaque palier ATTEINT par l'instance, l'op de même cible REMPLACÉE (`symptomPassive`,
- *  LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
- *  conséquence GameOp appliquée par la cascade (différée/influençable) ; `capabilities` = règles
- *  irréductibles lues par la machinerie de maladie. */
-export interface SymptomData {
-  id: string;
-  type: 'symptoms';
-  label: string;
-  desc: string;
-  source?: SourceRef;
-  passive?: import('../engine/ops').OpPassive[];
-  passiveBySeverity?: { moderee?: import('../engine/ops').OpPassive[]; grave?: import('../engine/ops').OpPassive[] };
-  /** Effets DÉCLENCHÉS du symptôme (MÊME `TriggeredEffect` que Traits/Atouts/États) — dispatchés par
-   *  `fireTriggers` quand le porteur est actif (Crampes abdominales : `onOwnTestFailed` → Sonné/FM/
-   *  Inconscient par paliers de `slThreshold`, MSRC 16 l.152-158). Source du dispatcher via
-   *  `effectSourcesOf` (les symptômes ACTIFS deviennent une source, comme les États). */
-  effects?: TriggeredEffect[];
-  /** Cycle de PHASE ACTIVE. `test` = le nœud `test` du Flow (`engine/flowCore.ts`) : le jet ET sa
-   *  conséquence (branche `fail`). `ops` = la conséquence CERTAINE d'un cycle sans jet (éclatement du
-   *  Vers du Reik, d'issue invariante — MSRC 16 l.142) : l'un OU l'autre, jamais les deux.
-   *  `difficultyBySeverity` INDEXE la Difficulté du nœud sur la sévérité de l'instance (Toxine,
-   *  LDB 20 l.215 : Modéré→Facile, Grave→Accessible) — clé absente pour la sévérité portée = Difficulté
-   *  du nœud inchangée. Lu par `symptomOnTick`. `afterDays`/`once` cadencent le cycle sur la phase
-   *  ACTIVE (Vers de carie : Test quotidien À PARTIR de J+7, MSRC 16 l.90 ; Vers du Reik : 7ᵉ jour). */
-  onTick?: {
-    test?: import('../engine/flowCore').NoeudDecideAuPorteur;
-    ops?: import('../engine/ops').GameOp[];
-    difficultyBySeverity?: Partial<Record<'moderee' | 'grave', import('../engine/types').Difficulty>>;
-    /** Ne se déclenche qu'à partir du Nᵉ jour de PHASE ACTIVE (1 = premier jour actif). Absent = dès le 1ᵉʳ. */
-    afterDays?: number;
-    /** UNE seule fois, au jour `afterDays` exact (Vers du Reik) ; absent/false = quotidien (Vers de carie). */
-    once?: boolean;
-  };
-  /** Passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik : « si l'ampoule se trouve à un endroit
-   *  visible… −10 Sociabilité », MSRC 16 l.140) — appliqués SEULEMENT si la localisation tirée à l'entrée en
-   *  phase active (`Disease.blisterLocation`) ∈ `visibleLocations`. Jet de Localisation canonique (`hitLocation`). */
-  visiblePassive?: import('../engine/ops').OpPassive[];
-  /** Localisations comptées comme VISIBLES (arbitrage `maison` : tête/bras visibles, corps/jambes couverts) —
-   *  gate de `visiblePassive`. Éditable au Codex. */
-  visibleLocations?: import('../engine/types').HitLocation[];
-  capabilities?: SymptomCapabilities;
-}
+/** Trait de créature (LDB 85), son id fermé sur l'union générée (`Id<'trait'>`). */
+export type TraitData = EntreeDe<typeof traitsDef>;
+/** Capacités irréductibles d'une qualité (`qualityCapabilitiesSchema`, `schemas/defs/qualities.ts`). */
+export type QualityCapabilities = z.output<typeof qualityCapabilitiesSchema>;
+/** Atout/Défaut d'arme, d'armure ou d'objet. LDB 60 ; LDB 62-63 */
+export type QualityData = EntreeDe<typeof qualitiesDef>;
+/** Capacités irréductibles d'un symptôme (`symptomCapabilitiesSchema`, `schemas/defs/symptoms.ts`). */
+export type SymptomCapabilities = z.output<typeof symptomCapabilitiesSchema>;
+/** Symptôme de maladie (LDB 20), son id fermé sur l'union générée (`Id<'symptome'>`). */
+export type SymptomData = EntreeDe<typeof symptomsDef>;
 /** Domaine de magie (Couleur, LDB 48) : ses ATTRIBUTS éditables au Codex — riders « à la touche »
  *  (`effects`, gatés par les Conditions Flow `relation`/`has`), mitigation de Projectile
  *  (`missile`), ops post-incantation au lanceur (`casterOps`). Le `label` correspond au `subType`
  *  d'un Sort d'Arcane (`domainOf`). */
-export interface DomainData {
-  id: string;
-  type: 'domains';
-  label: string;
-  desc?: string;
-  source?: SourceRef;
-  /** Motif de la valeur maison de l'entrée. */
-  maison?: string;
-  /** Emplacements SECONDAIRES du même Domaine — republication à l'identique (doctrine « UNE entité,
-   *  N livres ») : l'attribut du Domaine de la Lumière est reparu tel quel dans les Vents de Magie
-   *  (`VDM 04 l.252-260`, folio 62). L'ancre `source` reste seule à porter la `desc`. */
-  alsoIn?: SecondaryRef[];
-  /** Vent de Magie (Couleur) du Domaine, EXTRAIT du `desc` (« Domaine du Feu (Aqshy) », LDB 48) — source
-   *  d'AFFICHAGE de la Compétence Focalisation (spécialisée par Vent) et clé de `findDomainByWind`. Les 8
-   *  Domaines élémentaires + Dhar en portent un ; les Domaines dérivés (Sorcellerie/Nécromancie/
-   *  Démonologie/Magie naturelle…) n'ont pas de Vent propre (ils canalisent Dhar ou un
-   *  Vent élémentaire). Édité au Codex. */
-  wind?: string;
-  /** Teinte des effets visuels d'un Sort du Domaine, à la place de celle de son rendu (#3771). */
-  couleur?: string;
-  /** Rendu visuel et sonore d'un Sort du Domaine (`rendus.json`), à défaut celui des Sorts des Vents (#3771). */
-  rendu?: { id: string };
-  /** Domaine ENSEIGNABLE via le Talent Magie des Arcanes (LDB 48) : SOURCE du pool `arcaneDomains`
-   *  (SPEC_SOURCES). Les Lores de sorts non-arcanes (ex. Magie des mers de Triton) ne le portent pas.
-   *  La marque EST le Type de Souffle (`breath-types.json`) du sort Souffle lancé par un mage du Domaine ; l'arbitrage se dit au
-   *  `maison` de l'entrée. LDB 47 l.509 */
-  arcane?: { id: string };
-  /** `VDM 02 l.192` (`careerSlots.arcaneDomainGate`) — Nécromancie, Démonologie (LDB 50). */
-  dark?: boolean;
-  /** Ids de `groups.json` accordés au porteur d'un Talent ou d'un Trait dont la spécialisation nomme ce
-   *  Domaine (`grantSpecGroups`, `groupesDe`). Absent = aucun Groupe. */
-  grantGroups?: string[];
-  /** Tables d'effets (`tables.json`) DÉCLARÉES par le Domaine, par CLÉ de rôle — résolues par l'op
-   *  `rollDomainTable` (`engine/ops.ts`). Clé `arcaneMark` : Marques Arcaniques du Vent
-   *  (`VDM 02 l.238`). Le lien Domaine→table vit ici, jamais dans le code. */
-  tables?: Record<string, string>;
-  /** Effets DÉCLENCHÉS « à la touche » sur une cible d'un Sort du Domaine (Feu → En flammes…) — MÊMES
-   *  `TriggeredEffect` éditables que Traits/Atouts, gatés par les Conditions Flow `relation`/`has`. */
-  effects?: TriggeredEffect[];
-  /** Mitigation des Projectiles : ignore les PA d'une matière (`metal`/`nonMagic`) ; `bonusFromBypass`
-   *  les ajoute aussi aux Dégâts (Métal). */
-  missile?: { bypass: 'metal' | 'nonMagic'; bonusFromBypass?: boolean };
-  /** Ops appliquées AU LANCEUR après une incantation réussie (ex. Bête → Peur 1 pendant 1d10 Rounds).
-   *  Canal CAPABILITY (pas passive ni effects) : l'effet cible le lanceur lui-même, non une cible.
-   *  Exécutées par `domainCasterOps` (engine/domainAttributes) via `applyOps`. */
-  casterOps?: import('../engine/ops').GameOp[];
-  /** Bonus d'incantation CONDITIONNEL (Aqshy l.157) : +`bonus` par État `perCondition` porté par un
-   *  combattant situé à `radiusStat` (Bonus de carac.) mètres du lanceur (géométrie résolue par state).
-   *  CAPABILITY irréductible : modifie le JET d'incantation via la géométrie de l'arène → hors GameOp
-   *  (cf. 3 canaux passive / effects / capabilities). */
-  castBonus?: { perCondition: string; radiusStat: import('../engine/types').CharKey; bonus: number };
-  /** Caractéristique des Tests d'Incantation (Langue (Magick)) des Sorts de ce Domaine, à la place de la
-   *  carac par défaut (ADE II 2 l.728 : la Magie de la Gueule, réservée aux ogres, se lance sur l'Endurance).
-   *  Lue par `castingValue` — porté par la DONNÉE du domaine, aucun sniff d'espèce dans le moteur. */
-  castingChar?: import('../engine/types').CharKey;
-  /** Bonus d'incantation lié à l'ENVIRONNEMENT (LDB 48 l.690, Vie/Ghyran : +10 pour Incanter ou
-   *  Focaliser dans un environnement rural ou sauvage). `environments` = classifications de Scène
-   *  (`Scene.environment`) qui déclenchent le bonus ; `mod` = valeur. Lu par `domainEnvironmentBonus`. */
-  environmentBonus?: { environments: string[]; mod: number };
-  /** Domaine de la SORCELLERIE (LDB 49) : marqueur DONNÉE. Un Sort dont le `domainId` porte ce marqueur
-   *  active le mode Sorcellerie (composant obligatoire sinon Imparfaite Mineure systématique, +1 Corruption
-   *  par jet d'Imparfaite, État Hémorragique possible) — gated par la règle optionnelle `magie-sorcellerie`. */
-  sorcery?: boolean;
-  /** Modificateur des Vents de Magie EN MER (MDG 02 l.178-186). Règle d'application (l.178) :
-   *  « Les modificateurs suivants s'appliquent aux tentatives de Focalisation et d'Incantation en mer. »
-   *  Seuls 4 Domaines en portent un (Bête/Feu/Cieux/Vie). Lu par `domainSea*` (`engine/domainAttributes`),
-   *  consommé par `resolveFocus`/`resolveCasting`/`evaluateCasting` (`engine/magic`) via un contexte
-   *  `{ atSea, wind }` fourni par l'appelant (état — géométrie/météo hors du moteur pur). */
-  seaModifier?: {
-    /** Feu (Aqshy, l.182) : DR de Focalisation en mer. */
-    focalisationDR?: number;
-    /** Vie (Ghyran, l.186) : le DR de Focalisation en mer est DOUBLÉ. */
-    focalisationDrDoubled?: boolean;
-    /** Vie (Ghyran, l.186) : Focalisation Critique en mer → Imparfaite MAJEURE (au lieu de Mineure). */
-    focusCritMiscastMajeure?: boolean;
-    /** Cieux (Azyr, l.184) : DR d'Incantation en mer pendant une Violente tempête / en Calme plat. */
-    incantationStormDR?: number;
-    incantationCalmDR?: number;
-    /** Bête (Ghur, l.180) : Critique/Maladresse déclenchés aussi sur un résultat finissant par 0. */
-    critFumbleOnTens?: boolean;
-  };
-  /** Modificateurs de DR PROPRES au Vent du Domaine, hors mer (`VDM 04 l.48-56` « Un Vent difficile »
-   *  et ses 7 homologues, un par Vent). Lus par le point UNIQUE `domainWindDR`
-   *  (`engine/domainAttributes`), consommés par `resolveCasting`/`resolveFocus`/`castLandProbability`
-   *  (`engine/magic`) via un contexte `{ circumstances }` fourni par l'appelant (météo/saison/lieu et
-   *  annulations en cours — hors du moteur pur). */
-  windModifiers?: {
-    tests: ('incantation' | 'focalisation' | 'seconde-vue')[];
-    dr: number;
-    /** Ids de circonstances dont UNE suffit à déclencher le modificateur. Absent = permanent. */
-    when?: string[];
-    /** Annulation par un TIERS : `circumstance` est signalée par l'appelant quand un assistant
-     *  possédant `requiresSkill` a réussi `test` et maintient son action (`sustained`). */
-    cancelledBy?: {
-      circumstance: string;
-      requiresSkill?: { id: string; spec?: string };
-      test: import('../engine/flowCore').FlowTest;
-      sustained?: boolean;
-      source: SourceRef;
-      desc: string;
-    };
-    source: SourceRef;
-    desc: string;
-  }[];
-}
-export interface SpellData {
-  /** id STABLE (slug du libellé) — cible des références de sort (sorts de créature, bénédictions/miracles). */
-  id: string;
-  label: string;
-  /** ÉCOLE — libellé d'affichage hérité (dépotoir de 18 valeurs) ; la logique branche sur `family`/`domainId`. Dette : #1517. */
-  ecole: string;
-  subType: string | null;
-  /** Domaine de magie du Sort — source RUNTIME du chemin sort→domaine (attributs LDB 48). Absent = Sort
-   *  sans Domaine (Magie Mineure, Prière…). */
-  domainId?: { id: string };
-  /** Le Sort est un RITUEL (`VDM 02 l.363`) : même résolution qu'un Sort (`l.379`), rubriques
-   *  d'anatomie en plus (`l.377-393`). TAG lu par les modificateurs de NI qui ne visent qu'une des
-   *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
-  isRitual?: boolean;
-  /** Rubriques d'ANATOMIE D'UN RITUEL (`VDM 02 l.377-393`) : ce qu'un Rituel imprime EN PLUS d'un
-   *  Sort. Rendues par la fiche Codex des Sorts (`noyau/codex/registry.ts`) ; `cnFrom` y remplace
-   *  le NI quand la rubrique imprime une formule sur la cible plutôt qu'un nombre (`cn: null`). */
-  ritual?: {
-    type: string;
-    /** Domaines ADMIS en ids (`VDM 02 l.381`) — cf. `schemas/defs/spells.ts` : liste peuplée =
-     *  restreinte à ces Domaines, liste vide = tout Domaine. Lue par `arcaneDomainsOf`
-     *  (`engine/grimoire.ts`). */
-    domains: string[];
-    cnFrom?: string;
-    xp: number;
-    /** Valeur RÉDUITE imprimée entre parenthèses (`VDM 02 l.398`/`l.400`), gatée sur les Domaines
-     *  que PRATIQUE le lanceur — cf. `schemas/defs/spells.ts`. Lue par `ritualReduction`
-     *  (`engine/grimoire.ts`). */
-    reduced?: {
-      domains: string[];
-      chaosMagic?: true;
-      cn: number;
-      xp: number;
-    };
-    components: string;
-    conditions: string;
-    sacrifices: string;
-    consequences: string;
-  };
-  /** Famille d'incantation STABLE (id, multilangue) — DISCRIMINANT moteur (familyOf / isArcaneSpell /
-   *  canCastFromGrimoire / Chaos) ; `type` ci-dessus est un libellé d'affichage. */
-  family: import('../engine/combatFeatures/types').CastingKind;
-  /** Niveau d'Incantation (NI). `null` pour les Prières (Béni/Invocation). */
-  cn: number | null;
-  /** Portée STRUCTURÉE (LDB 46/47) — d'où le sort peut être lancé. `null` = donnée absente. Aucune prose n'est re-parsée au runtime ; l'affichage est DÉRIVÉ
-   *  (`engine/spellRangeFormat`). */
-  range: import('../engine/spellRange').SpellRange | null;
-  /** Cible STRUCTURÉE (LDB 47) — qui/quoi est affecté (compte, ZONE par rayon/diamètre, cône, spécial).
-   *  `null` = donnée absente. L'aire vit ICI (source unique). */
-  target: import('../engine/spellRange').SpellTarget | null;
-  /** Durée STRUCTURÉE (LDB 47) — instant/Rounds/horloge/lever-du-soleil/spécial. `null` = donnée absente.
-   *  L'échelle Rounds vit ICI (source unique). */
-  duration: import('../engine/spellDuration').SpellDuration | null;
-  desc: string;
-  /** Projectile magique (Dégâts résolus façon attaque) — DONNÉE (multilangue ; remplace la regex
-   *  `/projectile magique/` sur la desc). `damage` = bonus ADDITIF (+ DR + BFM, LDB 46) ; `ignorePA`/
-   *  `ignoreBE` = ignore les PA / le Bonus d'Endurance de la cible. Lus par `evaluateMissile`/IA. */
-  missile?: boolean;
-  damage?: number;
-  ignorePA?: boolean;
-  ignoreBE?: boolean;
-  // ── MÉTADONNÉES DE RÉSOLUTION ──────────────────────────────────────────────────────────────────
-  // Ces champs sont multilingue-safe (ids/formules, jamais du texte d'affichage).
-  // POUSSÉE / TÉLÉPORTATION / ATTAQUES EN CHAÎNE : effets POSITIONNELS portés par des ops
-  // IMPURES (`push`/`teleport`/`chain`, on:'caster') dans `effects`, résolus par combatFlow (cf. engine/ops).
-  /** Sort « Souffle » (LDB 47 l.503) : délégué à l'attaque de ZONE du Trait Souffle. */
-  breathAttack?: true;
-  /** Titre et livre VO d'un sort qu'un livre fan traduit — `schemas/defs/spells.ts` (#3666). */
-  titreVO?: string;
-  livreVO?: { id: string };
-  /** OPPOSITION de la cible (multijet dans la modale d'incantation).
-   *  `resist` : Test opposé par la caractéristique/compétence `characteristic`/`skill` de la cible.
-   *  `contact` : Sort de Portée Contact — frappe via Test opposé de Corps à corps (Bagarre). */
-  opposed?: {
-    kind: 'resist' | 'contact';
-    /** Caractéristique opposée (`resist` uniquement). */
-    characteristic?: import('../engine/types').CharKey;
-    /** Compétence opposée (`resist` uniquement, rare) — référence `{ id, spec? }`. */
-    skill?: RefDesignee;
-  };
-  /**
-   * EFFETS du sort — `Flow` ÉDITABLE (système logique unique : `do`/`if`/`test`), source des effets
-   * mécaniques appliqués à l'incantation (feuilles EffectOp `{type:'ops', on:'target'|'caster', ops}`).
-   * Édité dans le Compendium (CodexEdit → FlowEditor), exécuté par `runCombatFlow`. SOURCE UNIQUE des
-   * effets. Import TYPE seul (effacé à la compilation) → la couche data NE dépend PAS d'une valeur
-   * du code de règle (pureté préservée). Absent = aucun effet mécanique (narratif).
-   */
-  effects?: Flow;
-  source: SourceRef;
-  /** Emplacement SECONDAIRE (#563) — même Sort à cheval prose⇄stat-bloc ailleurs (ex. Maître de la
-   *  bête : prose LDB 246, stat-bloc NI/Portée/Cible/Durée LDB 245). Accessors `allLocations`/
-   *  `sourceBooks` (`src/data/sourceRefs.ts`). */
-  alsoIn?: SecondaryRef[];
-}
+/** Domaine de magie (LDB 48), son id fermé sur l'union générée (`Id<'domain'>`). */
+export type DomainData = EntreeDe<typeof domainsDef>;
+/** Sort (LDB 46-50), son id fermé sur l'union générée (`Id<'spell'>`). */
+export type SpellData = EntreeDe<typeof spellsDef>;
 
-/** Signe astral (ADE II) : table d100 (`rand` = borne haute cumulée), flavor + effet de création. */
-export interface StarData {
-  /** id STABLE (slug du libellé) — `Combatant.star` le stocke, le runtime résout par `findStarById`
-   *  (≠ libellé — multilangue-safe). */
-  id: string;
-  label: string;
-  rand: number;
-  signe: string;
-  classique: string;
-  ascendant: string;
-  dates: string;
-  dieux: string;
-  apparence: string;
-  /** Effet ADE II appliqué AUX ATTRIBUTS DE DÉPART (ch.03 l.38) — donnée éditable au Codex
-   *  (`GameOpEditor`) : `charMod` (±carac) et/ou `grantTalent` (talent octroyé). Appliqué une
-   *  fois à la création (cf. `applyStarOps`), pas collecté en passif continu. */
-  ops?: import('../engine/ops').GameOp[];
-  /** L'Étoile du Sorcier (ADE II 3 l.63) : fourchette du 1d10 interne parmi les variantes partageant
-   *  `rand:100`, dans la forme que `findTableEntry` lit. Absent = pas de sous-tirage (signe simple). */
-  sub?: { min: number; max: number };
-  desc?: string;
-  source: SourceRef;
-}
+/** Signe astral (ADE II 3), une rangée du Tableau des Signes astrologiques (`stars.json`). */
+export type StarData = RangeeDe<typeof signesAstrologiques>;
 /** Lieu (Glorieux Reikland, LDB) : hiérarchie par `parent` (label d'un autre lieu). */
 export type LocationData = EntreeDe<typeof locationsDef>;
 /** Ouvrage WFRP4 référencé (bibliographie). `desc` = présentation en texte/Markdown (règle 5). */
@@ -1897,40 +1230,18 @@ export const classes = datasetDe<typeof classesDef>(classesJson);
 export const careers = datasetDe<typeof careersDef>(careersJson);
 export const careerLevels = datasetDe<typeof careerLevelsDef>(careerLevelsJson);
 export const skills = datasetDe<typeof skillsDef>(skillsJson);
-export const talents = talentsJson as TalentData[];
-export const etats = etatsJson as EtatData[];
+export const talents = datasetDe<typeof talentsDef>(talentsJson);
+export const etats = datasetDe<typeof etatsDef>(etatsJson);
 /** Procédures / options de jeu (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation
  *  étendue…) — prose du livre ADRESSÉE au `Source/` (`descRef`, #1887) ou inline (`desc`, stock
  *  `PROSE_INLINE_TOLEREE`), app-owned. Routées en tooltip
  *  `CodexRef` (catégorie `regles`). */
-export interface RegleData {
-  id: string;
-  type: 'regles';
-  label: string;
-  desc: string;
-  source: SourceRef;
-  /** Les valeurs que le livre chiffre, lues par `engine/reglesChiffrees.ts` (schéma `defs/regles.ts`). */
-  rangees?: RangeeDeRegleData[];
-  /** Les Tests que la règle nomme, lus par `engine/reglesChiffrees.ts` (`testDeRegle`) ; la Difficulté y
-   *  est exigée par le schéma. */
-  tests?: TestDeRegleData[];
-}
-export interface TestDeRegleData {
-  id: string;
-  label: string;
-  source: SourceRef;
-  test: import('../engine/flowCore').JetFixe<'skill' | 'difficulty'>;
-}
-export interface RangeeDeRegleData {
-  id: string;
-  label: string;
-  palier?: Difficulty;
-  valeur?: number;
-  famille: import('../engine/types').ModFamille;
-  seuil?: number;
-  plafond?: number;
-}
-export const regles = adressee<RegleData>(reglesJson);
+export type RegleData = EntreeDe<typeof reglesDef>;
+/** Un Test que la règle nomme, lu par `engine/reglesChiffrees.ts` (`testDeRegle`). */
+export type TestDeRegleData = NonNullable<RegleData['tests']>[number];
+/** Une valeur que le livre chiffre, lue par `engine/reglesChiffrees.ts`. */
+export type RangeeDeRegleData = NonNullable<RegleData['rangees']>[number];
+export const regles = datasetDe<typeof reglesDef>(reglesJson);
 /** Index VIVANT par `id` STABLE : `regles` est routé par le seam `ARRAYS` d'`overrides.ts`. */
 const regleParId = indexParId('regles', regles);
 /** Résout une fiche de Règle par son `id` STABLE. */
@@ -1940,9 +1251,9 @@ export function findRegleById(id: string): RegleData | undefined {
 /** Tables numériques de Disponibilité & de Troc (LDB 59 « Faire son marché » p.290-291) — app-owned
  *  éditable ; consommé par `engine/disponibilite` (mêmes références). */
 export const disponibilite = datasetDe<typeof disponibiliteDef>(disponibiliteJson);
-/** Maladies (LDB 20) — app-owned éditable au Codex ; le COMPORTEMENT (cycle/symptômes) vit dans
- *  `engine/disease`, le type `DiseaseDef` dérive du schéma (`schemas/defs/maladies.ts`). */
-export const maladies = maladiesJson as DiseaseDef[];
+/** Maladie (LDB 20), son id fermé sur l'union générée (`Id<'maladie'>`) ; le cycle vit dans `engine/disease`. */
+export type DiseaseDef = EntreeDe<typeof maladiesDef>;
+export const maladies = datasetDe<typeof maladiesDef>(maladiesJson);
 const maladieParId = indexParId('maladies', maladies);
 /** Résout une Maladie par son `id` STABLE. */
 export function findDiseaseById(id: string): DiseaseDef | undefined {
@@ -1953,7 +1264,7 @@ export function diseaseLabel(id: string): PlayerText {
   return dataLabel(maladieParId(id)?.label, id);
 }
 // Traits app-owned — TOUT dans `traits.json` ; chaque entrée garde sa vraie `source`.
-export const traits = traitsJson as TraitData[];
+export const traits = datasetDe<typeof traitsDef>(traitsJson);
 const traitParLabelMinuscule = indexParChamp('traits', traits, (t) => t.label.toLowerCase());
 /** `id` STABLE d'un Trait depuis un LIBELLÉ d'AUTHORING (statbloc saisi, migration), casse ignorée —
  *  `undefined` si le texte ne nomme aucun trait du catalogue. La couture label→id vit ICI, au
@@ -1963,24 +1274,28 @@ export const traitIdByLabel = (label: string): string | undefined => traitParLab
 const traitParId = indexParId('traits', traits);
 /** Trait par `id` STABLE (slug) — lookup runtime indépendant de la langue. */
 export const findTraitById: (id: string) => TraitData | undefined = traitParId;
-export const qualities = qualitiesJson as QualityData[];
+export const qualities = datasetDe<typeof qualitiesDef>(qualitiesJson);
+/** Jeux de taverne (NADJ 16), servis par régime par `findTavernGameById` (`engine/tavernGame.ts`). */
+export const TAVERN_GAMES = datasetDe<typeof tavernGamesDef>(tavernGamesJson);
 /** Index des Atouts/Défauts par `id` STABLE (slug) — lookup runtime indépendant de la langue (dispatch). */
 const qualiteParId = indexParId('qualities', qualities);
 /** Atouts de Fabrication (LDB 60 l.9-32) — DÉRIVÉS de la donnée : les qualités `atout` d'objet que la
  *  Compétence Métier produit, donc hors qualités MAGIQUES (`capabilities.magic` : Maudit, VDM 12
  *  folio 170, est un Atout d'objet qu'aucun artisan ne fabrique). */
-export const fabricationAtouts = memoParVersion('qualities', (): string[] =>
+export const fabricationAtouts = memoParVersion('qualities', (): QualityData['id'][] =>
   qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet' && !q.capabilities?.magic).map((q) => q.id),
 );
 /** Atout de Fabrication d'un emplacement « Atouts au choix » que personne n'a choisi. LDB 60 l.11 ; LDB 60 l.26 */
 export const DEFAULT_FABRICATION_ATOUT = 'raffine';
 /** Les `QualityRef` de l'Atout de Fabrication `id` pris `prises` fois : une entrée d'Indice `prises` s'il est indicé,
  *  `prises` entrées sinon. LDB 60 l.30-32 */
-export function fabricationAtoutQuality(id: string, prises: number): { id: string; value?: number }[] {
-  return qualiteParId(id)?.indice ? [{ id, value: prises }] : Array.from({ length: prises }, () => ({ id }));
+export function fabricationAtoutQuality(id: string, prises: number): QualityRef[] {
+  const q = qualiteParId(id);
+  if (!q) return [];
+  return q.indice ? [{ id: q.id, value: prises }] : Array.from({ length: prises }, () => ({ id: q.id }));
 }
 /** Symptômes de maladie (LDB 20) — entités de DONNÉE éditables au Codex (passive/onTick/capabilities). */
-export const symptoms = symptomsJson as SymptomData[];
+export const symptoms = datasetDe<typeof symptomsDef>(symptomsJson);
 const symptomeParId = indexParId('symptoms', symptoms);
 export const findSymptomById: (id: string) => SymptomData | undefined = symptomeParId;
 /** Libellé FR d'un symptôme par son id (repli sur l'id si inconnu). */
@@ -2001,7 +1316,9 @@ export const symptomInstanceLabel = (inst: { symptomId: string; severity?: 'mode
 };
 /** Mutations (entités) + Tables de Corruption (plages de leur dé → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
  *  app-owned éditables au Codex. Le runtime du tirage (`rollMutation`) vit dans `mutations.ts`. */
-export const mutations = mutationsJson as MutationData[];
+/** Mutation au catalogue (LDB 19), son id fermé sur l'union générée de `mutations.json`. */
+export type MutationData = EntreeDe<typeof mutationsDef>;
+export const mutations = datasetDe<typeof mutationsDef>(mutationsJson);
 export const mutationTables = datasetDe<typeof tablesDeCorruption>(mutationTablesJson);
 /** Tables d'EFFETS référençables (`tables.json`, tirées par l'op `rollTable` variante `tableId`) —
  *  loader + lookup fail-fast dans `data/effectTables.ts` (importe le type `GameOp` du moteur, réservé). */
@@ -2062,13 +1379,14 @@ export type FamilleDuKit = StructureAppearanceDef['kit'];
  *  même patron que `maladies`/`DiseaseDef`). Noms préfixés `massBattle*` : `structures` est déjà pris par
  *  le catalogue de structures de siège JOUABLES ci-dessus (schéma différent : BE/B structuré + traits
  *  `{id}[]`, quand mass-battle.json reste `be`/`wounds`/`traits` en chaîne verbatim imprimée). */
-export const massBattlePowerEstimate = massBattleJson.powerEstimate as PowerEstimateRow[];
-export const massBattleMightModifiers = massBattleJson.mightModifiers as MightModifierRow[];
-export const massBattleWarMachines = massBattleJson.warMachines as WarMachineRow[];
-export const massBattleStructures = massBattleJson.structures as MassBattleStructureRow[];
-export const massBattleHazards = massBattleJson.hazards.entries as HazardRow[];
+const massBattle = datasetDe<typeof massBattleDef>(massBattleJson);
+export const massBattlePowerEstimate = massBattle.powerEstimate;
+export const massBattleMightModifiers = massBattle.mightModifiers;
+export const massBattleWarMachines = massBattle.warMachines;
+export const massBattleStructures = massBattle.structures;
+export const massBattleHazards = massBattle.hazards.entries;
 /** Le dé des Facteurs environnementaux (ADE II 08 l.311), lu sur leur nœud à l'appel. */
-export const massBattleHazardsDie = (): DeDeTable => deDeLaTableTiree(massBattleJson.hazards);
+export const massBattleHazardsDie = (): DeDeTable => deDeLaTableTiree(massBattle.hazards);
 
 /** LES matières du monde (#1686) — donnée pure, UN document, le domaine PORTÉ par l'entrée. */
 export const materials = datasetDe<typeof materialsDef>(materialsJson);
@@ -2189,10 +1507,20 @@ export function findNavalPortById(id: string): NavalPortData | undefined {
  *  `engine/seaPerils.ts`, `engine/seaWeather.ts`, `engine/shipBuild.ts`) que `WATER_EXPOSURE` ci-dessus. Types réutilisés DEPUIS le schéma zod (`schemas/defs/*`, porte
  *  `datasetDe`) — pas de redéclaration divergente. */
 export const seaNavigation = datasetDe<typeof seaNavigationDef>(seaNavigationJson);
-export const seaPerils = seaPerilsJson as SeaPerilsData;
+/** Périls en mer (MDG 13 l.423-564), lus par `engine/seaPerils.ts`. */
+export type SeaPerilsData = DatasetDe<typeof seaPerilsDef>;
+export const seaPerils = datasetDe<typeof seaPerilsDef>(seaPerilsJson);
 export type SeaWeatherData = DatasetDe<typeof seaWeatherDef>;
 export const seaWeather = datasetDe<typeof seaWeatherDef>(seaWeatherJson);
 export const shipConstruction = datasetDe<typeof shipConstructionDef>(shipConstructionJson);
+/** Humeur de Manann, événements de bord et d'escale, Voyage rapide (MDG 15 l.32-263), lus par `engine/seaVoyage.ts`. */
+export type SeaEventsData = DatasetDe<typeof seaEventsDef>;
+export const seaEvents = datasetDe<typeof seaEventsDef>(seaEventsJson);
+/** Le tableau PANNE DE VAPEUR (MDG 12 l.313-352), lu par `engine/shipBuild.ts`. */
+export type SteamBreakdownEntry = RangeeDe<typeof steamBreakdownDef>;
+export const STEAM_BREAKDOWNS: SteamBreakdownEntry[] = rangeesDe<typeof steamBreakdownDef>(steamBreakdownJson);
+/** Le dé du tableau PANNE DE VAPEUR, lu à l'appel. */
+export const steamBreakdownDie = (): DeDeTable => deDeTirageDe<typeof steamBreakdownDef>(steamBreakdownJson);
 
 /** LOT 2 #422 : Navigation fluviale (MSRC 7) — pendant fluvial de `seaNavigation`, même patron
  *  d'export (référence LIVE au même fichier physique relu par `engine/riverNavigation.ts`). */
@@ -2216,23 +1544,10 @@ const lieuServiceById = new Map<string, LieuServiceData>(lieuxServices.map((s) =
 export function findLieuServiceById(id: string): LieuServiceData | undefined {
   return lieuServiceById.get(id);
 }
-/** Chanson de marins (MDG 09 l.218-248, payload du Talent Chanson de marin) — catalogue app-owned.
- *  `crewOps` = effet exprimé dans la langue UNIQUE `GameOp[]`, appliqué à CHAQUE membre d'équipage pendant
- *  l'effet (3 min + DR du Test de Divertissement (Chant) en minutes, 1 chanson par quart — activation
- *  `chanterLaChanson`, noyau/combatSlice). `captainOps` = ops appliquées au seul CAPITAINE (titulaire du
- *  rôle — « Suivez le capitaine », l.246-248). `note` = clause RAW laissée à l'arbitrage MJ (intention/
- *  conséquence de Test non suivies par le moteur) — affichée, jamais un effet inventé. */
-export interface SeaShantyData {
-  id: string;
-  type: 'sea-shanties';
-  label: string;
-  desc: string;
-  crewOps?: import('../engine/ops').GameOp[];
-  captainOps?: import('../engine/ops').GameOp[];
-  note?: string;
-  source: SourceRef;
-}
-export const seaShanties = seaShantiesJson as SeaShantyData[];
+/** Chanson de marins (MDG 09 l.218-248), payload du Talent Chanson de marin ; ses ops jouées par `chanterLaChanson`
+ *  (`noyau/combatSlice`). */
+export type SeaShantyData = EntreeDe<typeof seaShantiesDef>;
+export const seaShanties = datasetDe<typeof seaShantiesDef>(seaShantiesJson);
 const chansonMarinParId = indexParId('seaShanties', seaShanties);
 export function findSeaShantyById(id: string): SeaShantyData | undefined {
   return chansonMarinParId(id);
@@ -2263,13 +1578,13 @@ export const findCrewTestTypeById: (id: string) => CrewTestTypeData | undefined 
 export const weaponGroups = datasetDe<typeof weaponGroupsDef>(weaponGroupsJson);
 export const groups = datasetDe<typeof groupsDef>(groupsJson);
 // Bestiaire APP-OWNED — TOUT dans `creatures.json` ; chaque entrée garde sa vraie `source`.
-export const creatures = creaturesJson as CreatureData[];
+export const creatures = datasetDe<typeof creaturesDef>(creaturesJson);
 // Sorts app-owned (Magie Mineure/Arcanes, Bénédictions, Miracles…) — TOUT dans `spells.json` ; chaque sort
 // garde sa vraie `source`.
-export const spells = spellsJson as SpellData[];
+export const spells = datasetDe<typeof spellsDef>(spellsJson);
 /** Manœuvres app-owned (attaques naturelles activées — LDB 85) : ENTITÉ de 1ʳᵉ classe éditable au Codex,
  *  effets en GameOp. Octroyées aux créatures via `TraitData.grantsManeuvers` ; résolues par id. */
-export const maneuvers = maneuversJson as ManeuverDef[];
+export const maneuvers = datasetDe<typeof maneuversDef>(maneuversJson);
 /** Niveaux de lumière ambiante app-owned (brouillard de guerre) : `scalar` 0..1 (assombrissement du
  *  rendu) + `baseSightTiles` (rayon de vue de base en cases — réglage MAISON : le LDB ne stat pas la
  *  portée de vue). Édité au Codex. `Scene.ambientLight` réfère un `id` (ou `auto` = suit l'horloge). */
@@ -2304,7 +1619,7 @@ export const findRenduById = indexParId('rendus', rendus);
  *  hors du chargeur pour rester importables sans lui (cf. `props.types.ts`). */
 export type { PropData, PropMaterialData, PropMaterialId, PropPoint3, PropSize3, PropPrimitive, PropVolumeRecipe, PropSeatSlot } from './props.types';
 export { validatePropCatalog } from './props.types';
-export const props = propsJson as PropData[];
+export const props = datasetDe<typeof propsDef>(propsJson);
 /** Type de décor par id — `undefined` en entrée rend `undefined` : une entité qui ne NOMME aucun type
  *  n'en résout aucun, exactement comme une ref hors registre (#877). */
 export const findPropById = indexParId('props', props);
@@ -2324,7 +1639,7 @@ export const findCouleurById = (id: string): CouleurNommee | undefined => matier
 /** Domaines de magie app-owned (LDB 48) — ENTITÉ éditable au Codex (attributs en données : onHit,
  *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId.id`, cf.
  *  `findDomainById`). */
-export const domains = domainsJson as DomainData[];
+export const domains = datasetDe<typeof domainsDef>(domainsJson);
 /** Index des Domaines par `id` STABLE — lookup RUNTIME indépendant de la langue (sort→domaine). */
 const domaineParId = indexParId('domains', domains);
 export const findDomainById: (id: string | null | undefined) => DomainData | undefined = domaineParId;
@@ -2351,7 +1666,8 @@ export const tableDesCheveux = datasetDe<typeof couleurDesCheveux>(hairsJson);
 /** Les rangées du Tableau de couleur des yeux. */
 export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux);
 /** Les rangées du Tableau de couleur des cheveux. */
-export const hairs = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
+type CouleurDeCheveux = RangeeDe<typeof couleurDesCheveux>;
+export const hairs: CouleurDeCheveux[] = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux);
 /** Le dé du Tableau de couleur des yeux, lu à l'appel. */
 export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
 /** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
@@ -2398,7 +1714,7 @@ export const semencesDeScene = datasetDe<typeof semencesDeSceneDef>(semencesDeSc
 /** Défauts du COMPILATEUR de scène (#1716) — lus par `mapSpec.ts`/`buildBoardingScene`, éditables au Codex. */
 export const defautsDeCompilation = datasetDe<typeof defautsDeCompilationDef>(defautsDeCompilationJson);
 /** Les rangées du Tableau des Signes astrologiques (`stars.json`). */
-export const stars = rangeesDe<typeof signesAstrologiques>(starsJson) as StarData[];
+export const stars = rangeesDe<typeof signesAstrologiques>(starsJson);
 /** Le dé du Tableau des Signes astrologiques, lu à l'appel. */
 export const starDie = (): DeDeTable => deDeTirageDe<typeof signesAstrologiques>(starsJson);
 /** Le dé qui départage les variantes d'un même seuil (`StarData.sub`), lu à l'appel. */
@@ -2576,7 +1892,8 @@ export const cargaisonsAleatoires = datasetDe<typeof tableauDesCargaisons>(carga
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson);
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */
-export const peripeties = rangeesDe<typeof tableDesPeripeties>(peripetiesJson);
+type Peripetie = RangeeDe<typeof tableDesPeripeties>;
+export const peripeties: Peripetie[] = rangeesDe<typeof tableDesPeripeties>(peripetiesJson);
 
 /** Réseau routier impérial (EDOC 3 « Les routes et grandes routes » et EDOC 6 « Patrouilleurs
  *  routiers ») — catalogue de CALIBRATION d'une `MapRoute` : classes de route et leurs largeurs,
@@ -2599,7 +1916,7 @@ export function findConditionById(id: string): EtatData | undefined {
 
 /** États PSYCHOLOGIQUES (LDB 21) — base app-owned éditable au Codex, prose ADRESSÉE au `Source/`
  *  (`descRef`, #1389 : première famille migrée). */
-export const psychologies = adressee<PsychologyData>(psychologyJson);
+export const psychologies: PsychologyData[] = datasetDe<typeof psychologyDef>(psychologyJson);
 const psychologieParId = indexParId('psychologies', psychologies);
 /** Résout un état psychologique par son `id` STABLE (`PsychType`). Absent → undefined (folding inerte). */
 export function findPsychologyById(id: string): PsychologyData | undefined {
@@ -2802,6 +2119,9 @@ export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | u
  * la `SkillInstance` runtime est toujours concrète.
  */
 export type SkillRef = RefASpecialisation & { value: number };
+/** `SkillRef` d'un porteur qui DÉSIGNE (`competenceChiffreeSchema`, `schemas/defs-scenes/communs.ts`) : la scène
+ *  et le `CustomStatblock` ne portent aucun emplacement (`choix`). */
+export type SkillRefDesignee = RefDesignee & { value: number };
 /** Libellé d'affichage d'une `SkillRef` : « Langue (Magick) 63 », « Savoir (Au choix) 65 »,
  *  « Métier (Armurier ou Forgeron) 50 ». */
 export function skillRefLabel(ref: SkillRef): PlayerText {
@@ -3027,12 +2347,6 @@ export function chaosSpellsOf(god: string): string[] {
   return findGodById(god)?.chaosSpells ?? [];
 }
 
-/** Référence à une Qualité d'objet (`RefDesignee` + Indice éventuel : « Solide 3 » → value 3). */
-export interface QualityRef extends RefDesignee {
-  value?: number;
-}
-/** Quantité d'une possession conférée : nombre fixe (« (3) ») ou jet de dés structuré (« (1d10) »). */
-export type CountSpec = { fixed: number } | { roll: DiceSpec };
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
  *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
@@ -3046,24 +2360,13 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
  *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atouts au choix »
  *  (`qualityChoice`, sa classe de qualité, LDB 60 l.7 ; LDB 60 l.11) — résolu par `resolveTrappingChoices` en `qualities`
- *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
-export type { DotationDePossession, DotationDeMention, Somme };
-/** Un objet du catalogue doté tel quel, sans emplacement. */
-type ObjetDote = RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; valeur?: Somme };
-/** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, son Atout au choix. */
-export type JokerDArme = { wildcard: 'arme'; groupe?: { id: string }; qualityChoice?: 'qualite' };
-/** Objets et possessions dotés ensemble, option d'un « 1 parmi ». */
-export type LotDeDotation = { lot: (ObjetDote | DotationDePossession)[] };
-export type TrappingRef =
-  | (ObjetDote & { qualityChoice?: ClasseDeQualite })
-  | { text: string; count?: CountSpec }
-  | DotationDePossession
-  | Somme
-  | DotationDeMention
-  | { pick: 1; of: BrancheDeDotation[] }
-  | JokerDArme;
+ *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). Annotation de
+ *  `trappingRefSchema` (`schemas/grammaire/reference.ts`). */
+export type { CountSpec, DotationDePossession, DotationDeMention, QualityRef, Somme, TrappingRef };
 /** Une option d'un « 1 parmi » de dotation : une dotation, ou un lot. */
-export type BrancheDeDotation = TrappingRef | LotDeDotation;
+export type BrancheDeDotation = Extract<TrappingRef, { pick: 1 }>['of'][number];
+/** Une arme au choix, de tout le catalogue ou du seul Groupe d'armes `groupe` ; `qualityChoice`, son Atout au choix. */
+export type JokerDArme = Extract<TrappingRef, { wildcard: 'arme' }>;
 /** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni somme, ni mention, ni texte, ni emplacement ? */
 export const estDotationDObjet = (ref: TrappingRef): ref is Extract<TrappingRef, { id: string; type?: never }> => 'id' in ref && !('type' in ref);
 /** La dotation est-elle une somme d'argent ? */
@@ -3244,11 +2547,18 @@ export function qualityInstance(q: QualityRef): import('../engine/types').Qualit
     ...(q.value != null ? { value: q.value } : {}),
   };
 }
+const idDObjetSchema = idDe('trapping');
+/** L'id d'objet du catalogue que désigne `v`, `undefined` hors catalogue : la porte d'un id saisi (choix de dotation,
+ *  Artisanat, atelier du Codex). */
+export function idDObjet(v: string | undefined): Id<'trapping'> | undefined {
+  const lu = idDObjetSchema.safeParse(v);
+  return lu.success ? lu.data : undefined;
+}
 /** Libellé d'affichage d'une `QualityRef` (ou `QualityInstance` runtime) : « Tranchante », « Solide 3 »,
  *  « Taillade (1A) ». La FORME de l'Indice est pilotée par la DONNÉE (`QualityData.indice.unite`) : sans
  *  unité, le livre accole la valeur nue (`LDB 62 l.33` « Protectrice 2 », l.66 « Recharge 1 ») ; avec unité,
  *  il la parenthèse (`AA 08 l.136` « Taillade (1A) », l.304 « Taillade (2A) »). Zéro branche par id. */
-export function qualityRefLabel(q: QualityRef): PlayerText {
+export function qualityRefLabel(q: import('../engine/types').QualityInstance): PlayerText {
   const base = refLabel('qualities', q);
   if (q.value == null) return base;
   const unite = qualiteParId(q.id)?.indice?.unite;
@@ -3332,7 +2642,8 @@ export function trappingRefLabel(ref: BrancheDeDotation): PlayerText {
           : ref.type === 'vehicle'
             ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
             : dataLabel(findCreatureById(ref.id)?.label, ref.id);
-  const count = 'count' in ref && ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
+  const quantite: CountSpec | undefined = 'count' in ref ? ref.count : undefined;
+  const count = quantite ? ('fixed' in quantite ? ` (${quantite.fixed})` : ` (${formatDice(quantite.roll)})`) : '';
   if ('qualityChoice' in ref && ref.qualityChoice) return t(CLE_DE_QUALITE_AU_CHOIX[ref.qualityChoice], { base: base + count });
   const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
   const libelle = base + count + quality;

@@ -9,7 +9,15 @@ import { drainer, erreurDe, suiteDe, table, type Reponse } from './pont.testkit'
 import type { ReseauDuPont } from './pont';
 import { FakeSocket, compressionFactice, minuterieDuTest, roomOuverte, stockageEnMap, instantanesAuSiege1 } from '../../../src/hote/coop/relay.testkit';
 import { PROTOCOL_VERSION, serializeMessage } from '../../../src/hote/coop/protocol';
-import { buildDeLaCoop, etatInitialDuJeu, OPTIONAL_RULES, pointDeRepriseAGarder, poserLesReglesMaisonPersistees, ruleOverrides, type LigneDuJournal } from '../../../src/noyau/index';
+import {
+  buildDeLaCoop,
+  etatInitialDuJeu,
+  OPTIONAL_RULES,
+  pointDeRepriseAGarder,
+  poserLesReglesMaisonPersistees,
+  ruleOverrides,
+  type LigneDuJournal,
+} from '../../../src/noyau/index';
 import { appliquerLInstantane } from '../../../src/noyau/coop';
 import { AUTO_SLOT, cleDEmplacement } from '../../../src/hote/sauvegardes';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';

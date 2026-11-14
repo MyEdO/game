@@ -67,7 +67,7 @@ import { CareerPath } from '../CareerPath';
 import { FigTile, FigZoneBadges, type ZoneBadgeSpec } from '../FigTile';
 import { PlaqueRow, PlaqueGrid } from '../PlaqueRow';
 import { DieFace } from '../DiceRoll';
-import { CHAR_KEYS, CHAR_LABELS, type ConditionId } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import { effectiveChar } from '../../engine/characteristics';
 import { GroupedPickGrid, type PickGridSection } from '../GroupedPickGrid';
 import { DetailFrame } from '../DetailFrame';
@@ -87,7 +87,24 @@ import { CouvreField } from '../editor/CouvreField';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, creatures, skillRefLabel, type SkillRef, type TrappingData } from '../../data';
+import {
+  species,
+  careers,
+  levelsForCareer,
+  stars,
+  mutations,
+  allAxes,
+  charAbr,
+  spells,
+  etats,
+  memoParVersion,
+  findPsychologyById,
+  findTrappingById,
+  creatures,
+  skillRefLabel,
+  type SkillRef,
+  type TrappingData,
+} from '../../data';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTrait, parseSkillRef } from '../../data/refFormatLivre';
@@ -1606,7 +1623,7 @@ function CombatStartSplashDemo() {
 }
 
 /** Deux États RÉELS du catalogue — la pastille NE fabrique aucune règle, elle rend ce que la donnée dit. */
-const etatsExemples = memoParVersion('etats', () => etats.slice(0, 2).map((e) => ({ id: e.id as ConditionId, value: 1 })));
+const etatsExemples = memoParVersion('etats', () => etats.slice(0, 2).map((e) => ({ id: e.id, value: 1 })));
 
 /** Pastilles : rangée d'États réels (`EffectChips`) et conséquence mécanique nommée (`FxChip`). */
 function FxChipDemo() {

@@ -8,8 +8,8 @@ import { creatures } from '../data';
 import { setDataset } from '../data/overrides';
 
 describe('emblème des porteurs (#3155)', () => {
-  const taureau = { id: 'taureau-rouge' };
-  const crane = { id: 'tete-de-mort-rouge' };
+  const taureau = { id: 'taureau-rouge' } as const;
+  const crane = { id: 'tete-de-mort-rouge' } as const;
 
   it('la fiche conserve l’emblème de l’entité malgré une apparence de preset', () => {
     const ent = sceneEntitySchema.parse({ id: 'e', kind: 'personnage', presetId: 'p', pos: { x: 1, y: 1 }, appearance: { embleme: taureau } });

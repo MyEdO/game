@@ -1,8 +1,55 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, Scene } from './monde/scene';
 import { propFootTiles } from './monde/footprint';
-import { entityAt, etageSuivant, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, poigneeDeLaSelection, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
-import { eraseAt, moveSel, pasteEntity, resizeSel, deleteSel, changePropRef, paintTiles, fillTerrainRect, addLayer, removeLayer, paintHeight, placeEntity, placeEntry, renameEntry, addTrigger, addRestZone, addEffectZone, addMember, addEnemyMember, removeMember, placeEmplacement, setPosteCrew, setPosteSide, setPosteEngine, addArchitectureBody, addArchitectureStorey, paintCrenellated, patchWall, addArchitecturePart, addFacadeSection, addBuildingMass, paintEffectZone, clearEffectZoneCarve, patchZone } from './sceneEdit';
+import {
+  entityAt,
+  etageSuivant,
+  hitAt,
+  EFFECT_ZONE_SEEDS,
+  effectZoneRect,
+  flowEffectCount,
+  poigneeDeLaSelection,
+  selRect,
+  sameSel,
+  pickArchitectureEdge,
+  type Sel,
+} from './sceneEditLecture';
+import {
+  eraseAt,
+  moveSel,
+  pasteEntity,
+  resizeSel,
+  deleteSel,
+  changePropRef,
+  paintTiles,
+  fillTerrainRect,
+  addLayer,
+  removeLayer,
+  paintHeight,
+  placeEntity,
+  placeEntry,
+  renameEntry,
+  addTrigger,
+  addRestZone,
+  addEffectZone,
+  addMember,
+  addEnemyMember,
+  removeMember,
+  placeEmplacement,
+  setPosteCrew,
+  setPosteSide,
+  setPosteEngine,
+  addArchitectureBody,
+  addArchitectureStorey,
+  paintCrenellated,
+  patchWall,
+  addArchitecturePart,
+  addFacadeSection,
+  addBuildingMass,
+  paintEffectZone,
+  clearEffectZoneCarve,
+  patchZone,
+} from './sceneEdit';
 import { TOUS_CALQUES } from './sceneEdit.testkit';
 import { validateScene } from './validateScene';
 import { findCreatureById, creatureLabel, siegeEngines } from '../data';

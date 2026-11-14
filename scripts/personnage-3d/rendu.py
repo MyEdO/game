@@ -3,7 +3,11 @@ trois-quarts, portrait du personnage, échelles, isométrique), cadré sur la ha
 ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GLB source n'est jamais modifié.
 `--silhouettes` pose, avant le rendu, les shape keys nommées sur tout mesh qui les porte, à la syntaxe de
 `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh ne porte arrête le
-rendu. `bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`).
+rendu. Si le manifeste voisin de `--input` porte `gabarit.osDesSilhouettes`, chaque os de repos de la base est translaté
+de son déplacement aux mêmes poids (`deplacements_des_os`), comme dans les hôtes : au repos, rien ne change ; sous un
+clip, chaque os tourne autour de sa tête déplacée, et un rigide monté suit son os. Sous `corpulence`, la force de la
+normal map de chaque surface de peau de ce manifeste suit son `reliefDeCorpulence` (`facteur_de_relief`, #4002).
+`bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`).
 
 Une tenue se rend montée sur sa base : `--input` est la base, chaque `--element` un GLB d'élément, chacun avec son manifeste
 voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur. Les zones
@@ -21,8 +25,14 @@ import argparse
 import hashlib
 import json
 import math
+import sys
 import time
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
+
+from glb import lire_glb  # noqa: E402
+from noms_silhouettes import CORPULENCE  # noqa: E402
 
 DONNEES = Path(__file__).resolve().parents[2] / 'src' / 'data'
 ETENDUE_DU_STUDIO = 1.82
@@ -65,13 +75,92 @@ def poser_les_silhouettes(bpy, poids):
     return poses
 
 
+def chemin_du_manifeste_voisin(glb):
+    """Le chemin du manifeste à côté de `glb` : `<id>.element.json` d'un dossier de production, sinon
+    `<id>.manifeste.json` ; `None` sans l'un ni l'autre."""
+    return next((c for c in (glb.with_name(glb.stem + s) for s in ('.element.json', '.manifeste.json')) if c.exists()), None)
+
+
 def manifeste_voisin(glb):
-    """Le manifeste à côté de `glb` : `<id>.element.json` d'un dossier de production, sinon `<id>.manifeste.json`."""
-    for suffixe in ('.element.json', '.manifeste.json'):
-        chemin = glb.with_name(glb.stem + suffixe)
-        if chemin.exists():
-            return json.loads(chemin.read_text(encoding='utf-8'))
-    raise ValueError(f'{glb} : ni {glb.stem}.element.json ni {glb.stem}.manifeste.json à côté')
+    """Le manifeste à côté de `glb` (`chemin_du_manifeste_voisin`), exigé."""
+    chemin = chemin_du_manifeste_voisin(glb)
+    if chemin is None:
+        raise ValueError(f'{glb} : ni {glb.stem}.element.json ni {glb.stem}.manifeste.json à côté')
+    return json.loads(chemin.read_text(encoding='utf-8'))
+
+
+def matrice_du_noeud(noeud):
+    """La matrice 4×4 du nœud glTF `noeud` dans le repère de son parent (`matrix`, sinon `translation`, `rotation`,
+    `scale`)."""
+    import numpy as np
+    if 'matrix' in noeud:
+        return np.array(noeud['matrix'], dtype=float).reshape(4, 4).T
+    x, y, z, w = noeud.get('rotation', (0, 0, 0, 1))
+    rotation = np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                         [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                         [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+    matrice = np.eye(4)
+    matrice[:3, :3] = rotation * np.array(noeud.get('scale', (1, 1, 1)), dtype=float)
+    matrice[:3, 3] = noeud.get('translation', (0, 0, 0))
+    return matrice
+
+
+def deplacements_des_os(document, os_des_silhouettes, poids):
+    """Par nom de nœud du document glTF `document`, le déplacement (repère du monde glTF) de sa position de repos sous
+    les translations locales `os_des_silhouettes` (`gabarit.osDesSilhouettes` : silhouette → os → `[x, y, z]` dans le
+    repère du parent, au poids 1) aux `poids` des silhouettes : celui de son parent plus la somme pondérée de ses
+    translations tournée par le repère du monde de repos de son parent. Seuls les nœuds déplacés y sont."""
+    import numpy as np
+    noeuds = document.get('nodes', [])
+    enfants = {e for n in noeuds for e in n.get('children', [])}
+    deplacements = {}
+    pile = [(i, np.eye(3), np.zeros(3)) for i in range(len(noeuds)) if i not in enfants]
+    while pile:
+        i, repere_du_parent, du_parent = pile.pop()
+        noeud = noeuds[i]
+        translation = sum((poids.get(s, 0) * np.array(par_os[noeud['name']], dtype=float)
+                           for s, par_os in os_des_silhouettes.items() if noeud.get('name') in par_os), np.zeros(3))
+        deplacement = du_parent + repere_du_parent @ translation
+        if deplacement.any() and 'name' in noeud:
+            deplacements[noeud['name']] = deplacement
+        repere = repere_du_parent @ matrice_du_noeud(noeud)[:3, :3]
+        pile.extend((e, repere, deplacement) for e in noeud.get('children', []))
+    return deplacements
+
+
+def deplacer_les_os(bpy, rig, deplacements):
+    """Translate la tête et la queue de chaque os de repos de `rig` du déplacement que `deplacements` (repère du monde
+    glTF, `deplacements_des_os`) donne à son nom, passé au repère Blender (Y haut glTF vers Z haut) puis à celui de
+    l'armature."""
+    from mathutils import Vector
+    vers_le_rig = rig.matrix_world.inverted().to_3x3()
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.mode_set(mode='EDIT')
+    for os_ in rig.data.edit_bones:
+        if os_.name in deplacements:
+            x, y, z = deplacements[os_.name]
+            decalage = vers_le_rig @ Vector((x, -z, y))
+            os_.head += decalage
+            os_.tail += decalage
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def facteur_de_relief(manifeste, poids):
+    """Le facteur de force de la normal map des surfaces de peau du `manifeste` de base aux `poids` des silhouettes
+    (`reliefDeCorpulence`, #4002), `None` sans ce champ ou à poids de `corpulence` nul."""
+    relief, corpulence = manifeste.get('reliefDeCorpulence'), poids.get(CORPULENCE, 0)
+    return None if relief is None or corpulence == 0 else 1 - corpulence + relief * corpulence
+
+
+def accuser_le_relief(objets, peaux, facteur):
+    """Multiplie par `facteur` la force (`Strength`) de chaque nœud Normal Map des matériaux des `objets` dont le nom
+    est dans `peaux`, chaque matériau une fois."""
+    materiaux = {slot.material for obj in objets if obj.type == 'MESH' for slot in obj.material_slots
+                 if slot.material and slot.material.node_tree and slot.material.name.split('.')[0] in peaux}
+    for materiau in materiaux:
+        for noeud in materiau.node_tree.nodes:
+            if noeud.type == 'NORMAL_MAP':
+                noeud.inputs['Strength'].default_value *= facteur
 
 
 def importer(bpy, glb):
@@ -266,11 +355,17 @@ def main():
     start = time.monotonic()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     base = importer(bpy, source)
-    if args.element or args.preset or args.clip:
+    chemin = chemin_du_manifeste_voisin(source)
+    manifeste_de_base = {} if chemin is None else json.loads(chemin.read_text(encoding='utf-8'))
+    deplacements = deplacements_des_os(lire_glb(source)[0], manifeste_de_base.get('gabarit', {}).get('osDesSilhouettes', {}),
+                                       args.silhouettes)
+    if args.element or args.preset or args.clip or deplacements:
         rigs = [obj for obj in base if obj.type == 'ARMATURE']
         if len(rigs) != 1:
-            raise ValueError(f'{source} : {len(rigs)} armatures, une attendue pour monter, colorer ou poser')
+            raise ValueError(f'{source} : {len(rigs)} armatures, une attendue pour monter, colorer, poser ou déplacer les os')
         rig = rigs[0]
+        if deplacements:
+            deplacer_les_os(bpy, rig, deplacements)
         elements = [(importer(bpy, Path(glb).resolve(strict=True)), manifeste_voisin(Path(glb))) for glb in args.element]
         monter(bpy, base, rig, elements)
         if args.preset:
@@ -287,6 +382,9 @@ def main():
                 rig.animation_data.action_slot = action.slots[0]
             bpy.context.scene.frame_set(args.image)
     silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
+    relief = facteur_de_relief(manifeste_de_base, args.silhouettes)
+    if relief is not None:
+        accuser_le_relief(base, {s['nom'] for s in manifeste_de_base.get('surfaces', []) if s['palette'] == 'peau'}, relief)
     meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and not obj.hide_render]
     skinned = [obj for obj in meshes if any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
     actors = skinned or meshes

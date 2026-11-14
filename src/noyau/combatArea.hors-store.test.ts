@@ -3,7 +3,7 @@ import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
+import type { TriggeredEffect } from '../engine/flowCore';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;

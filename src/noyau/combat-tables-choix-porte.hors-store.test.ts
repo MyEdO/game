@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import {
-  applyCoupCritiqueSec, applyAttackResult, applyMiscast, applyBladeTrap, startDisengage, STRUCTURE_CRIT_TABLE,
+  applyCoupCritiqueSec, instantaneAvantLeCoup, applyAttackResult, applyMiscast, applyBladeTrap, startDisengage, STRUCTURE_CRIT_TABLE,
 } from './combatFlow';
 import { displayStep, hostStep, tableStep } from './rollSeam';
 import { stepInteraction, tableStepPosee } from './cascade';
@@ -89,7 +89,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     hero.armour = PA(3); // PA déviable partout : le choix Dévier/Subir s'offre quelle que soit la loc tirée
     hero.wounds = blessuresDeBase(40, 40, hero);
     seedBattleRng(5);
-    applyCoupCritiqueSec(banc.getState, banc.setState, hero, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0]);
+    applyCoupCritiqueSec(banc.getState, banc.setState, hero, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0], instantaneAvantLeCoup(hero));
 
     const st = parKind('deviation')!;
     expect(st, 'le choix Dévier/Subir est une étape de la séquence').toBeTruthy();

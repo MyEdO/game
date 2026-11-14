@@ -18,7 +18,19 @@ import type { FabriqueDId } from './fabriqueDId';
 import { RNG, roll, type DiceSpec, type EffetSigne, type Tirage, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
-import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
+import {
+  addCondition,
+  addTimedCondition,
+  addClockCondition,
+  removeCondition,
+  loseWounds,
+  hasCondition,
+  releaseConditionLocks,
+  aUnVerrouLevePar,
+  syncDerivedConditions,
+  removeActiveEffects,
+  pionsRetirables,
+} from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY } from './clock';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
@@ -42,15 +54,47 @@ import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
 import { deDeTirageDe } from '../data/rangees';
-import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+// cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
+import {
+  peutEtreEmpoigne,
+  setGrapple,
+} from './grapple';
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
 import { applyAlcoholTest, EFFET_D_IVRESSE } from './drunkenness';
-import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmputations, consolidateAmputations, estPlaieAmputation, plaieDAmputation, avecSequelles, type SequelleNeuve } from './trauma';
+import {
+  cureCriticalWounds,
+  receiveMedicalAid,
+  traumaPassiveMods,
+  permanentAmputations,
+  consolidateAmputations,
+  estPlaieAmputation,
+  plaieDAmputation,
+  avecSequelles,
+  type SequelleNeuve,
+} from './trauma';
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, laisserTomber, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
+import {
+  contexteDeNaissanceDObjet,
+  damageLeatherArmour,
+  endommagerLEquipementPorte,
+  itemFromGive,
+  giveTrappingLabel,
+  recomputeLoadout,
+  weaponItem,
+  activeLoadout,
+  damageString,
+  autoStowNewItem,
+  lacherLArme,
+  laisserTomber,
+  armeNaturelleAccordee,
+  estUneVraieArme,
+  objetDeSlot,
+  isWeaponActive,
+  uidDArme,
+} from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
@@ -1145,7 +1189,7 @@ export type GameOp =
    *  Le gate tient tant que l'Hémorragique tient (`removeCondition` purge le marqueur à 0). */
   | { op: 'handGate' }
   /** Perte d'un organe sensoriel PAIRÉ (œil/oreille). Porté par une séquelle dont l'entrée déclare son
-   *  seuil d'escalade (`TraumaCumul.escalade` : 2 organes → Cécité/Surdité, LDB 18 l.273/277). */
+   *  seuil d'escalade (`TraumaFiche['cumul']` `escalade` : 2 organes → Cécité/Surdité, LDB 18 l.273/277). */
   | { op: 'senseLoss'; sense: PairedSense }
   /** Perd sa prochaine Action ET/OU son prochain Mouvement (Affamé : « festoie » ; échec du gate de la
    *  Racine de mandragore : « une Action ou un Mouvement (un au choix) », LDB 71 l.35 → l'issue du choix
@@ -1742,7 +1786,8 @@ function hauteurDeChute(o: Extract<GameOp, { op: 'fall' }>, target: Combatant, c
   if (!taille) throw new Error(`op « fall » (« ${table.label} ») : aucune Taille de coque au contexte (ctx.hull) — la hauteur se lit par la Taille du bateau (MDG 12 l.122-129).`);
   const bande = table.bandes.find((b) => b.tailles.includes(taille));
   if (!bande) throw new Error(`op « fall » (« ${table.label} ») : aucune bande ne couvre la Taille « ${taille} ».`);
-  const hauteur = target.shipStation === undefined ? undefined : structuredClone(bande.hauteurs[target.shipStation]); // #2097
+  const colonne = Object.entries(bande.hauteurs).find(([station]) => station === target.shipStation)?.[1];
+  const hauteur = colonne === undefined ? undefined : structuredClone(colonne); // #2097
   if (hauteur === undefined) throw new Error(`op « fall » (« ${table.label} ») : ${target.label} n'a pas de colonne de hauteur pour la station « ${target.shipStation ?? '—'} ».`);
   return { hauteur, table: table.label };
 }

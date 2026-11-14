@@ -3,7 +3,7 @@ import { RNG, d10, rollDice } from './dice';
 import { chebyshev } from './grid';
 import { findTableEntry } from './tables';
 import dispersionJson from '../data/dispersion.json';
-import { deDeTirageDe, rangeesDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
 import type * as dispersion from '../data/schemas/defs/dispersion';
 
 export interface Pt {
@@ -12,7 +12,8 @@ export interface Pt {
 }
 
 /** Le Diagramme de Dispersion VIVANT — la collection que le Codex édite (`dispersion`, `data/overrides.ts`). */
-export const TABLE_DE_DISPERSION = rangeesDe<typeof dispersion>(dispersionJson);
+type LigneDeDispersion = RangeeDe<typeof dispersion>;
+export const TABLE_DE_DISPERSION: LigneDeDispersion[] = rangeesDe<typeof dispersion>(dispersionJson);
 
 /**
  * Tuile d'atterrissage d'une Dispersion (LDB 14 l.142-151). `from` = lanceur, `to` = cible,

@@ -11,22 +11,49 @@ import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetS
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
-import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
-import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
+import {
+  metaPourFichier,
+  chargeDiscriminee,
+  brouillonNeuf,
+  noeudDuChamp,
+  noeudObjet,
+  noeudDeLEntree,
+  RangeeSansNoeud,
+  rapportDeFautes,
+} from '../../../data/schemas/validate';
 import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
 import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import type {
+  ActivityContext,
+  OutcomeBand,
+  BattleOutcome,
+  BattleOutcomeTarget,
+  BattleOutcomeScale,
+  BattleCond,
+  ActivityResolver,
+  ResolverOwner,
+} from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
 import { BORNES_DE_LA_SUBSTITUTION } from '../../../data/schemas/defs/careers';
 import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg } from '../../compendium/refField/RefField';
+import {
+  ChoixDeSpec,
+  RefField,
+  SaisieSuggeree,
+  reposerLId,
+  cfgDeLaFeuille,
+  cfgDeLaListe,
+  cfgDuNoeudASpec,
+  cfgDuNoeudType,
+  refFieldCfg,
+} from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
@@ -50,15 +77,36 @@ import type { GameOp } from '../../../engine/ops';
 import type { ConsumableDuration } from '../../../engine/consumables';
 import { JsonField } from '../JsonField';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
-import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
-import { EMPTY_FLOW, type EffectTrigger, type FlowTest } from '../../../engine/flowCore';
+import type { Flow } from '../../../data/schemas/defs-scenes/effets';
+import { EMPTY_FLOW, flowDeFeuilles, type EffectOp, type EffectTrigger, type FlowTest, type TriggeredEffect } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema, familleDesEffets } from '../../../data/schemas/grammaire/mecanique';
-import type { DetailText, ManeuverDef, ManeuverMeasure } from '../../../data';
+import { ChipDeRefus } from '../../ChipDeRefus';
+import { maladies, type DetailText, type ManeuverDef, type ManeuverMeasure, type SteamBreakdownEntry } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
 import type { ArmeDerivee } from '../../../data';
-import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
+import {
+  SymptomsField,
+  SymptomTickField,
+  DiseaseDailyTestField,
+  type DiseaseDailyTest,
+  ShipCrewHitField,
+  type ShipCrewHitValue,
+  TalentTestField,
+  CombatField,
+  AdvancementRefField,
+  TrappingRefField,
+  CharKeysField,
+  DomainEffectsField,
+  TraitListField,
+  OptionalsListField,
+  HarvestField,
+  SpecsField,
+  RuleValueField,
+  RuleActionField,
+  type RuleShape,
+} from './StructFields';
 import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
@@ -827,6 +875,7 @@ function SpellEffectsField({ value, onChange }: { value: Flow | undefined; onCha
  *  record `traits.json`/`qualities.json` au save → `noyau/triggeredEffects` les applique en jeu. */
 function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclenchés (déclencheur → Flow d’ops, comme un sort)' }: { value: TriggeredEffect[] | undefined; onChange: (v: TriggeredEffect[]) => void; noeud?: unknown; label?: string }) {
   const ctx = useMemo(() => ({ ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeud) }), [noeud]);
+  const [refus, setRefus] = useState<string>();
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const add = () => onChange([...list, { trigger: 'onHit', on: 'victime', flow: EMPTY_FLOW }]);
@@ -834,6 +883,7 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
   return (
     <div className="ed-field">
       <span>{label}</span>
+      {refus && <ChipDeRefus refus={{ message: refus }} />}
       {list.map((eff, i) => (
         <div className="ed-subfield trait-effect" key={cles[i]}>
           <div className="tf-row">
@@ -869,7 +919,11 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
             </label>
             <button className="btn small danger" title="Supprimer l’effet" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => set(i, { flow })} />
+          <FlowEditor flow={eff.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => {
+            const admis = flowDeFeuilles(flow, (e): e is EffectOp => e.type === 'ops');
+            setRefus(admis ? undefined : 'Un effet déclenché n’enchaîne que des opérations : cet Effet est refusé, le Flow reste inchangé.');
+            if (admis) set(i, { flow });
+          }} />
         </div>
       ))}
       <button className="btn small" onClick={add}>+ Effet de trait</button>
@@ -1303,7 +1357,6 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
   const de = deDeLaTableTiree(value);
   const [bas, haut] = [totalDuDe(de, de.n), facesDuDe(de)];
   const libelleDe = formatDice(de);
-  const maladieOpts = datasetArray('maladies') as { id: string; label: string }[];
   const poser = (entries: WaterExposureData['diseases']['entries']) => onChange({ die, entries });
   const set = (i: number, patch: Partial<WaterExposureData['diseases']['entries'][number]>) => poser(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
@@ -1313,15 +1366,14 @@ function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['dis
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <label className="dr">{libelleDe}&nbsp;<NumberField variant="nu" label={`Plage ${libelleDe} — borne basse`} min={bas} max={haut} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label={`Plage ${libelleDe} — borne haute`} min={bas} max={haut} value={r.max} onChange={(max) => set(i, { max })} /></label>
-          <select value={r.disease} onChange={(e) => set(i, { disease: e.target.value })}>
-            <option value="">— (choisir une maladie) —</option>
-            {maladieOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          <select value={r.disease} onChange={(e) => { const m = maladies.find((o) => o.id === e.target.value); if (m) set(i, { disease: m.id }); }}>
+            {maladies.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <label className="dr"><input type="checkbox" checked={!!r.rerollUnlessWounded} onChange={(e) => set(i, { rerollUnlessWounded: e.target.checked || undefined })} /> relance si indemne</label>
           <button className="btn small danger" title="Retirer" onClick={() => poser(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: '' }])}>+ Maladie</button>
+      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: maladies[0].id }])}>+ Maladie</button>
     </div>
   );
 }

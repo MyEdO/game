@@ -37,7 +37,7 @@ describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', (
 
   it('choix BORNÉ : la désignation reste DANS les ids que la donnée borne', () => {
     const borne = ['armurier', 'forgeron'];
-    const fiche = { ...findCreatureById('humain')!, id: 'artisan-borne', skills: [{ id: 'metier', choix: borne, value: 50 }] };
+    const fiche = { ...findCreatureById('humain')!, skills: [{ id: 'metier', choix: borne, value: 50 }] };
     for (const uid of ['b-1', 'b-2', 'b-3', 'b-4', 'b-5']) {
       const metier = creatureToCombatant(fiche, uid, { x: 0, y: 0 }).skills.filter((s) => s.id === 'metier');
       expect(metier).toHaveLength(1);

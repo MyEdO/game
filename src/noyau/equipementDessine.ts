@@ -5,7 +5,20 @@
  * lire (`armeDeDessin`), keyés par ids stables.
  */
 import type { Combatant, Weapon, Main } from '../engine/types';
-import { apparencesCandidates, apparencesObjetsDe, deciderApparencesDesArmes, isWeaponActive, objetDeSlot, objetsDeLInventaire, peutEtreTenu, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
+import {
+  apparencesCandidates,
+  apparencesObjetsDe,
+  deciderApparencesDesArmes,
+  isWeaponActive,
+  objetDeSlot,
+  objetsDeLInventaire,
+  peutEtreTenu,
+  weaponFromItem,
+  weaponHands,
+  type ContexteDeManiement,
+  type TrappingResolver,
+  isShieldItem,
+} from '../engine/items';
 import { renderWeaponsFromTraits, traitsDevantLEquipement } from '../engine/creatureEquip';
 import type { TraitInstance } from '../engine/statEntry';
 import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';

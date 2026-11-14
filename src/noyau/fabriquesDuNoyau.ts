@@ -31,7 +31,13 @@ import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
 import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { choixDInterlude, cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
-import { choixDeLaBataille, creerActionsDeBatailleDeMasse, massBattleResumeCombat, sortiesDeBatailleDeMasse, validationsDeBatailleDeMasse } from './massBattleFlow';
+import {
+  choixDeLaBataille,
+  creerActionsDeBatailleDeMasse,
+  massBattleResumeCombat,
+  sortiesDeBatailleDeMasse,
+  validationsDeBatailleDeMasse,
+} from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
@@ -39,7 +45,15 @@ import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { choixDeConversation } from './conversation';
-import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand, type ModeDEvaluation, type ModeDeMarche } from './merchantFlow';
+import {
+  choixDuMarchand,
+  cloturesDuMarchand,
+  creerActionsDuMarchand,
+  sortiesDuMarchand,
+  validationsDuMarchand,
+  type ModeDEvaluation,
+  type ModeDeMarche,
+} from './merchantFlow';
 import { creerActionsDeTaverne, sortiesDeLaTaverne, type TavernOpponent } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
 import { choixDuButin, creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
@@ -65,7 +79,18 @@ import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 import type { BattleState, NetState, ShootingStanceKey } from './etat';
 import type { AttackPlan, MovementResolution } from './combatFlow';
-import type { CounterDeclaration, EnchainementDuCoup, IssueDEmpoignade, IssueOpposee, PendingAppraise, PendingAuContact, PendingDisengage, PendingGrapple, ReactionDeBouclier, RevealEntry } from './pendings';
+import type {
+  CounterDeclaration,
+  EnchainementDuCoup,
+  IssueDEmpoignade,
+  IssueOpposee,
+  PendingAppraise,
+  PendingAuContact,
+  PendingDisengage,
+  PendingGrapple,
+  ReactionDeBouclier,
+  RevealEntry,
+} from './pendings';
 import type { ZoneEnPose } from './targetingHolder';
 import type { VerdictApprentissage } from '../engine/grimoire';
 import type { OrientationOutcome } from '../engine/seaNavigation';

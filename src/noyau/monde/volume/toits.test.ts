@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { boundarySegs, buildRoofs, clearedSpace, depthToEave, fieldHeightAt, gableEnds, roofPans, massRoomZoneIds, massSpaceCells, nappeKey, resolveMass, resolveNappes, riseAt, ROOF_SLOPE_M, type RoofShapeSpec } from './toits';
+import {
+  boundarySegs,
+  buildRoofs,
+  clearedSpace,
+  depthToEave,
+  fieldHeightAt,
+  gableEnds,
+  roofPans,
+  massRoomZoneIds,
+  massSpaceCells,
+  nappeKey,
+  resolveMass,
+  resolveNappes,
+  riseAt,
+  ROOF_SLOPE_M,
+  type RoofShapeSpec,
+} from './toits';
 import { massFootprintCells } from '../buildings';
 import type { RoofLine } from './types';
 import type { Face, GP } from './types';

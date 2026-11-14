@@ -5,7 +5,18 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
 import { CAS_HOTE_POWERSHELL, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
-import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, borneDeVie, secondesDeDuree, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, nouveauBudget } from './commandeShell.mjs'
+import {
+  GRAMMAIRES_HOTE_POWERSHELL,
+  argumentChaine,
+  borneDeVie,
+  secondesDeDuree,
+  valeurParametre,
+  pipelinesDeJetons,
+  texteDuSegment,
+  cibleDeLaCommande,
+  ciblesDeRedirectionAvecProvenance,
+  nouveauBudget,
+} from './commandeShell.mjs'
 import { ciblesDEcritureDeCommande } from './ecrituresShell.mjs'
 
 test('redirections : provenance de la cible séparée ou collée', () => {
