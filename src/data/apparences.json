@@ -186,6 +186,11 @@
     "label": "Herbes"
   },
   {
+    "id": "pilon_et_mortier",
+    "type": "apparences",
+    "label": "Pilon et mortier"
+  },
+  {
     "id": "cimeterre",
     "type": "apparences",
     "label": "Cimeterre"

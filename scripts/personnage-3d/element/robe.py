@@ -5,7 +5,7 @@ Jusqu'à trois nappes doubles jointes en une pièce :
 - `robe` (robe de dessus) : le corsage, anneaux horizontaux coupés dans les zones du tronc et du cou, ouverts devant en
   V là où `CORSAGE` leur donne une demi-ouverture, fermés au-dessus jusqu'au cou ; la jupe, rangées ouvertes devant en V
   sous la ceinture (`OUVERTURE_TAILLE`, `OUVERTURE_OURLET`, fermées à 0), posée au jeu sur le filet `jupe` de la base au
-  repos, jamais à moins du dégagement des jambes, l'ourlet en lambeaux si `LAMBEAUX_ROBE` ; chaque manche, anneaux
+  repos, jamais à moins du dégagement des jambes, l'ourlet en lambeaux si `LAMBEAUX_ROBE` ; chaque manche de `MANCHE` (vide pour une jupe), anneaux
   perpendiculaires à `upperarm`, ajustée jusqu'au coude puis en cloche au-delà, un pan incliné sur l'axe du bras, fermée
   à l'épaule par un cône dans le corps, le bord en lambeaux si `LAMBEAUX_MANCHE` ;
 - `dessous` (robe de dessous, si `MATERIAUX` la nomme) : la jupe fermée, sous la robe de dessus, vue par l'ouverture et
@@ -200,7 +200,20 @@ def construire(D, materiaux, b):
         for (A, ca), (B, cb) in zip(jupe_dessous, jupe_dessous[1:]):
             dessous.bande(A, B, (ca + cb) / 2)
 
-    # Manches.
+    # Manches, s'il en est : une jupe n'en a pas.
+    if D['MANCHE']:
+        manches(D, b, robe, porteurs)
+    for nom in D.get('EMPLACEMENTS_DEPLACES', []):
+        deplacer(b, robe, nom)
+    piece = joindre([piece_de(D, b, nappe_, materiaux[nom], nom)
+                     for nom, nappe_ in (('robe', robe), ('dessous', dessous), ('poitrine', poitrine)) if nappe_.sommets])
+    b.transferer(piece, PORTEUSES, D['BORNES_DES_CLES'])
+    return piece
+
+
+def manches(D, b, robe, porteurs):
+    """Chaque manche de `robe`, anneaux perpendiculaires à `upperarm` (`MANCHE`), fermée à l'épaule par un cône dans le
+    corps."""
     s = D['SEGMENTS_MANCHE']
     phis = [360.0 * i / s for i in range(s)]
     dirs_m = [np.array([math.cos(math.radians(t)), math.sin(math.radians(t))]) for t in phis]
@@ -244,10 +257,3 @@ def construire(D, materiaux, b):
                           [emprunter(cR, porteurs[c])[0]])[0]
         for i in range(s):
             robe.triangle(R[i], R[(i + 1) % s], fond, cR + (cR - liste[1][1]))
-
-    for nom in D.get('EMPLACEMENTS_DEPLACES', []):
-        deplacer(b, robe, nom)
-    piece = joindre([piece_de(D, b, nappe_, materiaux[nom], nom)
-                     for nom, nappe_ in (('robe', robe), ('dessous', dessous), ('poitrine', poitrine)) if nappe_.sommets])
-    b.transferer(piece, PORTEUSES, D['BORNES_DES_CLES'])
-    return piece

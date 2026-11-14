@@ -360,5 +360,119 @@
         "id": "vert-feuille"
       }
     }
+  },
+  {
+    "id": "apothicaire",
+    "type": "presets-de-personnage",
+    "label": "Apothicaire",
+    "source": {
+      "book": "livre-de-base",
+      "page": 85,
+      "note": "Illustration LDB page 87 du PDF, folio imprimé 85 (`data-folio=\"85\"`, « 08 - Statut.md » l.1985), hors dépôt, et son contrat d’éléments (#4261). Carrière Apothicaire (`apothicaire`), dont les possessions d’Apprenti donnent « livre (vierge), décoction de guérison, pourpoint » (LDB 08 l.2019), et la classe Lettrés « vêtements, dague, bourse, besace » (LDB 05 l.562). Le pourpoint est la variante `pourpoint-matelasse` de la pièce `pourpoint` : la veste rose matelassée de l’illustration, aux manches bouffantes, qui descend sur les hanches par-dessus la jupe. La longue jupe brune effilochée est la pièce `jupe`, le foulard vert noué au cou la pièce `foulard`, la coiffe de cuir à oreillettes la pièce `bonnet`, sous laquelle tombent les deux nattes de la coiffure `cheveux-nattes`. La hotte d’osier portée au dos est la pièce `hotte`, qui offre l’emplacement `charge_dos` et ses cases : les fioles qui la remplissent sont des décoctions de guérison (`potion-de-guerison`), rangées chacune dans sa case, jamais cuites dans la hotte (#4261). Les deux fioles de la hanche droite sont des potions de vitalité (`potion-de-vitalite`, choix d’adaptation entre les potions du jeu), à côté de la dague, rangée à la hanche droite (`ceinture_d`, rangement de son trapping). L’étui de cuir bouclé devant la ceinture est le livre vierge (`livre`, `ceinture_avant`), HYPOTHÈSE de lecture (#4261). Le sac clouté de la hanche gauche est la besace (`ceinture_g`), à côté du pilon et du mortier (`pilon-et-mortier`, `ceinture_g`), HYPOTHÈSE de lecture : la corne cerclée de métal et le bol voisin. Le crâne pendu au collier est l’amulette (`amulette`), rangée au cou (`cou`). La bourse, que l’illustration ne montre pas, se range derrière (`ceinture_arriere`). Le rouleau de la main gauche est un parchemin (`parchemin`), tenu à la main secondaire. La main droite bandée porte les bandages (`bandages`), que leur ensemble habille de la pièce `bandages`. Les jambes, sous l’ourlet, portent les bas et les bottes (`bas`, `bottes`), les souliers de l’illustration. Omis : la fourrure gris-vert du haut du dos sous les bretelles, les deux fuseaux à crânes du collier, le rouleau et la plume glissés sur la coiffe, la longue bande de parchemin pendue de la main droite, le crâne d’oiseau au bout de la chaîne de la ceinture, la cordelière tressée en travers de la jupe, le coffre et les bouteilles posés au sol (décor). Le sexe est féminin, celui de l’illustration. La corpulence vaut 0,6, la silhouette trapue et le visage rond de l’illustration (HYPOTHÈSE, #4261). Les couleurs sont lues sur l’illustration, chacune la plus proche du nuancier, qui reçoit pour elle le vieux rose du pourpoint et le vert sauge du foulard qu’il n’avait pas : teint mat, cheveux bruns, jupe brune (`vet1`), pourpoint vieux rose (`vet2`), cuir fauve de la coiffe, des bretelles et de la besace, foulard vert sauge (`accent`), osier brun de la hotte (`bois`), laiton du pilon, tranche du livre sable (`corne`). Le parchemin et les bandages, de l’emplacement `vet2` du pourpoint, prennent son vieux rose, et les fioles, de l’emplacement `accent` du foulard, son vert sauge : aucun emplacement libre ne leur reste."
+    },
+    "race": {
+      "id": "humain"
+    },
+    "sex": "F",
+    "build": 0.6,
+    "tete": {
+      "id": "humain"
+    },
+    "coiffure": {
+      "id": "cheveux-nattes"
+    },
+    "pieces": [
+      "jupe",
+      "pourpoint",
+      "foulard",
+      "bonnet",
+      "hotte",
+      "bas",
+      "bottes"
+    ],
+    "variantesPieces": {
+      "pourpoint": {
+        "id": "pourpoint-matelasse"
+      }
+    },
+    "objets": [
+      "amulette",
+      "livre",
+      "besace",
+      "pilon-et-mortier",
+      "dague",
+      "potion-de-vitalite",
+      "potion-de-vitalite",
+      "bourse",
+      "bandages",
+      "potion-de-guerison",
+      "potion-de-guerison",
+      "potion-de-guerison",
+      "potion-de-guerison",
+      "potion-de-guerison",
+      "potion-de-guerison",
+      "potion-de-guerison",
+      "potion-de-guerison"
+    ],
+    "rangementsObjets": {
+      "amulette": {
+        "id": "cou"
+      },
+      "livre": {
+        "id": "ceinture_avant"
+      },
+      "besace": {
+        "id": "ceinture_g"
+      },
+      "pilon-et-mortier": {
+        "id": "ceinture_g"
+      },
+      "potion-de-vitalite": {
+        "id": "ceinture_d"
+      },
+      "bourse": {
+        "id": "ceinture_arriere"
+      },
+      "potion-de-guerison": {
+        "id": "charge_dos"
+      }
+    },
+    "prises": {
+      "secondaire": {
+        "id": "parchemin"
+      }
+    },
+    "couleurs": {
+      "peau": {
+        "id": "peau-mate"
+      },
+      "cheveux": {
+        "id": "cheveux-bruns"
+      },
+      "yeux": {
+        "id": "yeux-marron"
+      },
+      "vet1": {
+        "id": "tissu-brun"
+      },
+      "vet2": {
+        "id": "tissu-vieux-rose"
+      },
+      "cuir": {
+        "id": "cuir-fauve"
+      },
+      "metal": {
+        "id": "laiton"
+      },
+      "accent": {
+        "id": "tissu-vert-sauge"
+      },
+      "bois": {
+        "id": "bois-brun"
+      },
+      "corne": {
+        "id": "tissu-sable"
+      }
+    }
   }
 ]

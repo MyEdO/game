@@ -120,6 +120,12 @@
     "kind": "emplacement"
   },
   {
+    "id": "charge_dos",
+    "type": "garde-robe",
+    "label": "Charge du dos",
+    "kind": "emplacement"
+  },
+  {
     "id": "casque",
     "type": "garde-robe",
     "label": "Casque",
@@ -246,6 +252,27 @@
     "categorie": "vetement"
   },
   {
+    "id": "jupe",
+    "type": "garde-robe",
+    "label": "Jupe",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "foulard",
+    "type": "garde-robe",
+    "label": "Foulard",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "bonnet",
+    "type": "garde-robe",
+    "label": "Bonnet",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
     "id": "insigne",
     "type": "garde-robe",
     "label": "Insigne",
@@ -303,6 +330,16 @@
     "categorie": "accessoire",
     "emplacement": {
       "id": "ceinture_avant_d"
+    }
+  },
+  {
+    "id": "hotte",
+    "type": "garde-robe",
+    "label": "Hotte",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "dos"
     }
   },
   {
@@ -384,6 +421,15 @@
     "kind": "variante",
     "piece": {
       "id": "ceinture"
+    }
+  },
+  {
+    "id": "pourpoint-matelasse",
+    "type": "garde-robe",
+    "label": "Pourpoint matelassé",
+    "kind": "variante",
+    "piece": {
+      "id": "pourpoint"
     }
   },
   {
@@ -586,6 +632,12 @@
     "id": "calvitie-et-barbe-rase",
     "type": "garde-robe",
     "label": "Couronne dégarnie et barbe rase",
+    "kind": "coiffure"
+  },
+  {
+    "id": "cheveux-nattes",
+    "type": "garde-robe",
+    "label": "Cheveux nattés",
     "kind": "coiffure"
   },
   {
