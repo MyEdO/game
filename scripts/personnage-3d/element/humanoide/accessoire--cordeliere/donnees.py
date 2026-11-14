@@ -51,9 +51,10 @@ COTES = 6                         # côtés de la section (HYPOTHÈSE de maillag
 SEGMENTS = 32                     # sections autour de la taille (HYPOTHÈSE de maillage)
 JEU = 0.006
 """HYPOTHÈSE : l'intérieur de la corde à 6 mm de la bure, mesurés le long de chaque rayon de la coupe."""
-LISSAGE_POIDS = 2
-"""Passes laplaciennes des poids empruntés à la bure, comme la bandoulière sur la robe : sans elles, une arête d'un bout
-s'écrasait sous `carrure_plus` (`Slide_Start`, l_c/l_b 0,0026)."""
+LISSAGE_POIDS = 0
+"""Les poids empruntés à la bure, sans lissage : sur la base #4002, la bure pend au filet `jupe` sous la taille, et ses
+sommets passaient devant une corde aux poids lissés quand la hanche plie (porte, 7 clips accroupis ou roulés : 24 lignes
+`couche-traversee` jusqu'à 19 mm à 2 passes, 17 lignes jusqu'à 12 mm sans lissage, 24 jusqu'à 14 mm à une passe)."""
 PORTEE = 0.6                      # m : départ des visées vers la bure, depuis l'axe du corps
 
 NOEUD = {'rayon': 0.016, 'longueur': 0.03, 'segments': 8, 'angle': 45}
