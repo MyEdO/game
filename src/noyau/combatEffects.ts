@@ -85,7 +85,7 @@ import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
 import { ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
-import { placeById } from './worldMap';
+import { placeById, quaiDuGroupe } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
@@ -2164,6 +2164,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
           ...(e.vivre && e.provisions != null ? { provisions: embarquerDesVivres([], e.vivre.id, e.provisions, env.get().gameTime) } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
+          ...quaiDuGroupe(env.get()),
         },
       });
       env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));

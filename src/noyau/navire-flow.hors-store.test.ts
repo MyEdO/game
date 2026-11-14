@@ -48,7 +48,7 @@ import { formatMoney, fromBrass, toBrass } from '../engine/money';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { checkBattleOver } from './combatFlow';
 import { humanizeFlow } from './codex/humanize';
-import { currentPort, devisDAchatEnPort, ouvrirLePort, vivresAchetables } from './portFlow';
+import { currentPort, devisDAchatEnPort, ouvrirLePort, recruterLEquipage, rolesRecrutables, vivresAchetables } from './portFlow';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
 import type { QuantitesDeVivres } from '../engine/provisions';
 import { lotsDeCale, quantitesDeCale } from '../engine/caleDeTest.testkit';
@@ -286,7 +286,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   });
 
   it('le carénage lève les modificateurs « jusqu’au carénage », pas les autres (l.185)', () => {
-    set({ vessel: { ...get().vessel!, modificateurs: [{ label: 'Crabes', m: -1, manDR: -1, jusqua: 'carenage' }, { label: 'Détour', m: -2, jusqua: ilYA(1) }] } });
+    set({ vessel: { ...get().vessel!, escale: 'A', modificateurs: [{ label: 'Crabes', m: -1, manDR: -1, jusqua: 'carenage' }, { label: 'Détour', m: -2, jusqua: ilYA(1) }] } });
     creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
     portCareenVessel(get, set);
     expect(get().vessel!.modificateurs).toEqual([expect.objectContaining({ label: 'Détour' })]);
@@ -504,6 +504,21 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 3 } as never]);
     expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 3 });
     expect(get().journal).toContain(t('eff.navireModifie', { parts: t('eff.navireProvisions', { n: 43 }) }));
+  });
+
+  it('setVessel au lieu portuaire du groupe pose le navire à quai : l’embauche y est acceptée (MDG 15 l.129)', () => {
+    set({ vessel: null, lieu: 'B' });
+    applyEffects(get, set, [{ type: 'setVessel', vehicleId: 'cogue' } as never]);
+    expect(get().vessel!.escale).toBe('B');
+    const role = rolesRecrutables()[0]!.id;
+    recruterLEquipage(get, set, role);
+    expect(get().vessel!.crew).toEqual([{ roleId: role, count: 1 }]);
+  });
+
+  it('setVessel hors d’un lieu portuaire pose le navire hors de tout quai (MDG 15 l.129)', () => {
+    set({ vessel: null, lieu: 'A' });
+    applyEffects(get, set, [{ type: 'setVessel', vehicleId: 'cogue' } as never]);
+    expect(get().vessel).not.toHaveProperty('escale');
   });
 
   it('la pénurie gâte chaque vivre du lot le plus vieux au plus jeune (MDG 15 l.169-170)', () => {

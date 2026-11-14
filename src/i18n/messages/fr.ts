@@ -3924,7 +3924,7 @@ export const fr = {
   'port.roleSansSolde': '{role} : aucun barème de solde, rôle non recrutable.',
   'port.aucunABord': 'Aucun {role} à bord.',
   'port.sansNavire': 'Aucun navire de campagne.',
-  'port.pasAQuai': 'Le navire n’est pas à quai.',
+  'port.pasAQuai': 'Le navire n’est pas à quai ici.',
   'port.avitaillementVide': 'Indiquez des rations ou des tonneaux à embarquer.',
   'port.vivreHorsVente': '« {vivre} » ne s’achète pas pour la cale à cette escale.',
   'port.vivresSansSuivi': 'Les vivres de l’équipage ne sont pas suivis sur ce navire.',

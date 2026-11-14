@@ -56,7 +56,7 @@ describe('#3646 — unité du prix de base d’une cargaison, par voie', () => {
   });
 
   it('mer : un lot de 10 Enc d’un bien à P CO au livre coûte 10·P CO avant Marchandage (MDG 15 l.436)', () => {
-    const vessel = { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as unknown as CampaignVessel;
+    const vessel = { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, escale: 'A' } as unknown as CampaignVessel;
     const p = partie({
       id: 'm', label: 'Mer', routes: [],
       places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' }, port: { taille: 4, richesse: 4, production: ['sel', 'metaux', 'bois-mer'] } as never }],
