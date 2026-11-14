@@ -1486,7 +1486,7 @@ describe('services portuaires (#30)', () => {
   beforeEach(freshState);
 
   it('réparation au port : 1 CO par Blessure restaurée (MDG 13 l.643), le temps de chantier passe', () => {
-    set({ vessel: { ...get().vessel!, wounds: { current: 40, max: 50 } } });
+    set({ vessel: { ...get().vessel!, escale: 'A', wounds: { current: 40, max: 50 } } });
     creditBourse(get, set, get().party[0].id, { gold: 20, silver: 0, brass: 0 });
     const t0 = get().gameTime;
     const lines = portRepairVessel(get, set);
@@ -1501,6 +1501,7 @@ describe('services portuaires (#30)', () => {
   });
 
   it('pose d’une Amélioration : coût par bande de Taille (MDG 12) — Nid-de-pie sur une cogue (25 m, Moyenne) = 5 CO', () => {
+    set({ vessel: { ...get().vessel!, escale: 'A' } });
     creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
     const lines = installerLAmelioration(get, set, 'nid-de-pie');
     expect(lines[0]).toContain('Nid-de-pie');

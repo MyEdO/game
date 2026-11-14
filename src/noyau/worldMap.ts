@@ -304,6 +304,13 @@ export function lieuDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null
   return s.lieu && s.worldMap ? placeById(s.worldMap, s.lieu) : undefined;
 }
 
+/** Le quai d'un navire de campagne POSÉ là où se tient le groupe : à quai (`escale`) au lieu du groupe s'il est
+ *  portuaire, en mer sinon. SOURCE UNIQUE des poses du navire (effet `setVessel`, lancement de scénario). MDG 15 l.129 */
+export function quaiDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null }): { escale?: string } {
+  const lieu = lieuDuGroupe(s);
+  return lieu?.port ? { escale: lieu.id } : {};
+}
+
 /** Catégorie d'un service résolu — routage du hub de lieu (#343). `port`/`marche`/`auberge` ont un
  *  panneau dédié ; `autre` = service de catalogue générique (temple/forgeron/guilde…). */
 export type PlaceServiceCategory = 'port' | 'marche' | 'auberge' | 'autre';
