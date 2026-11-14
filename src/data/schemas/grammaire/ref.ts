@@ -168,6 +168,27 @@ const FEUILLES_LOCALES = new WeakMap<object, PorteeLocale>();
 export const porteeDeLaFeuille = (noeud: unknown): PorteeLocale | undefined =>
   typeof noeud === 'object' && noeud !== null ? FEUILLES_LOCALES.get(noeud) : undefined;
 
+/** La portée où l'objet qui l'ouvre (`ouvrirPortees`) juge la valeur `id` de la feuille `noeud` : celle de `ref(portee)`,
+ *  ou celle d'une feuille `idDe(type, sousListe, { portee })` pour un id ABSENT de son espace (un id présent, la
+ *  feuille le juge) ; sans `id`, la portée que la feuille déclare. `undefined` hors de ces feuilles. */
+export function porteeDuJugementLocal(noeud: unknown, id?: string): PorteeLocale | undefined {
+  const locale = porteeDeLaFeuille(noeud);
+  if (locale !== undefined) return locale;
+  const declaration = declarationLue(noeud);
+  if (declaration?.portee === undefined) return undefined;
+  return id === undefined || !idsDesignes(espaceDe(declaration.type), siteDuJugementLocal(declaration.type)).has(id) ? declaration.portee : undefined;
+}
+
+const siteDuJugementLocal = (type: TypeEntite): string => `idDe('${type}', …, { portee })`;
+
+/** Le refus de l'id `id` de la référence locale `noeud`, absent de la collection de sa portée : sous une portée déclarée
+ *  VIDE (`ouvrirPortees(…, 'vide')`), la feuille `idDe(type, sousListe, { portee })` vaut son catalogue seul et refuse
+ *  comme lui (`refusDe`) ; sinon `refMorteLocale`. */
+export function refusDeLaRefLocale(noeud: unknown, portee: PorteeLocale, id: string, vide: boolean): string {
+  const declaration = vide && porteeDeLaFeuille(noeud) === undefined ? declarationLue(noeud) : undefined;
+  return (declaration && refusDe(declaration.type, declaration.sousListe, siteDuJugementLocal(declaration.type), id)) ?? refMorteLocale(portee, id);
+}
+
 /** Clé de l'espace qui fait autorité sur les ids d'un type. */
 export function espaceDe(type: TypeEntite): string {
   return TYPES[type].espace;
@@ -397,13 +418,13 @@ const REPERE_OP: unique symbol = Symbol('repère de nœud d’op');
 /** Un `mesureDuParse` est-il en cours ? Le temps SYNCHRONE de l'appel, qui seul l'écrit, et jamais ailleurs : aucun export n'expose l'état. */
 let parseDeMesure = false;
 
-/** Ce qu'une feuille `idDe` déclare : le type référencé, sa sous-liste, `ouverte` (un id absent de
- *  l'espace est admis sans être une référence du type), et `repereDuPorteur` (la feuille n'émet pas son
- *  repère au parse de mesure : son porteur l'émet, `recordDIds`). */
+/** Ce qu'une feuille `idDe` déclare : le type référencé, sa sous-liste, `portee` (un id absent de l'espace
+ *  n'est pas une référence du type : l'objet qui ouvre la portée le juge contre sa collection), et
+ *  `repereDuPorteur` (la feuille n'émet pas son repère au parse de mesure : son porteur l'émet, `recordDIds`). */
 export interface FeuilleDId {
   readonly type: TypeEntite;
   readonly sousListe?: SousListe;
-  readonly ouverte: boolean;
+  readonly portee?: PorteeLocale;
   readonly repereDuPorteur?: true;
 }
 
@@ -449,34 +470,34 @@ export function espacesDesignes(): string[] {
  * la table (`idsVivants.ts`, en-tête) : un espace désigné et absent LÈVE au parse, et
  * `espaces-contrat.test.ts` exige la cible de chaque désignation (`espacesDesignes`).
  *
- * `ouverte` : le porteur admet aussi un id ABSENT de l'espace, que son runtime résout ailleurs (Effet
- * `giveTrapping` : objets de la campagne, `noyau/monde/resolveursDuNarratif.ts`, sinon objet `custom`) ; un id
- * PRÉSENT reste jugé par la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence
- * du type.
+ * `portee` : un id ABSENT de l'espace désigne une entrée de la collection de la PORTÉE LOCALE `portee`
+ * (objets de la campagne, `OBJETS_DU_PROJET`) : l'objet qui l'ouvre (`ouvrirPortees`) le juge et en émet le
+ * repère local ; hors de tout ouvreur, la feuille l'admet sans le juger. Un id PRÉSENT reste jugé par la
+ * sous-liste et n'émet que le repère du type.
  *
  * `nue` : la sortie reste un `string` ouvert — la réf que le moteur et ses appelants construisent
  * nue partout (`SourceRef.book`, `grammaire/valeurs.ts`). Le jugement au parse est le même.
  */
-export function idDe<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, options: { readonly ouverte?: boolean; readonly nue: true }): z.ZodType<string, string>;
-export function idDe<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, sousListe?: S, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T, S>, string>;
-export function idDe<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, sousListe?: S, options?: { readonly ouverte?: boolean; readonly nue?: true }): z.ZodType<Id<T, S>, string> {
-  return feuilleDId(type, sousListe, options?.ouverte === true, true);
+export function idDe<T extends TypeEntite>(type: T, sousListe: SousListe | undefined, options: { readonly portee?: PorteeLocale; readonly nue: true }): z.ZodType<string, string>;
+export function idDe<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, sousListe?: S, options?: { readonly portee?: PorteeLocale }): z.ZodType<Id<T, S>, string>;
+export function idDe<T extends TypeEntite, S extends SousListe | undefined = undefined>(type: T, sousListe?: S, options?: { readonly portee?: PorteeLocale; readonly nue?: true }): z.ZodType<Id<T, S>, string> {
+  return feuilleDId(type, sousListe, options?.portee, true);
 }
 
 /** Le corps de `idDe`. `avecRepere` : la feuille émet son repère au parse de mesure ; sans repère, le
  *  porteur l'émet lui-même (`recordDIds`, dont la clé ne doit porter aucune issue pour que zod en parse
  *  la valeur). */
-function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type: T, sousListe: S | undefined, ouverte: boolean, avecRepere: boolean): z.ZodType<Id<T, S>, string> {
+function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type: T, sousListe: S | undefined, portee: PorteeLocale | undefined, avecRepere: boolean): z.ZodType<Id<T, S>, string> {
   const site =
     (sousListe === undefined
       ? `idDe('${type}'`
       : typeof sousListe === 'string'
         ? `idDe('${type}', '${sousListe}'`
-        : `idDe('${type}', { horsMarqueurs: [${sousListe.horsMarqueurs.map((m) => `'${m}'`).join(', ')}] }`) + (ouverte ? ', { ouverte: true })' : ')');
+        : `idDe('${type}', { horsMarqueurs: [${sousListe.horsMarqueurs.map((m) => `'${m}'`).join(', ')}] }`) + (portee ? `, { portee: '${portee.collection}' })` : ')');
   const feuille = z
     .string()
     .superRefine((v, ctx) => {
-      if (ouverte && !idsDesignes(espaceDe(type), site).has(v)) return;
+      if (portee && !idsDesignes(espaceDe(type), site).has(v)) return;
       const refus = refusDe(type, sousListe, site, v);
       if (refus === null) {
         if (parseDeMesure && avecRepere) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
@@ -485,7 +506,7 @@ function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type:
       ctx.addIssue({ code: 'custom', message: refus });
     })
     .transform((v) => v as Id<T, S>);
-  const declaration: FeuilleDId = sousListe === undefined ? { type, ouverte } : { type, sousListe, ouverte };
+  const declaration: FeuilleDId = { type, ...(sousListe === undefined ? {} : { sousListe }), ...(portee === undefined ? {} : { portee }) };
   declarerFeuilleDId(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
   else {
@@ -507,12 +528,17 @@ export function marquerOpAtteinte(ctx: z.RefinementCtx): void {
 
 /**
  * Jugement d'une référence LOCALE `id`, au `path` de sa feuille sous l'objet qui ouvre sa portée
- * (`ouvrirPortees`) : `admis`, l'id est celui d'une entrée de la collection. Un id refusé porte
- * `refMorteLocale` ; au parse de mesure, un id admis émet son repère.
+ * (`ouvrirPortees`) : `refus`, son refus (`refusDeLaRefLocale`) s'il n'est celui d'aucune entrée de la collection ; au
+ * parse de mesure, un id admis émet son repère. `parCle` : l'id est la CLÉ d'un record,
+ * dernier segment de `path`, et le repère part en `invalid_key` comme celui de `recordDIds`.
  */
-export function jugerRefLocale(ctx: z.RefinementCtx, path: readonly (string | number)[], portee: PorteeLocale, id: string, admis: boolean): void {
-  if (!admis) ctx.addIssue({ code: 'custom', path: [...path], message: refMorteLocale(portee, id) });
-  else if (parseDeMesure) ctx.addIssue({ code: 'custom', path: [...path], message: `repère de ref(${cibleLocale(portee)})`, params: { [REPERE]: cibleLocale(portee) }, continue: true });
+export function jugerRefLocale(ctx: z.RefinementCtx, path: readonly (string | number)[], portee: PorteeLocale, id: string, refus: string | undefined, parCle = false): void {
+  if (refus !== undefined) ctx.addIssue({ code: 'custom', path: [...path], message: refus });
+  else if (!parseDeMesure) return;
+  else if (parCle) {
+    const repere: z.core.$ZodIssueCustom = { code: 'custom', path: [], message: `repère de ref(${cibleLocale(portee)})`, params: { [REPERE]: cibleLocale(portee) } };
+    ctx.addIssue({ code: 'invalid_key', origin: 'record', path: [...path], input: id, issues: [repere], continue: true });
+  } else ctx.addIssue({ code: 'custom', path: [...path], message: `repère de ref(${cibleLocale(portee)})`, params: { [REPERE]: cibleLocale(portee) }, continue: true });
 }
 
 /** Une référence validée au parse de mesure, par `idDe` ou par l'objet qui ouvre sa portée locale : son
@@ -553,6 +579,9 @@ const estPropre = (issue: IssueLue): boolean =>
   estRepereDOp(issue) ||
   (issue.code === 'invalid_union' && (issue.errors ?? []).some((b) => b.length > 0 && b.every(estPropre))) ||
   ((issue.code === 'invalid_key' || issue.code === 'invalid_element') && (issue.issues ?? []).length > 0 && issue.issues!.every(estPropre));
+
+/** L'issue `issue` est-elle une FAUTE, et non un repère du parse de mesure (`estPropre`) ? */
+export const estUneFaute = (issue: unknown): boolean => !estPropre(issue as IssueLue);
 
 /** Ce que rend le parse de mesure : les références validées par `idDe` et le path de DONNÉE de chaque
  *  nœud d'op que `gameOpSchema` a validé (`marquerOpAtteinte`). */
@@ -646,7 +675,7 @@ export function refs(cible: TypeEntite | PorteeLocale, opts?: { min?: number; so
  *  sur chaque clé, en `invalid_key`, après le parse de la valeur. */
 export function recordDIds<T extends TypeEntite, V extends z.ZodType, S extends SousListe | undefined = undefined>(type: T, valeur: V, sousListe?: S) {
   return z
-    .partialRecord(feuilleDId(type, sousListe, false, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
+    .partialRecord(feuilleDId(type, sousListe, undefined, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
     .superRefine((v, ctx) => {
       if (!parseDeMesure) return;
       for (const cle of Object.keys(v)) {
@@ -772,7 +801,7 @@ export function refTypee<V extends string, E extends Record<string, z.ZodType> =
   REFS_TYPEES.set(noeud, {
     types: admis,
     libelles: valeursDe(types) ?? {},
-    branches: Object.fromEntries(branches.map((b) => [b.v, { ...b.cible, ouverte: false, feuille: b.objet.shape.id }])),
+    branches: Object.fromEntries(branches.map((b) => [b.v, { ...b.cible, feuille: b.objet.shape.id }])),
   });
   return noeud;
 }

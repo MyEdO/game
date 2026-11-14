@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { familleDuRepere, idDe, idsDe, mesureDuParse, recordDIds, reperesDuParse, declarationDeFeuilleDId, type FeuilleDId } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { famillesConstruites, gameOpSchema, refDEtatSchema } from './mecanique';
-import { ouReserve } from './valeurs';
+import { OBJETS_DU_PROJET, ouReserve } from './valeurs';
 import { descendre } from './descente';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { DEFS_DE_DOCUMENT } from '../validate';
@@ -153,8 +153,8 @@ interface Sonde {
   avalements: string[];
 }
 
-/** La valeur validée par la feuille est-elle une RÉFÉRENCE ? Non pour un id absent de l'espace d'une feuille ouverte. */
-const estUneReference = (feuille: FeuilleDId, valeur: unknown): boolean => !feuille.ouverte || idsDe(feuille.type).has(String(valeur));
+/** La valeur validée par la feuille est-elle une RÉFÉRENCE du type ? Non pour un id absent de l'espace d'une feuille à portée. */
+const estUneReference = (feuille: FeuilleDId, valeur: unknown): boolean => !feuille.portee || idsDe(feuille.type).has(String(valeur));
 
 /** Instrumente les nœuds atteints depuis les racines ; rend la sonde et la remise à l'identique. */
 function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde: Sonde; restaurer: () => void } {
@@ -296,8 +296,8 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
     ]);
   });
 
-  describe('feuille OUVERTE (`idDe(type, sousListe, { ouverte: true })`)', () => {
-    const ouverte = z.strictObject({ k: idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true }) });
+  describe('feuille À PORTÉE hors de tout ouvreur (`idDe(type, sousListe, { portee })`)', () => {
+    const ouverte = z.strictObject({ k: idDe('trapping', INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET }) });
     const OBJET = IDS_PAR_ESPACE['trappings.json'].find((id) => !IDS_PAR_ESPACE['trappings.json?service'].includes(id))!;
 
     it('un id PRÉSENT rend 1 repère, sans faute', () => {

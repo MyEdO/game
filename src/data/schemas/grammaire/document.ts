@@ -18,7 +18,7 @@ import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesCha
 import { exigeSource } from './sans-livre';
 import { marquerProduit } from './interne/produits';
 import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
-import { marquerCollection, marqueDeListe, marqueDeRecord, refusDeCharge, type EspaceDeNoms } from './collection-cle';
+import { marquerCollection, marqueDeListe, marqueDeRecord, ouvrirLesPorteesSansCollection, refusDeCharge, type EspaceDeNoms } from './collection-cle';
 import { estObjet } from '../../../lib/objet.mjs';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
@@ -738,7 +738,8 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   const avecCharge = refusCharge
     ? (avecProse.superRefine((v, ctx) => refusCharge(v as Record<string, unknown>, ctx)) as z.ZodObject<z.ZodRawShape>)
     : avecProse;
-  const affine = affinerEntree ? affinerEntree(avecCharge) : avecCharge;
+  // PORTÉES LOCALES sans collection : une feuille `idDe(…, { portee })` du document y vaut son catalogue seul.
+  const affine = ouvrirLesPorteesSansCollection(affinerEntree ? affinerEntree(avecCharge) : avecCharge, `document('${type}')`);
   nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
 

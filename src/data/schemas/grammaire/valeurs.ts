@@ -14,7 +14,9 @@ import { z } from 'zod';
 import { parseStatus, type Money } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
-import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
+import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
+import { estObjet } from '../../../lib/objet.mjs';
+import type { TrappingData } from '../../index';
 
 import {
   type Amateur,
@@ -33,10 +35,10 @@ import {
 } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
-import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
+import { ref, refOuSpec, idDe, refs, specDe, refTypee, type PorteeLocale, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
-import { listeCle } from './collection-cle';
+import { controlerSousPortee, listeCle } from './collection-cle';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit, produitDe } from './interne/produits';
@@ -1141,21 +1143,57 @@ export type Sexe = z.infer<typeof sexeSchema>;
  *  `grammaire/mecanique.ts` (`weaponHand`). */
 export const mainSchema = enumNomme({ main: 'Main directrice', secondaire: 'Main secondaire' });
 
-/** #2948 */
-export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {
-  const message = messageDApparenceDObjet(trappingId, apparence);
-  if (message) ctx.addIssue({ code: 'custom', message, path, params: { referenceDObjet: { trappingId, apparence } } });
+/** Les objets de la campagne (`narratif.objets`), que désignent hors du catalogue l'objet donné (Effet et GameOp
+ *  `giveTrapping`) et la clé d'une apparence par objet (`apparencesDObjetsSchema`) ; le projet l'ouvre (`projetSchema`).
+ *  Déclarée ici et non dans `defs-scenes/communs.ts`, qui importe ce module. */
+export const OBJETS_DU_PROJET = { collection: 'narratif.objets', catalogue: 'objets de la campagne' } as const satisfies PorteeLocale;
+
+type FauteDApparence = { readonly path: readonly (string | number)[]; readonly message: string };
+
+/** #2948 — l'apparence `apparence` de l'objet `trappingId` (absent : objet `custom`), résolu par `resoudre`, au `path`. */
+function fautesDApparence(trappingId: string | undefined, apparence: string, resoudre: TrappingResolver, path: readonly (string | number)[]): FauteDApparence[] {
+  const message = messageDApparenceDObjet(trappingId, apparence, resoudre);
+  return message ? [{ path, message }] : [];
 }
 
-export function validerApparenceDonnee(v: { op?: string; trappingId?: string; apparence?: { id: string } }, ctx: z.RefinementCtx): void {
-  if (v.op && v.trappingId && !findTrappingById(v.trappingId)) ctx.addIssue({ code: 'custom', message: `Objet inconnu « ${v.trappingId} ».`, path: ['trappingId'], params: { referenceDObjet: { trappingId: v.trappingId } } });
-  if (v.apparence) validerApparenceDObjet(v.trappingId, v.apparence.id, ctx, ['apparence', 'id']);
+/** L'objet de la campagne `entree(id)`, en résolveur d'objet. */
+const objetDeLaCampagne = (entree: (id: string) => unknown): TrappingResolver => (id) => entree(id) as TrappingData | undefined;
+
+const signaler = (ctx: z.RefinementCtx, fautes: readonly FauteDApparence[]): void => {
+  for (const f of fautes) ctx.addIssue({ code: 'custom', path: [...f.path], message: f.message });
+};
+
+/** OBJET DONNÉ (Effet et GameOp `giveTrapping`) : l'apparence d'un objet du catalogue ou `custom` se juge au catalogue ;
+ *  celle d'un objet de la campagne, sous `OBJETS_DU_PROJET` (`controlerSousPortee`). */
+export function avecApparenceDObjetDonne<N extends z.ZodType<{ trappingId?: string; apparence?: { id: string } }>>(noeud: N): N {
+  const jugee = noeud.superRefine((v, ctx) => {
+    if (v.apparence && (v.trappingId === undefined || findTrappingById(v.trappingId))) signaler(ctx, fautesDApparence(v.trappingId, v.apparence.id, findTrappingById, ['apparence', 'id']));
+  });
+  return controlerSousPortee(jugee, OBJETS_DU_PROJET, (valeur, entree) => {
+    if (!estObjet(valeur) || typeof valeur.trappingId !== 'string' || entree(valeur.trappingId) === undefined) return [];
+    const apparence = idDApparence(valeur.apparence);
+    return apparence === undefined ? [] : fautesDApparence(valeur.trappingId, apparence, objetDeLaCampagne(entree), ['apparence', 'id']);
+  });
 }
 
-/** Apparence par objet porté, clé = id de trapping : `EntityAppearance.apparencesObjets`, presets de personnage (#3086). */
-export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>, Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
-  for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
-});
+/** L'id d'une référence d'apparence `{ id }` lisible, `undefined` pour toute autre valeur (refusée par son propre nœud). */
+const idDApparence = (apparence: unknown): string | undefined => (estObjet(apparence) && typeof apparence.id === 'string' ? apparence.id : undefined);
+
+/** Apparence par objet porté, clé = id de trapping du catalogue ou objet de la campagne (`OBJETS_DU_PROJET`) :
+ *  `EntityAppearance.apparencesObjets`, presets de personnage (#3086). */
+export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>, Record<string, { id: string }>> = controlerSousPortee(
+  z.record(idDe('trapping', undefined, { portee: OBJETS_DU_PROJET }), ref('apparence')).superRefine((v, ctx) => {
+    for (const [trappingId, apparence] of Object.entries(v)) if (findTrappingById(trappingId)) signaler(ctx, fautesDApparence(trappingId, apparence.id, findTrappingById, [trappingId, 'id']));
+  }),
+  OBJETS_DU_PROJET,
+  (valeur, entree) =>
+    estObjet(valeur)
+      ? Object.entries(valeur).flatMap(([trappingId, apparence]) => {
+          const id = idDApparence(apparence);
+          return id !== undefined && entree(trappingId) !== undefined ? fautesDApparence(trappingId, id, objetDeLaCampagne(entree), [trappingId, 'id']) : [];
+        })
+      : [],
+);
 
 /** Refus d'une espèce d'apparence hors de `especeDApparenceSchema`. */
 export function messageDEspeceInconnue(id: string): string {

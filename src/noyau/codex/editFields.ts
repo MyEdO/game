@@ -179,7 +179,7 @@ export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] |
  *  booléen ; `undefined` pour tout autre nœud. */
 export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
   const formes = ouverts([noeud]);
-  const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.ouverte && datasetDeLEspaceDuType(d.type) !== undefined);
+  const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.portee && datasetDeLEspaceDuType(d.type) !== undefined);
   if (feuilles.length) {
     const vus = new Set<unknown>();
     const membres = formes.filter((n) => !estTransparent(n) && ['enum', 'literal'].includes(defDe(n)?.type ?? '')).flatMap((n) => choixDuNoeud(n) ?? []);

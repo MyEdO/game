@@ -19,9 +19,8 @@ import { ref } from '../grammaire/ref';
 import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { entree as trappingEntree } from '../defs/trappings';
-import { findCreatureById, findTrappingById, trappingDesObjetsPuisDuCatalogue } from '../../index';
-import { messageDApparenceDObjet, type TrappingResolver } from '../../apparencesObjets';
-import type { CreatureData, TrappingData } from '../../index';
+import { findCreatureById, findTrappingById } from '../../index';
+import type { CreatureData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { exclusiviteAdapteDe, refuserSansProvenance } from '../grammaire/document';
 import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
@@ -124,23 +123,6 @@ export const ecartSchema = nommerChamps(z.strictObject({
 /** Un id narratif COLLISIONNE avec la règle globale s'il résout déjà comme créature OU possession. */
 export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureById(id) || !!findTrappingById(id);
 
-/** #2948 */
-export function validerReferencesDObjetsDansCampagne(objets: readonly TrappingData[], ctx: z.RefinementCtx): void {
-  const parId = new Map(objets.map((objet) => [objet.id, objet]));
-  const resolve: TrappingResolver = (id) => trappingDesObjetsPuisDuCatalogue(parId, id);
-  for (let i = ctx.issues.length - 1; i >= 0; i--) {
-    const issue = ctx.issues[i];
-    if (issue.code !== 'custom') continue;
-    const reference = issue.params?.referenceDObjet as { trappingId?: string; apparence?: string } | undefined;
-    if (!reference) continue;
-    const message = reference.apparence
-      ? messageDApparenceDObjet(reference.trappingId, reference.apparence, resolve)
-      : reference.trappingId && resolve(reference.trappingId) ? undefined : issue.message;
-    if (message) ctx.issues[i] = { ...issue, message };
-    else ctx.issues.splice(i, 1);
-  }
-}
-
 /**
  * Sémantique du bloc narratif — unicité des ids INTER-registres (l'unicité DANS un registre est la
  * clé de sa liste, `listeCle`) et anti-collision avec la règle globale, pour chaque registre de
@@ -149,7 +131,6 @@ export function validerReferencesDObjetsDansCampagne(objets: readonly TrappingDa
  * jugées par les fabriques de `profil.skills` et `profil.talents` (`refusDeSpec`). Attachée à `narratifSchema`, elle porte donc le chemin complet (`narratif.indices.3.affaireId`) quand le projet la compose.
  */
 function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx): void {
-  validerReferencesDObjetsDansCampagne(nb.objets, ctx);
   const faute = (path: (string | number)[], message: string): void => ctx.addIssue({ code: 'custom', path, message });
 
   /** Registre qui a déclaré chaque id, dans l'ordre de la table. */

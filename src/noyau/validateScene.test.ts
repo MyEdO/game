@@ -36,6 +36,15 @@ describe('validateScene', () => {
     const change = erreurs({ ...narratif, objets: [{ ...objet, shape: { id: 'epee' }, formChoices: ['epee'] }] });
     expect(change.some((w) => w.message.includes(objet.id) && w.message.includes('hache_naine'))).toBe(true);
   });
+  it('avec un narratif, un objet donné ni au catalogue ni dans la campagne est refusé, à son lieu', () => {
+    const narratif = { ...emptyNarratif(), objets: [objetDeCampagne()] };
+    const s = base();
+    s.entities.push({ id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 2, y: 2 },
+      usable: { actions: [{ id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: 'objet-fantome' }] } } }] } });
+    expect(validateScene([s], undefined, narratif).filter((w) => w.level === 'error').map((w) => `${w.scope}/${w.refId} :: ${w.message}`)).toEqual([
+      'entity/coffre :: entité « coffre » › utilisable › actions « ouvrir » › effet Effets mécaniques › opérations 1 › objet : « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
+    ]);
+  });
   it('scène propre = 0 avertissement', () => {
     expect(validateScene([base()])).toEqual([]);
   });

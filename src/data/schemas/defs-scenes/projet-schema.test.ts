@@ -19,6 +19,7 @@ import { versDisque } from '../grammaire/prose';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
+import { mesureDuParse } from '../grammaire/ref';
 
 type Jouet = Record<string, unknown>;
 
@@ -113,6 +114,101 @@ describe('apparence des objets de campagne', () => {
   it('une apparence étrangère reste refusée et nomme les deux ids', () => {
     expect(fautes(document('cape')).join('\n')).toContain('hache-du-projet');
     expect(fautes(document('cape')).join('\n')).toContain('cape');
+  });
+});
+
+describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `narratif.objets`', () => {
+  const objet = objetDeCampagne();
+  const DU_CATALOGUE = 'arme-simple';
+  /** Le projet qui référence `id` aux quatre positions : Effet et GameOp `giveTrapping`, clé `apparencesObjets` d'une
+   *  entité et d'un PNJ précomposé. */
+  const document = (id: string) => projet({
+    narratif: { ...emptyNarratif(), objets: [objet], presetsPnj: [{ id: 'pnj-de-sonde', base: { id: 'gobelin' }, apparence: { apparencesObjets: { [id]: { id: 'epee' } } } }] },
+    scenes: [sceneMinimale({ entities: [
+      { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, usable: { actions: [
+        { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: id } } },
+        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', trappingId: id }] } } },
+      ] } },
+      { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: { [id]: { id: 'epee' } } } },
+    ] })],
+  });
+  const POSITIONS = [
+    ['scenes.0.entities.0.usable.actions.0.flow.effet.trappingId', false],
+    ['scenes.0.entities.0.usable.actions.1.flow.effet.ops.0.trappingId', false],
+    [`scenes.0.entities.1.appearance.apparencesObjets.${'@'}`, true],
+    [`narratif.presetsPnj.0.apparence.apparencesObjets.${'@'}`, true],
+  ] as const;
+  /** Les repères du parse de mesure vers `id`, aux quatre positions. */
+  const reperesVers = (id: string) =>
+    mesureDuParse(projetSchema, document(id)).reperes
+      .filter((r) => POSITIONS.some(([chemin]) => r.path.join('.') === chemin.replace('@', id)))
+      .map((r) => [r.path.join('.'), r.type, r.parCle])
+      .sort();
+
+  it('un objet de la campagne : le projet parse, et chaque position rend un repère LOCAL (`parCle` pour les clés)', () => {
+    const r = projetSchema.safeParse(document(objet.id));
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues)).toBe(true);
+    expect(reperesVers(objet.id)).toEqual(POSITIONS.map(([chemin, parCle]) => [chemin.replace('@', objet.id), 'local:narratif.objets', parCle]).sort());
+  });
+
+  it('un id du catalogue : repère du type `trapping`, comme hors portée', () => {
+    expect(reperesVers(DU_CATALOGUE)).toEqual(POSITIONS.map(([chemin, parCle]) => [chemin.replace('@', DU_CATALOGUE), 'trapping', parCle]).sort());
+  });
+
+  it('un id ni au catalogue ni dans la campagne est refusé au parse, à son chemin', () => {
+    const doc = document(objet.id) as { scenes: { entities: { usable?: { actions: { flow: { effet: { trappingId?: string } } }[] } }[] }[] };
+    doc.scenes[0].entities[0].usable!.actions[0].flow.effet.trappingId = 'objet-fantome';
+    expect(fautes(doc)).toEqual([
+      'scène « scene-1 » › entité « coffre » › utilisable › actions « fouiller » › effet Donner un objet › objet :: « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
+    ]);
+  });
+
+  it('une clé d’apparence par objet ni au catalogue ni dans la campagne est refusée au parse, à sa clé', () => {
+    const doc = document(objet.id) as { scenes: { entities: { appearance?: { apparencesObjets: Record<string, unknown> } }[] }[] };
+    doc.scenes[0].entities[1].appearance!.apparencesObjets = { 'objet-fantome': { id: 'epee' } };
+    const r = projetSchema.safeParse(doc);
+    expect(r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`)).toEqual([
+      'scenes.0.entities.1.appearance.apparencesObjets.objet-fantome :: « objet-fantome » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).',
+    ]);
+  });
+
+  it('un objet de la campagne donné avec une apparence qu’il n’admet pas : refusé avec le message d’apparence', () => {
+    const doc = document(objet.id) as { scenes: { entities: { usable?: { actions: { flow: { effet: Record<string, unknown> } }[] } }[] }[] };
+    doc.scenes[0].entities[0].usable!.actions[0].flow.effet.apparence = { id: 'cape' };
+    const r = projetSchema.safeParse(doc);
+    expect(r.success).toBe(false);
+    expect(r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`)).toEqual([
+      `scenes.0.entities.0.usable.actions.0.flow.effet.apparence.id :: L’objet « ${objet.id} » n’admet pas l’apparence « cape ».`,
+    ]);
+  });
+
+  it.each([
+    ['apparencesObjets null', { appearance: { apparencesObjets: null } }, 'scenes.0.entities.1.appearance.apparencesObjets :: Entrée invalide : record attendu, null reçu'],
+    ['apparencesObjets valeur chaîne', { appearance: { apparencesObjets: { [objet.id]: 'epee' } } }, `scenes.0.entities.1.appearance.apparencesObjets.${objet.id} :: Entrée invalide : objet attendu, chaîne de caractères reçu`],
+    ['apparencesObjets valeur null', { appearance: { apparencesObjets: { [objet.id]: null } } }, `scenes.0.entities.1.appearance.apparencesObjets.${objet.id} :: Entrée invalide : objet attendu, null reçu`],
+    ['Effet giveTrapping apparence chaîne', { effet: { type: 'giveTrapping', trappingId: objet.id, apparence: 'cape' } }, 'scenes.0.entities.0.usable.actions.0.flow.effet.apparence :: Entrée invalide : objet attendu, chaîne de caractères reçu'],
+  ] as const)('%s : le contrôle sous portée se tait, seule la faute de forme du nœud sort', (_cas, malforme, attendue) => {
+    const doc = document(objet.id) as { scenes: { entities: Record<string, unknown>[] }[] };
+    const [coffre, pnj] = doc.scenes[0].entities as [{ usable: { actions: { flow: Record<string, unknown> }[] } }, Record<string, unknown>];
+    if ('effet' in malforme) coffre.usable.actions[0].flow.effet = malforme.effet;
+    else pnj.appearance = malforme.appearance;
+    const r = projetSchema.safeParse(doc);
+    expect(r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`)).toEqual([attendue]);
+  });
+
+  /** Le refus d'absence de `objet` aux quatre positions : une entrée sans id lisible n'en porte aucun. */
+  const absentPartout = POSITIONS.map(([chemin]) => `${chemin.replace('@', objet.id)} :: « ${objet.id} » est absent du catalogue des objets de la campagne (collection « narratif.objets » du document).`);
+  it.each([
+    ['formChoices 5', { ...objet, formChoices: 5 }, ['narratif.objets.0.formChoices :: Entrée invalide : tableau attendu, nombre reçu']],
+    ['shape null', { ...objet, shape: null }, ['narratif.objets.0.shape :: Entrée invalide : objet attendu, null reçu']],
+    ['entrée null', null, ['narratif.objets.0 :: Entrée invalide : objet attendu, null reçu', ...absentPartout]],
+    ['entrée chaîne', objet.id, ['narratif.objets.0 :: Entrée invalide : objet attendu, chaîne de caractères reçu', ...absentPartout]],
+  ] as const)('objet de la campagne malformé (%s) : le contrôle sous portée se tait, seule la faute de forme de l’objet sort', (_cas, malforme, attendues) => {
+    const doc = document(objet.id) as { narratif: { objets: unknown[] }; scenes: { entities: { usable?: { actions: { flow: { effet: Record<string, unknown> } }[] } }[] }[] };
+    doc.narratif.objets = [malforme];
+    doc.scenes[0].entities[0].usable!.actions[0].flow.effet.apparence = { id: 'cape' };
+    const r = projetSchema.safeParse(doc);
+    expect((r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`)).sort()).toEqual([...attendues].sort());
   });
 });
 

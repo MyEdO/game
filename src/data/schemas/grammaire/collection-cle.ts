@@ -45,7 +45,7 @@ import {
   type CleLue,
   type FiltreDEspace,
 } from './cle-d-espace';
-import { estFeuilleDId, jugerRefLocale, porteeDeLaFeuille, type PorteeLocale } from './ref';
+import { declarationDeFeuilleDId, estFeuilleDId, estUneFaute, jugerRefLocale, porteeDuJugementLocal, refusDeLaRefLocale, type PorteeLocale } from './ref';
 import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
 
 /** Clé d'un élément : un CHAMP de l'élément, une clé COMPOSÉE nommée (`walls` : `x,y,side,z`), ou
@@ -263,10 +263,49 @@ export function idsDeLaPortee(schema: unknown, valeur: unknown, portee: PorteeLo
 /** Les ids de la collection de la portée `portee`, de marque `marque`, dans la valeur `valeur` de l'objet qui l'ouvre :
  *  ceux des entrées que chacun de ses filtres retient (`retenuParFiltre`) ; aucun pour une portée déclarée vide. */
 function idsSousLaMarque(marque: MarqueDeCollection | 'vide' | undefined, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined {
-  if (marque === 'vide') return [];
-  const collection = estObjet(valeur) ? valeur[portee.collection] : undefined;
+  const entrees = entreesSousLaMarque(marque, valeur, portee);
+  return entrees && [...entrees.keys()];
+}
+
+/** La valeur au chemin `chemin` de `valeur`, `undefined` dès qu'un segment n'est le champ d'aucun objet. */
+const valeurAuChemin = (valeur: unknown, chemin: readonly string[]): unknown => chemin.reduce<unknown>((v, cle) => (estObjet(v) ? v[cle] : undefined), valeur);
+
+/** Les entrées de la collection de la portée `portee` par id, sous les mêmes règles que `idsSousLaMarque`. La collection se
+ *  lit au chemin pointé `portee.collection` de `valeur` (`narratif.objets`). */
+function entreesSousLaMarque(marque: MarqueDeCollection | 'vide' | undefined, valeur: unknown, portee: PorteeLocale): ReadonlyMap<string, unknown> | undefined {
+  if (marque === 'vide') return new Map();
+  const collection = valeurAuChemin(valeur, portee.collection.split('.'));
   if (!marque || !Array.isArray(collection)) return undefined;
-  return idsDeCollection(marque, collection.filter((e) => (portee.retient ?? []).every((f) => estObjet(e) && retenuParFiltre(f, e))));
+  const retenues = collection.filter((e) => (portee.retient ?? []).every((f) => estObjet(e) && retenuParFiltre(f, e)));
+  return new Map(retenues.flatMap((e) => {
+    const [id] = idsDeCollection(marque, [e]);
+    return id === undefined ? [] : [[id, e] as const];
+  }));
+}
+
+/** Le nœud du champ au chemin pointé `chemin` (`narratif.objets`) des champs de `objet` : chaque segment, un champ d'un
+ *  objet que le nœud du segment précédent ouvre (`ouverts`). `undefined` si un segment n'est le champ d'aucun. */
+function champAuChemin(objet: z.ZodObject<z.ZodRawShape>, chemin: string): unknown {
+  return chemin.split('.').reduce<unknown>(
+    (noeud, cle) => (noeud === undefined ? undefined : ouverts([noeud]).flatMap(enfantsDe).find((e) => e.segment === `.${cle}`)?.noeud),
+    objet,
+  );
+}
+
+/** Un CONTRÔLE SOUS PORTÉE : les fautes de la valeur `valeur` d'un nœud qui dépendent des entrées de la collection d'une
+ *  portée, que `entree` résout par id (`undefined` pour un id hors de la collection, ou dont l'entrée est refusée par son
+ *  propre nœud), chacune à son path relatif. */
+export type ControleSousPortee = (valeur: unknown, entree: (id: string) => unknown) => readonly { readonly path: readonly (string | number)[]; readonly message: string }[];
+
+/** Les nœuds construits par `controlerSousPortee`, avec leur portée et leur contrôle. */
+const CONTROLES_SOUS_PORTEE = new WeakMap<object, { readonly portee: PorteeLocale; readonly controle: ControleSousPortee }>();
+
+/** Déclare sur `noeud` le contrôle `controle` de sa valeur sous la portée `portee` : l'objet qui l'ouvre (`ouvrirPortees`)
+ *  l'exécute à chaque valeur du nœud, avec les entrées de sa collection ; hors de tout ouvreur, il ne s'exécute pas. Le
+ *  nœud doit porter une référence de la portée (`porteeDuJugementLocal`), sans quoi la co-descente l'élague. */
+export function controlerSousPortee<N extends z.ZodType>(noeud: N, portee: PorteeLocale, controle: ControleSousPortee): N {
+  CONTROLES_SOUS_PORTEE.set(noeud, { portee, controle });
+  return noeud;
 }
 
 /**
@@ -279,13 +318,14 @@ function idsSousLaMarque(marque: MarqueDeCollection | 'vide' | undefined, valeur
  * jugée ne serait pas comptée. Une collection qui n'est pas une liste, refusée par son propre nœud, ne juge
  * aucune référence de sa portée. La co-descente élague toute valeur dont aucun nœud ne mène à une référence
  * d'une portée ouverte (les PORTEURS, relevés à la construction). Sous la source `'vide'`, chaque portée est déclarée
- * VIDE, sans collection : toute référence de l'arbre à l'une d'elles est absente de son catalogue.
+ * VIDE, sans collection : toute référence de l'arbre à l'une d'elles est absente de son catalogue, et une feuille
+ * `idDe(…, { portee })` y vaut son catalogue seul (`refusDeLaRefLocale`).
  */
 export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[], source: SourceDesPortees = 'collections'): N {
   const marques = new Map<PorteeLocale, MarqueDeCollection | 'vide'>(
     portees.map((portee) => {
       if (source === 'vide') return [portee, 'vide'] as const;
-      const champ = objet.shape[portee.collection];
+      const champ = champAuChemin(objet, portee.collection);
       const marque = champ === undefined ? undefined : ouverts([champ]).map(collectionDe).find((m) => m !== undefined);
       if (marque?.forme !== 'liste')
         throw new Error(`ouvrirPortees : « ${portee.collection} » n’est aucune liste à clé (\`listeCle\`) des champs de l’objet — la portée des ${portee.catalogue} n’a pas de collection.`);
@@ -298,7 +338,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
   const porteurs = new Set<unknown>();
   const parents = new Map<unknown, unknown[]>();
   descendre([objet], ({ noeud }) => {
-    const portee = porteeDeLaFeuille(noeud);
+    const portee = porteeDuJugementLocal(noeud);
     if (portee !== undefined && marques.has(portee)) {
       designees.add(portee);
       porteurs.add(noeud);
@@ -308,24 +348,66 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
   for (const porteur of porteurs) for (const parent of parents.get(porteur) ?? []) porteurs.add(parent);
   for (const portee of portees)
     if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
+  const refus = (noeud: unknown, portee: PorteeLocale, id: string, admises: ReadonlyMap<string, unknown>): string | undefined =>
+    admises.has(id) ? undefined : refusDeLaRefLocale(noeud, portee, id, marques.get(portee) === 'vide');
   const ouvreur = objet.superRefine((valeur, ctx) => {
     if (!estObjet(valeur)) return;
-    const ids = new Map(portees.flatMap((portee) => {
-      const admis = idsSousLaMarque(marques.get(portee), valeur, portee);
-      return admis ? [[portee, new Set(admis)] as const] : [];
+    const entrees = new Map(portees.flatMap((portee) => {
+      const admises = entreesSousLaMarque(marques.get(portee), valeur, portee);
+      return admises ? [[portee, admises] as const] : [];
     }));
+    // Les entrées que leur propre nœud refuse : une faute de l'arbre (jamais un repère) sous leur chemin.
+    const refusees = new Set(ctx.issues.filter(estUneFaute).flatMap(({ path = [] }) =>
+      portees.flatMap((portee) => {
+        const chemin = portee.collection.split('.');
+        const rang = path[chemin.length];
+        const collection = chemin.every((cle, i) => path[i] === cle) ? valeurAuChemin(valeur, chemin) : undefined;
+        return Array.isArray(collection) && typeof rang === 'number' ? [collection[rang]] : [];
+      })));
+    const acceptee = (e: unknown): unknown => (refusees.has(e) ? undefined : e);
     coDescendre(objet, valeur, ({ noeuds, valeur: id, chemin }) => {
       if (!noeuds.some((noeud) => porteurs.has(noeud))) return 'elaguer';
+      for (const noeud of noeuds) {
+        const sous = estObjet(noeud) ? CONTROLES_SOUS_PORTEE.get(noeud) : undefined;
+        const admises = sous && entrees.get(sous.portee);
+        if (sous && admises)
+          for (const f of sous.controle(id, (cle) => acceptee(admises.get(cle)))) ctx.addIssue({ code: 'custom', path: [...chemin, ...f.path], message: f.message });
+        const cles = defDe(noeud)?.type === 'record' ? enfantsDe(noeud).find((e) => e.segment === '{clé}')?.noeud : undefined;
+        if (cles !== undefined && estObjet(id))
+          for (const cle of Object.keys(id)) {
+            const portee = porteeDuJugementLocal(cles, cle);
+            const admisesDeCle = portee && entrees.get(portee);
+            if (portee && admisesDeCle) jugerRefLocale(ctx, [...chemin, cle], portee, cle, refus(cles, portee, cle, admisesDeCle), true);
+          }
+      }
       if (typeof id !== 'string') return;
       for (const noeud of noeuds) {
-        const portee = porteeDeLaFeuille(noeud);
-        const admis = portee === undefined ? undefined : ids.get(portee);
-        if (portee !== undefined && admis !== undefined) return jugerRefLocale(ctx, chemin, portee, id, admis.has(id));
+        const portee = porteeDuJugementLocal(noeud, id);
+        const admises = portee === undefined ? undefined : entrees.get(portee);
+        if (portee !== undefined && admises !== undefined) return jugerRefLocale(ctx, chemin, portee, id, refus(noeud, portee, id, admises));
       }
     });
   }, { when: () => true });
   OUVREURS.set(ouvreur, marques);
   return ouvreur;
+}
+
+/** `schema` où les portées que désigne une feuille `idDe(…, { portee })` de son arbre, et qu'aucun ouvreur de cet arbre
+ *  n'ouvre, sont ouvertes VIDES (`ouvrirPortees(…, 'vide')`) : un document qui les désigne sans en porter la collection
+ *  (`document()`, `grammaire/document.ts`). FAIL-FAST à la CONSTRUCTION : un tel `schema` qui n'est pas un objet. */
+export function ouvrirLesPorteesSansCollection(schema: z.ZodType, site: string): z.ZodType {
+  const designees = new Set<PorteeLocale>();
+  const ouvertes = new Set<PorteeLocale>();
+  descendre([schema], ({ noeud }) => {
+    const portee = declarationDeFeuilleDId(noeud)?.portee;
+    if (portee !== undefined) designees.add(portee);
+    for (const p of porteesOuvertes(noeud)) ouvertes.add(p);
+  });
+  const vides = [...designees].filter((p) => !ouvertes.has(p));
+  if (!vides.length) return schema;
+  if (!(schema instanceof z.ZodObject))
+    throw new Error(`${site} : la portée des ${vides[0].catalogue} est désignée sans être ouverte, et l’entrée n’est pas un objet qui l’ouvre.`);
+  return ouvrirPortees(schema, vides, 'vide');
 }
 
 /** Collections à clé RETROUVÉES par la descente d'un schéma (`descendre`). */
