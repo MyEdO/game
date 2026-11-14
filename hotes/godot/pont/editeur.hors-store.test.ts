@@ -2167,6 +2167,45 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     expect(boutonDe(presser(boutonDe(sans, 'etat/forme/enum')), 'etat/forme/enum').presse).toBe(true);
   });
 
+  it('un objet s’ajoute, s’écrit, se renomme ; choisi au don d’un déclencheur, il suit son renommage ; le retirer se refuse, le lieu dit ; sans référence, il se retire, une annulation le rend (#4171)', () => {
+    const { appel, presser, narratif } = surLeNarratif();
+    const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
+    const nommer = (nom: string) => editionDe(appel('editer', { type: 'nommer', args: [nom] }));
+    const compte = (e: Edition) => (e.vue.zones['editeur.logique'].find((el) => el.id === 'logique/objets') as Ligne).texte;
+    const avant = liste(narratif, 'objets');
+    let e = presser(boutonDe(narratif, 'logique/objets/ajouter'));
+    const [objet] = liste(e, 'objets').filter((id) => !avant.includes(id));
+    expect([compte(e), boutonDe(e, `logique/objets/${objet}`).presse, inspecte(e, 'valeur/categorie')?.type]).toEqual([`Objets (${avant.length + 1})`, true, 'choix']);
+    e = choisir(editionDe(appel('editer', { type: 'valeur', args: [{ sorte: 'objets', id: objet }, ['label'], 'Lanterne'] })), 'valeur/categorie', (v) => v === 'ammunition');
+    e = nommer('lumignon');
+    expect([(inspecte(e, 'valeur/label') as Formulaire).champs[2], valeursDeLInspecteur(e, 'valeur/categorie').find((b) => b.presse)?.libelle, liste(e, 'objets').includes('lumignon')]).toEqual([expect.objectContaining({ valeur: 'Lanterne' }), 'Munitions', true]);
+    e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
+    e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'giveTrapping');
+    e = choisir(e, 'valeur/flow/effet/trappingId', (v) => v === 'lumignon');
+    expect(valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((b) => b.presse)?.libelle, 'l’objet de campagne, offert au choix, choisi').toBe('lumignon');
+    e = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/lumignon'));
+    e = nommer('falot');
+    const refus = boutonDe(e, 'objets/supprimer').refus;
+    expect(refus).toContain(`scène « ${(presser(boutonDe(e, 'document/scene')).vue.zones['editeur.titre'][0]).texte} »`);
+    expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
+    expect(valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((b) => b.presse)?.libelle, 'le don suit le renommage').toBe('falot');
+    e = choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'sequence');
+    e = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot'));
+    expect(boutonDe(e, 'objets/supprimer').refus, 'sans référence').toBeNull();
+    e = presser(boutonDe(e, 'objets/supprimer'));
+    expect([compte(e), liste(e, 'objets')]).toEqual([`Objets (${avant.length})`, avant]);
+    e = presser(boutonDe(e, 'annuler'));
+    expect([compte(e), liste(e, 'objets').includes('falot')], 'une annulation rend l’objet').toEqual([`Objets (${avant.length + 1})`, true]);
+    /** Le narratif tel que l'auteur le voit sans sélection, comme la recette le lit : les comptes de la zone Logique et le titre de l'ouverture. */
+    const vu = (x: Edition) => JSON.stringify([x.vue.zones['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne').map((el) => el.texte), (inspecte(x, 'valeur/ouverture/titre') as Formulaire | undefined)?.champs.map((c) => c.valeur) ?? null]);
+    for (let n = 0; vu(e) !== vu(narratif); n++) {
+      expect([n < 20, boutonDe(e, 'document/narratif').presse], 'chaque annulation garde le narratif ouvert').toEqual([true, true]);
+      e = presser(boutonDe(e, 'annuler'));
+    }
+    expect(boutonDe(e, 'enregistrer').refus, 'annulé jusqu’à l’ajout, le projet, scène comprise, est celui du dépôt').toBe('Rien à enregistrer');
+  });
+
   it('le choix d’une spécialisation au profil d’un PNJ se choisit par variante nommée ; la liste des spécialisations parmi lesquelles choisir s’écrit élément par élément (#3606 L6)', () => {
     const { appel } = table();
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
