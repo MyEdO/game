@@ -3,7 +3,8 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { architectureSelectionForWarning, validateScene, type Warning } from './validateScene';
 import { emptyNarratif } from './monde/campaignNarratif';
-import { resolveStake, matieresDe, findTrappingById, terrains } from '../data';
+import { resolveStake, matieresDe, terrains } from '../data';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene, startOf, type Scene } from './monde/scene';
 import * as zones from './monde/zones';
 import { scenePlanDefects } from './planDefects';
@@ -25,7 +26,7 @@ const msgs = (w: Warning[]) => w.map((x) => x.message);
 
 describe('validateScene', () => {
   it('le verdict de l’éditeur suit les objets de campagne, y compris quand seul le narratif change', () => {
-    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-du-projet', shape: { id: 'hache' }, formChoices: ['hache'] };
+    const objet = objetDeCampagne({ id: 'hache-du-projet', shape: { id: 'hache' }, formChoices: ['hache'] });
     const narratif = { ...emptyNarratif(), objets: [objet] };
     const s = base();
     s.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 },

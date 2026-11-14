@@ -18,7 +18,7 @@ import { listeCle } from '../grammaire/collection-cle';
 import { ref } from '../grammaire/ref';
 import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
-import { apparenceDObjetSchema } from '../defs/trappings';
+import { entree as trappingEntree } from '../defs/trappings';
 import { findCreatureById, findTrappingById, trappingDesObjetsPuisDuCatalogue } from '../../index';
 import { messageDApparenceDObjet, type TrappingResolver } from '../../apparencesObjets';
 import type { CreatureData, TrappingData } from '../../index';
@@ -155,12 +155,7 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
   /** Registre qui a déclaré chaque id, dans l'ordre de la table. */
   const registreDe = new Map<string, (typeof REGISTRES_NARRATIFS)[number]>();
   for (const reg of REGISTRES_NARRATIFS) {
-    (nb[reg.cle] as readonly unknown[]).forEach((e, i) => {
-      const id = e && typeof e === 'object' ? (e as { id?: unknown }).id : undefined;
-      if (typeof id !== 'string' || id === '') {
-        if (!reg.idAuSchema) faute([reg.cle, i, 'id'], 'id absent.');
-        return;
-      }
+    (nb[reg.cle] as readonly { id: string }[]).forEach(({ id }, i) => {
       const autre = registreDe.get(id);
       if (autre && autre !== reg) faute([reg.cle, i, 'id'], `l'id ${reg.de} « ${id} » collisionne avec un id ${autre.de}.`);
       if (collisionneAvecLeGlobal(id)) faute([reg.cle, i, 'id'], `l'id ${reg.de} « ${id} » collisionne avec un id de la règle globale (créature/possession).`);
@@ -191,25 +186,18 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
   });
 }
 
-/** FORME du bloc narratif. `objets` est typé `TrappingData` (`src/data/index.ts`) : le schéma du
- *  CATALOGUE (`defs/trappings.ts`) ne le décrit pas — il est mesuré sur `trappings.json`, dont le
- *  `type` est une énumération fermée (6 valeurs) et dont `availability`/`qualities`/`desc`/`price`/
- *  `source` sont requis, là où un objet EMBARQUÉ de campagne porte un type libre et se passe de
- *  l'enveloppe de catalogue. Échéance : `TROUS_DE_VALIDATION['narratif.ts:objets']`
- *  (`trous-de-validation.ts`), UNIQUE source du lot de mort de ce trou. */
-const objets: z.ZodType<TrappingData> = z.custom<TrappingData>().and(apparenceDObjetSchema);
-
+/** FORME du bloc narratif. #4171 */
 const formeNarratif = nommerChamps(z.strictObject({
   affaires: listeCle(affaireSchema, 'id'),
   indices: listeCle(indiceSchema, 'id'),
   presetsPnj: listeCle(presetPnjSchema, 'id'),
-  objets: listeCle(objets, 'id'),
+  objets: listeCle(trappingEntree, 'id'),
   documents: listeCle(documentNarratifSchema, 'id'),
   etats: listeCle(etatNarratifSchema, 'id'),
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
   ecartes: listeCle(ecartSchema, 'entree').optional(),
-}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués typés au catalogue, onglet en lecture seule"} }, documents: { label: "documents" }, etats: { label: "états de campagne" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
+}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués, entrées entières du catalogue des possessions"} }, documents: { label: "documents" }, etats: { label: "états de campagne" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
 
 /** `NarratifBlock` (fin de module) — forme + sémantique. */
 export const narratifSchema = formeNarratif.superRefine(raffineNarratif);

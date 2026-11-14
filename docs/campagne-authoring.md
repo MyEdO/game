@@ -338,7 +338,7 @@ Un paquet de campagne porte un bloc `narratif` (frère de `scenes`/`worldMap`, a
 projet — jamais per-scène), typé `NarratifBlock` (`src/data/schemas/defs-scenes/narratif.ts`) :
 
 ```
-narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
+narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: z.output<typeof trappings.entree>[];
             documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock;
             ecartes?: EcartDeFiche[] }
 ```
@@ -350,7 +350,8 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`revealClue`, `src/noyau/monde/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
   pré-composés (`base` = `ref('creature')`, la créature globale surchargée par `profil`/`apparence`) ; **`objets`**
-  (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
+  — possessions propres à la campagne, chacune une entrée ENTIÈRE du catalogue des possessions
+  (l'`entree` de `src/data/schemas/defs/trappings.ts` : enveloppe, `source`, affinage compris) ; **`documents`** (`DocumentNarratif`,
   `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
   (règle 5), non vide ; **`etats`** (`{ id, label, source?, maison?, forme }`, #2539) — les états de campagne
   (§ 9), provenance `source` (le passage qui pose l'état) OU `maison` (sa raison), exigée comme celle

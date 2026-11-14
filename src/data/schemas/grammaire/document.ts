@@ -389,7 +389,7 @@ export interface OptionsDocument {
 }
 
 /** Handle FERMÉ d'un document : ce que le registre, l'éditeur et les gardes consomment. */
-export interface DocumentHandle<T extends string, S = unknown> {
+export interface DocumentHandle<T extends string, S = unknown, E = unknown> {
   /**
    * LE DATASET tel qu'il vit dans son fichier, emballé PAR FAMILLE (#1467) : `entite` →
    * `z.array(entrée)`, `config` → l'entrée seule, `record` → enveloppe + `entries`. Un def n'écrit
@@ -403,9 +403,9 @@ export interface DocumentHandle<T extends string, S = unknown> {
    * L'ENTRÉE SCELLÉE seule — pour l'EMBARQUEMENT (statblocks, table posée dans un autre fichier),
    * jamais pour l'UI, qui consomme le dataset. En famille `record`, l'entrée EST le document entier
    * (enveloppe + `entries`) : `schema` y est `entree`, marquée collection à clé de ses `entries`. Sur un document à `rangee`,
-   * l'entrée porte l'enveloppe ET ses rangées.
+   * l'entrée porte l'enveloppe ET ses rangées. Sa sortie `E` est l'entrée au type (`EntreeDuDocument`).
    */
-  readonly entree: z.ZodType<unknown>;
+  readonly entree: z.ZodType<E>;
   /**
    * L'entrée en PATCH (tous champs optionnels), dérivée AVANT le sceau puis SCELLÉE à son tour :
    * `.partial()` rend un `ZodObject` NU, que `.extend` rouvrirait — la fabrique n'expose aucun nœud
@@ -588,7 +588,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   meta: MetaDesChamps<C>,
   declaration: DeclarationExposition,
   options?: OptionsDocument & O,
-): DocumentHandle<T, DatasetDuDocument<T, F, C, O>> {
+): DocumentHandle<T, DatasetDuDocument<T, F, C, O>, EntreeDuDocument<T, F, C, O>> {
   const opts: OptionsDocument = options ?? {};
   const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = opts;
   if (idDocument && idDocument.safeParse('').success) {
@@ -760,7 +760,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
     // Le nœud SCELLÉ (`.pipe(z.transform)`) sort `unknown` : sa sortie au type se déclare ici, depuis
     // les mêmes `champs` et `options` qui l'ont composé.
     schema: schema as z.ZodType<DatasetDuDocument<T, F, C, O>>,
-    entree: entreeScellee,
+    entree: entreeScellee as z.ZodType<EntreeDuDocument<T, F, C, O>>,
     entreePartielle,
     cles: clesEntree,
     type,

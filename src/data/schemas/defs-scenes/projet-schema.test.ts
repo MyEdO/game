@@ -18,6 +18,7 @@ import { cheminLisible, validateDocument } from '../validate';
 import { versDisque } from '../grammaire/prose';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
+import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
 
 type Jouet = Record<string, unknown>;
 
@@ -80,9 +81,8 @@ const fautesCodees = (valeur: unknown, schema: typeof projetSchema = projetSchem
 };
 
 describe('apparence des objets de campagne', () => {
-  type ObjetDuRegistre = { id: string; label: string; kind: string; shape: string | { id: string }; formChoices: string[] };
   type Surface = 'action' | 'op' | 'apparencesObjets';
-  const objet: ObjetDuRegistre = { id: 'hache-du-projet', label: 'Hache du projet', kind: 'melee', shape: { id: 'hache' }, formChoices: ['hache'] };
+  const objet = objetDeCampagne({ id: 'hache-du-projet', label: 'Hache du projet', shape: { id: 'hache' }, formChoices: ['hache'] });
   /** Le coffre qui référence `apparence` par la `surface` donnée : action directe, op, ou apparence d'entité. */
   const coffre = (surface: Surface, apparence: string): Jouet => {
     const lieu = { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 } };
@@ -91,7 +91,7 @@ describe('apparence des objets de campagne', () => {
     const effect = surface === 'action' ? { type: 'giveTrapping', ...don } : { type: 'ops', ops: [{ op: 'giveTrapping', ...don }] };
     return { ...lieu, usable: { actions: [{ id: 'fouiller', flow: { kind: 'effet', effet: effect } }] } };
   };
-  const document = (apparence: string, { surface = 'action', registre = {} }: { surface?: Surface; registre?: Partial<ObjetDuRegistre> } = {}) => projet({
+  const document = (apparence: string, { surface = 'action', registre = {} }: { surface?: Surface; registre?: Jouet } = {}) => projet({
     narratif: { ...emptyNarratif(), objets: [{ ...objet, ...registre }] },
     scenes: [sceneMinimale({ entities: [coffre(surface, apparence)] })],
   });
@@ -508,9 +508,9 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
     ]);
   });
 
-  it('objet : `id` vide (contrôle — la même exigence, déjà tenue par `raffineNarratif`)', () => {
-    expect(fautes(narratif({ objets: [{ id: '' }] }), narratifSchema)).toEqual([
-      'objets 1 › champ inconnu « id » :: id absent.',
+  it('objet : `id` vide', () => {
+    expect(fautes(narratif({ objets: [{ ...objetDeCampagne(), id: '' }] }), narratifSchema)).toEqual([
+      'objets 1 › Identifiant :: Trop petit : chaîne de caractères doit avoir >=1 caractères',
     ]);
   });
 });

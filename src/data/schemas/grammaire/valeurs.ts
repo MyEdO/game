@@ -867,6 +867,57 @@ export const weaponDamageSpecSchema = z.union([
   }),
 ]);
 
+/** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
+export const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
+
+/** `AmmoRangeMod` : fraction de la Portée de l'arme, ou ± mètres. */
+export const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);
+
+/** `ItemCapabilities` (`src/data/index.ts`) — sac de drapeaux IRRÉDUCTIBLES, tous optionnels. */
+export const itemCapabilitiesSchema = nommerChamps(z.strictObject({
+  preventForcedDrop: z.boolean().optional(),
+  weatherProtection: z.boolean().optional(),
+  isShelter: z.boolean().optional(),
+  isRations: z.boolean().optional(),
+  isGrimoire: z.boolean().optional(),
+  lockpicks: z.boolean().optional(),
+  scurvyGuard: z.boolean().optional(),
+  sealskin: z.boolean().optional(),
+  shipParts: z.boolean().optional(),
+  disarmImmune: z.boolean().optional(),
+  ropeMode: z.boolean().optional(),
+  waterContainer: z.boolean().optional(),
+  improvisedWithoutCharge: z.boolean().optional(),
+}), {
+  preventForcedDrop: { label: 'Empêche la perte forcée' },
+  weatherProtection: { label: 'Protection contre les intempéries' },
+  isShelter: { label: 'Abri' },
+  isRations: { label: 'Rations' },
+  isGrimoire: { label: 'Grimoire' },
+  lockpicks: { label: 'Crochets' },
+  scurvyGuard: { label: 'Protection contre le scorbut' },
+  sealskin: { label: 'Peau de phoque' },
+  shipParts: { label: 'Pièces de navire' },
+  disarmImmune: { label: 'Immunité au désarmement' },
+  ropeMode: { label: 'Usage de la corde' },
+  waterContainer: { label: 'Récipient d’eau' },
+  improvisedWithoutCharge: { label: 'Improvisée sans Charge' },
+});
+
+/** Une capacité de `itemCapabilitiesSchema`, nommée par le libellé de son champ (`skills.tool.capability`). */
+export const capaciteDObjetSchema = enumNomme(tableTotale(itemCapabilitiesSchema.keyof().options, (cle) => metaDesChamps(itemCapabilitiesSchema, { exigees: true })[cle].label));
+
+/** Un palier d'entraînement à une prothèse (`prosthesisTraining`), son coût en XP et ce qu'il réduit ou accorde. LDB 73 l.19/23 */
+export const entrainementDeProtheseSchema = nommerChamps(z.strictObject({ px: z.number(), label: z.string(), reduces: z.number().optional(), grants: z.enum(['movement', 'all']).optional() }), {
+  px: { label: 'Points d’Expérience' },
+  label: { label: 'Libellé' },
+  reduces: { label: 'Réductions' },
+  grants: { label: 'Accorde' },
+});
+
+/** La contenance d'un contenant (`container`). */
+export const contenantSchema = nommerChamps(z.strictObject({ capacity: z.number() }), { capacity: { label: 'Capacité' } });
+
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
  *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
@@ -1242,6 +1293,13 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
  *  cargaison/valeur liée/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<Formula> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<Formula>, ...z.ZodType<Formula>[]]));
+
+/** `ConsumableDuration` (`src/engine/consumables.ts`) — UNE durée par objet (minutes/heures/jours). */
+export const consumableDurationSchema = nommerChamps(z.strictObject({
+  minutes: formulaSchema.optional(),
+  hours: formulaSchema.optional(),
+  days: formulaSchema.optional(),
+}), { minutes: { label: 'Minutes' }, hours: { label: 'Heures' }, days: { label: 'Jours' } });
 
 /** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
  *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses
