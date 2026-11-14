@@ -4,7 +4,7 @@ import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 import { findVehicleById, refLabel } from '../data';
 import { VIVRES_DE_CALE } from '../engine/seaNavigation';
-import { rationsDeCale } from '../engine/provisions';
+import { rationsDeCale, rationsDuVivre } from '../engine/provisions';
 import { findManannFactor } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
 import { dossierDuNavire } from '../noyau/seaVoyageFlow';
@@ -55,6 +55,7 @@ type DossierTab = 'apercu' | 'cargaison' | 'equipage';
 export function ShipDossier({ onClose, initialTab }: { onClose: () => void; initialTab?: DossierTab }) {
   const vessel = useGame((s) => s.vessel);
   const party = useGame((s) => s.party);
+  const gameTime = useGame((s) => s.gameTime);
   const possessions = useGame((s) => s.possessions);
   const move = useGame((s) => s.deplacerLaCargaison);
   // Transfert navire ↔ porteur terrestre CO-LOCALISÉ (`carriersColocated` : avec le groupe, ou au même Lieu).
@@ -62,16 +63,16 @@ export function ShipDossier({ onClose, initialTab }: { onClose: () => void; init
   const carriers = useMemo(() => bulkCarriers({ party, vessel, possessions }), [party, vessel, possessions]);
   if (!vessel) return null;
   const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoEntryById(id)?.label ?? id} />;
-  return <ShipDossierView vessel={vessel} party={party} onClose={onClose} initialTab={initialTab} transfer={transfer} />;
+  return <ShipDossierView vessel={vessel} party={party} now={gameTime} onClose={onClose} initialTab={initialTab} transfer={transfer} />;
 }
 
 /** Corps PUR (props) — testable en rendu statique (l'environnement de test est `node`, sans DOM :
  *  les sélecteurs de store ne s'hydratent pas sous `renderToStaticMarkup`, on passe donc les données). */
-export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu', transfer }: { vessel: CampaignVessel; party: Combatant[]; onClose: () => void; initialTab?: DossierTab; transfer?: ReactNode }) {
+export function ShipDossierView({ vessel, party, now, onClose, initialTab = 'apercu', transfer }: { vessel: CampaignVessel; party: Combatant[]; now: number; onClose: () => void; initialTab?: DossierTab; transfer?: ReactNode }) {
   const [tab, setTab] = useState<DossierTab>(initialTab);
 
   const vd = findVehicleById(vessel.vehicleId);
-  const vue = dossierDuNavire(vessel, party);
+  const vue = dossierDuNavire(vessel, party, now);
   if (!vd?.ship || !vue) return null;
 
   const name = nomDuNavire(vessel);
@@ -171,7 +172,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
               </p>
               {vessel.provisions != null && (
                 <ul className="ship-dossier-list" aria-label="Vivres de la cale">
-                  {VIVRES_DE_CALE.vivres.map((id) => <li key={id}>{refLabel('trappings', { id })} : <b>{vessel.provisions?.[id] ?? 0}</b> ration(s)-jour</li>)}
+                  {VIVRES_DE_CALE.vivres.map((id) => <li key={id}>{refLabel('trappings', { id })} : <b>{rationsDuVivre(vessel.provisions, id)}</b> ration(s)-jour</li>)}
                 </ul>
               )}
               <p className="port-hint">Dernière traversée : <b>{vessel.lastVoyageMilles != null ? `${vessel.lastVoyageMilles} milles` : 'à quai depuis la mise à l’eau'}</b></p>

@@ -4,7 +4,7 @@ import { FORMULES_DES_MARCHES, achatDeLOffre } from '../noyau/cargaison';
 import { useGame } from '../state/store';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, refLabel, type NavalPortData } from '../data';
-import { rationsDeCale, type VivresDeCale } from '../engine/provisions';
+import { rationsDeCale, type QuantitesDeVivres } from '../engine/provisions';
 import { type PortProfile } from '../engine/seaVoyage';
 import { REPARATION } from '../engine/seaNavigation';
 import { humanizeFormula } from '../noyau/codex/humanize';
@@ -64,9 +64,9 @@ export function PortHeader({ pp, catalogue }: { pp: PortProfile; catalogue?: Nav
  *  MDG 15 l.262 */
 function AvitaillementDeLaCale({ vessel, bourse, refusHote, onAvitailler }: {
   vessel: CampaignVessel; bourse: Money; refusHote: string | null;
-  onAvitailler: (quantites: VivresDeCale, tonneaux: number) => void;
+  onAvitailler: (quantites: QuantitesDeVivres, tonneaux: number) => void;
 }) {
-  const [quantites, setQuantites] = useState<VivresDeCale>({});
+  const [quantites, setQuantites] = useState<QuantitesDeVivres>({});
   const [tonneaux, setTonneaux] = useState(0);
   const devis = devisDAvitaillement(vessel, bourse, refusHote, quantites, tonneaux);
   return (
@@ -117,7 +117,7 @@ export function EscaleTab({ vessel, bourse, refusHote, pendingShoreLeave, onHire
   vessel: CampaignVessel; bourse: Money; refusHote: string | null;
   pendingShoreLeave: PendingShoreLeave | null;
   onHire: (roleId: string) => void; onDismiss: (roleId: string) => void;
-  onAvitailler: (quantites: VivresDeCale, tonneaux: number) => void;
+  onAvitailler: (quantites: QuantitesDeVivres, tonneaux: number) => void;
 }) {
   const hireable = rolesRecrutables();
   const countOf = (roleId: string) => vessel.crew?.find((h) => h.roleId === roleId)?.count ?? 0;

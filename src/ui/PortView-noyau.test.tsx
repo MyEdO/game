@@ -6,6 +6,7 @@
  * LDB 59 l.43 ; MDG 12 l.230.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { quantitesDeCale } from '../engine/caleDeTest.testkit';
 import { acheterAuMarche } from '../noyau/cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from 'react';
@@ -140,7 +141,7 @@ function saisir(hote: HTMLElement, nom: string, n: number): void {
 }
 
 describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au devis du noyau (MDG 14 l.238, l.248-252 ; MDG 15 l.262)', () => {
-  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: {}, waterLitres: 0, ...patch });
+  const navire = (patch: Partial<CampaignVessel>): CampaignVessel => ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, provisions: [], waterLitres: 0, ...patch });
   /** Les champs de quantité de l'onglet Escale, par nom accessible. */
   const champsDEscale = (patch: Partial<CampaignVessel>): string[] => {
     ouvrir(navire(patch));
@@ -187,7 +188,7 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
     const bouton = hote.querySelector('button[aria-label="Avitailler la cale"]') as HTMLButtonElement;
     act(() => bouton.click());
     act(() => root.unmount());
-    expect({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
+    expect({ provisions: quantitesDeCale(get().vessel!.provisions), eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) })
       .toEqual({ provisions: { 'ration-biscuits-de-mer': 3, 'ration-nourriture-preservee': 2 }, eau: 145, bourse: 240 - (3 * 12 + 2 * 24 + 102) });
   });
 
