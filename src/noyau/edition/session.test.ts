@@ -1769,10 +1769,16 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     expect([refusDeLaValeur(cree, valeur('objets', 'objet-2', ['id'], 'x')), refusDeLaValeur(cree, valeur('objets', 'objet-2', ['type'], 'trappings'))]).toEqual(['nonOffert', 'nonOffert']);
   });
 
-  it('le `trappingId` d’un Effet `giveTrapping` d’un déclencheur offre le catalogue des possessions puis les objets de la campagne (#4171)', () => {
-    const s = jouer(campagne(), { geste: 'document', document: 'scene' });
+  it('le `trappingId` d’un Effet `giveTrapping` d’un déclencheur offre le catalogue des possessions puis les objets de la campagne, chacun sous son libellé, sinon son id (#4171)', () => {
+    const SANS_NOM = { ...OBJET, id: 'objet-sans-nom', label: '' };
+    const avecSansNom = { ...CAMPAGNE, narratif: { ...CAMPAGNE.narratif, objets: [OBJET, SANS_NOM] } };
+    const s = jouer(ouvrirLEdition(structuredClone(avecSansNom) as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'scene' });
     const declencheur = { id: 'don', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', trappingId: OBJET.id } } } as Scene['triggers'][number];
-    const offerts = choixDuChamp('declencheur', declencheur, ['flow', 'effet', 'trappingId'], cadreDeLaSession(s))!.map((c) => c.valeur);
-    expect([offerts.includes('arme-simple'), offerts[offerts.length - 1]]).toEqual([true, OBJET.id]);
+    const offerts = choixDuChamp('declencheur', declencheur, ['flow', 'effet', 'trappingId'], cadreDeLaSession(s))!;
+    expect(offerts.find((c) => c.valeur === 'arme-simple')?.libelle, 'une entrée du catalogue, sous son libellé').toBe('Arme simple');
+    expect(offerts.slice(-2)).toEqual([
+      { valeur: OBJET.id, libelle: 'Arme de campagne', refus: null },
+      { valeur: SANS_NOM.id, libelle: SANS_NOM.id, refus: null },
+    ]);
   });
 });

@@ -37,6 +37,7 @@ import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
+import { entree as objetDeCampagneSchema } from '../../data/schemas/defs/trappings';
 import {
   bornesAuPoint,
   champDeLElement,
@@ -766,10 +767,22 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(unionDuNoeud(trappingRefSchema)?.variantes.map((v) => v.libelle)).toEqual(['une parmi', 'objet du catalogue', 'ligne de texte', 'mention', 'possession', 'somme d’argent', 'arme au choix']);
   });
 
-  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, quatre champs d’un objet de campagne, et chaque op non typée', () => {
+  it('un champ d’un objet de campagne qui admet `null` se saisit comme sa forme non nulle : les formes d’une union par variante nommée, une allonge parmi ses valeurs, au profil d’arme dérivé comme à l’objet (#4171)', () => {
+    const attendues: Record<string, string> = {
+      'objets/ammoRangeMod': 'variantes',
+      'objets/damage': 'variantes',
+      'objets/price': 'variantes',
+      'objets/price<forme=1>': 'choix',
+      'objets/reach': 'choix',
+      'objets/derivedWeapon/reach': 'choix',
+    };
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    expect(unionDuNoeud(new Map(champsDeclares(objetDeCampagneSchema)).get('price'))?.variantes.map((v) => v.libelle)).toEqual(['montant', 'non disponible']);
+  });
+
+  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée et chaque op non typée', () => {
     expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
       'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
-      ...['ammoRangeMod', 'damage', 'derivedWeapon/reach', 'price'].map((champ) => `objets/${champ}`),
       ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
     ].sort());
   });

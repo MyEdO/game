@@ -2110,16 +2110,18 @@ async function parcoursEditeur() {
     await cliquerBouton(quoi)
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  cliquée, attendue ouverte, le pointeur sorti d'elle ; son article désigné au clavier (`designerALaListe`), puis
-   *  Entrée ; l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. */
+   *  cliquée, attendue ouverte, le pointeur sorti d'elle ; son article, celui de son rang parmi les articles de même
+   *  libellé, désigné au clavier (`designerALaListe`), puis Entrée ; l'écran attendu ensuite : la valeur pressée, sinon
+   *  la condition `attendu`. */
   const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
     const valeurs = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs
     const libelle = valeurs.find((b) => b.id === id).libelle
+    const homonymesAvant = valeurs.slice(0, valeurs.findIndex((b) => b.id === id)).filter((b) => b.libelle === libelle).length
     const fait = attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`
     const quoi = { element: `liste/${liste}` }
     const deroulante = await amenerAuPanneau(quoi)
-    const rang = deroulante.choix.indexOf(libelle)
-    assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
+    const rang = deroulante.choix.flatMap((texte, n) => (texte === libelle ? [n] : []))[homonymesAvant] ?? -1
+    assert.ok(rang >= 0, `${libelle} (${id}) est offert : ${deroulante.choix.join(', ')}`)
     await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
     await attendreLaListe(quoi, (l) => l.ouverte, 'est ouverte au clic')
     await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
@@ -2171,20 +2173,30 @@ async function parcoursEditeur() {
     const grille = Array.from({ length: 17 * 17 }, (_, i) => [0.1 + 0.05 * (i % 17), 0.1 + 0.05 * Math.floor(i / 17)])
     return grille.reduce((loin, c) => (ecart(auPlan(ed, c)) > ecart(auPlan(ed, loin)) ? c : loin))
   }
-  /** Le pointeur tenu sur le plan de `ed` du point `de` du cadre au point `a`, par deux points entre eux, puis relâché. */
+  /** Le cadre `plan` publié de l'éditeur, en texte : `largeur × hauteur à (x, y)`. */
+  const cadreEnTexte = (plan) => (plan ? `${plan.largeur} × ${plan.hauteur} à (${plan.x}, ${plan.y})` : 'aucun')
+  /** Le pointeur tenu sur le plan de `ed` du point `de` du cadre au point `a`, par deux points entre eux, puis relâché ;
+   *  le cadre du plan publié, celui de la visée, avant l'appui, après l'appui et après le relâché, reste le même. */
   const glisserSurLePlan = async (ed, de, a, qui) => {
     const [x0, y0] = auPlan(ed, de)
     const [x1, y1] = auPlan(ed, a)
+    const cadres = [['visé', ed.plan], ['avant l’appui', (await editeur()).plan]]
     await geste(session, { surface: 'canvas', x: x0, y: y0 }, { qui }, async ({ x, y }, emettre) => {
       await emettre('souris', { type: 'mouseMoved', x, y })
       await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
       await sleep(200)
+      cadres.push(['après l’appui', (await editeur()).plan])
       for (const t of [1 / 3, 2 / 3, 1]) {
         await emettre('souris', { type: 'mouseMoved', x: x0 + t * (x1 - x0), y: y0 + t * (y1 - y0), button: 'left', buttons: 1 })
         await sleep(300)
       }
       await emettre('souris', { type: 'mouseReleased', x: x1, y: y1, button: 'left', clickCount: 1 })
     })
+    cadres.push(['après le relâché', (await editeur()).plan])
+    const textes = cadres.map(([quand, plan]) => `${quand} ${cadreEnTexte(plan)}`)
+    const [vise, ...pendant] = cadres.map(([, plan]) => cadreEnTexte(plan))
+    assert.ok(pendant.every((c) => c === pendant[0]), `${qui} : le cadre du plan à l’écran ne bouge pas pendant le geste — ${textes.join(' ; ')}`)
+    assert.equal(vise, pendant[0], `${qui} : la visée lit le cadre du plan à l’écran à l’appui — ${textes.join(' ; ')}`)
   }
   /** Le plan de la carte sans ses tons : ses lieux, chacun à sa place et nommé, et ses routes. */
   const formeDuPlan = (ed) => JSON.stringify([planDeLaCarte(ed).id, planDeLaCarte(ed).points.map((pt) => [pt.id, pt.nom, pt.x, pt.y]), planDeLaCarte(ed).traits.map((tr) => [tr.id, tr.de, tr.vers])])
@@ -2236,9 +2248,12 @@ async function parcoursEditeur() {
     await cliquerAuPanneau({ element: 'bouton/outil/chemin' })
     ed = await editeur()
     await glisserSurLePlan(ed, [premier.x, premier.y], [second.x, second.y], 'la route tirée')
-    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.traits ?? []).length === ${traits.length + 1}`)
+    const paire = [premier.id, second.id].sort().join()
+    await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.carte'][0]?.traits ?? []).some((tr) => tr.id !== 'brouillon/route' && [tr.de, tr.vers].sort().join() === ${JSON.stringify(paire)})`).catch((e) => {
+      if (e.code !== ATTENTE_ECHUE) throw e
+    })
     ed = await editeur()
-    const route = planDeLaCarte(ed).traits.find((tr) => [tr.de, tr.vers].sort().join() === [premier.id, second.id].sort().join())
+    const route = planDeLaCarte(ed).traits.find((tr) => tr.id !== 'brouillon/route' && [tr.de, tr.vers].sort().join() === paire)
     assert.ok(route, `outil Chemin, la route tirée relie les deux lieux : ${JSON.stringify(planDeLaCarte(ed).traits)}`)
     await cliquerAuPanneau({ element: 'bouton/outil/select' })
     await cliquerPoint(...auPlan(ed, [(premier.x + second.x) / 2, (premier.y + second.y) / 2]))
@@ -3033,8 +3048,8 @@ async function parcoursEditeur() {
   e = await editeur()
   const scenesOffertes = inspecte(e, `${pasDOps}/scene/id`).valeurs
   assert.equal(scenesOffertes.length, e.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length, 'la scène de la transition se choisit parmi les scènes du projet, exactement')
-  await cliquerAuPanneau({ element: `bouton/${scenesOffertes[0].id}` })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${pasDOps}/scene/id')?.valeurs.find((b) => b.id === '${scenesOffertes[0].id}')?.presse === true`)
+  assert.equal(inspecte(e, `${pasDOps}/scene/id`).type, 'liste', 'la scène, choix parmi des entrées, se choisit en liste')
+  await choisirALaListe(`${pasDOps}/scene/id`, scenesOffertes[0].id, 'editeur.inspecteur')
   e = await editeur()
   assert.equal(inspecte(e, `${pasDOps}/scene/id`).valeurs.find((b) => b.presse)?.jeu.args[2], scenesOffertes[0].jeu.args[2], 'la scène choisie est écrite')
   noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/etapes/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : la scène choisie à la liste des ${scenesOffertes.length} scènes du projet, « ${pressee(`${pasDOps}/scene/id`)} »`)

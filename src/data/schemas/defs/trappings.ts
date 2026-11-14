@@ -1,4 +1,4 @@
-import { metaDesChamps, nommerChamps } from '../grammaire/meta';
+import { metaDesChamps, nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `trappings.json` — vocabulaire UNIFIÉ des objets (armes/armures/munitions/possessions/
  * consommables/véhicules-marqueur). Dérivé de l'interface `TrappingData` EXISTANTE
@@ -101,19 +101,19 @@ const doc = document(
     /** LDB 73 l.19/23 */
     prosthesisTraining: z.array(entrainementDeProtheseSchema).optional(),
     /** LDB 61 l.5 */
-    enc: z.union([z.number(), z.literal('ND'), z.literal('Variable'), z.null()]).optional(),
+    enc: z.union([z.number(), z.literal('ND'), z.literal('Variable')]).nullable().optional(),
     /** ADE II 2 l.706-710 */
     sizeFor: sizeCategorySchema.optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
-    availability: z.union([availabilitySchema, z.literal('ND'), z.null()]),
+    availability: z.union([availabilitySchema, z.literal('ND')]).nullable(),
     /** `reach`/`loc`/`pa`/`damage` : portés par les armes/armures — ABSENTS (pas seulement `null`) sur
      *  les consommables/potions sans profil d'arme (`optional()` en plus de `null`, contenu réel). */
-    reach: z.union([reachSchema, z.null()]).optional(),
-    range: z.union([weaponRangeSpecSchema, z.null()]).optional(),
-    ammoRangeMod: z.union([ammoRangeModSchema, z.null()]).optional(),
-    loc: z.union([z.string(), z.null()]).optional(),
-    pa: z.union([z.number(), z.null()]).optional(),
-    damage: z.union([weaponDamageSpecSchema, z.null()]).optional(),
+    reach: reachSchema.nullable().optional(),
+    range: weaponRangeSpecSchema.nullable().optional(),
+    ammoRangeMod: ammoRangeModSchema.nullable().optional(),
+    loc: z.string().nullable().optional(),
+    pa: z.number().nullable().optional(),
+    damage: weaponDamageSpecSchema.nullable().optional(),
     qualities: z.array(qualityRefSchema),
     consumable: flowSchema.optional(),
     consumableDuration: consumableDurationSchema.optional(),
@@ -123,7 +123,7 @@ const doc = document(
     /** VDM 02 l.163-165 */
     niConsumedPerDR: z.number().optional(),
     /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 44 l.113-119 ; MDG 10 l.112 ; MDG 15 l.290 */
-    price: z.union([moneySchema, z.literal('ND'), z.null()]),
+    price: z.union([moneySchema, nommerNoeud(z.literal('ND'), { label: 'non disponible' })]).nullable(),
     derivedWeapon: weaponSchema.optional(),
     capabilities: itemCapabilitiesSchema.optional(),
     passive: passifsDe().optional(),

@@ -371,11 +371,14 @@ export function formeAuPoint(noeud: unknown, valeur: unknown): { noeud: unknown;
   return { noeud: formeDeLaValeur(n, valeur) ?? n, tenus };
 }
 
-/** La clé `cle`, de nœud `noeud`, s'écrit-elle au formulaire ? Une clé `id` qui n'est pas une référence (`idDe`, `ref`
- *  d'une portée locale, ou référence emboîtée `{ id }` d'une op) est une identité, qui se change par son geste dédié,
- *  qui la propage. */
-export const cleOfferte = (cle: string, noeud: unknown): boolean =>
-  cle !== 'id' || ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined || porteeDeLaFeuille(n) !== undefined || estRefEmboitee(n));
+/** Les valeurs du nœud `noeud` sont-elles des entrées, d'un catalogue ou d'une portée locale : sa fermeture porte-t-elle
+ *  une référence (`idDe`, `ref` d'une portée locale, ou référence emboîtée `{ id }`) ? */
+export const designeDesEntrees = (noeud: unknown): boolean =>
+  ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined || porteeDeLaFeuille(n) !== undefined || estRefEmboitee(n));
+
+/** La clé `cle`, de nœud `noeud`, s'écrit-elle au formulaire ? Une clé `id` qui n'est pas une référence
+ *  (`designeDesEntrees`) est une identité, qui se change par son geste dédié, qui la propage. */
+export const cleOfferte = (cle: string, noeud: unknown): boolean => cle !== 'id' || designeDesEntrees(noeud);
 
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
  *  clés de l'échantillon (pour une union, la variante objet que l'échantillon satisfait) ? */

@@ -588,6 +588,32 @@ describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () =
     expect([boutonDe(retiree, 'document/scene').presse, retiree.vue.zones['editeur.carte']]).toEqual([true, []]);
   });
 
+  it('à l’outil Chemin, la route tirée entre deux lieux de même nom se pose, choisie, son inspecteur rendu', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const pointer = (geste: 'appui' | 'glisse' | 'relache', u: number, v: number) => editionDe(appel('editer', surLePlan(geste, u, v)));
+    const carte = presser(boutonDe(editionDe(appel('editer', { ouvrir: 'la-diligence' })), 'document/carte'));
+    presser(boutonDe(carte, 'outil/lieu'));
+    pointer('appui', 0.9, 0.9);
+    const premier = planDe(pointer('relache', 0.9, 0.9)).points.find((p) => p.ton === 'alerte')!;
+    const ajoute = presser(boutonDe(carte, 'logique/lieu/ajouter'));
+    const second = planDe(ajoute).points.find((p) => p.ton === 'alerte')!;
+    expect([second.id !== premier.id, second.nom], 'deux lieux neufs, de même nom').toEqual([true, premier.nom]);
+    presser(boutonDe(ajoute, 'outil/select'));
+    pointer('appui', premier.x, premier.y);
+    pointer('glisse', 0.5, 0.5);
+    pointer('relache', 0.1, 0.1);
+    const rendu = presser(boutonDe(ajoute, 'annuler'));
+    expect(planDe(rendu).points.find((p) => p.id === premier.id)).toMatchObject({ x: premier.x, y: premier.y });
+    presser(boutonDe(ajoute, 'outil/chemin'));
+    pointer('appui', premier.x, premier.y);
+    for (const t of [1 / 3, 2 / 3, 1]) pointer('glisse', premier.x + t * (second.x - premier.x), premier.y + t * (second.y - premier.y));
+    const posee = pointer('relache', second.x, second.y);
+    const route = planDe(posee).traits.find((tr) => tr.ton === 'reussite');
+    expect([route?.de, route?.vers]).toEqual([premier.id, second.id]);
+    expect(valeursDeLInspecteur(posee, 'route/sens').map((b) => b.id)).toEqual(['route/sens/deux', `route/sens/${premier.id}`, `route/sens/${second.id}`]);
+  });
+
   it('« Plan du lieu » montre au plan les points d’intérêt du lieu, aux outils du plan : Épingler en pose un au point, le glissé le déplace, « Retirer le point d’intérêt » l’ôte ; le refermer rend la carte', () => {
     const { appel } = table();
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
@@ -2167,6 +2193,17 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     expect(boutonDe(presser(boutonDe(sans, 'etat/forme/enum')), 'etat/forme/enum').presse).toBe(true);
   });
 
+  it('un choix parmi des entrées se rend en liste quel que soit son compte : la scène d’un lieu ; un choix parmi un ensemble fermé garde ses boutons : la catégorie d’un objet (#4171)', () => {
+    const { presser, ouverte, narratif } = surLeNarratif();
+    const objet = inspecte(presser(boutonDe(narratif, 'logique/objets/ajouter')), 'valeur/categorie') as Choix;
+    expect([objet.type, objet.valeurs.length], 'la catégorie d’un objet, une énumération fermée').toEqual(['choix', 5]);
+    const carte = presser(boutonDe(narratif, 'document/carte'));
+    const [lieu] = (carte.vue.zones['editeur.logique'].find((el) => el.id === 'logique/lieu/liste') as Choix).valeurs;
+    const scene = inspecte(presser(boutonDe(carte, lieu.id)), 'valeur/scene/id') as Choix;
+    const scenes = (ouverte.vue.zones['editeur.scenes'].find((el) => el.id === 'scenes') as Choix).valeurs;
+    expect([scene.type, scene.valeurs.map((b) => b.libelle)], 'la scène d’un lieu, parmi les scènes du projet').toEqual(['liste', scenes.map((b) => b.libelle)]);
+  });
+
   it('un objet s’ajoute, s’écrit, se renomme ; choisi au don d’un déclencheur, il suit son renommage ; le retirer se refuse, le lieu dit ; sans référence, il se retire, une annulation le rend (#4171)', () => {
     const { appel, presser, narratif } = surLeNarratif();
     const choisir = (e: Edition, id: string, voulue: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulue((b.jeu as { args: unknown[] }).args[2]))!);
@@ -2182,14 +2219,15 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
     e = choisir(choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'effet'), 'valeur/flow/effet/type', (v) => (v as { type: string }).type === 'giveTrapping');
     e = choisir(e, 'valeur/flow/effet/trappingId', (v) => v === 'lumignon');
-    expect(valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((b) => b.presse)?.libelle, 'l’objet de campagne, offert au choix, choisi').toBe('lumignon');
+    const choisi = (e: Edition) => { const b = valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((v) => v.presse); return [b?.libelle, (b?.jeu as { args: unknown[] } | undefined)?.args[2]]; };
+    expect(choisi(e), 'l’objet de campagne, offert au choix sous son libellé, choisi').toEqual(['Lanterne', 'lumignon']);
     presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/lumignon'));
     e = nommer('falot');
     const refus = boutonDe(e, 'objets/supprimer').refus;
     expect(refus).toContain(`scène « ${(presser(boutonDe(e, 'document/scene')).vue.zones['editeur.titre'][0]).texte} »`);
     expect(erreurDe(appel('editer', boutonDe(presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot')), 'objets/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
     e = presser(boutonDe(presser(boutonDe(e, 'document/scene')), 'logique/declencheur/t-pont'));
-    expect(valeursDeLInspecteur(e, 'valeur/flow/effet/trappingId').find((b) => b.presse)?.libelle, 'le don suit le renommage').toBe('falot');
+    expect(choisi(e), 'le don suit le renommage').toEqual(['Lanterne', 'falot']);
     e = choisir(e, 'valeur/flow/kind', (v) => (v as { kind: string }).kind === 'sequence');
     e = presser(boutonDe(presser(boutonDe(e, 'document/narratif')), 'logique/objets/falot'));
     expect(boutonDe(e, 'objets/supprimer').refus, 'sans référence').toBeNull();

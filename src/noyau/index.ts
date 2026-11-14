@@ -219,6 +219,7 @@ export {
   champsOfferts,
   choixDuNoeud,
   clesPosees,
+  designeDesEntrees,
   elementDuNoeud,
   formeAuPoint,
   unionDuNoeud,

@@ -65,7 +65,7 @@ const doc = document(
   'talents',
   famille,
   {
-    max: z.union([z.number(), termeBonusDe, maxiSortsDuDomaine, z.null()]),
+    max: z.union([z.number(), termeBonusDe, maxiSortsDuDomaine]).nullable(),
     test: talentTestSchema.nullable(),
     specs: specsSchema.optional(),
     size: sizeCategorySchema.optional(),
