@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -127,30 +128,32 @@ class Reconstruction(unittest.TestCase):
     def test_chaque_element_reproduit_son_publie(self):
         elements = sorted(f'{d.parent.parent.name}/{d.parent.name}' for d in (ICI / 'element').glob('*/*/donnees.py'))
         self.assertTrue(elements, f"aucun élément sous {ICI / 'element'}")
-        for element in elements:
-            base, dossier = element.split('/')
-            id_ = f'{base}--{dossier}'
-            with self.subTest(element=element), tempfile.TemporaryDirectory() as tmp:
-                sortie = Path(tmp) / 'sortie'
-                vu = subprocess.run([sys.executable, '-X', 'utf8', str(ICI / 'element' / 'construire.py'), element,
-                                     '--sortie', str(sortie)],
-                                    capture_output=True, text=True, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}, timeout=270)
-                self.assertEqual(vu.returncode, 0, vu.stdout[-2000:] + vu.stderr[-2000:])
-                produit = sortie / id_
-                manifeste = lire(produit / f'{id_}.element.json')
-                octets = (produit / f'{id_}.glb').read_bytes()
-                self.assertEqual(manifeste['glb'], {'sha256': hashlib.sha256(octets).hexdigest(), 'octets': len(octets)})
-                self.assertEqual(lire(produit / 'manifest.json'), {'model': f'{id_}.glb', 'model_sha256': manifeste['glb']['sha256'], 'manifeste': manifeste})
-                licences = {l['fichier'] for l in lire(MODELES / f'{base}.provenance.json')['licences_de_pack']}
-                self.assertEqual({p.name for p in produit.glob('LICENSE*.txt')}, licences)
-                publie = MODELES / f'{id_}.manifeste.json'
-                self.assertTrue(publie.exists(), f'{id_} : aucun manifeste publié sous {MODELES}')
-                publie = lire(publie)
-                self.assertEqual(ecarts_du_manifeste({k: v for k, v in manifeste.items() if k != 'glb'}, {k: v for k, v in publie.items() if k != 'glb'}), [])
-                self.assertEqual(ecarts(forme(produit / f'{id_}.glb'), forme(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb")), [])
-                de_la_base = lire(MODELES / f'{base}.manifeste.json')
-                self.assertEqual(ecarts_des_cles(cles(produit / f'{id_}.glb'), cles(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb"),
-                                                 de_la_base['silhouettes'], gabarits(CACHE_DES_MODELES / f"{de_la_base['glb']['sha256']}.glb")), [])
+        with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(max_workers=os.cpu_count()) as file:
+            construire = lambda element: subprocess.run([sys.executable, '-X', 'utf8', str(ICI / 'element' / 'construire.py'), element,
+                                                         '--sortie', str(Path(tmp) / element)],
+                                                        capture_output=True, text=True, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}, timeout=270)
+            constructions = [file.submit(construire, element) for element in elements]
+            for element, construction in zip(elements, constructions):
+                base, dossier = element.split('/')
+                id_ = f'{base}--{dossier}'
+                with self.subTest(element=element):
+                    vu = construction.result()
+                    self.assertEqual(vu.returncode, 0, vu.stdout[-2000:] + vu.stderr[-2000:])
+                    produit = Path(tmp) / element / id_
+                    manifeste = lire(produit / f'{id_}.element.json')
+                    octets = (produit / f'{id_}.glb').read_bytes()
+                    self.assertEqual(manifeste['glb'], {'sha256': hashlib.sha256(octets).hexdigest(), 'octets': len(octets)})
+                    self.assertEqual(lire(produit / 'manifest.json'), {'model': f'{id_}.glb', 'model_sha256': manifeste['glb']['sha256'], 'manifeste': manifeste})
+                    licences = {l['fichier'] for l in lire(MODELES / f'{base}.provenance.json')['licences_de_pack']}
+                    self.assertEqual({p.name for p in produit.glob('LICENSE*.txt')}, licences)
+                    publie = MODELES / f'{id_}.manifeste.json'
+                    self.assertTrue(publie.exists(), f'{id_} : aucun manifeste publié sous {MODELES}')
+                    publie = lire(publie)
+                    self.assertEqual(ecarts_du_manifeste({k: v for k, v in manifeste.items() if k != 'glb'}, {k: v for k, v in publie.items() if k != 'glb'}), [])
+                    self.assertEqual(ecarts(forme(produit / f'{id_}.glb'), forme(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb")), [])
+                    de_la_base = lire(MODELES / f'{base}.manifeste.json')
+                    self.assertEqual(ecarts_des_cles(cles(produit / f'{id_}.glb'), cles(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb"),
+                                                     de_la_base['silhouettes'], gabarits(CACHE_DES_MODELES / f"{de_la_base['glb']['sha256']}.glb")), [])
 
 
 if __name__ == '__main__':
