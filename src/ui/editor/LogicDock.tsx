@@ -15,7 +15,22 @@ import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Warning } from '../../noyau/validateScene';
-import { removeMember, patchMember, addTrigger, patchTrigger, deleteSel, addDialogue, replaceDialogue, removeDialogue, renameDialogue, addEncounter, patchEncounter, removeEncounter, renameTrigger, renameEncounter } from '../../noyau/sceneEdit';
+import {
+  removeMember,
+  patchMember,
+  addTrigger,
+  patchTrigger,
+  deleteSel,
+  addDialogue,
+  replaceDialogue,
+  removeDialogue,
+  renameDialogue,
+  addEncounter,
+  patchEncounter,
+  removeEncounter,
+  renameTrigger,
+  renameEncounter,
+} from '../../noyau/sceneEdit';
 import { EntryRename } from './EntryRename';
 import { flowEffectCount } from '../../noyau/sceneEditLecture';
 import { LayerChip, sceneLayerZs } from './LayerField';

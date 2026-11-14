@@ -46,7 +46,7 @@ import { menaceIds } from '../../../engine/menace';
 import { dotationsDuHeros, resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
-import type { TrappingRef } from '../../index';
+import type { CareerLevelData } from '../../index';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -126,7 +126,7 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
   });
 
   it('`{ pick: 1, of }` (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
-    const ref: TrappingRef = { pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
+    const ref: CareerLevelData['trappings'][number] = { pick: 1, of: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
     const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
       resolveTrappingChoices(dotationsDuHeros(CARRIERE_FIXTURE), { [adresseDeCreation.dotation([0])]: 1 }));
     expect(resolues).toEqual([{ id: 'pistolet' }]);
@@ -156,7 +156,7 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
  * `plageSchema` (`grammaire/valeurs.ts`, vague `plage` #1463 P1) — les deux bornes d'une rangée de
  * table de tirage se déclarent UNE fois et se composent par la SHAPE. Le spread est un ANGLE MORT du
  * scanner de redéclarations (`scripts/docs/lib/structures-scan.mts` lit les littéraux par AST et ne
- * résout pas un spread, cf. `grammaire/reference.ts:145-146`) : l'extinction d'une ligne de stock ne
+ * résout pas un spread, cf. `talentRefSchema`, `grammaire/reference.ts`) : l'extinction d'une ligne de stock ne
  * prouve donc RIEN sur le parse. Ce gate est POSITIF — il mesure que la garde des bornes tient
  * encore, au schéma partagé ET à chaque site adoptant, par la porte de validation réelle
  * (`validateDataset`).

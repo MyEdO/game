@@ -3,6 +3,7 @@
  * (`isConditionLocked`). Un État verrouillé ne se retire par aucun moyen (`LDB 18 l.15`) : le geste
  * qui le viserait est refusé AVANT de coûter quoi que ce soit, et la raison est dite.
  */
+import { idDeFixture } from '../data/idDeFixture.testkit';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -10,7 +11,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { ACTION_GATES, actionGate, type ActionCtx } from './actionRegistry';
 import { hasCondition } from '../engine/conditions';
-import { findConditionById, type ActionDef, type ActionId } from '../data/index';
+import { findConditionById, type ActionDef } from '../data/index';
 import { t } from '../i18n';
 import type { ConditionInstance } from '../engine/types';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -69,7 +70,7 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     expect(findConditionById(etat)!.lockedUntil, 'la fixture a gagné un verrou').toBeUndefined();
     H.conditions = [{ id: etat, value: 1 }] as ConditionInstance[];
     banc.setState({ battle: { ...banc.getState().battle! } });
-    const def = { id: 'remede-fixture' as ActionId, rule: { id: etat, type: 'etat' } } as ActionDef;
+    const def = { id: idDeFixture('action', 'remede-fixture'), rule: { id: etat, type: 'etat' } } as ActionDef;
     expect(ACTION_GATES['etat-porte'](ctxDe(def)).ok, 'l’État est porté').toBe(true);
     expect(ACTION_GATES['remede-atteignable'](ctxDe(def)).ok, 'aucun verrou : le geste est atteignable').toBe(true);
     const parTest = ACTION_GATES['etat-recuperable-par-test'](ctxDe(def));

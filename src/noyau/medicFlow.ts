@@ -34,7 +34,18 @@ import { touchActors } from './combatOrParty';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusEnCombat } from './verrousDeFiche';
 import { finishPlayerAction, openContractionCascade } from './combatFlow';
-import { cibleDeLOperation, estOperation, HEAL_STAKE, passeDeLOperation, plaiesDeLOperation, refusDeLActeALInfirmerie, type ActeOperatoire, type MedicCost, type MedicNpc, type MedicState } from './acteDeSoin';
+import {
+  cibleDeLOperation,
+  estOperation,
+  HEAL_STAKE,
+  passeDeLOperation,
+  plaiesDeLOperation,
+  refusDeLActeALInfirmerie,
+  type ActeOperatoire,
+  type MedicCost,
+  type MedicNpc,
+  type MedicState,
+} from './acteDeSoin';
 import { flowStakeRef } from '../data';
 import type { PendingHeal } from './pendings';
 import type { Get, Set } from './flowTypes';

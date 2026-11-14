@@ -11,7 +11,18 @@ import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
 import { bonus, bonusDe, effectiveChar } from '../../engine/characteristics';
-import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, poserInconscientDeSaignement, stacks, endOfRound, pendingPlusExtensions, resolvePlusExtension } from '../../engine/conditions';
+import {
+  addCondition,
+  isOutOfAction,
+  COND,
+  tickDeath,
+  bleedDeathRoll,
+  poserInconscientDeSaignement,
+  stacks,
+  endOfRound,
+  pendingPlusExtensions,
+  resolvePlusExtension,
+} from '../../engine/conditions';
 import { suffocationTick } from '../../engine/suffocation';
 import { tickTraumaEscalation } from '../../engine/trauma';
 import { clearPsychOf, refreshAllDefendedPsych } from '../../engine/psychology';

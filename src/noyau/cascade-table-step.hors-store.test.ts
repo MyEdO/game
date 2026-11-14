@@ -2,7 +2,19 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makeRNG } from '../engine/dice';
-import { startCascade, rollTableStep, runCascadeImmediate, stepInteraction, stepReady, tableStepDef, tableStepIds, tableSpec, tableStepNaturalRange, naturalRollForTableRow, type TableStepDef } from './cascade';
+import {
+  startCascade,
+  rollTableStep,
+  runCascadeImmediate,
+  stepInteraction,
+  stepReady,
+  tableStepDef,
+  tableStepIds,
+  tableSpec,
+  tableStepNaturalRange,
+  naturalRollForTableRow,
+  type TableStepDef,
+} from './cascade';
 import { spyApplier } from './cascade.testkit';
 import { STRUCTURE_CRIT_TABLE } from './combatFlow';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';

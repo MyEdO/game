@@ -1,9 +1,8 @@
 /**
  * Schéma de `mutations.json` — Mutations (entités, LDB 19 l.112-165 + suppléments), miroir de
- * `MutationData = Omit<Mutation, 'roll' | 'talentsAcquis'>` (`src/data/mutations.ts`, `Mutation` définie
- * `src/engine/corruption.ts`). `roll` (jet d100, traçabilité de tirage) et `talentsAcquis` (provenance
- * posée par `attachMutation`) n'appartiennent PAS à l'entité éditable — portés seulement par l'INSTANCE
- * tirée ou attachée à l'exécution (hors dataset).
+ * `MutationData` (`src/data/mutations.ts`, `MutationDeCatalogue` de `src/engine/corruption.ts`). L'état
+ * d'exécution (`EtatDeMutation` : `roll`, `usure`, `talentsAcquis`) n'appartient PAS à l'entité éditable — porté
+ * seulement par l'INSTANCE tirée ou attachée (hors dataset).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

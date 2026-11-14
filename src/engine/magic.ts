@@ -36,7 +36,14 @@ import type { SpellDuration } from './spellDuration';
 import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf, overcastBudget } from './overcast';
 import { arcaneDomainIdOf, castingKindOf, featuresOf, chaosDomainOf } from './combatFeatures/dispatch';
 import { isPrayerFamily } from './combatFeatures/types';
-import { domainMissileMods, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
+import {
+  domainMissileMods,
+  domainSeaFocalisationDR,
+  domainSeaFocalisationDoubled,
+  domainSeaIncantationDR,
+  domainSeaWidensCritFumble,
+  domainWindDR,
+} from './domainAttributes';
 import type { WindContext } from './domainAttributes';
 import { environmentTestDR, environmentWidensCrit, environmentNIMods } from './magicEnvironment';
 import type { MagicEnvironment } from './magicEnvironment';

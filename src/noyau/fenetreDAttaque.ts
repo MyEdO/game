@@ -19,7 +19,17 @@ import {
 import { defenseDodgeMods } from './mount';
 import { LOCALISATIONS_DE_COUP, type Combatant, type Difficulty, type HitLocation, type ModLine, type Weapon } from '../engine/types';
 import type { RollBreakdown } from '../engine/combat';
-import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget, issueAuJet, coupAApplique, penaliteDeMainSecondaire } from '../engine/combat';
+import {
+  crowdMod,
+  bestRangedDefense,
+  locationLabel,
+  peutRetenirSesCoups,
+  attackTestOf,
+  isHelplessTarget,
+  issueAuJet,
+  coupAApplique,
+  penaliteDeMainSecondaire,
+} from '../engine/combat';
 import { rule } from '../engine/policy';
 import { isUnarmed } from '../engine/items';
 import { isInanimate } from '../engine/structures';

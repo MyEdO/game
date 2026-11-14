@@ -9,16 +9,11 @@
  * rangées (`espace.chargeParDiscriminant`, bornée au parse de chaque rangée par la fabrique) : `min`/`max`/`mod` sont déclarés optionnels, et la charge les exige
  * dans les deux sens — un `misfire` ne porte rien, une bande ses DEUX bornes, le Malus d'Action en plus
  * son `mod`.
- *
- * La VUE TS reste l'union manuscrite `OupsRow = OupsEntry | OupsMisfireEntry` (`src/data/oups.ts`) :
- * c'est elle qui donne à `oupsTable` ses `min`/`max` NON optionnels (lus par `findTableEntry`) et au
- * Codex sa discrimination `'min' in o` (`src/noyau/codex/registry.ts`, bloc `key: 'oups'`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
 import { enumNomme, sourceRefSchema } from '../grammaire/valeurs';
-import { tableTotale } from '../../../lib/tableTotale';
 
 export const file = 'oups.json';
 export const famille = 'config';
@@ -38,10 +33,16 @@ const KINDS = {
 
 /** CHARGE par `kind`, toute exigée : la bande porte ses bornes, le Malus d'Action son modificateur,
  *  l'Incident de Tir rien (LDB 14 l.21-34). */
-const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(
-  Object.keys(KINDS) as (keyof typeof KINDS)[],
-  (kind) => (kind === 'misfire' ? [] : kind === 'actionPenalty' ? ['min', 'max', 'mod'] : ['min', 'max']),
-);
+const chargeParDiscriminant = {
+  selfWound: ['min', 'max'],
+  weaponDamageActLast: ['min', 'max'],
+  actionPenalty: ['min', 'max', 'mod'],
+  loseMovement: ['min', 'max'],
+  loseAction: ['min', 'max'],
+  trauma: ['min', 'max'],
+  hitAlly: ['min', 'max'],
+  misfire: [],
+} as const satisfies Record<keyof typeof KINDS, readonly string[]>;
 
 /** Une ligne : une bande du dé de la table, ou l'Incident de Tir, hors table. */
 export const rangee = nommerChamps(z.strictObject({

@@ -2,7 +2,14 @@ import { afterAll, describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY } from '../scripts/guards/lib/registryIdBranch.mjs';
+import {
+  scanRegistryIdBranch,
+  scanRawIdEqualities,
+  isRegistryIdBranchExcluded,
+  SCAN_DIRS,
+  SCAN_EXTS,
+  OP_VOCABULARY,
+} from '../scripts/guards/lib/registryIdBranch.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 

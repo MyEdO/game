@@ -4,7 +4,22 @@
  */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEffectZone, type WallSeg } from './monde/scene';
-import { auditFacade, auditStairwells, auditUnsupportedFloor, auditWallDeadEndsInside, auditZoneCoverage, groundTerrains, interiorCells, outdoorCells, PLAN_DEFECT_FAMILIES, scenePlanDefects, stairFlightCells, supportedFloorCells, zoneOutsideBuildingTiles, type PlanDefectFamily } from './planDefects';
+import {
+  auditFacade,
+  auditStairwells,
+  auditUnsupportedFloor,
+  auditWallDeadEndsInside,
+  auditZoneCoverage,
+  groundTerrains,
+  interiorCells,
+  outdoorCells,
+  PLAN_DEFECT_FAMILIES,
+  scenePlanDefects,
+  stairFlightCells,
+  supportedFloorCells,
+  zoneOutsideBuildingTiles,
+  type PlanDefectFamily,
+} from './planDefects';
 import { perimeterWallSegs } from './sceneEdit.testkit';
 import { terrainWalkable } from './monde/terrain';
 import { validateScene } from './validateScene';

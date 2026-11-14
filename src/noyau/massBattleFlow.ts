@@ -25,7 +25,17 @@ import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../engin
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
 import { d100, rollDice, type RNG } from '../engine/dice';
-import { testValue, skillBaseValue, bestForTests, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
+import {
+  testValue,
+  skillBaseValue,
+  bestForTests,
+  bestForCombined,
+  bestAssistedOption,
+  peutTenter,
+  refusPersonneNePeutTenter,
+  type SupportDetail,
+  type TestDesigne,
+} from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';

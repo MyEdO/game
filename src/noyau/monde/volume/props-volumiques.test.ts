@@ -3,7 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { scenarioEntities } from '../../../scenes/opera/furnished';
 import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
 import { findPropById } from '../../../data';
-import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placesLocalesDuProp, PROP_CYLINDER_AXES, REPERE_D_AXE, type PropCylinderSides, type PropData, type PropPrimitive } from '../../../data/props.types';
+import {
+  aretesNonAppariees,
+  CAP_IDENTITE_PROP,
+  empreinteDeriveeDuProp,
+  placesLocalesDuProp,
+  PROP_CYLINDER_AXES,
+  REPERE_D_AXE,
+  type PropCylinderSides,
+  type PropData,
+  type PropPrimitive,
+} from '../../../data/props.types';
 import { buildPropVolumes } from './propVolumes';
 import { facePoly, polyNormal } from './worldTris';
 import { sceneMetresPerTile } from '../scene';

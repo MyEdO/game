@@ -4,7 +4,24 @@ import { targetedTrigger, targetCausedSourcesFor, targetCausedTrigger, sourceCom
 import type { Combatant } from './types';
 import { addCondition, removeCondition } from './conditions';
 import { combattantDeTest } from './combattantDeTest.testkit';
-import { creatures, domains, etats, findCreatureById, groups, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById, psychologies, SPEC_SOURCES, talents, traits, type GroupData, type SpecsSource } from '../data';
+import {
+  creatures,
+  domains,
+  etats,
+  findCreatureById,
+  groups,
+  findGodById,
+  findGroupById,
+  findSpeciesById,
+  findTalentById,
+  findTraitById,
+  psychologies,
+  SPEC_SOURCES,
+  talents,
+  traits,
+  type GroupData,
+  type SpecsSource,
+} from '../data';
 import { resetData, setDataset } from '../data/overrides';
 import type { EntreeVivante } from '../data/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';

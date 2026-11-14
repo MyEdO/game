@@ -17,7 +17,14 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
-import { armourBypassCategorieSchema, loseTurnWhatSchema, ressourceDeDestinSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import {
+  armourBypassCategorieSchema,
+  loseTurnWhatSchema,
+  ressourceDeDestinSchema,
+  senseSchema,
+  tablesDeCiblesSchema,
+  zoneShapeSchema,
+} from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, estPoseDEtat, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';

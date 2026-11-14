@@ -7,7 +7,17 @@
  */
 import { Fragment, type ReactNode } from 'react';
 import { CodexRef } from './compendium/CodexRef';
-import { byId, findTalentById, findTraitById, skillInstanceLabel, talentConcrete, qualityRefLabel, refLabel, advancementLabel, type AdvancementRef } from '../data';
+import {
+  byId,
+  findTalentById,
+  findTraitById,
+  skillInstanceLabel,
+  talentConcrete,
+  qualityRefLabel,
+  refLabel,
+  advancementLabel,
+  type AdvancementRef,
+} from '../data';
 import { t } from '../i18n';
 import { refKey } from '../engine/careerSlots';
 import { traitLisible } from '../engine/traits/dispatch';

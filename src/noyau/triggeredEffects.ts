@@ -16,7 +16,17 @@ import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, flowHasFreeAttack, spellEffectOps, EMPTY_FLOW, reecrireFlow, reecrireLesOps } from '../engine/flowCore';
+import {
+  ARG_TEMPLATE,
+  INDICE_TEMPLATE,
+  type EffectTrigger,
+  flowHasTest,
+  flowHasFreeAttack,
+  spellEffectOps,
+  EMPTY_FLOW,
+  reecrireFlow,
+  reecrireLesOps,
+} from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
@@ -33,7 +43,16 @@ import { chebyshev } from '../engine/grid';
 import { tileSeenByFoe } from './monde/lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { sceneMetresPerTile } from './monde/scene';
-import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
+import {
+  findTraitById,
+  findQualityById,
+  findTalentById,
+  findConditionById,
+  findPsychologyById,
+  findSymptomById,
+  findMutationById,
+  testSkillLabel,
+} from '../data';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';

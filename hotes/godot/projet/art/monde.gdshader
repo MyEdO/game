@@ -8,9 +8,11 @@
 // l'état de la case sous le fragment, lu au plan de sa couche et fondu depuis la vision d'avant, multiplie l'albédo par
 // sa teinte, en lumière linéaire : sous `OUTPUT_IS_SRGB` (rendu de compatibilité), l'albédo est en sRGB et le moteur le
 // linéarise après `fragment()` (`recettes/voile-de-la-vision.gd`) ; sans vision liée, la texture blanche et les teintes
-// à 1 : rien n'est voilé. La part de lumière (`part_de_lumiere`) a sa jumelle en GDScript pour la teinte d'une instance
-// d'arête (`MiseEnPage.teinte_d_instance`), tenue égale par `recettes/voile-du-bati.gd`. `vertex()` sans branche, comme
-// le code généré : sous une branche, le pilote arrondit autrement la projection des textures.
+// à 1 : rien n'est voilé ; la vision, sa part de lumière (`part_de_lumiere`) et `en_srgb` viennent de
+// `art/vision.gdshaderinc`, que le voile d'un navire lit aussi. La part de lumière a sa jumelle en GDScript pour la
+// teinte d'une instance d'arête (`MiseEnPage.teinte_d_instance`), tenue égale par `recettes/voile-du-bati.gd`.
+// `vertex()` sans branche, comme le code généré : sous une branche, le pilote arrondit autrement la projection des
+// textures.
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
@@ -22,11 +24,7 @@ uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_en
 uniform sampler2D normal_texture : hint_roughness_normal, filter_linear_mipmap, repeat_enable;
 uniform float uv1_triplanar_sharpness : hint_range(0.0, 150.0, 0.001);
 uniform vec3 uv1_scale = vec3(1.0);
-uniform sampler2D vision_avant : filter_linear, hint_default_white;
-uniform sampler2D vision : filter_linear, hint_default_white;
-uniform float vision_fondu : hint_range(0.0, 1.0) = 1.0;
-uniform vec3 vision_teintes = vec3(1.0);
-uniform int vision_rangees_par_plan = 1;
+#include "res://art/vision.gdshaderinc"
 uniform float vision_cases_par_metre = 1.0;
 
 varying vec3 uv1_triplanar_pos;
@@ -39,13 +37,6 @@ vec3 en_lineaire(vec3 couleur) {
 			pow((couleur + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)),
 			couleur * (1.0 / 12.92),
 			lessThan(couleur, vec3(0.04045)));
-}
-
-vec3 en_srgb(vec3 couleur) {
-	return mix(
-			pow(couleur, vec3(1.0 / 2.4)) * (1.0 + 0.055) - vec3(0.055),
-			couleur * 12.92,
-			lessThan(couleur, vec3(0.0031308)));
 }
 
 void vertex() {
@@ -87,13 +78,6 @@ float etat_vu(sampler2D plan) {
 	return texture(plan, texel / vec2(textureSize(plan, 0))).r;
 }
 
-float part_de_lumiere(float etat) {
-	float exploree = 128.0 / 255.0;
-	float sous = mix(vision_teintes.x, vision_teintes.y, clamp(etat / exploree, 0.0, 1.0));
-	float dessus = mix(vision_teintes.y, vision_teintes.z, clamp((etat - exploree) / (1.0 - exploree), 0.0, 1.0));
-	return mix(sous, dessus, step(exploree, etat));
-}
-
 void fragment() {
 	if (uv1_triplanar) {
 		ALBEDO = triplanar_texture(albedo_texture, uv1_power_normal, uv1_triplanar_pos).rgb;
@@ -103,7 +87,7 @@ void fragment() {
 	} else {
 		ALBEDO = COLOR.rgb;
 	}
-	float lumiere = part_de_lumiere(mix(etat_vu(vision_avant), etat_vu(vision), vision_fondu));
+	float lumiere = part_de_lumiere(etat_du_fondu(etat_vu(vision_avant), etat_vu(vision)));
 	if (lumiere != 1.0) {
 		ALBEDO = OUTPUT_IS_SRGB ? en_srgb(en_lineaire(ALBEDO) * lumiere) : ALBEDO * lumiere;
 		// #3950

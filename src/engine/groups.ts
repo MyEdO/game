@@ -12,7 +12,20 @@ import type { TraitInstance } from './statEntry';
 import type { ActiveEffect, ConditionInstance } from './types';
 import { maladieDeclaree, type Disease } from './disease';
 import { effectiveTalents } from './talentEffects';
-import { findCareerById, findClassById, findConditionById, findCreatureById, findGroupById, findSpeciesById, findTalentById, findTraitById, groups, SPEC_SOURCES, type CreatureData, type SpecsSource } from '../data';
+import {
+  findCareerById,
+  findClassById,
+  findConditionById,
+  findCreatureById,
+  findGroupById,
+  findSpeciesById,
+  findTalentById,
+  findTraitById,
+  groups,
+  SPEC_SOURCES,
+  type CreatureData,
+  type SpecsSource,
+} from '../data';
 
 /** Groupe de tout porteur d'une mutation (`groups.json`). EDOC 12 l.56, l.181. */
 const GROUPE_DES_MUTANTS = 'mutants';

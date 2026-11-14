@@ -1,6 +1,7 @@
 import { builtinRules } from 'eslint/use-at-your-own-risk'
 import interne from './interneLint.mjs'
 import couches from './couchesLint.mjs'
+import nomsParLigne from './nomsParLigneLint.mjs'
 
 /** Les murs qu'une directive au site peut éteindre (#2724) ; tout autre mur, et toute règle native de
  *  restriction, n'en admet aucune : `scripts/corpus/guards/directivesMurs.test.mjs`. */
@@ -24,5 +25,6 @@ export default {
     ['reexportation', couches.reexportation],
     ['suite-jouee', couches.suiteJouee],
     ['quarantaine', couches.quarantaine],
+    ['noms-par-ligne', nomsParLigne],
   ]),
 }

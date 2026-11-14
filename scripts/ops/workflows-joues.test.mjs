@@ -31,7 +31,38 @@ import { z } from 'zod'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts'
 import { argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs'
-import { DOSSIER, DATE, ARBRE, COMMIT, jouer, SECRET, D1, DOSSIER_DU_CHAPITRE, ARGS_TABLE, FICHES_PJ, LECTURES, SANS_SOSIE, TYPE_DE_POINT_AU_MJ, jetsDe, jsonEntre, declencheursEnvoyes, analyseCouvrante, repondreALaTable, jouerTable, RESOLUTION, mjSansFin, mjAuxSorts, analyseSignal, fichierDeFixture, argsDossier, ARGS_DOSSIER, completude, repondreAuDossier, jouerDossier, sauf } from '../test/lib/bancWorkflows.mjs'
+import {
+  DOSSIER,
+  DATE,
+  ARBRE,
+  COMMIT,
+  jouer,
+  SECRET,
+  D1,
+  DOSSIER_DU_CHAPITRE,
+  ARGS_TABLE,
+  FICHES_PJ,
+  LECTURES,
+  SANS_SOSIE,
+  TYPE_DE_POINT_AU_MJ,
+  jetsDe,
+  jsonEntre,
+  declencheursEnvoyes,
+  analyseCouvrante,
+  repondreALaTable,
+  jouerTable,
+  RESOLUTION,
+  mjSansFin,
+  mjAuxSorts,
+  analyseSignal,
+  fichierDeFixture,
+  argsDossier,
+  ARGS_DOSSIER,
+  completude,
+  repondreAuDossier,
+  jouerDossier,
+  sauf,
+} from '../test/lib/bancWorkflows.mjs'
 
 const ARGS_TABLE_PERSONAS = ['rôliste', 'fouineur', 'saboteur', 'hors-cadre'];
 

@@ -4,7 +4,26 @@
  * (`Combatant.weapons` / `armour`) sont DÉRIVÉES de l'équipement via
  * recomputeLoadout : équiper une hache ou une armure change donc le combat.
  */
-import { Combatant, ItemInstance, ItemKind, HitLocation, ArmourPoints, Weapon, WeaponLoadout, WeaponDamageSpec, QualityInstance, type EffectSource, type ReachValue, type ShipPoste, type AuthoredShipPoste, type WeaponRangeSpec, type RangeBandId, type FireArc, type CharKey, type Main } from './types';
+import {
+  Combatant,
+  ItemInstance,
+  ItemKind,
+  HitLocation,
+  ArmourPoints,
+  Weapon,
+  WeaponLoadout,
+  WeaponDamageSpec,
+  QualityInstance,
+  type EffectSource,
+  type ReachValue,
+  type ShipPoste,
+  type AuthoredShipPoste,
+  type WeaponRangeSpec,
+  type RangeBandId,
+  type FireArc,
+  type CharKey,
+  type Main,
+} from './types';
 import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants, damageWeapon, isImprovised, effectiveWeaponRange } from './weaponDamage';
@@ -12,7 +31,21 @@ import { groupeAPoudre, maniementRetenu, type ManiementRetenu } from './weaponGr
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
-import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, matiereDuGroupe, groupeDeSiege, qualityInstance, refLabel, estDotationDObjet, type TrappingRef, type TrappingData, type ArmeDerivee } from '../data';
+import {
+  findApparenceById,
+  findCareerById,
+  findCreatureById,
+  findTrappingById,
+  findTraitById,
+  matiereDuGroupe,
+  groupeDeSiege,
+  qualityInstance,
+  refLabel,
+  estDotationDObjet,
+  type TrappingRef,
+  type TrappingData,
+  type ArmeDerivee,
+} from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
 
@@ -416,7 +449,7 @@ export function objetsDeLInventaire(
 ): ItemInstance[] {
   return Object.entries(inventaire).map(([id, porte]) => ({
     ...itemFromGive({ trappingId: id, apparence: apparences[id] }, () => uid(id), undefined, resolveTrapping, contexte),
-    equipped: porte,
+    equipped: porte === true,
   }));
 }
 

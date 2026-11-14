@@ -5,7 +5,8 @@
 ## (`centre`), à la hauteur 0 de la scène, sa flottaison ; coupé à la hauteur de coupe que le regard lui donne, entier
 ## sinon ; posé, la mer de sa flottaison bordée par ce que sa coque plonge sous la hauteur 0 (`MontageDeVehicule.contour_sous`,
 ## `VolumeDeScene.border_la_mer`). Un navire dont seul le centre change (l'éditeur le déplace) se repose sans se recharger ;
-## ceux qui ne sont plus servis se retirent.
+## ceux qui ne sont plus servis se retirent. Chacun se voile par la vision du groupe que le volume du monde tient
+## (`VolumeDeScene.voile`, `MontageDeVehicule.voiler`), case par case.
 class_name MontageDesNavires
 extends Node3D
 
@@ -36,6 +37,7 @@ func poser(navires: Dictionary, coupes: Dictionary, metres_par_case: float) -> v
 	for id: String in _montes.keys():
 		if not navires.has(id):
 			_montes[id].queue_free()
+			monde.volume.oublier_le_voile(id)
 			for table in [_montes, _servis, _reperes, _centres]:
 				table.erase(id)
 	for id: String in navires:
@@ -44,6 +46,7 @@ func poser(navires: Dictionary, coupes: Dictionary, metres_par_case: float) -> v
 			var montage := MontageDeVehicule.new()
 			add_child(montage)
 			_montes[id] = montage
+			montage.voiler(monde.volume.voile(id))
 		_montes[id].couper(MiseEnPage.hauteur_de_coupe(coupes[id], metres_par_case) if coupes.has(id) else null)
 		_monter(id)
 
@@ -78,3 +81,4 @@ func _placer(id: String, scene: Node3D) -> void:
 	var origine := MiseEnPage.point_de_la_carte(navire.centre.x, navire.centre.y, 0.0)
 	scene.transform = (_reperes[id] as Transform3D).scaled(Vector3(echelle, echelle, echelle)).rotated(Vector3.UP, MiseEnPage.lacet_de_proue(MiseEnPage.LACETS_DES_CAPS[navire.corps.cap])).translated(origine)
 	_centres[id] = navire.centre
+

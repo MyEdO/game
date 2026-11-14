@@ -7,7 +7,16 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { PORTE_DE_PLAGE, cotesLisibles, lectureDeLaPlage, refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
+import {
+  PORTE_DE_PLAGE,
+  cotesLisibles,
+  lectureDeLaPlage,
+  refusDeLaPlage,
+  raisonDeRefusDePlage,
+  croissancesDeLaPlage,
+  reclassementsDeLaPlage,
+  SHA_NUL,
+} from './plageStock.mjs'
 import { franchisDuCommit } from './reclassementCss.mjs'
 import { GitIndisponible, TRONC, depotDe, refusDeGit } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'

@@ -9,7 +9,14 @@ import { BUILD_NEUTRE } from '../../../src/lib/corpulence.ts';
 import { SEXES } from '../../../src/lib/sexe.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, FEMININ, CORPULENCE, NOMS_DES_SILHOUETTES, estSilhouette } from './silhouettes.ts';
-import { CLES_DU_GABARIT, PREFIXE_DES_CLES_DU_GABARIT, fauteDeBornesDuGabarit, type BornesDuGabarit, type ManifesteDeBase, type TableDeGabarit } from './manifesteDeBase.ts';
+import {
+  CLES_DU_GABARIT,
+  PREFIXE_DES_CLES_DU_GABARIT,
+  fauteDeBornesDuGabarit,
+  type BornesDuGabarit,
+  type ManifesteDeBase,
+  type TableDeGabarit,
+} from './manifesteDeBase.ts';
 import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
 
 /**

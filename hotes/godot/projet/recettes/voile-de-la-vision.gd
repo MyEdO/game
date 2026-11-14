@@ -14,6 +14,7 @@ extends SceneTree
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
 const RECETTE_RENDUE := true
+const PIXELS := preload("res://recettes/lecture_des_pixels.gd")
 const LARGEUR := 8
 const HAUTEUR := 6
 const METRES_PAR_CASE := 2.0
@@ -74,20 +75,20 @@ func _recetter() -> void:
 	for regard in ["plateau", "tactique", "immersion"]:
 		_regarder(monde, regard)
 		volume.voir(null)
-		var temoin := await _image()
+		var temoin := await PIXELS.image(self)
 		volume.voir(premiere)
 		if volume.etat_de_la_case(Vector2i(1, 2), 0) != EXPLOREE or volume.etat_de_la_case(Vector2i(4, 2), 1) != VUE:
 			_fautes.append("%s : l'état lu dans l'image posée n'est pas celui de la vision" % regard)
-		var voilee := await _image()
+		var voilee := await PIXELS.image(self)
 		for nom: String in lieux:
 			_mesurer(monde, regard, nom, temoin, voilee, lieux[nom][0], lieux[nom][1])
 		if regard == "plateau":
 			volume.voir(_vision(fondue))
 			if volume.part_du_fondu() != 0.0:
 				_fautes.append("fondu : une vision neuve de la même taille se pose à la part %f, attendu 0" % volume.part_du_fondu())
-			_mesurer(monde, regard, "fondu au départ", temoin, await _image(), Vector2(2.0, 2.0), TEINTES.unknown)
+			_mesurer(monde, regard, "fondu au départ", temoin, await PIXELS.image(self), Vector2(2.0, 2.0), TEINTES.unknown)
 			volume.avancer_le_fondu(volume.DUREE_DU_FONDU_S / 2.0)
-			_mesurer(monde, regard, "mi-fondu", temoin, await _image(), Vector2(2.0, 2.0), _lumiere(0.5))
+			_mesurer(monde, regard, "mi-fondu", temoin, await PIXELS.image(self), Vector2(2.0, 2.0), _lumiere(0.5))
 			volume.voir(premiere)
 			if volume.vision_en_attente() == null or volume.etat_de_la_case(Vector2i(2, 2), 0) != VUE:
 				_fautes.append("fondu : la vision reçue pendant le fondu n'attend pas sa fin")
@@ -95,9 +96,9 @@ func _recetter() -> void:
 			if volume.vision_en_attente() != null or volume.part_du_fondu() != 0.0 or volume.etat_de_la_case(Vector2i(2, 2), 0) != INCONNUE:
 				_fautes.append("fondu : la vision qui attendait ne se pose pas à la fin du fondu")
 			volume.avancer_le_fondu(volume.DUREE_DU_FONDU_S)
-			_mesurer(monde, regard, "fondu fini", temoin, await _image(), Vector2(2.0, 2.0), TEINTES.unknown)
+			_mesurer(monde, regard, "fondu fini", temoin, await PIXELS.image(self), Vector2(2.0, 2.0), TEINTES.unknown)
 		volume.voir(null)
-		var levee := await _image()
+		var levee := await PIXELS.image(self)
 		if levee.get_data() != temoin.get_data():
 			_fautes.append("%s : sans vision, l'image n'est pas celle du témoin" % regard)
 	for faute in _fautes:
@@ -115,12 +116,9 @@ func _regarder(monde: Monde, regard: String) -> void:
 		monde.cadrer(Vector3(LARGEUR / 2.0, 0.0, HAUTEUR / 2.0), 0.0, 14.0)
 
 
-## La part de lumière d'un état `etat` de 0 à 1, linéaire par morceaux entre les trois `TEINTES`.
+## La part de lumière d'un état `etat` de 0 à 1 sous les `TEINTES` (`MiseEnPage.part_de_lumiere`).
 func _lumiere(etat: float) -> float:
-	var exploree := 128.0 / 255.0
-	if etat < exploree:
-		return lerpf(TEINTES.unknown, TEINTES.explored, etat / exploree)
-	return lerpf(TEINTES.explored, TEINTES.visible, (etat - exploree) / (1.0 - exploree))
+	return MiseEnPage.part_de_lumiere(etat, Vector3(TEINTES.unknown, TEINTES.explored, TEINTES.visible))
 
 
 ## La part de lumière lue au lieu `lieu` (en cases continues, une case centrée sur l'entier) de l'image `voilee` contre
@@ -131,18 +129,14 @@ func _mesurer(monde: Monde, regard: String, nom: String, temoin: Image, voilee: 
 	if point == null or not Rect2i(Vector2i.ZERO, voilee.get_size()).has_point(pixel):
 		_fautes.append("%s, %s : le lieu %s n'est pas à l'écran" % [regard, nom, lieu])
 		return
-	var avant := _luminance(temoin.get_pixelv(pixel))
-	var apres := _luminance(voilee.get_pixelv(pixel))
+	var avant := PIXELS.luminance(temoin.get_pixelv(pixel))
+	var apres := PIXELS.luminance(voilee.get_pixelv(pixel))
 	var part := apres / avant
 	print("[voile-de-la-vision] %s, %s : luminance %.4f sur %.4f du témoin, part %.3f, attendue %.3f" % [regard, nom, apres, avant, part, attendue])
 	if temoin.get_pixelv(pixel).r8 > 250 or absf(part - attendue) > TOLERANCE:
 		_fautes.append("%s, %s : part de lumière %.3f, attendue %.3f" % [regard, nom, part, attendue])
 
 
-## La luminance linéaire de la couleur `couleur` d'un pixel sRGB.
-func _luminance(couleur: Color) -> float:
-	var lineaire := couleur.srgb_to_linear()
-	return 0.2126 * lineaire.r + 0.7152 * lineaire.g + 0.0722 * lineaire.b
 
 
 ## La vision (`VisionDuMonde`) des états `colonnes` : par couche, l'état de chaque colonne sur toutes ses rangées.
@@ -171,10 +165,3 @@ func _dalles(cle: String, x0: int, x1: int, couche: int, rangee: int, hauteur: f
 			cases.append_array([x, y, couche, x, y, couche])
 	return {cle = cle, empreinte = cle, rangee = rangee, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = positions.size() / 3, matiere = "terrain--sol-d-essai"}]}
-
-
-func _image() -> Image:
-	for _image_rendue in 12:
-		await process_frame
-	await RenderingServer.frame_post_draw
-	return root.get_texture().get_image()

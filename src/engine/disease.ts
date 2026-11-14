@@ -31,13 +31,21 @@ import { RNG, roll, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { findTableEntry } from './tables';
 import { spellOps, type FlowTestNode } from './flowCore';
-import locJson from '../data/localisation.json';
-// Table de Localisation CANONIQUE (`src/data/localisation.json`, humanoïde) via la primitive `findTableEntry`
-// — MÊME source/lookup que `engine/combat.hitLocation`, réutilisée ici sans cycle (json + tables = feuilles).
-const HUMANOID_LOC = (locJson as { personnage: { shapes: Record<string, { min: number; max: number; loc: HitLocation }[]> } }).personnage.shapes.humanoide;
-const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(HUMANOID_LOC, roll(1, 100, rng)).loc;
+// Table de Localisation CANONIQUE (`tablesDeLocalisation`, humanoïde) via la primitive `findTableEntry` — MÊME
+// source/lookup que `engine/combat.hitLocation`, lue à l'appel.
+const rollBlisterLocation = (rng: RNG): HitLocation => findTableEntry(tablesDeLocalisation.personnage.shapes.humanoide, roll(1, 100, rng)).loc;
 import { rollTest } from './tests';
-import { maladies, diseaseLabel, findSymptomById, symptomLabel, conditionLabel, SYMPTOM_SEVERITIES, memoParVersion, type SymptomCapabilities } from '../data';
+import {
+  maladies,
+  tablesDeLocalisation,
+  diseaseLabel,
+  findSymptomById,
+  symptomLabel,
+  conditionLabel,
+  SYMPTOM_SEVERITIES,
+  memoParVersion,
+  type SymptomCapabilities,
+} from '../data';
 import type { GameOp, OpPassive, PassiveMod } from './ops';
 import type { PsychTrait } from './psychology';
 import { traitOctroye } from './psych/opsPsy';

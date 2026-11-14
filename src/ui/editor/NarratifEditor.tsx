@@ -33,7 +33,19 @@ import { NumberField } from '../NumberField';
 import { CouvreField, SelecteurDEntreeDeFiche } from './CouvreField';
 import { Stack } from '../Layout';
 import { t } from '../../i18n';
-import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, EtatNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre, EcartDeFiche } from '../../data/schemas/defs-scenes/narratif';
+import type {
+  NarratifBlock,
+  PresetPnj,
+  Affaire,
+  Indice,
+  IndiceStade,
+  DocumentNarratif,
+  EtatNarratif,
+  OuvertureBlock,
+  ClotureBlock,
+  AmbianceCadre,
+  EcartDeFiche,
+} from '../../data/schemas/defs-scenes/narratif';
 import { raceKeySchema, sexeSchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { validateDocument, cheminLisible } from '../../data/schemas/validate';

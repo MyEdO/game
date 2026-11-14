@@ -69,7 +69,7 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    espace: { discriminant: 'kind', chargeParDiscriminant: { colonne: ['die', 'tableauDuLdb'], portion: ['colonne'], variante: ['carriere', 'die'] }, requisesParDiscriminant: { colonne: ['die'] } },
+    espace: { discriminant: 'kind', chargeParDiscriminant: { colonne: ['die', 'tableauDuLdb'], portion: ['colonne'], variante: ['carriere', 'die'] }, requisesParDiscriminant: { colonne: ['die'], portion: ['colonne'], variante: ['carriere', 'die'] } },
     affinerDataset: (dataset) =>
       couvertureDuDeParDocument<DocumentADe>(file, nomDeRangee, (t: Document) => t.die !== undefined)(dataset).superRefine((v, ctx) => {
         const documents = v as Document[];

@@ -1,6 +1,16 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { findSpeciesById, talentConcrete, talents, talentsAleatoires, rangeesDesTalentsAleatoires, specPoolOf, firstLevel, careerLevels, species } from '../data';
+import {
+  findSpeciesById,
+  talentConcrete,
+  talents,
+  talentsAleatoires,
+  rangeesDesTalentsAleatoires,
+  specPoolOf,
+  firstLevel,
+  careerLevels,
+  species,
+} from '../data';
 import { setDataset } from '../data/overrides';
 import { findTableEntry } from './tables';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';

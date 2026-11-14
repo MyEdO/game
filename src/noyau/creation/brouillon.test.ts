@@ -45,7 +45,7 @@ import {
   withCareerTalent,
 } from './brouillon';
 import { CHAR_KEYS } from '../../engine/types';
-import { especeDApparence, trappingRefLabel, type TrappingRef } from '../../data';
+import { especeDApparence, trappingRefLabel, type CareerLevelData, type ClassData } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
@@ -564,7 +564,7 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
 
   // LDB 05 l.552, l.572 ; #4053
   it('le héros créé reçoit chaque possession de départ de sa Classe et de son Niveau 1', () => {
-    const dotations: { classe: TrappingRef[]; niveau: TrappingRef[] } = {
+    const dotations: { classe: ClassData['trappings']; niveau: CareerLevelData['trappings'] } = {
       classe: [{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }],
       niveau: [{ id: 'robes', spec: 'en lambeaux' }, { id: 'caissette' }, { id: 'eprouvettes' }, { id: 'alambic' }, { id: 'allumette', count: { roll: { n: 1, sides: 10 } } }],
     };

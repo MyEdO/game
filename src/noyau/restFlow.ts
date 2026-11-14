@@ -33,13 +33,31 @@ import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
-import { rollContraction, diseaseDefs, contagiousDiseases, contractionDue, applyContraction, applyDiseaseGangrene, diseaseTestModLines } from '../engine/disease';
+import {
+  rollContraction,
+  diseaseDefs,
+  contagiousDiseases,
+  contractionDue,
+  applyContraction,
+  applyDiseaseGangrene,
+  diseaseTestModLines,
+} from '../engine/disease';
 import { applyOps } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { type Difficulty } from '../engine/types';
 import { applyFractureEnd } from '../engine/trauma';
 import type { DeferredUpkeepTest } from './upkeep';
-import { exposureTestCount, expireOnRespite, exposureShelterFromTent, applyExposureFailure, exposureCoatMods, heaviestPossession, dropHeaviestPossession, type ExposureSeverity, type ExposureKind } from '../engine/exposure';
+import {
+  exposureTestCount,
+  expireOnRespite,
+  exposureShelterFromTent,
+  applyExposureFailure,
+  exposureCoatMods,
+  heaviestPossession,
+  dropHeaviestPossession,
+  type ExposureSeverity,
+  type ExposureKind,
+} from '../engine/exposure';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { applyForcedMarch } from '../engine/travel';
 import { startCascade, runCascadeImmediate } from './cascade';

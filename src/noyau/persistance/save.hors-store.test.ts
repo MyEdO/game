@@ -5,7 +5,20 @@
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { chargerLaSave, creerPartie, estUnPointDeReprise, etatInitialDuJeu, exporterLaSauvegarde, lireSave, metaDeSave, pointDeRepriseAGarder, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame } from '../index';
+import {
+  chargerLaSave,
+  creerPartie,
+  estUnPointDeReprise,
+  etatInitialDuJeu,
+  exporterLaSauvegarde,
+  lireSave,
+  metaDeSave,
+  pointDeRepriseAGarder,
+  refusDeSauvegarde,
+  snapshotSave,
+  type EtatDeJeu,
+  type SaveGame,
+} from '../index';
 import { initialNet, type BattleState } from '../etat';
 import { emptyScene } from '../monde/scene';
 import { OPTIONAL_RULES, rule, loadRuleOverrides } from '../../engine/policy';

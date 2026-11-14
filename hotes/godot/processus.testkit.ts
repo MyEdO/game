@@ -16,8 +16,15 @@ export interface ProcessusDuPont {
   reste: () => Promise<Buffer>;
 }
 
-export function ouvrirLeProcessus(script: string, ...options: string[]): ProcessusDuPont {
-  const processus = spawn(process.execPath, [script, ...options], { stdio: ['pipe', 'pipe', 'pipe'] });
+/** `process.env` sans `NODE_ENV` ni `VITE_RELAY_URL`, que Vitest ou le poste posent : le mode d'un bundle et son
+ *  adresse du relay viennent alors de son appelant seul. */
+export function sansModeNiRelais(): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(process.env).filter(([nom]) => nom !== 'NODE_ENV' && nom !== 'VITE_RELAY_URL'));
+}
+
+/** Lance `script` avec ses `options`, sous l'environnement `env`. */
+export function ouvrirLeProcessus(script: string, options: string[] = [], env: NodeJS.ProcessEnv = process.env): ProcessusDuPont {
+  const processus = spawn(process.execPath, [script, ...options], { stdio: ['pipe', 'pipe', 'pipe'], env });
   processus.stderr.resume();
   let recu = Buffer.alloc(0);
   let close = false;

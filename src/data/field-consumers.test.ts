@@ -358,7 +358,7 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
  * L'ancre est le SYMBOLE englobant, jamais le numéro de ligne d'un fichier VIVANT.
  */
 const RECOUVRES: readonly (readonly [string, string, string])[] = [
-  ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
+  ['DetailRecipe', 'tintVar', 'src/noyau/monde/volume/matieres.ts @tv'],
   ['EntityAppearance', 'armurePortee', 'src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
   ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/noyau/codex/registry.ts @meta'],
@@ -381,16 +381,16 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
  * hors du type de l'entrée le dit par sa raison (`RAISONS_DES_ZEROS`) ; il reste au rapport.
  */
 const ZEROS: Readonly<Record<string, readonly string[]>> = {
-  ActionDef: ['blocked'],
   ActivityDef: ['rounds', 'stake', 'stakeForm', 'unavailableIfExtenue'],
-  AdvanceCostBand: ['max', 'min'],
   BookData: ['dir', 'language', 'niveauDeSection', 'pdf', 'teneur'],
   CritDoc: ['die'],
   DomainData: ['grantGroups'],
+  EntreeDeGardeRobe: ['svg'],
   EtatData: ['severity'],
   GodData: ['grantGroups'],
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
+  MaterialEntry: ['E', 'built', 'palette', 'planInner'],
   MiscastTableDef: ['die'],
   PlanDEspece: ['corps', 'echelle', 'famille', 'omis'],
   PsychologyData: ['stakeForm'],
@@ -413,6 +413,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
     'bladed', 'consumableDuration', 'container', 'indirect', 'minRangeBand', 'onHitEffects',
     'organicProjectile', 'requiresMastery', 'service', 'sizeFor', 'soloSimple',
   ],
+  WeaponGroupData: ['combat', 'poudre', 'siege'],
 };
 
 /** Raison d'un zéro LU hors du type de l'entrée, mesurée par la jointure (lecture reliée au dataset sous
@@ -425,9 +426,15 @@ const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
   'BookData.pdf': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#pdfDe`',
   'BookData.teneur': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#teneursDe`',
   'CritDoc.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
+  'EntreeDeGardeRobe.svg': 'lu par l’hôte Godot, hors du corpus `src/` : l’emblème offert à l’atelier (`hotes/godot/pont/atelier.ts`)',
+  'MaterialEntry.E': 'lu par clé dynamique : `sh[part]`, pente de toit à son orientation (`panFill`, `src/gameIso/authoring/roofsSvg.ts`)',
+  'MaterialEntry.palette': 'lu par l’hôte Godot, hors du corpus `src/` : `findTeinteById(…)?.palette` (`hotes/godot/pont/atelier.ts`, `hotes/godot/pont/composition.ts`)',
   'MiscastTableDef.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
   'PlanDEspece.echelle': 'lu par `jugerDeclaration` (`scripts/personnage-3d/base/declaration.mjs`), qui juge l’échelle d’art du porteur d’une base',
   'TrappingData.service': 'lu par clé dynamique : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`)',
+  'WeaponGroupData.combat': 'lu par clé dynamique : discriminant de l’espace `weaponGroups.json?combat=…` (`grammaire/sourcesDeSpecs.ts`), filtré par `grammaire/cle-d-espace.ts`',
+  'WeaponGroupData.poudre': 'lu par clé dynamique : marqueur `poudre` (`porteLeMarqueur`, `marqueAPoudre`, `src/engine/weaponGroup.ts`)',
+  'WeaponGroupData.siege': 'lu par clé dynamique : marqueur `siege` (`porteLeMarqueur`, `marqueDeSiege`, `src/data/index.ts`)',
 };
 
 /** CLIQUET des champs du SCHÉMA ABSENTS du type TS de leur cible (divergence schéma↔type), hors clés

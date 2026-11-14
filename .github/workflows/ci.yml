@@ -11,8 +11,12 @@ on:
 # `push` de `main`. Le `push` d'une branche de travail attache ses checks à la tête de sa PR
 # (troubleshooting-required-status-checks.md:55-58), sans déclencheur `pull_request`.
 #
-# Un run par ref. Sur une branche de travail, un push qui en suit un autre ANNULE le run en vol :
-# seule la tête compte. Une entrée de file a sa propre ref (`gh-readonly-queue/main/pr-<N>-<sha>`).
+# Un run par ref sur une branche de travail : un push qui en suit un autre ANNULE le run en vol, seule
+# la tête compte. Un run par PR en file : une entrée que GitHub reconstruit après un rouge devant elle
+# change de ref (`gh-readonly-queue/main/pr-<N>-<sha>`) et garde son message de commit (`Merge pull
+# request #<N> from …`, `PARAMETRES_DU_DEPOT`, scripts/ops/ruleset-main.mjs) ; le run de l'ancienne ref,
+# que GitHub laisse courir, est ANNULÉ et rend ses runners (#3412 : la course 43446957195 en a tenu 10
+# jusqu'à 12 min après la reconstruction de son entrée). `toJSON` tient le message sur une ligne.
 #
 # DEUX COURSES (#3412, arbitrage du 2026-11-05 au ticket) : la course de FILE (`merge_group`) joue TOUTES
 # les gates, celle de BRANCHE (`push`) n'en joue qu'un sous-ensemble — le job `branche` : `typecheck`,
@@ -26,7 +30,7 @@ on:
 # hors du périmètre dérivé se découvre en file, qui éjecte la PR (`causeDEjection`,
 # scripts/ops/etapesDuTrain.mjs).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ toJSON(github.event.merge_group.head_commit.message || github.ref) }}
   cancel-in-progress: true
 
 # UN JOB VÉRIFIANT = UN GROUPE de gates qui tourne en PARALLÈLE des autres (#2178) ; le rejeu local

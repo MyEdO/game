@@ -85,7 +85,7 @@ export interface FacadeEdge {
 
 /** Panneaux de FAÇADE authorés, indexés par arête. Mémoïsé PAR SCÈNE : `wallGeometry`, les joints de
  *  nappes et les fermetures de comble le lisent tous, une seule dérivation. */
-export const facadeEdges = memoByRef((scene: Scene): ReadonlyMap<string, FacadeEdge> => {
+export const facadeEdges = memoByRef((scene: Pick<Scene, 'architecture'>): ReadonlyMap<string, FacadeEdge> => {
   const indexed = new Map<string, FacadeEdge>();
   for (const body of scene.architecture ?? [])
     for (const section of body.facades)
@@ -114,7 +114,7 @@ export const apparenceDuSegment = (seg: WallSeg): string => seg.appearance || se
 
 /** L'apparence de structure de l'arête du segment `seg` de `scene` : celle du mur de la façade qui la régit
  *  (`facadeRegit`), sinon celle du segment (`apparenceDuSegment`). */
-export function apparenceDArete(scene: Scene, seg: WallSeg): string {
+export function apparenceDArete(scene: Pick<Scene, 'architecture'>, seg: WallSeg): string {
   const facade = facadeEdges(scene).get(edgeKey(seg));
   return facadeRegit(facade, seg) ? facadeAppearance(facade.appearance)?.wallAppearance ?? facade.appearance : apparenceDuSegment(seg);
 }

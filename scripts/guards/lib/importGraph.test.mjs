@@ -28,7 +28,23 @@ import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { aliasDe, analyserEnLots, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, globsDe, grapheInverse, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
+import {
+  aliasDe,
+  analyserEnLots,
+  arcsDe,
+  chargementsDe,
+  clotureDImports,
+  closureOf,
+  directImportsOf,
+  estModule,
+  globsDe,
+  grapheInverse,
+  liaisonsDe,
+  resolveImport,
+  sitesDeModule,
+  specificateursDe,
+  sourceALExecution,
+} from './importGraph.mjs'
 import { ast, analyserTexte, analyserCorpus } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))

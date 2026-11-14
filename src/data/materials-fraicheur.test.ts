@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { materials, matieresDe, matieresCouvrantes, matierePlan, findPropMaterialById } from './index';
 import { setDataset, resetData } from './overrides';
 import type { MaterialEntry } from './materials.types';
+import type { EntreeVivante } from './datasets';
 import { editees } from './materials.testkit';
 import { validateScene } from '../noyau/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
@@ -54,7 +55,7 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
   });
 
   it('une matière AJOUTÉE au document est résolvable sans rechargement', () => {
-    const neuve: MaterialEntry = {
+    const neuve: EntreeVivante<MaterialEntry> = {
       id: 'matiere-neuve-du-banc', type: 'materials', label: 'Matière neuve du banc',
       domain: 'prop', color: COULEUR_NEUVE, roughness: 0.5, metalness: 0,
     };
@@ -80,7 +81,7 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
     expect(erreursDeCouverture(plan.id)).toHaveLength(1);
 
     // La donnée DÉCLARE `plan` couvrant : le sous-filtre et le validateur le suivent, au coup d'après.
-    setDataset('materials', editees((e) => (e.id === plan.id && e.domain === 'roof' ? { ...e, couverture: true } : e)));
+    setDataset('materials', editees((e) => (e.id === plan.id && e.domain === 'roof' ? { ...e, couverture: true, vueDeDessus: undefined } : e)));
     expect(matieresCouvrantes().map((m) => m.id)).toContain(plan.id);
     expect(erreursDeCouverture(plan.id)).toEqual([]);
   });

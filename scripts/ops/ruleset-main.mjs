@@ -11,7 +11,10 @@ import { TRONC, depotDe, fetchOrigin, lireEnLot, reussi, shaDe } from '../guards
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const NOM = 'main'
-export const PARAMETRES_DU_DEPOT = Object.freeze({ allow_auto_merge: true })
+/** Réglages du dépôt. `merge_commit_title` et `merge_commit_message` font le message d'un commit de file,
+ *  `Merge pull request #<N> from <branche>` puis le titre de la PR : la clé de `concurrency` de `ci.yml`
+ *  (#3412). */
+export const PARAMETRES_DU_DEPOT = Object.freeze({ allow_auto_merge: true, merge_commit_title: 'MERGE_MESSAGE', merge_commit_message: 'PR_TITLE' })
 
 /** Chemin de `ci.yml`, relatif à la racine du dépôt. */
 const CI = '.github/workflows/ci.yml'
@@ -220,7 +223,7 @@ export function executer({
     const id = idExistant(runner)
     writeFileSync(fichier, JSON.stringify(PARAMETRES_DU_DEPOT))
     runner(['api', '-X', 'PATCH', `repos/${DEPOT}`, '--input', fichier])
-    sortie('[ruleset] dépôt : allow_auto_merge=true\n')
+    sortie(`[ruleset] dépôt : ${Object.entries(PARAMETRES_DU_DEPOT).map(([nom, valeur]) => `${nom}=${valeur}`).join(', ')}\n`)
     writeFileSync(fichier, JSON.stringify(corps))
     const cible = id === null ? `repos/${DEPOT}/rulesets` : `repos/${DEPOT}/rulesets/${id}`
     runner(['api', '-X', id === null ? 'POST' : 'PUT', cible, '--input', fichier])

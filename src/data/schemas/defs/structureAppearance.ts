@@ -1,14 +1,14 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `structureAppearance.json` — apparence PARTAGÉE d'une structure d'arête (mur/porte),
- * consommée comme `StructureAppearanceDef[]` (`src/data/structureAppearance.types.ts`). Chaque champ
+ * consommée comme `StructureAppearanceDef[]` (`EntreeDe`, `src/data/index.ts`). Chaque champ
  * est une COULEUR ou une mesure que le rendu lit par PARTIE de mur (`wallPartColor`).
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { detailRecipeSchema, enumNomme } from '../grammaire/valeurs';
-import { WALL_PARTS, type FamilleDuKit, type WallPart } from '../../structureAppearance.types';
+import { WALL_PARTS, type WallPart } from '../../structureAppearance.types';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';
@@ -33,7 +33,7 @@ const doc = document(
   'structureAppearance',
   famille,
   {
-    kit: enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', cloture: 'Clôture' } satisfies Record<FamilleDuKit, string>),
+    kit: enumNomme({ colombage: 'Pan de bois', pierre: 'Pierre', cloture: 'Clôture' }),
     wallHeightM: z.number().positive().optional(),
     detail: detailRecipeSchema.optional(),
     face: z.string(),

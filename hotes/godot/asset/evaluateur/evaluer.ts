@@ -24,7 +24,15 @@ import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type Po
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
 import { gardeTranchantDuRigide } from './gardes/tranchantDuRigide.ts';
-import { aretesDe, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement, piresAretes, type MesureDEtirement, type RapportDArete } from './gardes/etirement.ts';
+import {
+  aretesDe,
+  gardeEtirement,
+  gardeEtirementAuRepos,
+  mesurerEtirement,
+  piresAretes,
+  type MesureDEtirement,
+  type RapportDArete,
+} from './gardes/etirement.ts';
 import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
 import { gardePoids } from './gardes/poids.ts';
@@ -32,8 +40,23 @@ import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from '.
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
 import { suivreLesAmplitudes } from './gardes/amplitude.ts';
-import { gardePercementAuRepos, gardeTraversee, indicesDe, lierLesCouches, mesurerTraversee, positionsDe, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
-import { gardeMembreDansUnVetement, mesurerMembresDansUnVetement, pairesHorsDeZone, zonesVoisines, type MembreDUnEchantillon } from './gardes/membreDansUnVetement.ts';
+import {
+  gardePercementAuRepos,
+  gardeTraversee,
+  indicesDe,
+  lierLesCouches,
+  mesurerTraversee,
+  positionsDe,
+  sansLesZonesMasquees,
+  type TraverseeDUnEchantillon,
+} from './gardes/traversee.ts';
+import {
+  gardeMembreDansUnVetement,
+  mesurerMembresDansUnVetement,
+  pairesHorsDeZone,
+  zonesVoisines,
+  type MembreDUnEchantillon,
+} from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
 import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';

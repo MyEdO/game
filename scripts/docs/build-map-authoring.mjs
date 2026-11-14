@@ -17,7 +17,16 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, jsdocRole, findAlias, aliasDoc, constanteImportee, indexerConstantes, noyauZod, proprietesZod as lireProprietesZod } from './lib/jsdocUnion.mjs'
+import {
+  loadSource,
+  jsdocRole,
+  findAlias,
+  aliasDoc,
+  constanteImportee,
+  indexerConstantes,
+  noyauZod,
+  proprietesZod as lireProprietesZod,
+} from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 

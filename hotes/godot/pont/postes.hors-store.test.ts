@@ -10,7 +10,7 @@ import { vehiculeDeTest } from '../asset/modeles.testkit.ts';
 import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
 import { ameliorationsMontees, emblemeMonte, noeudsCaches, postesEnVigueur, postesMontes } from './atelier';
 import { paletteDesCouleurs } from './composition';
-import { findCouleurById, findTeinteById } from '../../../src/noyau/index';
+import { findCouleurById, findTeinteById, type EmblemeResolu } from '../../../src/noyau/index';
 import { couleursSchema } from '../../../src/data/schemas/grammaire/valeurs';
 
 const COMMITES = await modelesCommites();
@@ -81,7 +81,7 @@ describe('les nœuds cachés d’un véhicule (`noeudsCaches`)', () => {
 
 describe('l’emblème d’un véhicule (`emblemeMonte`)', () => {
   const VOILEE = { ...vehiculeDeTest(), surfaces: [{ nom: 'toile', palette: 'vet1', blason: true }, { nom: 'metal', palette: 'metal' }] };
-  const embleme = { id: 'taureau-rouge' };
+  const embleme: EmblemeResolu = { id: 'taureau-rouge' };
   it('posé sur un élément qui porte une surface `blason` (ses voiles, son pavillon)', () => expect(emblemeMonte(embleme, VOILEE)).toEqual({ embleme }));
   it('aucun sur un élément sans surface `blason`, sans élément ou sans emblème', () => {
     expect([emblemeMonte(embleme, vehiculeDeTest()), emblemeMonte(embleme, undefined), emblemeMonte(undefined, VOILEE)]).toEqual([{}, {}, {}]);

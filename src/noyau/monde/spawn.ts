@@ -2,24 +2,65 @@
  * Construction de Combattants depuis le bestiaire (réf.) ou un statblock
  * personnalisé d'une scène. Sert au combat tactique.
  */
-import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../../engine/types';
+import {
+  Combatant,
+  Characteristics,
+  type Weapon,
+  CHAR_KEYS,
+  BodyShape,
+  SkillInstance,
+  TalentInstance,
+  type AuthoredShipPoste,
+  type NavalTraitRef,
+} from '../../engine/types';
 import { skillCharacteristicById } from '../../engine/character';
-import { isOptionalNote, resoudreTrait, traitsDuPorteur, type PorteurDeTraits, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import {
+  isOptionalNote,
+  resoudreTrait,
+  traitsDuPorteur,
+  type PorteurDeTraits,
+  type TraitInstance,
+  type TraitList,
+  type TraitsDesignes,
+  type OptionalEntry,
+  type OptionalSwap,
+} from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
+import {
+  findCreatureById,
+  byId,
+  findTalentById,
+  tailleDuProfil,
+  findVehicleById,
+  findTrappingById,
+  specPoolOf,
+  CreatureData,
+  type SkillData,
+  type SkillRef,
+  type TalentRef,
+} from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
 import { requiredTerrains } from '../../engine/ops';
-import { type Scene, type SceneEntity, heightAt, plafondDe, tileAt } from './scene';
+import { type Scene, type SceneEntity, heightAt, tileAt } from './scene';
 import type { InventaireDAuteur } from '../../data/schemas/defs-scenes/scene';
-import { footprintN, footprintTiles, propFootTiles, sizeFootprint } from './footprint';
+import { footprintTiles, propFootTiles, sizeFootprint } from './footprint';
 import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
+import {
+  apparencesObjetsDe,
+  contexteDeNaissanceDObjet,
+  deciderApparencesDesArmes,
+  equipConflicts,
+  hydratePoste,
+  loadWeapon,
+  objetsDeLInventaire,
+  recomputeLoadout,
+} from '../../engine/items';
 import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
 import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
@@ -37,14 +78,12 @@ import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 import { estPoseParSesPonts } from '../planDeNavire';
 
-/** La position d'un corps d'empreinte `n` posé en `p` : `h` = sol de sa case d'ancrage (`heightAt`), `plafond` = le
- *  plus haut des plafonds de ses cases (`plafondDe`). `z` omis quand nul, `h` à 0 m, `plafond` à ciel ouvert et sans
- *  scène. PUR. */
-export function positionPosee(scene: Scene | null | undefined, n: number, p: { x: number; y: number; z?: number }): NonNullable<Combatant['pos']> {
+/** La position d'un corps posé en `p` : `h` = sol de sa case d'ancrage (`heightAt`). `z` omis quand nul, `h` à 0 m
+ *  et sans scène. PUR. */
+export function positionPosee(scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): NonNullable<Combatant['pos']> {
   const z = p.z ?? 0;
   const h = scene ? heightAt(scene, p.x, p.y, z) : 0;
-  const plafond = scene ? Math.max(...footprintTiles(p, n).map((t) => plafondDe(scene, { ...t, z }))) : Infinity;
-  return { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}), ...(Number.isFinite(plafond) ? { plafond } : {}) };
+  return { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
 }
 
 /**
@@ -52,9 +91,9 @@ export function positionPosee(scene: Scene | null | undefined, n: number, p: { x
  * cohérence position↔scène. À appeler au SPAWN et à CHAQUE déplacement (combat, poussée/traction, course, téléport,
  * chute, avance navale).
  */
-export function placeCombatant(c: { id: string; pos?: Combatant['pos']; size?: Combatant['size']; footprint?: number; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+export function placeCombatant(c: { id: string; pos?: Combatant['pos']; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
   const z = p.z ?? 0;
-  c.pos = positionPosee(scene, footprintN(c), p);
+  c.pos = positionPosee(scene, p);
   // Drapeau POSITIONNEL « hors de son terrain » (op passive `offTerrainMod` — Créature marine MDG 16 l.17 /
   // Aquatique MSRC 15 l.139) : re-dérivé à CHAQUE placement (chokepoint UNIQUE du positionnement). Un porteur
   // dont la case n'est pas de son terrain d'élection (`eau`) subit mSet/testDR ; sans passif, no-op.

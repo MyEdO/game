@@ -9,7 +9,16 @@ import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
 import { ligneAuRang } from '../asset/attache';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
-import { findCouleurById, findTeinteById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
+import {
+  findCouleurById,
+  findTeinteById,
+  pieceRacine,
+  emblemeDuPorteur,
+  type EmblemeResolu,
+  type Portee,
+  type PorteeDeComposition,
+  type SurchargesDEmblemes,
+} from '../../../src/noyau/index';
 import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
 /**

@@ -7,7 +7,18 @@
  */
 import { canonEdge, sceneMetresPerTile, type Scene, type CellSide } from '../monde/scene';
 import { ancreDuDecor } from '../monde/footprint';
-import { appliquerOutil, addFacadeSection, moveSel, poserLeDecorAuPoint, rectFrom, resizeSel, validerRectangle, type GesteDOutil, type Pt, type Rect } from '../sceneEdit';
+import {
+  appliquerOutil,
+  addFacadeSection,
+  moveSel,
+  poserLeDecorAuPoint,
+  rectFrom,
+  resizeSel,
+  validerRectangle,
+  type GesteDOutil,
+  type Pt,
+  type Rect,
+} from '../sceneEdit';
 import { caseDe } from '../../data/props.types';
 import { dansLaCarte, empriseDuPinceau, hitAt, nearestEdge, pickArchitectureEdge, pickWallEdge, type Layers, type Sel, type Tool } from '../sceneEditLecture';
 import { provenanceDesNavires } from '../planDeNavire';

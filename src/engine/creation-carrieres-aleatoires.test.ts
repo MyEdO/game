@@ -130,7 +130,7 @@ describe('rollCareer — documents du Tableau des Classes et Carrières aléatoi
   it('le tirage suit le `die` de la colonne, jamais un d100 recopié (LDB 05 l.214 ; #3578)', () => {
     const imprimes = [...carrieresAleatoires];
     const humain = findSpeciesById('humains-reiklander')!;
-    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === humain.refCareer ? { ...d, die: 'd10' } : d)));
+    setDataset('carrieresAleatoires', imprimes.map((d) => (d.id === humain.refCareer && d.kind === 'colonne' ? { ...d, die: 'd10' } : d)));
     try {
       const base = imprimes.find((d) => d.id === humain.refCareer)!.entries;
       const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(base, i + 1).id));

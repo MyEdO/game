@@ -59,7 +59,6 @@ src/gameIso/            Rendu du monde : builders/ (géométrie pure) montée pa
 src/geometry/           Grille, projection isométrique, déplacement
 src/ui/                 Interface React (menus, créateur, HUD, éditeur, compendium)
 src/scenes/             Documents de scène et de campagne
-src/net/                Compression des messages de coop (le Worker Cloudflare vit dans server/)
 src/audio/              Lecture de la musique et des sons (registre : src/data/sons/)
 src/i18n/               Textes français de l'interface
 ```
