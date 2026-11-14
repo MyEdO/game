@@ -25,8 +25,8 @@ const GARDE = {
     'Au SITE : la ligne de la lecture, ou celle qui la précède, porte `// lecture déclarée : <raison>` (l’éditeur, '
     + 'la fiche Codex et le défaut d’argument lisent la valeur AUTHORÉE). Chaque marqueur doit couvrir une lecture.',
   horsChamp:
-    'Un porteur qui ne porte AUCUN champ de décision (le Test d’un porteur qui fixe sa Difficulté) : sa Difficulté '
-    + 'est celle qu’il déclare.',
+    'Un Test FIXE (`testFixeSchema`, sous `porteurDeTestFixe` ou `noeudTestFixe`, `grammaire/mecanique.ts`) : il ne '
+    + 'porte aucun champ de décision, sa Difficulté est celle qu’il déclare.',
   angleMort: [
     'Condition (1) de `fieldConsumers.mjs` : un paramètre annoté d’un littéral de même forme que `JetDecidable` ne crédite rien.',
     'Une clé calculée (`ft[k]`) et un spread (`{ ...ft }`) ne lisent aucun champ nommé.',

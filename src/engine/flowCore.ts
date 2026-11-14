@@ -25,7 +25,7 @@
  */
 import type { z } from 'zod';
 import type { IconId } from '../data/icons';
-import type { effectTargetingSchema, effectTriggerSchema, flowTestSchema, triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
+import type { effectTargetingSchema, effectTriggerSchema, flowTestSchema, testFixeSchema, triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 import { toDate } from './clock';
 import type { CharKey, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
@@ -484,9 +484,9 @@ export const CHAMPS_DE_DECISION = ['gate', 'difficultyBy', 'easierIf'] satisfies
 /** Un champ de `CHAMPS_DE_DECISION`. */
 export type ChampDeDecision = (typeof CHAMPS_DE_DECISION)[number];
 
-/** Un `FlowTest` que son PORTEUR fixe (`porteurDeTestFixe`, `grammaire/mecanique.ts`) : les champs `K` exigés,
- *  aucune décision. */
-export type JetFixe<K extends 'skill' | 'difficulty' = never> = Omit<FlowTest, ChampDeDecision> & Required<Pick<FlowTest, K>>;
+/** Le Test que son PORTEUR fixe (`testFixeSchema`, `porteurDeTestFixe`, `grammaire/mecanique.ts`) : les champs `K`
+ *  exigés, aucune décision. */
+export type JetFixe<K extends 'skill' | 'difficulty' = never> = z.output<typeof testFixeSchema> & Required<Pick<z.output<typeof testFixeSchema>, K>>;
 
 /**
  * Un nœud de Flow, GÉNÉRIQUE sur le type de sa FEUILLE `E` (défaut `EffectOp` — engine pur ; la couche
@@ -523,10 +523,6 @@ export type ArgTemplate = typeof ARG_TEMPLATE;
 /** Le NŒUD `test` seul — la forme UNIQUE du jet en donnée (jet + conséquence des deux branches), telle
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
 export type FlowTestNode<E = EffectOp> = Extract<Flow<E>, { kind: 'test' }>;
-
-/** Un nœud `test` dont la Difficulté se décide au PORTEUR (`decisionAuPorteur`, `noeudTest`) : son Test
- *  ne porte aucun champ de décision. */
-export type NoeudDecideAuPorteur<E = EffectOp> = Omit<FlowTestNode<E>, 'test'> & { test: Omit<FlowTest, ChampDeDecision> & Required<Pick<FlowTest, 'difficulty'>> };
 
 /** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. Partagé
  *  par la donnée comme par l'état : gelé à sa définition (#2097). */

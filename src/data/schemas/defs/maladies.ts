@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 20. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
+import { flowSchema, noeudTestFixe, passifsDe } from '../grammaire/mecanique';
 import { idDe } from '../grammaire/ref';
 import { diceSpecSchema, difficultySchema, symptomSeveritySchema } from '../grammaire/valeurs';
 
@@ -38,7 +38,7 @@ const champs = {
   /** MDG 14 l.209. */
   contaminatesWaterBarrel: z.boolean().optional(),
   /** EDOC 08 l.104-108. */
-  dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true, decisionAuPorteur: true }), symptomId: idDe('symptome') }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
+  dailyTest: nommerChamps(z.strictObject({ test: noeudTestFixe(flowSchema, { echecSeulServi: true }), symptomId: idDe('symptome') }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
   /** EDOC 08 l.122. */
   mutation: nommerChamps(z.strictObject({ afterDays: z.number(), into: idDe('maladie') }), { afterDays: { label: 'délai en jours' }, into: { label: 'maladie résultante' } }).optional(),
   /** EDOC 08 l.122. */
