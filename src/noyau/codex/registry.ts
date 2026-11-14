@@ -90,7 +90,7 @@ import { CRIT_TABLE_LOCATION, critiqueDie, type CritTableKey, type JeuDeCritique
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
 import type { CritTableEntry, MiscastRowEntry } from '../../data/overrides';
-import type { RuleValue } from '../../engine/policy';
+import { rule, type RuleValue } from '../../engine/policy';
 import SURINCANTATION from '../../data/surincantation.json';
 import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
@@ -118,6 +118,7 @@ import {
   type Combatant,
   type CharKey,
   type HitLocation,
+  type Difficulty,
 } from '../../engine/types';
 import type { ResolveurDePreset } from '../monde/resolveursDuNarratif';
 import type { Porteur, PorteurDeRangee } from './porteur';
@@ -1351,7 +1352,7 @@ const CODEX_SPECS = {
             rows: [
               { t: 'kv', k: tr('codex.fiche.horsDeControle'), v: tr('codex.fiche.navigation', { navPenalty: n.horsDeControle.navPenalty }) } as CodexRow,
               { t: 'kv', k: tr('codex.fiche.sEchouer'), v: tr('codex.fiche.degatsDeCoque', { hullDamage: n.echouage.hullDamage }) } as CodexRow,
-              { t: 'kv', k: tr('codex.fiche.reparationTemporaire'), v: tr('codex.fiche.charpentierBlessures', { v: DIFFICULTY_LABELS[n.temporaryRepair.difficulty], charpentierPenalty: n.temporaryRepair.charpentierPenalty, v2: formatDice(n.temporaryRepair.woundsPerRepair.dice) }) } as CodexRow,
+              { t: 'kv', k: tr('codex.fiche.reparationTemporaire'), v: tr('codex.fiche.difficulteBlessures', { v: DIFFICULTY_LABELS[rule('fleuve-reparation-temporaire-reparation-difficulte') as Difficulty], v2: formatDice(n.temporaryRepair.woundsPerRepair.dice) }) } as CodexRow,
             ],
           },
         ),
