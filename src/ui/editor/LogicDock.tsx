@@ -382,7 +382,7 @@ function EncountersTab({
           <div className="enemy-list">
             {members.map((m) => {
               const e = byId.get(m.entityId);
-              const mounts = members.filter((mm) => mm.entityId !== m.entityId && (mm.mount || m.ridesEntityId === mm.entityId));
+              const mounts = members.filter((mm) => mm.entityId !== m.entityId && (mm.mount || m.ridesEntityId?.id === mm.entityId));
               return (
                 <div key={m.entityId}>
                   <div className="enemy-row">
@@ -401,7 +401,7 @@ function EncountersTab({
                     </label>
                     <label title="Monture (de cette rencontre) que cet acteur chevauche au spawn (référence stable par entité).">
                       Chevauche{' '}
-                      <select value={m.ridesEntityId ?? ''} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { ridesEntityId: e2.target.value || undefined }))}>
+                      <select value={m.ridesEntityId?.id ?? ''} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { ridesEntityId: e2.target.value ? { id: e2.target.value } : undefined }))}>
                         <option value="">— aucune —</option>
                         {mounts.map((mm) => (
                           <option key={mm.entityId} value={mm.entityId}>
@@ -510,7 +510,7 @@ function EncountersTab({
                   else if (t === 'destroyStructure') upd({ victoryCondition: { type: 'destroyStructure', edge: { x: 0, y: 0, side: 'N' } } });
                   else if (t === 'surviveRounds') upd({ victoryCondition: { type: 'surviveRounds', rounds: 3 } });
                   else if (t === 'reachZone') upd({ victoryCondition: { type: 'reachZone', rect: { x: 0, y: 0, w: 1, h: 1 } } });
-                  else if (t === 'woundsThreshold') upd({ victoryCondition: { type: 'woundsThreshold', ...(members[0] ? { targetId: members[0].entityId } : {}), atOrBelowPercent: 50 } });
+                  else if (t === 'woundsThreshold') upd({ victoryCondition: { type: 'woundsThreshold', ...(members[0] ? { targetId: { id: members[0].entityId } } : {}), atOrBelowPercent: 50 } });
                   else if (t === 'firstBlood') upd({ victoryCondition: { type: 'firstBlood', threshold: 3 } });
                 }}
               >
@@ -575,12 +575,12 @@ function EncountersTab({
           })()}
           {enc.victoryCondition?.type === 'woundsThreshold' && (() => {
             const vc = enc.victoryCondition!;
-            const seuil = (targetId: string | undefined, atOrBelowPercent: number) => upd({ victoryCondition: { type: 'woundsThreshold', ...(targetId ? { targetId } : {}), atOrBelowPercent } });
+            const seuil = (targetId: string | undefined, atOrBelowPercent: number) => upd({ victoryCondition: { type: 'woundsThreshold', ...(targetId ? { targetId: { id: targetId } } : {}), atOrBelowPercent } });
             return (
               <div className="enemy-mount">
                 <label title="Cible dont les Blessures sont surveillées : au seuil, un navire amène son pavillon, une créature est repoussée, et elle sort du combat (#215). Chaque adversaire : chacun sort ainsi, la victoire vient quand aucun ne reste (MDG 15 l.143).">
                   Cible{' '}
-                  <select value={vc.targetId ?? ''} onChange={(e) => seuil(e.target.value || undefined, vc.atOrBelowPercent)}>
+                  <select value={vc.targetId?.id ?? ''} onChange={(e) => seuil(e.target.value || undefined, vc.atOrBelowPercent)}>
                     <option value="">— chaque adversaire —</option>
                     {members.map((m) => (
                       <option key={m.entityId} value={m.entityId}>
@@ -593,7 +593,7 @@ function EncountersTab({
                   À{' '}
                   <NumberField
                     variant="nu" label="Seuil de Blessures (%)" min={1} max={99} value={vc.atOrBelowPercent}
-                    onChange={(atOrBelowPercent) => seuil(vc.targetId, atOrBelowPercent)}
+                    onChange={(atOrBelowPercent) => seuil(vc.targetId?.id, atOrBelowPercent)}
                   />
                   % de ses Blessures ou moins
                 </label>

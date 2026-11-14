@@ -166,7 +166,7 @@ describe('#1689 T2 — écrans migrés', () => {
   it('PORT (escale) : l’invité voit POURQUOI « Embaucher » lui est fermé', () => {
     const html = renderToStaticMarkup(
       <EscaleTab
-        vessel={vessel} bourse={toMoney({})} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'invite' } as never })}
+        vessel={vessel} bourse={toMoney({})} refusDuQuai={refusDeGesteSurLeGroupe({ net: { mode: 'invite' } as never })}
         pendingShoreLeave={null}
         onHire={() => {}} onDismiss={() => {}} onAvitailler={() => {}}
       />,

@@ -97,7 +97,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
 });
 
 describe('#1882 — adversaire de poursuite et possession : une réf. RÉSOLUE, jamais semée vide', () => {
-  const poursuite = (creatureId: string) => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureId } }], encounter: '' });
+  const poursuite = (creatureId: string) => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureId } }] });
 
   it('le schéma refuse une créature vide ou morte, accepte une créature du bestiaire', () => {
     expect(startPursuitSchema.safeParse(poursuite('')).success).toBe(false);

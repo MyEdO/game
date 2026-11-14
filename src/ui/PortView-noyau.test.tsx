@@ -37,12 +37,12 @@ const carte: WorldMap = {
 const COGUE = findVehicleById('cogue')!;
 
 /** Port FIXÉ : une offre de 5 Enc de bois à 10 CO, groupe d'un seul héros sans le sou ni Négociateur (il mène
- *  donc le Marchandage), le navire `vessel`. */
+ *  donc le Marchandage) au lieu `A`, le navire `vessel`, à quai à `A` sauf `escale` contraire. */
 function ouvrir(vessel: CampaignVessel): void {
   const port = structuredClone(carte.places[0].port!);
   useGame.setState({
     party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, talents: [], items: (h.items ?? []).filter((i) => i.trappingId !== 'bourse') })),
-    possessions: [], vessel, worldMap: carte, journal: [], battle: null, travelPlan: null,
+    possessions: [], vessel: { escale: 'A', ...vessel }, worldMap: carte, lieu: 'A', journal: [], battle: null, travelPlan: null,
     port: { placeId: 'A', label: 'Salzenmund', port, offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: 5, basePrice: 10, surplus: false }] },
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     net: { ...get().net, mode: 'local' },
@@ -193,7 +193,7 @@ describe('#1652 lot 13a — l’onglet Escale avitaille la cale par vivre, au de
   });
 
   it('hors quai : l’avitaillement est fermé, raison = le refus du noyau', () => {
-    ouvrir(navire({}));
+    ouvrir(navire({ escale: 'B' }));
     expect(geste('escale', 'port-avitailler')).toEqual({ ferme: 'true', raison: t('port.pasAQuai') });
   });
 });

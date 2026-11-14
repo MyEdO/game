@@ -200,10 +200,18 @@ export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'part
   return refus === null && offre ? { ...base, offre, refus } : { ...base, refus: refus ?? t('port.offreAbsente') };
 }
 
-/** Refus d'entrer au port : la raison affichée, ou `null`. Le négoce maritime se fait sur le navire de
- *  campagne (MDG 15 l.319). Tombe dans `ouvrirLePort`, lu par le hub du lieu. */
-export function refusDEntrerAuPort(s: Pick<Jeu, 'vessel'>): string | null {
-  return s.vessel ? null : t('port.sansNavire');
+/** Refus de tout geste sur le navire de campagne au port : sans navire, ou navire qui n'est pas à quai (`vessel.escale`)
+ *  au lieu du groupe ; `null` sinon. SOURCE UNIQUE de la présence du navire au port, lue par l'entrée au port
+ *  (`ouvrirLePort`, hub du lieu) et par `refusDeGesteAQuai`. MDG 15 l.319 */
+export function refusAQuai(s: Pick<Jeu, 'vessel' | 'lieu' | 'worldMap'>): string | null {
+  if (!s.vessel) return t('port.sansNavire');
+  return s.vessel.escale !== undefined && s.vessel.escale === lieuDuGroupe(s)?.id ? null : t('port.pasAQuai');
+}
+
+/** Refus d'un geste à quai sur le navire ou la bourse du groupe (chantier, équipage, avitaillement) : siège invité
+ *  (`refusDeGesteSurLeGroupe`), puis `refusAQuai` ; `null` sinon. Le refus que lisent leurs devis. */
+export function refusDeGesteAQuai(s: Pick<Jeu, 'vessel' | 'lieu' | 'worldMap' | 'net'>): string | null {
+  return refusDeGesteSurLeGroupe(s) ?? refusAQuai(s);
 }
 
 /** Génère les offres d'ACHAT de l'escale (l.319-331) : Production + Surplus (Enc = (Taille+Richesse+
@@ -211,7 +219,7 @@ export function refusDEntrerAuPort(s: Pick<Jeu, 'vessel'>): string | null {
 export function ouvrirLePort(get: Get, set: Set): void {
   const cur = currentPort(get);
   if (!cur) return;
-  const refus = refusDEntrerAuPort(get());
+  const refus = refusAQuai(get());
   if (refus) { refuserGeste(get, set, refus); return; }
   ouvrirEtal(get, set, 'port', `Port — ${cur.label}`);
 }
@@ -493,16 +501,16 @@ export function rolesRecrutables(): CrewRoleData[] {
   return crewRoles.filter((r) => r.wage?.weekly);
 }
 
-/** Refus d'embaucher au rôle `roleId` : `refusHote` (`refusDeGesteSurLeGroupe`), sans navire, ou rôle sans
- *  barème ; `null` sinon. Tombe dans `recruterLEquipage`, lu par l'écran d'escale. */
-export function refusDEmbauche(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
-  return refusHote ?? (!vessel ? t('port.sansNavire') : findCrewRoleById(roleId)?.wage?.weekly ? null : t('port.roleSansSolde', { role: findCrewRoleById(roleId)?.label ?? roleId }));
+/** Refus d'embaucher au rôle `roleId` : `refusDuQuai` (`refusDeGesteAQuai`), ou rôle sans barème ; `null` sinon.
+ *  Tombe dans `recruterLEquipage`, lu par l'écran d'escale. */
+export function refusDEmbauche(roleId: string, refusDuQuai: string | null): string | null {
+  return refusDuQuai ?? (findCrewRoleById(roleId)?.wage?.weekly ? null : t('port.roleSansSolde', { role: findCrewRoleById(roleId)?.label ?? roleId }));
 }
 
-/** Refus de débarquer un membre du rôle `roleId` : `refusHote`, sans navire, ou aucun membre de ce rôle à bord ;
- *  `null` sinon. Tombe dans `renvoyerLEquipage`, lu par l'écran d'escale. */
-export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
-  return refusHote ?? (!vessel ? t('port.sansNavire') : vessel.crew?.some((h) => h.roleId === roleId && h.count > 0) ? null : t('port.aucunABord', { role: findCrewRoleById(roleId)?.label ?? roleId }));
+/** Refus de débarquer un membre du rôle `roleId` : `refusDuQuai` (`refusDeGesteAQuai`), ou aucun membre de ce rôle
+ *  à bord ; `null` sinon. Tombe dans `renvoyerLEquipage`, lu par l'écran d'escale. */
+export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refusDuQuai: string | null): string | null {
+  return refusDuQuai ?? (vessel?.crew?.some((h) => h.roleId === roleId && h.count > 0) ? null : t('port.aucunABord', { role: findCrewRoleById(roleId)?.label ?? roleId }));
 }
 
 /** RECRUTEMENT à quai (#228, escale-hub) : embauche `count` PNJ salariés au rôle `roleId` — fusionné
@@ -511,7 +519,7 @@ export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refus
  *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème (`wage`
  *  absent) n'est pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
 export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
-  const refus = refusDEmbauche(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
+  const refus = refusDEmbauche(roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire de l’embauche');
   const role = garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage');
@@ -526,7 +534,7 @@ export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1)
 /** DÉBARQUEMENT d'un membre salarié à quai (#228) : retire `count` PNJ du rôle `roleId` (poste supprimé
  *  s'il tombe à 0). Aucune indemnité modélisée (le moteur ne débite qu'à la paie). Renvoie le journal. */
 export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
-  const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
+  const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire du débarquement');
   const crew = vessel.crew ?? [];
@@ -557,7 +565,7 @@ export function vivresAchetables(vessel: CampaignVessel): { id: Id<'trapping'>; 
  *  SOURCE UNIQUE d'`avitaillerLeNavire` et de l'écran d'escale. PUR. MDG 14 l.238, l.248-252 ; MDG 15 l.262 */
 export interface DevisDAvitaillement { vivres: { id: Id<'trapping'>; prix: Money }[]; tonneau: Money; total: Money; refus: string | null }
 
-export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, quantites: QuantitesDeVivres, tonneaux: number): DevisDAvitaillement {
+export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusDuQuai: string | null, quantites: QuantitesDeVivres, tonneaux: number): DevisDAvitaillement {
   const tonneau = priceToMoney(garanti(findTrappingById(VIVRES_DE_CALE.tonneau), VIVRES_DE_CALE.tonneau, 'objet de cale').price ?? null);
   const vivres = vessel ? vivresAchetables(vessel) : [];
   const demandes = Object.entries(quantites) as [Id<'trapping'>, number][];
@@ -565,8 +573,7 @@ export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusH
   const prixDe = (id: Id<'trapping'>) => vivres.find((v) => v.id === id)?.prix;
   const horsVente = demandes.find(([id, n]) => n > 0 && prixDe(id) === undefined)?.[0];
   const total = fromBrass(demandes.reduce((s, [id, n]) => { const prix = prixDe(id); return prix ? s + n * toBrass(prix) : s; }, 0) + tonneaux * toBrass(tonneau));
-  const refus = refusHote ?? (!vessel ? t('port.sansNavire')
-    : vessel.escale === undefined ? t('port.pasAQuai')
+  const refus = refusDuQuai ?? (!vessel ? t('port.sansNavire')
     : [tonneaux, ...demandes.map(([, n]) => n)].some((n) => !Number.isInteger(n) || n < 0) || rations + tonneaux === 0 ? t('port.avitaillementVide')
     : horsVente !== undefined ? t('port.vivreHorsVente', { vivre: refLabel('trappings', { id: horsVente }) })
     : rations > 0 && vessel.provisions == null ? t('port.vivresSansSuivi')
@@ -579,7 +586,7 @@ export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusH
 /** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), chaque vivre va à sa part des
  *  vivres de la cale, les tonneaux à son eau douce. Renvoie le journal. MDG 14 l.238-252 ; MDG 15 l.262 */
 export function avitaillerLeNavire(get: Get, set: Set, quantites: QuantitesDeVivres, tonneaux: number): string[] {
-  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), quantites, tonneaux);
+  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()), quantites, tonneaux);
   if (devis.refus) { refuserGeste(get, set, devis.refus); return []; }
   payFromGroup(get, set, devis.total, { purpose: 'avitaillement navire' });
   const achats = (Object.entries(quantites) as [Id<'trapping'>, number][]).filter(([, n]) => n > 0);

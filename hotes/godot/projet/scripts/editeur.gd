@@ -59,7 +59,7 @@ const CALQUES := "user://calques"
 @onready var _monde: Monde = $Monde
 @onready var _navires: MontageDesNavires = $Navires
 @onready var _interface: CanvasLayer = $Interface
-@onready var _defilement: ScrollContainer = $Interface/Outils/Defilement
+@onready var _defilement: ScrollContainer = $Interface/Ossature/Outils/Defilement
 @onready var _refus: Label = $Interface/Avis/Refus
 @onready var _panne: Label = $Interface/Avis/Panne
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
@@ -317,6 +317,16 @@ func _publier_l_ecran() -> void:
 ## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), ses champs de texte
 ## (`PontDuNoyau.saisies_a_l_ecran`), le défilement de son panneau (`PontDuNoyau.defilement_publie`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
-## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue.
+## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue, et le cadre du plan montré
+## (`_cadre_du_plan`).
 func _ecran_publie() -> Dictionary:
-	return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}}
+	return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose(), plan = _cadre_du_plan()}}
+
+
+## Le cadre 0..1 du plan montré à l'écran (`Plan.cadre`), `{ x, y, largeur, hauteur }`, `null` sans plan montré.
+func _cadre_du_plan() -> Variant:
+	for plan in _interface.find_children("*", "Container", true, false):
+		if plan is Plan and (plan as Plan).is_visible_in_tree():
+			var cadre := (plan as Plan).cadre()
+			return {x = cadre.position.x, y = cadre.position.y, largeur = cadre.size.x, hauteur = cadre.size.y}
+	return null

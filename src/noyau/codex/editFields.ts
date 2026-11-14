@@ -237,6 +237,14 @@ export function champsDuRecord(record: FieldDesc, donnee: Record<string, unknown
   return cles.map((c) => ({ key: c.cle, label: c.libelle, kind, nullable: true, noeud: valeur, ...(bornes ? { bornes } : {}), ...(record.contexte ? { contexte: record.contexte } : {}) }));
 }
 
+/** Le champ `f` est-il un record (`recordDuNoeud`) dont les clés sont posées au chemin `ici` : par son contexte
+ *  (`FieldDesc.contexte`), sinon par les valeurs de son nœud de clé (`choixDuNoeud`) ? Un record à clé ouverte que rien
+ *  ne pose ne l'est pas. */
+export function clesPosees(f: FieldDesc, ici: readonly (string | number)[]): boolean {
+  const record = recordDuNoeud(f.noeud);
+  return record !== undefined && (f.contexte?.choix(ici) ?? choixDuNoeud(record.cle)) !== undefined;
+}
+
 /** Une variante d'une union : la valeur de son discriminant (vide : la variante d'une union à présence qui ne le porte
  *  pas, `discriminantDePresence`), son libellé, son nœud (`undefined` : une op sans forme déclarée, de
  *  `OPS_NON_TYPEES`, qui se saisit en JSON). */

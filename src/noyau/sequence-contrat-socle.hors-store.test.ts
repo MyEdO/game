@@ -56,11 +56,14 @@ const KIND_OUVRE_FLOW_PUIS_COMBAT = cleDeFixture('sonde-4006-ouvre-flow-puis-com
 const KIND_OUVRE_FLOW_PUIS_QUITTE = cleDeFixture('sonde-4006-ouvre-flow-puis-quitte');
 const KIND_QUITTE = cleDeFixture('sonde-4006-quitte');
 const KIND_PILOTE_IMBRIQUE = cleDeFixture('sonde-4006-pilote-imbrique');
+const KIND_VOIT_LES_FLAGS = cleDeFixture('sonde-3981-voit-les-flags');
 
 /** Le Flow que joue l'applier `KIND_OUVRE_FLOW`, posé par chaque test. */
 let flowOuvert: Flow = { kind: 'sequence', etapes: [] };
 /** Les clôtures `testRateDeLActeur` jouées, avec la profondeur de pile qu'elles voient. */
 let ratesVus: { actorId: string; parquees: number }[] = [];
+/** Les flags que voit l'applier `KIND_VOIT_LES_FLAGS` à son application. */
+let flagsVus: Record<string, boolean>[] = [];
 
 /** Le combat que voit la garde `combatALEntree` : elle lit `get().battle`, un combat complet est inutile. */
 const COMBAT = { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never;
@@ -92,6 +95,7 @@ beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_
   return {};
 }, [KIND_OUVRE_FLOW_PUIS_QUITTE]: (g, s) => { apples++; runFlow(g, s, flowOuvert); quitterLaPile(g, s); return {}; },
 [KIND_QUITTE]: (g, s) => { apples++; quitterLaPile(g, s); return {}; },
+[KIND_VOIT_LES_FLAGS]: (g) => { flagsVus.push({ ...g().flags }); return {}; },
 [KIND_PILOTE_IMBRIQUE]: (g, s) => {
   apples++;
   const automate = g().party[1];
@@ -118,6 +122,7 @@ function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
 beforeEach(() => {
   apples = 0;
   ratesVus = [];
+  flagsVus = [];
   seedBattleRng(7);
   const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
   set({ party, battle: null, pendingCascade: null, suspendedCascades: [], journal: [] } as never);
@@ -506,5 +511,106 @@ describe('#4006 — le pilote immédiat à contexte parque au rang ce que son ap
     expect(continuations, 'l’appelant n’a pas enchaîné sa continuation').toBe(0);
     expect(apples, 'la 2ᵉ étape est jouée une fois').toBe(2);
     expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
+  });
+});
+
+describe('#3981 — la clôture d’un jet hôte hors combat rend le slot à son état d’avant', () => {
+  beforeEach(groupe);
+  const testDeForce: Flow = { kind: 'test', test: { characteristic: 'force' }, reussite: posee('force'), echec: posee('force') };
+  const note = () => displayStep({ id: 'note', kind: KIND_INERTE, actorId: get().party[0].id, label: fixtureText('Note') })!;
+
+  it('une séquence [hôte test, note] arrive à `note` après `jetValider(\'test\')`', () => {
+    runFlow(get, set, testDeForce);
+    startCascade(get, set, { title: 'Suite', purpose: 'test', steps: [note()] });
+    expect(get().pendingCascade?.participants.map((s) => s.jet ?? s.id), 'prémisse : la séquence porte l’hôte puis la note').toEqual(['test', 'note']);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.force, 'la branche du Test est jouée').toBe(true);
+    const slot = get().pendingCascade;
+    expect(slot?.participants[slot.cursor]?.id, 'le curseur est posé sur la note').toBe('note');
+    expect(get().pendingTest).toBeNull();
+  });
+
+  it('une cascade « Autre » suspendue par `openSkillTest` revient au slot après la clôture du Test', () => {
+    startCascade(get, set, { title: 'Autre', purpose: 'affichage', steps: [note()] });
+    runFlow(get, set, testDeForce);
+    expect(get().suspendedCascades.map((c) => c.title), 'prémisse : « Autre » est suspendue sous le Test').toEqual(['Autre']);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().pendingCascade?.title, '« Autre » tient le slot').toBe('Autre');
+    expect(get().suspendedCascades).toEqual([]);
+  });
+
+  it('un Test seul se ferme : slot vide, pile vide', () => {
+    runFlow(get, set, testDeForce);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().pendingCascade).toBeNull();
+    expect(get().suspendedCascades).toEqual([]);
+  });
+  it('la branche du Test se joue AVANT l’étape suivante, même jouée d’office', () => {
+    runFlow(get, set, { ...testDeForce, reussite: posee('x'), echec: posee('x') });
+    const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!;
+    startCascade(get, set, { title: 'Suite', purpose: 'test', steps: [jet] });
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(flagsVus, 'le jet d’office s’applique une fois, sur l’état que la branche a produit').toEqual([{ x: true }]);
+    expect(get().pendingCascade, 'la séquence allée au bout est dénouée').toBeNull();
+  });
+
+  it('un Test ouvert par la branche est la suite IMMÉDIATE de l’hôte, et se valide à son tour', () => {
+    const testB: Flow = { ...testDeForce, reussite: posee('B'), echec: posee('B') };
+    runFlow(get, set, { ...testDeForce, reussite: testB, echec: testB });
+    startCascade(get, set, { title: 'Suite', purpose: 'test', steps: [note()] });
+    get().jetLancer('test');
+    get().jetValider('test');
+    const slot = get().pendingCascade!;
+    expect(slot.participants.map((s) => s.jet ?? s.id), 'B s’insère juste derrière A').toEqual(['test', 'test', 'note']);
+    expect(slot.cursor, 'le curseur est posé sur B').toBe(1);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.B, 'la branche de B est jouée').toBe(true);
+    const apres = get().pendingCascade!;
+    expect(apres.participants[apres.cursor]?.id, 'le curseur est posé sur la note').toBe('note');
+    expect(get().pendingTest).toBeNull();
+  });
+
+  /** L'hôte clos hors du curseur : sa branche se joue, l'étape au curseur reste à jouer, l'hôte sort de la séquence. */
+  const hoteHorsDuCurseur = (auCurseur: BuiltCascadeStep) => {
+    startCascade(get, set, { title: 'Avant', purpose: 'test', steps: [auCurseur] });
+    runFlow(get, set, { ...testDeForce, reussite: posee('x'), echec: posee('x') });
+    expect(get().pendingCascade?.participants.map((s) => s.jet ?? s.id), 'prémisse : l’hôte est appendu derrière le curseur').toEqual([auCurseur.id, 'test']);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.x, 'la branche du Test est jouée').toBe(true);
+    expect(apples, 'l’étape au curseur n’est pas appliquée à la place de l’hôte').toBe(0);
+    const slot = get().pendingCascade;
+    expect(slot?.title, 'le slot « Avant » est conservé').toBe('Avant');
+    expect(slot?.participants.map((s) => s.id), 'l’hôte clos sort de la séquence').toEqual([auCurseur.id]);
+    expect(slot?.cursor, 'le curseur reste sur son étape').toBe(0);
+    expect(get().pendingTest).toBeNull();
+  };
+  it('un hôte clos derrière une note au curseur : la note reste à jouer', () => hoteHorsDuCurseur(note()));
+  it('un hôte clos derrière un jet du meneur non lancé : la branche n’est pas perdue', () => hoteHorsDuCurseur(
+    monoStep({ id: 'jet-meneur', kind: KIND_INERTE, actor: get().party[0], label: fixtureText('Jet meneur'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!,
+  ));
+
+  it('une sortie imbriquée qui dénoue sa séquence ne reprend pas la pile : la sortie externe la reprend après sa suite', () => {
+    startCascade(get, set, { title: 'Autre', purpose: 'affichage', steps: [note()] });
+    suspendActiveCascade(get, set);
+    const pendantLaSuite: string[][] = [];
+    // Le `get` du propriétaire, celui que les verbes du store passent à la sortie imbriquée.
+    sortirDeLHote(banc.getState, set, {}, () => {
+      runFlow(get, set, testDeForce);
+      const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!;
+      startCascade(get, set, { title: 'Interne', purpose: 'test', steps: [jet] });
+      get().jetLancer('test');
+      get().jetValider('test');
+      expect(flagsVus, 'prémisse : la séquence interne est allée au bout').toHaveLength(1);
+      pendantLaSuite.push(get().suspendedCascades.map((c) => c.title));
+    });
+    expect(pendantLaSuite, 'pendant la suite externe, « Autre » reste parquée').toEqual([['Autre']]);
+    expect(get().pendingCascade?.title, 'la sortie externe la reprend').toBe('Autre');
+    expect(get().suspendedCascades).toEqual([]);
   });
 });

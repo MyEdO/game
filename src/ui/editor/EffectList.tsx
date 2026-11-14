@@ -287,8 +287,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'mealParty': return `Repas du groupe`;
     case 'interlude': return `Interlude : ${e.weeks ?? 1} semaine(s)`;
     case 'grantFavor': return `Faveur ${e.level} envers ${e.owedTo || '?'} (${e.heroId || '1ᵉʳ héros'})`;
-    case 'startCombat': return `Combat : ${e.encounter || '?'}`;
-    case 'startPursuit': return `Poursuite (${e.partyRole === 'pursuing' ? 'groupe poursuit' : 'groupe fuit'}) — Distance ${e.distance ?? 4}, ${(e.foes ?? []).length} adversaire(s)${e.encounter ? ` → ${e.encounter}` : ''}`;
+    case 'startCombat': return `Combat : ${e.encounter?.id || '?'}`;
+    case 'startPursuit': return `Poursuite (${e.partyRole === 'pursuing' ? 'groupe poursuit' : 'groupe fuit'}) — Distance ${e.distance ?? 4}, ${(e.foes ?? []).length} adversaire(s)${e.encounter ? ` → ${e.encounter.id}` : ''}`;
     case 'startMassBattle': {
       const b: MassBattleSpec = e.battle ?? {};
       const rounds = b.plannedRounds ?? 1;
@@ -882,7 +882,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </div>
         )}
         {effect.type === 'startCombat' && (
-          <select value={e.encounter ?? ''} onChange={(ev) => upd({ encounter: ev.target.value })}>
+          <select value={e.encounter?.id ?? ''} onChange={(ev) => upd({ encounter: { id: ev.target.value } })}>
             <option value="">— rencontre —</option>
             {ctx.encounters.map((en) => (
               <option key={en.id} value={en.id}>
@@ -907,7 +907,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             </label>
             <RefField cfg={{ ds: 'skills', single: true, spec: true }} label="Compétence de Mouvement" value={e.skill} onChange={(v) => upd({ skill: (v as { id: string; spec?: string }) || { id: '' } })} />
             <label>Rencontre au rattrapage
-              <select value={e.encounter ?? ''} onChange={(ev) => upd({ encounter: ev.target.value })}>
+              <select value={e.encounter?.id ?? ''} onChange={(ev) => upd({ encounter: ev.target.value ? { id: ev.target.value } : undefined })}>
                 <option value="">— aucune (dénouement narratif) —</option>
                 {ctx.encounters.map((en) => <option key={en.id} value={en.id}>{en.id}</option>)}
               </select>

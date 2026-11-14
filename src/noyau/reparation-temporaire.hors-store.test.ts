@@ -143,7 +143,7 @@ describe('mer — réparation temporaire de l’Entretien du soir (MDG 13 l.651,
     prendreLaMer();
     reparerAuSoir();
     expect(testsDeReparation(journee())).toHaveLength(1);
-    set({ travelPlan: null });
+    set({ travelPlan: null, vessel: { ...get().vessel!, escale: 'A' } });
     creditBourse(get, set, get().party[0].id, { gold: 50, silver: 0, brass: 0 });
     portRepairVessel(get, set);
     prendreLaMer();
@@ -155,7 +155,7 @@ describe('mer — réparation temporaire de l’Entretien du soir (MDG 13 l.651,
     prendreLaMer();
     reparerAuSoir();
     expect(get().vessel!.wounds).toEqual({ current: 50, max: 50 });
-    set({ travelPlan: null });
+    set({ travelPlan: null, vessel: { ...get().vessel!, escale: 'A' } });
     const lignes = portRepairVessel(get, set);
     expect(lignes).toHaveLength(1);
     expect(get().vessel!.reparationTemporaire).toBeUndefined();

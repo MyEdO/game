@@ -1306,6 +1306,8 @@ interface PiloteDuCommit {
   unwitnessed?: boolean;
   /** L'appelant DÉCLARE que les rangées de ses bandes se montrent ailleurs qu'au journal (#1291). */
   rowSurface?: RowSurface;
+  /** La SUITE d'une étape-hôte qui se clôt (`sortirDeLHote`, #3981) : sa conséquence, jouée dans la fenêtre d'insertion. */
+  suiteDeLHote?: () => void;
 }
 
 function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote: PiloteDuCommit): { steps: CascadeStep[]; journal: string[]; suspended: boolean; rangDeParcage: number; aOuvert: boolean; seq: number; bornes: BornesDuFragment | null } {
@@ -1343,6 +1345,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   try {
     const differesAvant = comptePasDifferes(get());
     out = applierDe(step.kind)?.(get, set, step, hero, { steps, index: i });
+    pilote.suiteDeLHote?.();
     const differe = comptePasDifferes(get()) > differesAvant ? OPS_DIFFEREES : undefined;
     // `consequences` (#295 Lot 0) : rendu en LIGNES STRUCTURÉES (#349, `resultLines`) — seule voie de
     // dénouement. Le journal texte reste alimenté depuis le même texte (`l.text`), par le routage
@@ -1512,29 +1515,54 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  *  (`sortirDeLHote`) et par le pilote immédiat qui vient de parquer sa séquence sous ce qu'un applier a ouvert
  *  (`piloteImmediat`). */
 export function reprendreLaPile(get: Get, set: Set): void {
-  if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+  if (!enSortieDHote.has(get) && !get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
 }
 
 /** Les stores (`Get`) dont une sortie d'hôte joue sa suite. `WeakSet` : mécanique de réentrance, jamais sérialisée. */
 const enSortieDHote = new WeakSet<Get>();
 
 /**
- * SORTIE D'HÔTE (#4006) : l'hôte d'un Flow qui se clôt hors de `dispatchCascadeDone` libère son pending et le
- * slot en une écriture (`libere`, plus `pendingCascade: null`), joue la `suite` qu'on lui passe, puis reprend la
- * pile (`reprendreLaPile`). Une sortie ouverte PENDANT la suite d'une autre sur le même store (un hôte joué
- * d'office dans la branche, `jouerLHoteDOffice`) libère et joue sa suite, mais ne reprend pas : seule la sortie
- * la plus externe reprend, après sa suite entière.
+ * SORTIE D'HÔTE (#4006, #3981) : l'hôte d'un Flow qui se clôt hors de `dispatchCascadeDone` libère son pending
+ * (`libere`) et joue la `suite` qu'on lui passe. L'hôte est UNE étape de sa séquence. Seul au slot (Test ouvert
+ * hors séquence, slot vide compris), la séquence finit avec lui SANS dénouement : le slot se vide dans la même
+ * écriture et la suite reçoit la séquence fermée. Suivi d'autres étapes, il est validé par le pilote interactif
+ * (`advanceCascade`) et sa suite se joue COMME SA CONSÉQUENCE, dans la fenêtre d'insertion de son commit
+ * (`commitStep`) : ce qu'elle pousse est la suite immédiate de l'hôte ; seulement ensuite le curseur passe à
+ * l'étape suivante, et la séquence allée au bout se dénoue (`clotureDeCascade`). L'hôte est l'étape non validée
+ * dont le slot (`PENDING_BY_JET`) est l'un de ceux que `libere` vide ; hors du curseur, aucune étape n'est validée
+ * à sa place : il sort de la séquence (curseur gardé sur la même étape) et sa suite se joue, une fois. Seule la
+ * sortie la plus externe reprend la pile (`reprendreLaPile`, muette tant qu'une sortie joue sa suite), après sa
+ * suite entière.
  */
-export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: () => void): void {
-  set({ ...libere, pendingCascade: null });
-  if (enSortieDHote.has(get)) { suite(); return; }
+export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: (fermee: PendingCascade | null) => void): void {
+  const sequence = get().pendingCascade;
+  const externe = !enSortieDHote.has(get);
   enSortieDHote.add(get);
+  let denouee: PendingCascade | null = null;
   try {
-    suite();
+    if (!sequence || sequence.cursor >= sequence.participants.length - 1) {
+      set({ ...libere, pendingCascade: null });
+      suite(sequence);
+    } else {
+      const estLHote = (s: CascadeStep | undefined): boolean => {
+        const slot = s?.jet && !s.committed ? PENDING_BY_JET[s.jet] : null;
+        return slot != null && slot in libere;
+      };
+      const { participants, cursor } = sequence;
+      if (estLHote(participants[cursor])) {
+        set(libere);
+        denouee = avancerDepuis(get, set, () => suite(null));
+      } else {
+        const hote = participants.findIndex(estLHote);
+        set(hote < 0 ? libere : { ...libere, pendingCascade: { ...sequence, participants: participants.filter((_, i) => i !== hote), cursor: hote < cursor ? cursor - 1 : cursor } });
+        suite(null);
+      }
+    }
+    if (denouee) clotureDeCascade(denouee);
   } finally {
-    enSortieDHote.delete(get);
+    if (externe) enSortieDHote.delete(get);
   }
-  reprendreLaPile(get, set);
+  if (externe) reprendreLaPile(get, set);
 }
 
 /**
@@ -1706,11 +1734,16 @@ export function curseurPose(get: Get, casc: PendingCascade, i: number): PendingC
  * influençable doit être lancée (sinon no-op : la modale force d'abord le jet).
  */
 export function advanceCascade(get: Get, set: Set): PendingCascade | null {
+  return avancerDepuis(get, set, undefined);
+}
+
+/** `advanceCascade`, la première étape validée portant la suite d'un hôte qui se clôt (`sortirDeLHote`). */
+function avancerDepuis(get: Get, set: Set, suiteDeLHote: (() => void) | undefined): PendingCascade | null {
   // BOUCLE, jamais récursion : une séquence enchaîne autant d'étapes résolues d'office que sa donnée
   // en déclare (cadence déférée, périls d'auteur, journée de voyage) — une récursion y épuise la pile
   // (`RangeError`) et laisse la cascade OUVERTE sur son curseur, sans dénouement.
-  for (;;) {
-    const rendu = avanceUnPas(get, set);
+  for (let suite = suiteDeLHote; ; suite = undefined) {
+    const rendu = avanceUnPas(get, set, suite);
     if (rendu !== ENCORE) return rendu;
   }
 }
@@ -1719,7 +1752,7 @@ export function advanceCascade(get: Get, set: Set): PendingCascade | null {
  *  rend la main à la fenêtre) et d'une cascade finalisée. */
 const ENCORE = Symbol('cascade.encore');
 
-function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE {
+function avanceUnPas(get: Get, set: Set, suiteDeLHote: (() => void) | undefined): PendingCascade | null | typeof ENCORE {
   const p = get().pendingCascade;
   if (!p) return null;
   const cur = p.participants[p.cursor];
@@ -1742,7 +1775,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   const dOffice = !!cur && (stepInteraction(cur) === 'jet' || !!cur.de?.result) && !surfaceOf(get, porteurDe(cur));
   if (cur) {
     // Une séquence que le pilote immédiat a parquée garde la surface de rangées DÉCLARÉE à son lancement.
-    const r = commitStep(get, set, steps, p.cursor, { seq, purpose: p.purpose, liveMerge: true, unwitnessed: dOffice, rowSurface: p.piloteImmediat?.rowSurface }); // liveMerge : préserve les appends d'une conséquence foldée
+    const r = commitStep(get, set, steps, p.cursor, { seq, purpose: p.purpose, liveMerge: true, unwitnessed: dOffice, rowSurface: p.piloteImmediat?.rowSurface, suiteDeLHote }); // liveMerge : préserve les appends d'une conséquence foldée
     steps = r.steps; suspended = r.suspended; seq = r.seq;
     if (r.bornes) fondu = { ...p, ...fusionnerLesBornes(p, r.bornes) };
   }

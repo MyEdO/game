@@ -1666,7 +1666,7 @@ export function createCombatSlice(get: Get, set: Set) {
       });
       roster.forEach(({ m }, i) => {
         if (m.ridesEntityId == null) return;
-        const mi = idxByEntity.get(m.ridesEntityId);
+        const mi = idxByEntity.get(m.ridesEntityId.id);
         const mount = mi == null ? undefined : enemies[mi];
         if (!mount) return;
         mount.mountable = true;
