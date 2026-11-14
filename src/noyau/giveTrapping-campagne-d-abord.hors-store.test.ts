@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyNarratif } from './monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { emptyScene } from './monde/scene';
 import { applyEffects } from './combatEffects';
 import type { Combatant } from '../engine/types';
@@ -23,7 +24,7 @@ const LAME_CAMPAGNE = 'campagne-lame-maudite';
 const narratif: NarratifBlock = {
   ...emptyNarratif(),
   presetsPnj: [{ id: 'pnj-baron-caché' }],
-  objets: [{ id: LAME_CAMPAGNE, label: 'Lame maudite', categorie: 'melee', subType: null } as NarratifBlock['objets'][number]],
+  objets: [objetDeCampagne({ id: LAME_CAMPAGNE, label: 'Lame maudite', categorie: 'melee' })],
 };
 
 function hero(): Combatant {
